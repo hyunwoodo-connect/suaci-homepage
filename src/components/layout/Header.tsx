@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { SITE } from "@/constants/site";
+import { SITE, SECTION_PADDING_X } from "@/constants/site";
 import { NAV_ITEMS, MOBILE_AUTH_LINKS } from "@/constants/navigation";
 
 /**
@@ -22,13 +22,13 @@ export default function Header() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
-      <div className="w-full px-8 sm:px-10 md:px-14 lg:px-20 xl:px-28">
+      <div className={`w-full ${SECTION_PADDING_X}`}>
         <div className="grid grid-cols-3 items-center h-14 sm:h-16 md:h-18 lg:h-20">
           {/* ── 좌측: MENU 버튼 ── */}
           <div className="flex items-center justify-start">
             <button
               onClick={toggleMenu}
-              className="text-xs sm:text-sm tracking-[0.15em] font-bold text-white hover:text-white/60 transition-colors duration-300 p-1"
+              className="text-[11px] sm:text-xs tracking-[0.2em] font-bold text-white hover:text-white/60 transition-colors duration-300 p-1"
               aria-label={isMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
             >
               {isMenuOpen ? "CLOSE" : "MENU"}
@@ -76,7 +76,7 @@ function FullscreenMenu({ onClose }: { onClose: () => void }) {
             key={item.label}
             href={item.href}
             onClick={onClose}
-            className="text-2xl sm:text-3xl md:text-4xl tracking-[0.15em] font-bold text-foreground hover:text-muted transition-colors duration-300"
+            className="text-2xl sm:text-3xl md:text-4xl tracking-[0.12em] font-bold text-foreground hover:text-muted transition-colors duration-300"
           >
             {item.label}
           </Link>
@@ -88,7 +88,7 @@ function FullscreenMenu({ onClose }: { onClose: () => void }) {
               key={item.label}
               href={item.href}
               onClick={onClose}
-              className="text-sm tracking-[0.15em] text-muted hover:text-foreground transition-colors"
+              className="text-xs tracking-[0.15em] text-muted hover:text-foreground transition-colors"
             >
               {item.label}
             </Link>

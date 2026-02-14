@@ -9,3 +9,9 @@ export const SITE = {
 
 /** 히어로 슬라이드 자동 전환 간격 (ms) */
 export const HERO_SLIDE_INTERVAL = 5000;
+
+/**
+ * 공통 섹션 좌우 패딩
+ * 모든 섹션/헤더/푸터에서 동일하게 사용
+ */
+export const SECTION_PADDING_X = "px-5 sm:px-6 md:px-8 lg:px-12 xl:px-16";

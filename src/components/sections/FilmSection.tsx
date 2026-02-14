@@ -1,3 +1,4 @@
+import { SECTION_PADDING_X } from "@/constants/site";
 import SectionHeader from "@/components/ui/SectionHeader";
 import PlayButton from "@/components/ui/PlayButton";
 
@@ -9,7 +10,7 @@ import PlayButton from "@/components/ui/PlayButton";
 export default function FilmSection() {
   return (
     <section className="py-20 md:py-32 bg-[#fafafa]">
-      <div className="max-w-[1400px] mx-auto px-8 sm:px-10 md:px-14 lg:px-20 xl:px-28">
+      <div className={`max-w-[1400px] mx-auto ${SECTION_PADDING_X}`}>
         <SectionHeader subtitle="FILM" title="SUACI IN ACTION" centered />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">

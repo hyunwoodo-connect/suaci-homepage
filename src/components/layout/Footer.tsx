@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SITE } from "@/constants/site";
+import { SITE, SECTION_PADDING_X } from "@/constants/site";
 import { FOOTER_LINK_GROUPS, FOOTER_LEGAL_LINKS } from "@/constants/navigation";
 
 /**
@@ -13,7 +13,7 @@ export default function Footer() {
   return (
     <footer className="bg-foreground text-white">
       {/* 상단 - 링크 그룹 */}
-      <div className="max-w-[1400px] mx-auto px-8 sm:px-10 md:px-14 lg:px-20 xl:px-28 py-14 md:py-20">
+      <div className={`max-w-[1400px] mx-auto ${SECTION_PADDING_X} py-14 md:py-20`}>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-8">
           {/* 브랜드 */}
           <div className="md:col-span-1">
@@ -50,7 +50,7 @@ export default function Footer() {
 
       {/* 하단 - 카피라이트 & 법적 링크 */}
       <div className="border-t border-white/10">
-        <div className="max-w-[1400px] mx-auto px-8 sm:px-10 md:px-14 lg:px-20 xl:px-28 py-6 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className={`max-w-[1400px] mx-auto ${SECTION_PADDING_X} py-6 flex flex-col md:flex-row items-center justify-between gap-4`}>
           <p className="text-xs text-white/30">{SITE.copyright}</p>
           <div className="flex items-center gap-6">
             {FOOTER_LEGAL_LINKS.map((link) => (

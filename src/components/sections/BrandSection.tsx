@@ -1,4 +1,4 @@
-import { SITE } from "@/constants/site";
+import { SITE, SECTION_PADDING_X } from "@/constants/site";
 import ArrowButton from "@/components/ui/ArrowButton";
 
 /**
@@ -15,17 +15,17 @@ export default function BrandSection() {
         RECOVERY
       </div>
 
-      <div className="relative z-10 max-w-[1400px] mx-auto px-8 sm:px-10 md:px-14 lg:px-20 xl:px-28">
+      <div className={`relative z-10 max-w-[1400px] mx-auto ${SECTION_PADDING_X}`}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 items-center">
           {/* 좌측 - 이미지 플레이스홀더 */}
           <BrandImagePlaceholder />
 
           {/* 우측 - 텍스트 콘텐츠 */}
           <div>
-            <p className="text-xs tracking-[0.3em] text-white/40 mb-4">
+            <p className="text-[10px] sm:text-xs tracking-[0.25em] text-white/40 mb-4">
               OUTDOOR RECOVERY SKINCARE
             </p>
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-[1.2] tracking-tight mb-6">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-[1.15] tracking-[-0.02em] mb-6">
               활동 직후,<br />
               피부에 필요한 건<br />
               즉각적인 회복
@@ -33,17 +33,17 @@ export default function BrandSection() {
 
             <div className="w-10 h-[1px] bg-white/30 mb-6" />
 
-            <p className="text-sm md:text-base text-white/50 leading-relaxed mb-4">
+            <p className="text-sm md:text-base text-white/50 leading-[1.8] tracking-[-0.01em] mb-4">
               수천억 달러 규모의 글로벌 스킨케어 시장에서,
               아웃도어 활동 직후 즉시 회복에 특화된 제품군은
               카테고리 자체가 존재하지 않았습니다.
             </p>
-            <p className="text-sm md:text-base text-white/50 leading-relaxed mb-4">
+            <p className="text-sm md:text-base text-white/50 leading-[1.8] tracking-[-0.01em] mb-4">
               SUACI는 그 구조적 공백에 진입합니다.
               자외선, 땀, 먼지로 지친 피부를 즉시 쿨링하고
               진정시키며, 손상된 장벽에 수분을 빠르게 보충합니다.
             </p>
-            <p className="text-sm md:text-base text-white/50 leading-relaxed mb-10">
+            <p className="text-sm md:text-base text-white/50 leading-[1.8] tracking-[-0.01em] mb-10">
               복잡한 루틴 없이, 그 자리에서 바로.
               과학 기반 성분과 K-뷰티 인프라로 만든
               원스텝 리커버리.
