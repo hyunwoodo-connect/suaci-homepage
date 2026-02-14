@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import { SITE } from "@/constants/site";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SUACI — Official",
-  description: "SUACI 공식 웹사이트",
+  title: SITE.title,
+  description: SITE.description,
 };
 
 export default function RootLayout({
@@ -13,9 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className="antialiased">
-        {children}
-      </body>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }
