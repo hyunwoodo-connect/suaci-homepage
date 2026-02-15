@@ -60,7 +60,6 @@ export default function Header() {
 
             {/* ── 우측: 아이콘 3개 ── */}
             <div className="flex items-center justify-end gap-3 sm:gap-4 lg:gap-5">
-              <LanguageSwitcher />
               <IconButton icon="search" label={t("search")} />
               <IconButton icon="user" label={t("mypage")} />
               <IconButton icon="cart" label={t("cart")} badgeCount={0} />
@@ -152,9 +151,10 @@ function SideMenu({
           </div>
         </nav>
 
-        {/* 하단 태그라인 */}
+        {/* 하단 — 언어 스위처 + 태그라인 */}
         <div className="absolute bottom-8 left-6 sm:left-8 right-6 sm:right-8">
-          <p className="text-[10px] tracking-[0.1em] text-white/20">
+          <LanguageSwitcher />
+          <p className="text-[10px] tracking-[0.1em] text-white/20 mt-4">
             Recover Right After the Ride.
           </p>
         </div>
