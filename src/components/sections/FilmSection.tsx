@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { SECTION_PADDING_X } from "@/constants/site";
 import SectionHeader from "@/components/ui/SectionHeader";
 import PlayButton from "@/components/ui/PlayButton";
@@ -8,19 +9,21 @@ import PlayButton from "@/components/ui/PlayButton";
  * 레이아웃: 좌측 큰 카드(2칸) + 우측 세로 2장(1칸)
  */
 export default function FilmSection() {
+  const t = useTranslations("film");
+
   return (
     <section className="py-20 md:py-32 bg-[#fafafa]">
       <div className={`max-w-[1400px] mx-auto ${SECTION_PADDING_X}`}>
-        <SectionHeader subtitle="FILM" title="SUACI IN ACTION" centered />
+        <SectionHeader subtitle={t("subtitle")} title={t("title")} centered />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
           {/* 메인 카드 (2칸) */}
           <FilmCard
             className="md:col-span-2"
             bg="bg-[#222]"
-            label="BRAND FILM"
-            title="Why Recovery Matters"
-            description="활동 직후, 피부에 일어나는 변화"
+            label={t("brandFilm")}
+            title={t("brandFilmTitle")}
+            description={t("brandFilmDesc")}
             playSize="lg"
             aspect="aspect-[16/9]"
           />
@@ -30,15 +33,15 @@ export default function FilmSection() {
             <FilmCard
               className="flex-1"
               bg="bg-[#2a2a2a]"
-              label="HOW TO USE"
-              title="One Step Recovery"
+              label={t("howToUse")}
+              title={t("howToUseTitle")}
               aspect="aspect-[16/9] md:aspect-auto md:h-full"
             />
             <FilmCard
               className="flex-1"
               bg="bg-[#1e1e1e]"
-              label="FIELD TEST"
-              title="Real Outdoor, Real Skin"
+              label={t("fieldTest")}
+              title={t("fieldTestTitle")}
               aspect="aspect-[16/9] md:aspect-auto md:h-full"
             />
           </div>

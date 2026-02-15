@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import Image from "next/image";
-import { SITE, SECTION_PADDING_X } from "@/constants/site";
-import { NAV_ITEMS, MOBILE_AUTH_LINKS } from "@/constants/navigation";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
+import { SECTION_PADDING_X } from "@/constants/site";
+import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 
 /**
  * 사이트 공통 헤더
@@ -14,6 +15,7 @@ import { NAV_ITEMS, MOBILE_AUTH_LINKS } from "@/constants/navigation";
  */
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const t = useTranslations("header");
 
   const toggleMenu = () => setIsMenuOpen((prev) => !prev);
   const closeMenu = () => setIsMenuOpen(false);
@@ -36,9 +38,9 @@ export default function Header() {
               <button
                 onClick={toggleMenu}
                 className="text-[11px] sm:text-xs tracking-[0.2em] font-bold text-white hover:text-white/60 transition-colors duration-300 p-1"
-                aria-label={isMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
+                aria-label={isMenuOpen ? t("menuClose") : t("menuOpen")}
               >
-                {isMenuOpen ? "CLOSE" : "MENU"}
+                {isMenuOpen ? t("close") : t("menu")}
               </button>
             </div>
 
@@ -47,7 +49,7 @@ export default function Header() {
               <Link href="/" onClick={closeMenu}>
                 <Image
                   src="/logo.png"
-                  alt={SITE.name}
+                  alt="SUACI"
                   width={120}
                   height={40}
                   priority
@@ -58,9 +60,10 @@ export default function Header() {
 
             {/* ── 우측: 아이콘 3개 ── */}
             <div className="flex items-center justify-end gap-3 sm:gap-4 lg:gap-5">
-              <IconButton icon="search" label="검색" />
-              <IconButton icon="user" label="마이페이지" />
-              <IconButton icon="cart" label="장바구니" badgeCount={0} />
+              <LanguageSwitcher />
+              <IconButton icon="search" label={t("search")} />
+              <IconButton icon="user" label={t("mypage")} />
+              <IconButton icon="cart" label={t("cart")} badgeCount={0} />
             </div>
           </div>
         </div>
@@ -81,6 +84,20 @@ function SideMenu({
   isOpen: boolean;
   onClose: () => void;
 }) {
+  const t = useTranslations("nav");
+  const tHeader = useTranslations("header");
+
+  const navItems = [
+    { label: t("product"), href: "#product" },
+    { label: t("story"), href: "#story" },
+    { label: t("event"), href: "/event" },
+  ];
+
+  const authLinks = [
+    { label: t("login"), href: "#" },
+    { label: t("join"), href: "#" },
+  ];
+
   return (
     <>
       {/* 배경 딤 */}
@@ -104,16 +121,16 @@ function SideMenu({
             onClick={onClose}
             className="text-[11px] sm:text-xs tracking-[0.2em] font-bold text-white/70 hover:text-white transition-colors"
           >
-            CLOSE
+            {tHeader("close")}
           </button>
         </div>
 
         {/* 내비게이션 */}
         <nav className="flex flex-col px-6 sm:px-8 pt-6 sm:pt-10">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <Link
               key={item.label}
-              href={item.href}
+              href={item.href as any}
               onClick={onClose}
               className="block py-3 sm:py-4 text-3xl sm:text-4xl md:text-2xl lg:text-3xl tracking-[0.04em] font-bold text-white hover:text-[#A9FF39] transition-colors duration-300"
             >
@@ -122,10 +139,10 @@ function SideMenu({
           ))}
 
           <div className="border-t border-white/10 mt-8 pt-6 flex flex-col gap-3">
-            {MOBILE_AUTH_LINKS.map((item) => (
+            {authLinks.map((item) => (
               <Link
                 key={item.label}
-                href={item.href}
+                href={item.href as any}
                 onClick={onClose}
                 className="text-xs tracking-[0.15em] text-white/40 hover:text-white transition-colors"
               >
@@ -138,7 +155,7 @@ function SideMenu({
         {/* 하단 태그라인 */}
         <div className="absolute bottom-8 left-6 sm:left-8 right-6 sm:right-8">
           <p className="text-[10px] tracking-[0.1em] text-white/20">
-            {SITE.tagline}
+            Recover Right After the Ride.
           </p>
         </div>
       </div>

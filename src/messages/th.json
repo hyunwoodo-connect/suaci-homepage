@@ -1,0 +1,79 @@
+{
+  "site": {
+    "title": "SUACI — Outdoor Recovery Skincare",
+    "description": "ฟื้นฟูผิวทันทีหลังกิจกรรมกลางแจ้ง เว็บไซต์ทางการของ SUACI"
+  },
+  "header": {
+    "menu": "MENU",
+    "close": "CLOSE",
+    "menuOpen": "เปิดเมนู",
+    "menuClose": "ปิดเมนู",
+    "search": "ค้นหา",
+    "mypage": "หน้าของฉัน",
+    "cart": "ตะกร้า"
+  },
+  "nav": {
+    "product": "PRODUCT",
+    "story": "STORY",
+    "event": "EVENT",
+    "login": "LOGIN",
+    "join": "JOIN US"
+  },
+  "hero": {
+    "logoAlt": "SUACI"
+  },
+  "brandStory": {
+    "subtitle": "WHY WE STARTED",
+    "title": "เพื่อช่วงเวลา\nที่ไม่มีใครใส่ใจ",
+    "p1": "หลังปีนเขา หน้าแสบ หลังเล่นเซิร์ฟ ผิวตึง หลังวิ่ง แก้มร้อนผ่าว",
+    "p2": "แต่ไม่มีอะไรใช้ได้ในตอนนั้น ครีมกันแดดใช้ก่อนออก สกินแคร์ใช้ที่บ้าน ระหว่างนั้นหลายชั่วโมง ผิวถูกทิ้งไว้ตามยถากรรม",
+    "p3": "ในตลาดสกินแคร์มูลค่าหลายแสนล้านดอลลาร์ หมวดหมู่การฟื้นฟูทันทีหลังกิจกรรมไม่เคยมีอยู่",
+    "p4": "เราจึงตัดสินใจสร้างมันขึ้นมา ผลิตภัณฑ์ที่ใช้ได้ทันที ตรงนั้น หลังกิจกรรม SUACI เริ่มต้นอย่างนั้น"
+  },
+  "product": {
+    "subtitle": "OUTDOOR RECOVERY",
+    "name": "Instant Cooling Mist",
+    "size": "50ml / 1.7 fl.oz",
+    "benefit1Title": "Cooling",
+    "benefit1Desc": "ลดอุณหภูมิผิวที่สูงขึ้นหลังกิจกรรมทันที",
+    "benefit2Title": "Soothing",
+    "benefit2Desc": "สงบการอักเสบจากรังสี UV เหงื่อ และฝุ่น",
+    "benefit3Title": "Hydrating",
+    "benefit3Desc": "เติมความชุ่มชื้นอย่างรวดเร็วให้ผิวที่เสียหาย",
+    "keyIngredients": "KEY INGREDIENTS",
+    "price": "₩29,000",
+    "cta": "COMING SOON"
+  },
+  "film": {
+    "subtitle": "FILM",
+    "title": "SUACI IN ACTION",
+    "brandFilm": "BRAND FILM",
+    "brandFilmTitle": "Why Recovery Matters",
+    "brandFilmDesc": "สิ่งที่เกิดขึ้นกับผิวหลังกิจกรรม",
+    "howToUse": "HOW TO USE",
+    "howToUseTitle": "One Step Recovery",
+    "fieldTest": "FIELD TEST",
+    "fieldTestTitle": "Real Outdoor, Real Skin"
+  },
+  "brand": {
+    "subtitle": "OUTDOOR RECOVERY SKINCARE",
+    "title": "หลังกิจกรรม\nผิวต้องการ\nการฟื้นฟูทันที",
+    "p1": "ในตลาดสกินแคร์ระดับโลกมูลค่าหลายแสนล้านดอลลาร์ ไม่มีหมวดผลิตภัณฑ์ที่เชี่ยวชาญด้านการฟื้นฟูทันทีหลังกิจกรรมกลางแจ้ง",
+    "p2": "SUACI เข้าสู่ช่องว่างเชิงโครงสร้างนั้น ทำให้ผิวที่อ่อนล้าจาก UV เหงื่อ และฝุ่นเย็นลงและสงบลงทันที พร้อมเติมความชุ่มชื้นอย่างรวดเร็ว",
+    "p3": "ไม่ต้องมีขั้นตอนซับซ้อน ตรงนั้น ทันที การฟื้นฟูในขั้นตอนเดียวด้วยส่วนผสมที่มีงานวิจัยรองรับและโครงสร้าง K-Beauty",
+    "cta": "DISCOVER MORE"
+  },
+  "footer": {
+    "productGroup": "PRODUCT",
+    "outdoorMist": "Outdoor Mist",
+    "howToUse": "How to Use",
+    "brandGroup": "BRAND",
+    "aboutSuaci": "About SUACI",
+    "supportGroup": "SUPPORT",
+    "notice": "ประกาศ",
+    "qa": "Q&A",
+    "event": "อีเวนต์",
+    "terms": "เงื่อนไขการใช้งาน",
+    "privacy": "นโยบายความเป็นส่วนตัว"
+  }
+}

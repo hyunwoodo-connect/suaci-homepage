@@ -1,4 +1,5 @@
-import { SITE, SECTION_PADDING_X } from "@/constants/site";
+import { useTranslations } from "next-intl";
+import { SECTION_PADDING_X } from "@/constants/site";
 import ArrowButton from "@/components/ui/ArrowButton";
 
 /**
@@ -8,6 +9,11 @@ import ArrowButton from "@/components/ui/ArrowButton";
  * 어두운 배경에 배경 장식 텍스트
  */
 export default function BrandSection() {
+  const t = useTranslations("brand");
+
+  // title에 \n이 포함되어 있으므로 <br />로 변환
+  const titleParts = t("title").split("\n");
+
   return (
     <section id="story" className="relative py-24 md:py-40 bg-foreground text-white overflow-hidden">
       {/* 배경 장식 텍스트 */}
@@ -23,34 +29,31 @@ export default function BrandSection() {
           {/* 우측 - 텍스트 콘텐츠 */}
           <div>
             <p className="text-[10px] sm:text-xs tracking-[0.25em] text-white/40 mb-4">
-              OUTDOOR RECOVERY SKINCARE
+              {t("subtitle")}
             </p>
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-[1.15] tracking-[-0.02em] mb-6">
-              활동 직후,<br />
-              피부에 필요한 건<br />
-              즉각적인 회복
+              {titleParts.map((part, i) => (
+                <span key={i}>
+                  {part}
+                  {i < titleParts.length - 1 && <br />}
+                </span>
+              ))}
             </h2>
 
             <div className="w-10 h-[1px] bg-white/30 mb-6" />
 
             <p className="text-sm md:text-base text-white/50 leading-[1.8] tracking-[-0.01em] mb-4">
-              수천억 달러 규모의 글로벌 스킨케어 시장에서,
-              아웃도어 활동 직후 즉시 회복에 특화된 제품군은
-              카테고리 자체가 존재하지 않았습니다.
+              {t("p1")}
             </p>
             <p className="text-sm md:text-base text-white/50 leading-[1.8] tracking-[-0.01em] mb-4">
-              SUACI는 그 구조적 공백에 진입합니다.
-              자외선, 땀, 먼지로 지친 피부를 즉시 쿨링하고
-              진정시키며, 손상된 장벽에 수분을 빠르게 보충합니다.
+              {t("p2")}
             </p>
             <p className="text-sm md:text-base text-white/50 leading-[1.8] tracking-[-0.01em] mb-10">
-              복잡한 루틴 없이, 그 자리에서 바로.
-              과학 기반 성분과 K-뷰티 인프라로 만든
-              원스텝 리커버리.
+              {t("p3")}
             </p>
 
             <ArrowButton href="#" variant="light">
-              DISCOVER MORE
+              {t("cta")}
             </ArrowButton>
           </div>
         </div>

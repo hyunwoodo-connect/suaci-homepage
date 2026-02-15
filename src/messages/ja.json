@@ -1,0 +1,79 @@
+{
+  "site": {
+    "title": "SUACI — アウトドア リカバリー スキンケア",
+    "description": "アウトドア活動直後、肌の即時回復。SUACI公式ウェブサイト。"
+  },
+  "header": {
+    "menu": "MENU",
+    "close": "CLOSE",
+    "menuOpen": "メニューを開く",
+    "menuClose": "メニューを閉じる",
+    "search": "検索",
+    "mypage": "マイページ",
+    "cart": "カート"
+  },
+  "nav": {
+    "product": "PRODUCT",
+    "story": "STORY",
+    "event": "EVENT",
+    "login": "LOGIN",
+    "join": "JOIN US"
+  },
+  "hero": {
+    "logoAlt": "SUACI"
+  },
+  "brandStory": {
+    "subtitle": "WHY WE STARTED",
+    "title": "誰も気にしなかった\nその瞬間のために",
+    "p1": "山を下りると顔がヒリヒリし、サーフィンの後は肌がつっぱり、ランニングの後は頬が火照ります。",
+    "p2": "でも、その瞬間に使えるものは何もありませんでした。日焼け止めは活動前、スキンケアは家で。その間の数時間、肌はただ放置されていました。",
+    "p3": "数千億ドル規模のスキンケア市場で、活動後の即時回復というカテゴリーは存在しませんでした。",
+    "p4": "だから作ることにしました。活動直後、その場ですぐ使えるものを。SUACIはそうして始まりました。"
+  },
+  "product": {
+    "subtitle": "OUTDOOR RECOVERY",
+    "name": "Instant Cooling Mist",
+    "size": "50ml / 1.7 fl.oz",
+    "benefit1Title": "Cooling",
+    "benefit1Desc": "活動直後に上昇した肌表面温度を即座に下げます",
+    "benefit2Title": "Soothing",
+    "benefit2Desc": "紫外線・汗・埃で刺激を受けた肌の炎症反応を鎮めます",
+    "benefit3Title": "Hydrating",
+    "benefit3Desc": "損傷した肌バリアに素早く水分を補給します",
+    "keyIngredients": "KEY INGREDIENTS",
+    "price": "₩29,000",
+    "cta": "COMING SOON"
+  },
+  "film": {
+    "subtitle": "FILM",
+    "title": "SUACI IN ACTION",
+    "brandFilm": "BRAND FILM",
+    "brandFilmTitle": "Why Recovery Matters",
+    "brandFilmDesc": "活動直後、肌に起こる変化",
+    "howToUse": "HOW TO USE",
+    "howToUseTitle": "One Step Recovery",
+    "fieldTest": "FIELD TEST",
+    "fieldTestTitle": "Real Outdoor, Real Skin"
+  },
+  "brand": {
+    "subtitle": "OUTDOOR RECOVERY SKINCARE",
+    "title": "活動直後、\n肌に必要なのは\n即時の回復",
+    "p1": "数千億ドル規模のグローバルスキンケア市場で、アウトドア活動直後の即時回復に特化した製品カテゴリーは存在しませんでした。",
+    "p2": "SUACIはその構造的な空白に参入します。紫外線、汗、埃で疲れた肌を即座にクーリング・鎮静し、損傷したバリアに素早く水分を補給します。",
+    "p3": "複雑なルーティンなしに、その場ですぐに。科学ベースの成分とK-ビューティーインフラで作ったワンステップリカバリー。",
+    "cta": "DISCOVER MORE"
+  },
+  "footer": {
+    "productGroup": "PRODUCT",
+    "outdoorMist": "Outdoor Mist",
+    "howToUse": "How to Use",
+    "brandGroup": "BRAND",
+    "aboutSuaci": "About SUACI",
+    "supportGroup": "SUPPORT",
+    "notice": "お知らせ",
+    "qa": "Q&A",
+    "event": "イベント",
+    "terms": "利用規約",
+    "privacy": "プライバシーポリシー"
+  }
+}

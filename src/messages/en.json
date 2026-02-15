@@ -1,0 +1,79 @@
+{
+  "site": {
+    "title": "SUACI — Outdoor Recovery Skincare",
+    "description": "Instant skin recovery right after outdoor activities. SUACI official website."
+  },
+  "header": {
+    "menu": "MENU",
+    "close": "CLOSE",
+    "menuOpen": "Open menu",
+    "menuClose": "Close menu",
+    "search": "Search",
+    "mypage": "My Page",
+    "cart": "Cart"
+  },
+  "nav": {
+    "product": "PRODUCT",
+    "story": "STORY",
+    "event": "EVENT",
+    "login": "LOGIN",
+    "join": "JOIN US"
+  },
+  "hero": {
+    "logoAlt": "SUACI"
+  },
+  "brandStory": {
+    "subtitle": "WHY WE STARTED",
+    "title": "For the moment\nno one cared about",
+    "p1": "After hiking, your face stings. After surfing, your skin feels tight. After running, your cheeks burn.",
+    "p2": "But there was nothing you could use in that moment. Sunscreen is for before. Skincare is for home. For hours in between, your skin was just left on its own.",
+    "p3": "In a multi-billion dollar skincare market, the category of instant post-activity recovery simply didn't exist.",
+    "p4": "So we decided to build it. Products you can use right there, right after. That's how SUACI started."
+  },
+  "product": {
+    "subtitle": "OUTDOOR RECOVERY",
+    "name": "Instant Cooling Mist",
+    "size": "50ml / 1.7 fl.oz",
+    "benefit1Title": "Cooling",
+    "benefit1Desc": "Instantly lowers elevated skin surface temperature after activity",
+    "benefit2Title": "Soothing",
+    "benefit2Desc": "Calms inflammatory responses from UV, sweat, and dust exposure",
+    "benefit3Title": "Hydrating",
+    "benefit3Desc": "Rapidly replenishes moisture to damaged skin barrier",
+    "keyIngredients": "KEY INGREDIENTS",
+    "price": "₩29,000",
+    "cta": "COMING SOON"
+  },
+  "film": {
+    "subtitle": "FILM",
+    "title": "SUACI IN ACTION",
+    "brandFilm": "BRAND FILM",
+    "brandFilmTitle": "Why Recovery Matters",
+    "brandFilmDesc": "What happens to your skin right after activity",
+    "howToUse": "HOW TO USE",
+    "howToUseTitle": "One Step Recovery",
+    "fieldTest": "FIELD TEST",
+    "fieldTestTitle": "Real Outdoor, Real Skin"
+  },
+  "brand": {
+    "subtitle": "OUTDOOR RECOVERY SKINCARE",
+    "title": "Right after activity,\nyour skin needs\ninstant recovery",
+    "p1": "In a multi-billion dollar global skincare market, there was no product category specializing in instant recovery right after outdoor activities.",
+    "p2": "SUACI enters that structural gap. Instantly cooling and soothing skin exhausted by UV, sweat, and dust, while rapidly replenishing moisture to the damaged barrier.",
+    "p3": "No complex routine. Right there, right then. One-step recovery made with science-backed ingredients and K-Beauty infrastructure.",
+    "cta": "DISCOVER MORE"
+  },
+  "footer": {
+    "productGroup": "PRODUCT",
+    "outdoorMist": "Outdoor Mist",
+    "howToUse": "How to Use",
+    "brandGroup": "BRAND",
+    "aboutSuaci": "About SUACI",
+    "supportGroup": "SUPPORT",
+    "notice": "Notice",
+    "qa": "Q&A",
+    "event": "Event",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy"
+  }
+}

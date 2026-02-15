@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { SECTION_PADDING_X } from "@/constants/site";
 
 /**
@@ -8,6 +8,10 @@ import { SECTION_PADDING_X } from "@/constants/site";
  * 모바일: 이미지 위 → 정보 아래 스택
  */
 export default function ProductSection() {
+  const t = useTranslations("product");
+
+  const ingredients = ["Centella Asiatica", "Menthol", "Hyaluronic Acid", "Aloe Vera", "Panthenol"];
+
   return (
     <section id="product" className="py-20 md:py-32">
       <div className={`max-w-[1400px] mx-auto ${SECTION_PADDING_X}`}>
@@ -25,60 +29,58 @@ export default function ProductSection() {
           {/* 우측 — 제품 정보 */}
           <div>
             <p className="text-[10px] sm:text-xs tracking-[0.2em] text-muted mb-3">
-              OUTDOOR RECOVERY
+              {t("subtitle")}
             </p>
 
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-[-0.02em] leading-[1.2] mb-2">
-              Instant Cooling Mist
+              {t("name")}
             </h2>
 
-            <p className="text-sm text-muted mb-6">50ml / 1.7 fl.oz</p>
+            <p className="text-sm text-muted mb-6">{t("size")}</p>
 
             {/* 핵심 가치 3가지 */}
             <div className="flex flex-col gap-5 mb-8">
               <BenefitItem
                 number="01"
-                title="Cooling"
-                description="활동 직후 상승한 피부 표면 온도를 즉시 낮춰줍니다"
+                title={t("benefit1Title")}
+                description={t("benefit1Desc")}
               />
               <BenefitItem
                 number="02"
-                title="Soothing"
-                description="자외선·땀·먼지로 자극된 피부의 염증 반응을 안정시킵니다"
+                title={t("benefit2Title")}
+                description={t("benefit2Desc")}
               />
               <BenefitItem
                 number="03"
-                title="Hydrating"
-                description="손상된 피부 장벽에 수분을 빠르게 보충합니다"
+                title={t("benefit3Title")}
+                description={t("benefit3Desc")}
               />
             </div>
 
             {/* 핵심 성분 */}
             <div className="border-t border-border pt-6 mb-8">
               <p className="text-[10px] tracking-[0.15em] text-muted mb-3">
-                KEY INGREDIENTS
+                {t("keyIngredients")}
               </p>
               <div className="flex flex-wrap gap-2">
-                {["Centella Asiatica", "Menthol", "Hyaluronic Acid", "Aloe Vera", "Panthenol"].map(
-                  (ingredient) => (
-                    <span
-                      key={ingredient}
-                      className="text-xs tracking-[-0.01em] px-3 py-1.5 border border-border text-foreground/70"
-                    >
-                      {ingredient}
-                    </span>
-                  )
-                )}
+                {ingredients.map((ingredient) => (
+                  <span
+                    key={ingredient}
+                    className="text-xs tracking-[-0.01em] px-3 py-1.5 border border-border text-foreground/70"
+                  >
+                    {ingredient}
+                  </span>
+                ))}
               </div>
             </div>
 
             {/* 가격 + CTA */}
             <div className="flex items-center gap-6">
               <span className="text-2xl font-bold tracking-[-0.02em]">
-                ₩29,000
+                {t("price")}
               </span>
               <button className="bg-foreground text-white text-xs tracking-[0.1em] font-semibold px-8 py-3.5 hover:bg-foreground/80 transition-colors">
-                COMING SOON
+                {t("cta")}
               </button>
             </div>
           </div>

@@ -1,15 +1,16 @@
 import Image from "next/image";
-import { SITE, SECTION_PADDING_X } from "@/constants/site";
+import { useTranslations } from "next-intl";
+import { SECTION_PADDING_X } from "@/constants/site";
 
 /**
  * 히어로 섹션
  *
- * 풀스크린 비디오 위에 좌측 하단 겹침 (위→아래 순서):
- * 1) 타이틀
- * 2) 설명
- * 3) 로고 이미지 (풀 와이드)
+ * 풀스크린 비디오 위에 좌측 하단 겹침:
+ * 로고 이미지 (풀 와이드)
  */
 export default function HeroSection() {
+  const t = useTranslations("hero");
+
   return (
     <section className="relative w-full h-screen overflow-hidden">
       {/* 배경 비디오 */}
@@ -30,7 +31,7 @@ export default function HeroSection() {
       <div className={`relative z-10 h-full flex flex-col justify-end ${SECTION_PADDING_X} pb-6 sm:pb-8 md:pb-10`}>
         <Image
           src="/logo.png"
-          alt={SITE.name}
+          alt={t("logoAlt")}
           width={1920}
           height={400}
           priority
