@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { SECTION_PADDING_X } from "@/constants/site";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
+import LoginModal from "@/components/ui/LoginModal";
 
 /**
  * 사이트 공통 헤더
@@ -15,11 +16,17 @@ import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
  */
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const t = useTranslations("header");
 
   const toggleMenu = () => setIsMenuOpen((prev) => !prev);
   const closeMenu = () => setIsMenuOpen(false);
+  const openLogin = () => {
+    closeMenu();
+    setIsLoginOpen(true);
+  };
+  const closeLogin = () => setIsLoginOpen(false);
 
   // 메뉴 열릴 때 스크롤 잠금
   useEffect(() => {
@@ -92,7 +99,10 @@ export default function Header() {
       </header>
 
       {/* ── 메뉴 패널 ── */}
-      <SideMenu isOpen={isMenuOpen} onClose={closeMenu} />
+      <SideMenu isOpen={isMenuOpen} onClose={closeMenu} onLoginClick={openLogin} />
+
+      {/* ── 로그인 모달 ── */}
+      <LoginModal isOpen={isLoginOpen} onClose={closeLogin} />
     </>
   );
 }
@@ -102,9 +112,11 @@ export default function Header() {
 function SideMenu({
   isOpen,
   onClose,
+  onLoginClick,
 }: {
   isOpen: boolean;
   onClose: () => void;
+  onLoginClick: () => void;
 }) {
   const t = useTranslations("nav");
   const tHeader = useTranslations("header");
@@ -113,11 +125,6 @@ function SideMenu({
     { label: t("product"), href: "#product" },
     { label: t("story"), href: "#story" },
     { label: t("event"), href: "/event" },
-  ];
-
-  const authLinks = [
-    { label: t("login"), href: "/login" },
-    { label: t("join"), href: "#" },
   ];
 
   return (
@@ -161,16 +168,19 @@ function SideMenu({
           ))}
 
           <div className="border-t border-white/10 mt-8 pt-6 flex flex-col gap-3">
-            {authLinks.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href as any}
-                onClick={onClose}
-                className="text-xs tracking-[0.15em] text-white/40 hover:text-white transition-colors"
-              >
-                {item.label}
-              </Link>
-            ))}
+            <button
+              onClick={onLoginClick}
+              className="text-xs tracking-[0.15em] text-white/40 hover:text-white transition-colors text-left"
+            >
+              {t("login")}
+            </button>
+            <Link
+              href="/signup"
+              onClick={onClose}
+              className="text-xs tracking-[0.15em] text-white/40 hover:text-white transition-colors"
+            >
+              {t("join")}
+            </Link>
           </div>
         </nav>
 

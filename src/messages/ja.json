@@ -32,7 +32,7 @@
   },
   "product": {
     "subtitle": "OUTDOOR RECOVERY",
-    "name": "Instant Cooling Mist",
+    "name": "Cooling Recovery Mist",
     "size": "50ml / 1.7 fl.oz",
     "benefit1Title": "Cooling",
     "benefit1Desc": "活動直後に上昇した肌表面温度を即座に下げます",
@@ -52,6 +52,23 @@
     "googleLogin": "Googleで続ける",
     "noAccount": "アカウントをお持ちでないですか？",
     "signUp": "新規登録"
+  },
+  "signup": {
+    "title": "CREATE ACCOUNT",
+    "name": "お名前",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "passwordConfirm": "パスワード確認",
+    "agreeAll": "すべてに同意",
+    "agreeTerms": "利用規約に同意します",
+    "agreePrivacy": "個人情報の収集・利用に同意します",
+    "agreeAge": "14歳以上です",
+    "agreeMarketing": "マーケティング情報の受信に同意します",
+    "signUpButton": "JOIN US",
+    "or": "OR",
+    "googleSignUp": "Googleで始める",
+    "hasAccount": "すでにアカウントをお持ちですか？",
+    "loginLink": "ログイン"
   },
   "lifestyle": {
     "subtitle": "LIFESTYLE",
