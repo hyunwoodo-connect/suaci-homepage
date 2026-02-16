@@ -24,11 +24,11 @@
   },
   "brandStory": {
     "subtitle": "WHY WE STARTED",
-    "title": "For the moment\nno one cared about",
-    "p1": "After hiking, your face stings. After surfing, your skin feels tight. After running, your cheeks burn.",
-    "p2": "But there was nothing you could use in that moment. Sunscreen is for before. Skincare is for home. For hours in between, your skin was just left on its own.",
-    "p3": "In a multi-billion dollar skincare market, the category of instant post-activity recovery simply didn't exist.",
-    "p4": "So we decided to build it. Products you can use right there, right after. That's how SUACI started."
+    "title": "Outside, your skin\nwas always on its own",
+    "p1": "Walking to work, strolling through the park, spending the day outdoors. The moment you step outside, your skin is exposed to UV rays, dry air, and dust.",
+    "p2": "But there was no product that could hydrate your skin right then and there. Sunscreen is for before you leave. Skincare is for when you get home. Outside, there was nothing you could do for your skin.",
+    "p3": "In a multi-billion dollar skincare market, the category of instant outdoor hydration simply didn't exist.",
+    "p4": "So we built it. Something you can pull out and use anytime, anywhere. That's how SUACI started."
   },
   "product": {
     "subtitle": "OUTDOOR RECOVERY",
@@ -44,24 +44,18 @@
     "price": "₩29,000",
     "cta": "COMING SOON"
   },
-  "film": {
-    "subtitle": "FILM",
-    "title": "SUACI IN ACTION",
-    "brandFilm": "BRAND FILM",
-    "brandFilmTitle": "Why Recovery Matters",
-    "brandFilmDesc": "What happens to your skin right after activity",
-    "howToUse": "HOW TO USE",
-    "howToUseTitle": "One Step Recovery",
-    "fieldTest": "FIELD TEST",
-    "fieldTestTitle": "Real Outdoor, Real Skin"
+  "login": {
+    "email": "Email",
+    "password": "Password",
+    "loginButton": "LOGIN",
+    "or": "OR",
+    "googleLogin": "Continue with Google",
+    "noAccount": "Don't have an account?",
+    "signUp": "Sign up"
   },
-  "brand": {
-    "subtitle": "OUTDOOR RECOVERY SKINCARE",
-    "title": "Right after activity,\nyour skin needs\ninstant recovery",
-    "p1": "In a multi-billion dollar global skincare market, there was no product category specializing in instant recovery right after outdoor activities.",
-    "p2": "SUACI enters that structural gap. Instantly cooling and soothing skin exhausted by UV, sweat, and dust, while rapidly replenishing moisture to the damaged barrier.",
-    "p3": "No complex routine. Right there, right then. One-step recovery made with science-backed ingredients and K-Beauty infrastructure.",
-    "cta": "DISCOVER MORE"
+  "lifestyle": {
+    "subtitle": "LIFESTYLE",
+    "title": "WHERE SUACI LIVES"
   },
   "footer": {
     "productGroup": "PRODUCT",

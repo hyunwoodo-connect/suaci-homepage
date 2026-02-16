@@ -15,6 +15,7 @@ import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
  */
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const t = useTranslations("header");
 
   const toggleMenu = () => setIsMenuOpen((prev) => !prev);
@@ -28,16 +29,36 @@ export default function Header() {
     };
   }, [isMenuOpen]);
 
+  // 스크롤 감지 — 히어로(100vh) 지나면 dark 모드
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > window.innerHeight * 0.85);
+    };
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const isDark = scrolled && !isMenuOpen;
+
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50">
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-500 ${
+          isDark ? "bg-white/90 backdrop-blur-md" : ""
+        }`}
+      >
         <div className={`w-full ${SECTION_PADDING_X}`}>
           <div className="grid grid-cols-3 items-center h-14 sm:h-16 md:h-18 lg:h-20">
             {/* ── 좌측: MENU 버튼 ── */}
             <div className="flex items-center justify-start">
               <button
                 onClick={toggleMenu}
-                className="text-[11px] sm:text-xs tracking-[0.2em] font-bold text-white hover:text-white/60 transition-colors duration-300 p-1"
+                className={`text-[11px] sm:text-xs tracking-[0.2em] font-bold transition-colors duration-300 p-1 ${
+                  isDark
+                    ? "text-foreground hover:text-foreground/50"
+                    : "text-white hover:text-white/60"
+                }`}
                 aria-label={isMenuOpen ? t("menuClose") : t("menuOpen")}
               >
                 {isMenuOpen ? t("close") : t("menu")}
@@ -53,16 +74,18 @@ export default function Header() {
                   width={120}
                   height={40}
                   priority
-                  className="h-4 sm:h-5 lg:h-6 w-auto object-contain brightness-0 invert"
+                  className={`h-4 sm:h-5 lg:h-6 w-auto object-contain transition-[filter] duration-500 ${
+                    isDark ? "brightness-0" : "brightness-0 invert"
+                  }`}
                 />
               </Link>
             </div>
 
             {/* ── 우측: 아이콘 3개 ── */}
             <div className="flex items-center justify-end gap-3 sm:gap-4 lg:gap-5">
-              <IconButton icon="search" label={t("search")} />
-              <IconButton icon="user" label={t("mypage")} />
-              <IconButton icon="cart" label={t("cart")} badgeCount={0} />
+              <IconButton icon="search" label={t("search")} dark={isDark} />
+              <IconButton icon="user" label={t("mypage")} dark={isDark} />
+              <IconButton icon="cart" label={t("cart")} badgeCount={0} dark={isDark} />
             </div>
           </div>
         </div>
@@ -93,7 +116,7 @@ function SideMenu({
   ];
 
   const authLinks = [
-    { label: t("login"), href: "#" },
+    { label: t("login"), href: "/login" },
     { label: t("join"), href: "#" },
   ];
 
@@ -169,12 +192,17 @@ interface IconButtonProps {
   icon: "search" | "user" | "cart";
   label: string;
   badgeCount?: number;
+  dark?: boolean;
 }
 
-function IconButton({ icon, label, badgeCount }: IconButtonProps) {
+function IconButton({ icon, label, badgeCount, dark }: IconButtonProps) {
   return (
     <button
-      className="p-1 text-white hover:text-white/60 transition-colors relative"
+      className={`p-1 transition-colors relative ${
+        dark
+          ? "text-foreground hover:text-foreground/50"
+          : "text-white hover:text-white/60"
+      }`}
       aria-label={label}
     >
       {icon === "search" && <SearchIcon />}
@@ -183,7 +211,11 @@ function IconButton({ icon, label, badgeCount }: IconButtonProps) {
         <>
           <CartIcon />
           {badgeCount !== undefined && (
-            <span className="absolute -top-0.5 -right-1 bg-white text-black text-[9px] sm:text-[10px] w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full flex items-center justify-center leading-none">
+            <span
+              className={`absolute -top-0.5 -right-1 text-[9px] sm:text-[10px] w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full flex items-center justify-center leading-none ${
+                dark ? "bg-foreground text-white" : "bg-white text-black"
+              }`}
+            >
               {badgeCount}
             </span>
           )}

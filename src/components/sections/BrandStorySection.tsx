@@ -14,7 +14,7 @@ export default function BrandStorySection() {
   const titleParts = t("title").split("\n");
 
   return (
-    <section className="py-20 md:py-32">
+    <section className="py-16 md:py-24">
       <div className={`max-w-[1400px] mx-auto ${SECTION_PADDING_X}`}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14 lg:gap-20 items-center">
           {/* 좌측 — 영상 */}

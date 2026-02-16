@@ -24,11 +24,11 @@
   },
   "brandStory": {
     "subtitle": "WHY WE STARTED",
-    "title": "誰も気にしなかった\nその瞬間のために",
-    "p1": "山を下りると顔がヒリヒリし、サーフィンの後は肌がつっぱり、ランニングの後は頬が火照ります。",
-    "p2": "でも、その瞬間に使えるものは何もありませんでした。日焼け止めは活動前、スキンケアは家で。その間の数時間、肌はただ放置されていました。",
-    "p3": "数千億ドル規模のスキンケア市場で、活動後の即時回復というカテゴリーは存在しませんでした。",
-    "p4": "だから作ることにしました。活動直後、その場ですぐ使えるものを。SUACIはそうして始まりました。"
+    "title": "外に出ると\n肌はいつも一人でした",
+    "p1": "散歩でも、通勤でも、キャンプでも。外に出た瞬間から、肌は紫外線、乾燥した空気、微粒子にさらされています。",
+    "p2": "でも、その場ですぐに水分を補給できるものはありませんでした。日焼け止めは外出前、スキンケアは帰宅後。外出中、肌のためにできることは何もなかったのです。",
+    "p3": "数千億ドル規模のスキンケア市場で、外出中の即時水分補給というカテゴリーは存在しませんでした。",
+    "p4": "だから作りました。いつでもどこでも、取り出してすぐ使えるものを。SUACIはそうして始まりました。"
   },
   "product": {
     "subtitle": "OUTDOOR RECOVERY",
@@ -44,24 +44,18 @@
     "price": "₩29,000",
     "cta": "COMING SOON"
   },
-  "film": {
-    "subtitle": "FILM",
-    "title": "SUACI IN ACTION",
-    "brandFilm": "BRAND FILM",
-    "brandFilmTitle": "Why Recovery Matters",
-    "brandFilmDesc": "活動直後、肌に起こる変化",
-    "howToUse": "HOW TO USE",
-    "howToUseTitle": "One Step Recovery",
-    "fieldTest": "FIELD TEST",
-    "fieldTestTitle": "Real Outdoor, Real Skin"
+  "login": {
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "loginButton": "LOGIN",
+    "or": "OR",
+    "googleLogin": "Googleで続ける",
+    "noAccount": "アカウントをお持ちでないですか？",
+    "signUp": "新規登録"
   },
-  "brand": {
-    "subtitle": "OUTDOOR RECOVERY SKINCARE",
-    "title": "活動直後、\n肌に必要なのは\n即時の回復",
-    "p1": "数千億ドル規模のグローバルスキンケア市場で、アウトドア活動直後の即時回復に特化した製品カテゴリーは存在しませんでした。",
-    "p2": "SUACIはその構造的な空白に参入します。紫外線、汗、埃で疲れた肌を即座にクーリング・鎮静し、損傷したバリアに素早く水分を補給します。",
-    "p3": "複雑なルーティンなしに、その場ですぐに。科学ベースの成分とK-ビューティーインフラで作ったワンステップリカバリー。",
-    "cta": "DISCOVER MORE"
+  "lifestyle": {
+    "subtitle": "LIFESTYLE",
+    "title": "WHERE SUACI LIVES"
   },
   "footer": {
     "productGroup": "PRODUCT",
