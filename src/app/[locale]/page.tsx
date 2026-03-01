@@ -1,5 +1,5 @@
-import fs from "fs";
-import path from "path";
+import { readdir } from "fs/promises";
+import { join } from "path";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import HeroSection from "@/components/sections/HeroSection";
@@ -7,11 +7,10 @@ import BrandStorySection from "@/components/sections/BrandStorySection";
 import ProductSection from "@/components/sections/ProductSection";
 import LifestyleSection from "@/components/sections/LifestyleSection";
 
-function getProductImages(): string[] {
-  const dir = path.join(process.cwd(), "public/detail-cut");
+async function getProductImages(): Promise<string[]> {
   try {
-    return fs
-      .readdirSync(dir)
+    const files = await readdir(join(process.cwd(), "public/detail-cut"));
+    return files
       .filter((f) => /\.(png|jpe?g|webp)$/i.test(f))
       .sort((a, b) => parseInt(a) - parseInt(b))
       .map((f) => `/detail-cut/${f}`);
@@ -20,8 +19,8 @@ function getProductImages(): string[] {
   }
 }
 
-export default function Home() {
-  const productImages = getProductImages();
+export default async function Home() {
+  const productImages = await getProductImages();
 
   return (
     <>

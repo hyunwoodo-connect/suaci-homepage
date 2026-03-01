@@ -1,0 +1,90 @@
+{
+  "site": {
+    "title": "SUACI — 户外修护护肤",
+    "description": "户外活动后，肌肤即时修护。SUACI官方网站。"
+  },
+  "header": {
+    "menu": "MENU",
+    "close": "CLOSE",
+    "menuOpen": "打开菜单",
+    "menuClose": "关闭菜单",
+    "search": "搜索",
+    "mypage": "我的",
+    "cart": "购物车"
+  },
+  "nav": {
+    "product": "PRODUCT",
+    "story": "STORY",
+    "event": "EVENT",
+    "login": "LOGIN",
+    "join": "JOIN US"
+  },
+  "hero": {
+    "logoAlt": "SUACI"
+  },
+  "brandStory": {
+    "subtitle": "WHY WE STARTED",
+    "title": "走出门外\n肌肤总是孤立无援",
+    "p1": "无论是散步、通勤还是露营，走出门的那一刻起，肌肤就暴露在紫外线、干燥空气和灰尘之中。",
+    "p2": "然而，没有任何产品能在那个当下立即为肌肤补充水分。防晒霜是出门前用的，护肤品是回家后用的。在外面，什么都做不了。",
+    "p3": "在数千亿美元规模的护肤市场中，外出时即时补水这个品类根本不存在。",
+    "p4": "所以我们创造了它。随时随地，拿出来就能用的东西。SUACI就是这样开始的。"
+  },
+  "product": {
+    "subtitle": "OUTDOOR RECOVERY",
+    "name": "Cooling Recovery Mist",
+    "size": "50ml / 1.7 fl.oz",
+    "benefit1Title": "Cooling",
+    "benefit1Desc": "活动后立即降低升高的皮肤表面温度",
+    "benefit2Title": "Soothing",
+    "benefit2Desc": "舒缓紫外线、汗水和灰尘引起的炎症反应",
+    "benefit3Title": "Hydrating",
+    "benefit3Desc": "快速为受损的皮肤屏障补充水分",
+    "keyIngredients": "KEY INGREDIENTS",
+    "price": "₩29,000",
+    "cta": "COMING SOON"
+  },
+  "login": {
+    "email": "邮箱",
+    "password": "密码",
+    "loginButton": "LOGIN",
+    "or": "OR",
+    "googleLogin": "通过Google继续",
+    "noAccount": "还没有账号？",
+    "signUp": "注册"
+  },
+  "signup": {
+    "title": "CREATE ACCOUNT",
+    "name": "姓名",
+    "email": "邮箱",
+    "password": "密码",
+    "passwordConfirm": "确认密码",
+    "agreeAll": "全部同意",
+    "agreeTerms": "同意服务条款",
+    "agreePrivacy": "同意隐私政策",
+    "agreeAge": "已满14周岁",
+    "agreeMarketing": "同意接收营销信息",
+    "signUpButton": "JOIN US",
+    "or": "OR",
+    "googleSignUp": "通过Google注册",
+    "hasAccount": "已有账号？",
+    "loginLink": "登录"
+  },
+  "lifestyle": {
+    "subtitle": "LIFESTYLE",
+    "title": "WHERE SUACI LIVES"
+  },
+  "footer": {
+    "productGroup": "PRODUCT",
+    "outdoorMist": "Outdoor Mist",
+    "howToUse": "How to Use",
+    "brandGroup": "BRAND",
+    "aboutSuaci": "About SUACI",
+    "supportGroup": "SUPPORT",
+    "notice": "公告",
+    "qa": "Q&A",
+    "event": "活动",
+    "terms": "服务条款",
+    "privacy": "隐私政策"
+  }
+}

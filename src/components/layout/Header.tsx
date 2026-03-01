@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { SECTION_PADDING_X } from "@/constants/site";
-import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
+import LanguageSwitcher, { HeaderLanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import LoginModal from "@/components/ui/LoginModal";
 
 /**
@@ -90,6 +90,7 @@ export default function Header() {
 
             {/* ── 우측: 아이콘 3개 ── */}
             <div className="flex items-center justify-end gap-3 sm:gap-4 lg:gap-5">
+              <HeaderLanguageSwitcher dark={isDark} />
               <IconButton icon="search" label={t("search")} dark={isDark} />
               <IconButton icon="user" label={t("mypage")} dark={isDark} />
               <IconButton icon="cart" label={t("cart")} badgeCount={0} dark={isDark} />
