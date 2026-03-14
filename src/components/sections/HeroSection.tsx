@@ -44,8 +44,8 @@ export default function HeroSection() {
           href="/skin-check"
           className="mt-5 flex w-fit items-center gap-2 rounded-full border border-white/40 bg-white/10 px-5 py-2.5 text-sm font-medium text-white backdrop-blur-sm transition-all hover:bg-white/20"
         >
-          <span className="text-base">✨</span>
-          내 피부 점수 알아보기
+          <span className="text-base">🎨</span>
+          내 퍼스널 컬러 알아보기
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M5 12h14" />
             <path d="m12 5 7 7-7 7" />

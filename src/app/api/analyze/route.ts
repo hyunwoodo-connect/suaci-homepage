@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import type { AnalyzeRequest, AnalyzeResponse } from "@/types/skinAnalysis";
+import type { AnalyzeRequest, AnalyzeResponse } from "@/types/personalColor";
 import { createLLMProvider } from "@/lib/llm";
-import { SKIN_ANALYSIS_PROMPT } from "@/constants/skinCheck";
+import { PERSONAL_COLOR_PROMPT } from "@/constants/personalColor";
 
 const MAX_IMAGE_SIZE_MB = 4;
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
@@ -27,14 +27,14 @@ export async function POST(request: Request): Promise<NextResponse<AnalyzeRespon
     }
 
     const provider = createLLMProvider();
-    const result = await provider.analyzeSkin(body.image, SKIN_ANALYSIS_PROMPT);
+    const result = await provider.analyzePersonalColor(body.image, PERSONAL_COLOR_PROMPT);
 
     return NextResponse.json({ success: true, result });
   } catch (error) {
-    console.error("[analyze] LLM 분석 실패:", error);
+    console.error("[analyze] 퍼스널 컬러 분석 실패:", error);
 
     const message =
-      error instanceof Error ? error.message : "피부 분석 중 오류가 발생했습니다.";
+      error instanceof Error ? error.message : "퍼스널 컬러 분석 중 오류가 발생했습니다.";
 
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }

@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { SkinAnalysisResult } from "@/types/skinAnalysis";
+import type { PersonalColorResult } from "@/types/personalColor";
 import type { LLMProvider } from "./types";
 
 /** Anthropic Claude 기반 LLM 프로바이더 */
@@ -14,7 +14,7 @@ export class AnthropicProvider implements LLMProvider {
     this.model = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514";
   }
 
-  async analyzeSkin(imageBase64: string, systemPrompt: string): Promise<SkinAnalysisResult> {
+  async analyzePersonalColor(imageBase64: string, systemPrompt: string): Promise<PersonalColorResult> {
     // data:image/jpeg;base64,/9j/... → mediaType + base64 데이터 분리
     const match = imageBase64.match(/^data:(image\/\w+);base64,(.+)$/);
     if (!match) {
@@ -26,7 +26,7 @@ export class AnthropicProvider implements LLMProvider {
 
     const response = await this.client.messages.create({
       model: this.model,
-      max_tokens: 1024,
+      max_tokens: 2048,
       system: systemPrompt,
       messages: [
         {
@@ -42,7 +42,7 @@ export class AnthropicProvider implements LLMProvider {
             },
             {
               type: "text",
-              text: "이 얼굴 사진을 분석해주세요. 반드시 JSON 형식으로만 응답하세요.",
+              text: "이 얼굴 사진을 분석하여 퍼스널 컬러를 진단해주세요. 반드시 JSON 형식으로만 응답하세요.",
             },
           ],
         },
@@ -60,6 +60,6 @@ export class AnthropicProvider implements LLMProvider {
       throw new Error("LLM 응답에서 JSON을 파싱할 수 없습니다.");
     }
 
-    return JSON.parse(jsonMatch[0]) as SkinAnalysisResult;
+    return JSON.parse(jsonMatch[0]) as PersonalColorResult;
   }
 }

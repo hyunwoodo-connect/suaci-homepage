@@ -31,7 +31,6 @@ export default function ShareButtons({ shareUrl, shareText }: ShareButtonsProps)
   }, [shareUrl]);
 
   const handleKakaoShare = useCallback(() => {
-    // 카카오톡 공유 (카카오 SDK 없이 URL 스킴 사용)
     const kakaoUrl = `https://sharer.kakao.com/talk/friends/picker/link?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
     window.open(kakaoUrl, "_blank", "noopener,noreferrer");
   }, [shareUrl, shareText]);
@@ -40,7 +39,7 @@ export default function ShareButtons({ shareUrl, shareText }: ShareButtonsProps)
     if (!navigator.share) return;
     try {
       await navigator.share({
-        title: "SUACI 피부 진단소",
+        title: "SUACI 퍼스널 컬러 진단",
         text: shareText,
         url: shareUrl,
       });

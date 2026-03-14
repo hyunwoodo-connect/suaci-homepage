@@ -1,18 +1,19 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import type { SkinAnalysisResult, AnalyzeResponse } from "@/types/skinAnalysis";
+import type { PersonalColorResult, AnalyzeResponse } from "@/types/personalColor";
 import { SECTION_PADDING_X } from "@/constants/site";
 import Camera from "@/components/skin-check/Camera";
 import AnalysisLoading from "@/components/skin-check/AnalysisLoading";
+import ColorReveal from "@/components/skin-check/ColorReveal";
 import ResultCard from "@/components/skin-check/ResultCard";
 import ShareButtons from "@/components/skin-check/ShareButtons";
 
-type Phase = "intro" | "camera" | "loading" | "result" | "error";
+type Phase = "intro" | "camera" | "loading" | "reveal" | "result" | "error";
 
 export default function SkinCheckPage() {
   const [phase, setPhase] = useState<Phase>("intro");
-  const [result, setResult] = useState<SkinAnalysisResult | null>(null);
+  const [result, setResult] = useState<PersonalColorResult | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
 
   const handleCapture = useCallback(async (imageDataUrl: string) => {
@@ -29,7 +30,7 @@ export default function SkinCheckPage() {
 
       if (data.success) {
         setResult(data.result);
-        setPhase("result");
+        setPhase("reveal");
       } else {
         setErrorMessage(data.error);
         setPhase("error");
@@ -38,6 +39,10 @@ export default function SkinCheckPage() {
       setErrorMessage("네트워크 오류가 발생했습니다. 다시 시도해주세요.");
       setPhase("error");
     }
+  }, []);
+
+  const handleRevealComplete = useCallback(() => {
+    setPhase("result");
   }, []);
 
   const handleRetry = useCallback(() => {
@@ -54,10 +59,10 @@ export default function SkinCheckPage() {
 
   const siteUrl = typeof window !== "undefined" ? window.location.origin : "";
   const shareUrl = result
-    ? `${siteUrl}/skin-check?score=${result.score}&type=${encodeURIComponent(result.skinType)}`
+    ? `${siteUrl}/skin-check?type=${encodeURIComponent(result.typeName)}&season=${result.season}&colors=${result.bestColors.map((c) => c.hex).join(",")}`
     : siteUrl;
   const shareText = result
-    ? `내 피부 점수는 ${result.score}점! 유형: ${result.skinType} ✨ SUACI 피부 진단소에서 확인하기`
+    ? `나의 퍼스널 컬러는 ${result.typeName}! ✨ "${result.oneLiner}" — SUACI에서 무료 진단받기`
     : "";
 
   return (
@@ -66,15 +71,18 @@ export default function SkinCheckPage() {
         {/* 헤더 */}
         <header className="mb-8 text-center">
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-            SUACI Skin Lab
+            SUACI Beauty Advisor
           </p>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight">피부 진단소</h1>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight">퍼스널 컬러 진단</h1>
         </header>
 
         {/* 페이즈별 UI */}
         {phase === "intro" && <IntroPhase onStart={() => setPhase("camera")} />}
         {phase === "camera" && <Camera onCapture={handleCapture} />}
         {phase === "loading" && <AnalysisLoading />}
+        {phase === "reveal" && result && (
+          <ColorReveal result={result} onRevealComplete={handleRevealComplete} />
+        )}
         {phase === "result" && result && (
           <div className="flex flex-col gap-8">
             <ResultCard result={result} />
@@ -94,7 +102,7 @@ export default function SkinCheckPage() {
         {/* 푸터 */}
         <footer className="mt-12 pb-8 text-center">
           <p className="text-xs text-muted/60">
-            본 서비스는 엔터테인먼트 목적이며, 의학적 진단이 아닙니다.
+            본 서비스는 엔터테인먼트 목적이며, 전문 컬러 컨설팅이 아닙니다.
           </p>
           {phase !== "intro" && (
             <button
@@ -116,13 +124,13 @@ function IntroPhase({ onStart }: { onStart: () => void }) {
   return (
     <div className="flex flex-col items-center gap-8 py-12">
       <div className="flex flex-col items-center gap-3 text-center">
-        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-foreground/5">
-          <FaceIcon />
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100">
+          <PaletteIcon />
         </div>
-        <h2 className="text-lg font-medium">내 피부 점수는 몇 점?</h2>
+        <h2 className="text-lg font-medium">3초 셀카로 알아보는 진짜 내 컬러</h2>
         <p className="max-w-xs text-sm leading-relaxed text-muted">
-          셀카 한 장이면 AI가 당신의 피부를 유쾌하게 분석해드립니다.
-          점수 자랑은 덤.
+          AI가 당신의 퍼스널 컬러를 진단하고,
+          어울리는 패션 / 메이크업 / 헤어 컬러까지 추천해드려요.
         </p>
       </div>
 
@@ -138,7 +146,7 @@ function IntroPhase({ onStart }: { onStart: () => void }) {
           <CheckIcon /> 얼굴이 잘 보이게 정면 셀카를 찍어주세요
         </li>
         <li className="flex items-center gap-2">
-          <CheckIcon /> 밝은 곳에서 촬영하면 더 정확해요
+          <CheckIcon /> 자연광에서 촬영하면 더 정확해요
         </li>
         <li className="flex items-center gap-2">
           <CheckIcon /> 사진은 분석 후 즉시 삭제됩니다
@@ -171,13 +179,14 @@ function ErrorPhase({
   );
 }
 
-function FaceIcon() {
+function PaletteIcon() {
   return (
     <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-foreground/60">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-      <line x1="9" y1="9" x2="9.01" y2="9" strokeWidth="2" />
-      <line x1="15" y1="9" x2="15.01" y2="9" strokeWidth="2" />
+      <circle cx="13.5" cy="6.5" r="0.5" fill="currentColor" />
+      <circle cx="17.5" cy="10.5" r="0.5" fill="currentColor" />
+      <circle cx="8.5" cy="7.5" r="0.5" fill="currentColor" />
+      <circle cx="6.5" cy="12.5" r="0.5" fill="currentColor" />
+      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
     </svg>
   );
 }

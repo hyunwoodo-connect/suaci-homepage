@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { SkinAnalysisResult } from "@/types/skinAnalysis";
+import type { PersonalColorResult } from "@/types/personalColor";
 import type { LLMProvider } from "./types";
 
 /** OpenAI 기반 LLM 프로바이더 */
@@ -14,7 +14,7 @@ export class OpenAIProvider implements LLMProvider {
     this.model = process.env.OPENAI_MODEL || "gpt-4o-mini";
   }
 
-  async analyzeSkin(imageBase64: string, systemPrompt: string): Promise<SkinAnalysisResult> {
+  async analyzePersonalColor(imageBase64: string, systemPrompt: string): Promise<PersonalColorResult> {
     const response = await this.client.chat.completions.create({
       model: this.model,
       response_format: { type: "json_object" },
@@ -32,12 +32,12 @@ export class OpenAIProvider implements LLMProvider {
             },
             {
               type: "text",
-              text: "이 얼굴 사진을 분석해주세요.",
+              text: "이 얼굴 사진을 분석하여 퍼스널 컬러를 진단해주세요.",
             },
           ],
         },
       ],
-      max_tokens: 1024,
+      max_tokens: 2048,
     });
 
     const content = response.choices[0]?.message?.content;
@@ -45,6 +45,6 @@ export class OpenAIProvider implements LLMProvider {
       throw new Error("LLM 응답이 비어있습니다.");
     }
 
-    return JSON.parse(content) as SkinAnalysisResult;
+    return JSON.parse(content) as PersonalColorResult;
   }
 }

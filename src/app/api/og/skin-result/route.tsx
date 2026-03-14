@@ -3,11 +3,22 @@ import type { NextRequest } from "next/server";
 
 export const runtime = "edge";
 
+const SEASON_COLORS: Record<string, { bg: string; accent: string }> = {
+  spring: { bg: "#FFF7ED", accent: "#F59E0B" },
+  summer: { bg: "#EFF6FF", accent: "#6366F1" },
+  autumn: { bg: "#FFF7ED", accent: "#EA580C" },
+  winter: { bg: "#F8FAFC", accent: "#475569" },
+};
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const score = searchParams.get("score") || "??";
-  const skinType = searchParams.get("type") || "피부 유형";
+  const typeName = searchParams.get("type") || "퍼스널 컬러";
   const oneLiner = searchParams.get("comment") || "";
+  const season = searchParams.get("season") || "summer";
+  const colors = searchParams.get("colors") || "";
+
+  const theme = SEASON_COLORS[season] || SEASON_COLORS.summer;
+  const colorList = colors ? colors.split(",").slice(0, 6) : [];
 
   return new ImageResponse(
     (
@@ -19,7 +30,7 @@ export async function GET(request: NextRequest) {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#ffffff",
+          backgroundColor: theme.bg,
           fontFamily: "sans-serif",
         }}
       >
@@ -34,60 +45,55 @@ export async function GET(request: NextRequest) {
             textTransform: "uppercase",
           }}
         >
-          SUACI Skin Lab
+          SUACI Beauty Advisor
         </div>
 
-        {/* 점수 */}
+        {/* 타입명 */}
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            marginTop: "40",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "120",
-              fontWeight: "900",
-              color: "#111111",
-              lineHeight: "1",
-            }}
-          >
-            {score}
-          </div>
-          <div
-            style={{
-              fontSize: "20",
-              color: "#999999",
-              marginTop: "8",
-            }}
-          >
-            / 100
-          </div>
-        </div>
-
-        {/* 유형 */}
-        <div
-          style={{
-            display: "flex",
-            fontSize: "36",
-            fontWeight: "700",
-            color: "#111111",
+            fontSize: "56",
+            fontWeight: "900",
+            color: theme.accent,
             marginTop: "32",
+            lineHeight: "1.2",
           }}
         >
-          {skinType}
+          {typeName}
         </div>
+
+        {/* 컬러 팔레트 */}
+        {colorList.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              gap: "12",
+              marginTop: "32",
+            }}
+          >
+            {colorList.map((hex, i) => (
+              <div
+                key={i}
+                style={{
+                  width: "48",
+                  height: "48",
+                  borderRadius: "12",
+                  backgroundColor: hex,
+                  border: "2px solid rgba(0,0,0,0.05)",
+                }}
+              />
+            ))}
+          </div>
+        )}
 
         {/* 한줄 진단 */}
         {oneLiner && (
           <div
             style={{
               display: "flex",
-              fontSize: "18",
+              fontSize: "20",
               color: "#666666",
-              marginTop: "16",
+              marginTop: "24",
               maxWidth: "800",
               textAlign: "center",
             }}
