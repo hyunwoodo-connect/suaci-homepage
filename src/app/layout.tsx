@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SITE } from "@/constants/site";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: SITE.title,

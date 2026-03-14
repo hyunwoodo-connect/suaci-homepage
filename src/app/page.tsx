@@ -1,23 +1,7 @@
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
-import HeroSection from "@/components/sections/HeroSection";
-import ProductSection from "@/components/sections/ProductSection";
-import FilmSection from "@/components/sections/FilmSection";
-import BrandSection from "@/components/sections/BrandSection";
-import BrandHistorySection from "@/components/sections/BrandHistorySection";
+import { redirect } from "next/navigation";
+import { routing } from "@/i18n/routing";
 
-export default function Home() {
-  return (
-    <>
-      <Header />
-      <main>
-        <HeroSection />
-        <ProductSection />
-        <FilmSection />
-        <BrandSection />
-        <BrandHistorySection />
-      </main>
-      <Footer />
-    </>
-  );
+/** 루트 경로 → 기본 locale로 리다이렉트 */
+export default function RootPage() {
+  redirect(`/${routing.defaultLocale}`);
 }
