@@ -20,7 +20,7 @@ Copy `.env.example` to `.env.local` and fill in values:
 cp .env.example .env.local
 ```
 
-Key variables: `OPENAI_API_KEY`, `OPENAI_MODEL`, `NEXT_PUBLIC_SITE_URL`.
+Key variables: `NEXT_PUBLIC_SITE_URL`.
 
 ## Tech Stack
 
@@ -29,30 +29,30 @@ Key variables: `OPENAI_API_KEY`, `OPENAI_MODEL`, `NEXT_PUBLIC_SITE_URL`.
 - **i18n**: next-intl v4 — 5 locales: `ko` (default), `en`, `zh`, `ja`, `th`
 - **Package manager**: pnpm
 - **Path alias**: `@/*` → `./src/*`
-- **LLM**: OpenAI SDK (`openai` package), abstracted via `src/lib/llm/`
 
 ## Project Structure
 
 ```
 src/
-├── app/                    # Next.js App Router pages + API routes
-│   ├── [locale]/           # i18n pages (layout, page, skin-check/)
-│   └── api/                # API routes (analyze/, og/)
+├── app/                    # Next.js App Router pages
+│   ├── [locale]/           # i18n pages (layout, page, signup/)
+│   ├── layout.tsx          # Root layout
+│   └── page.tsx            # Root redirect to default locale
 ├── components/             # React components
 │   ├── layout/             # Header, Footer
 │   ├── sections/           # Landing page sections
-│   ├── skin-check/         # Skin analysis feature components
 │   └── ui/                 # Shared UI primitives
 ├── constants/              # App-wide constants (UPPER_SNAKE_CASE, `as const`)
 ├── data/                   # Business domain data (products, slides)
 ├── hooks/                  # Custom React hooks
 ├── i18n/                   # next-intl config (routing, navigation, request)
-├── lib/                    # Library abstractions (LLM providers)
 ├── messages/               # i18n JSON message files (ko, en, zh, ja, th)
 ├── types/                  # TypeScript type definitions + barrel index
 ├── utils/                  # Utility functions
-└── middleware.ts            # next-intl middleware
+└── middleware.ts           # next-intl middleware
 ```
+
+No backend, database, auth, or payment integrations exist yet. The site is currently in a visual-first / brand-shell phase.
 
 ## Code Style Guidelines
 
@@ -70,7 +70,7 @@ Order imports in these groups, separated by blank lines:
 
 1. `"use client"` directive (if needed, always first line)
 2. React built-ins (`react`, `react-dom`)
-3. Framework/third-party (`next/*`, `next-intl`, `openai`)
+3. Framework/third-party (`next/*`, `next-intl`)
 4. Internal aliases (`@/i18n/*`, `@/constants/*`, `@/components/*`, `@/lib/*`, `@/types`, `@/utils/*`)
 5. Relative imports (`./`, `../`)
 
@@ -148,9 +148,3 @@ Use `import type { ... } from "..."` for type-only imports (never inline `type`)
 - Messages in `src/messages/{locale}.json`, organized by namespace
 - Locale prefix strategy: `"as-needed"` (Korean has no prefix)
 
-### LLM Integration
-
-- LLM logic is abstracted in `src/lib/llm/` via `LLMProvider` interface
-- To add a new provider: implement `LLMProvider`, add case in `createLLMProvider()`
-- System prompts and analysis constants live in `src/constants/skinCheck.ts`
-- API routes in `src/app/api/` handle request validation and error responses
