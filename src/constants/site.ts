@@ -1,6 +1,7 @@
 /** 사이트 전역 상수 */
 export const SITE = {
   name: "SUACI",
+  url: process.env.NEXT_PUBLIC_SITE_URL || "https://suaci.com",
   title: "SUACI — Outdoor Recovery Skincare",
   description: "아웃도어 활동 직후, 피부의 즉각적인 회복. SUACI 공식 웹사이트.",
   copyright: "© 2025 SUACI. All rights reserved.",
