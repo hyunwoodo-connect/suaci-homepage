@@ -1,278 +1,194 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Image from "next/image";
-import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
-import { SECTION_PADDING_X } from "@/constants/site";
-import LanguageSwitcher, { HeaderLanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
+import type { Locale } from "@/i18n/routing";
 import LoginModal from "@/components/ui/LoginModal";
+import CartDrawer from "@/components/ui/CartDrawer";
+
+const LOCALES: Locale[] = ["ko", "en", "ja", "zh", "th"];
 
 /**
- * 사이트 공통 헤더
+ * 사이트 공통 헤더 — 매거진 톤 sticky 헤더
  *
- * 구조: MENU(좌) | 로고(정중앙) | 아이콘 3개(우)
- * 메뉴: 모바일 풀스크린 / 데스크톱 좌측 1/3 사이드 패널
+ * 구조:
+ * - notice bar (닫기 가능, 짙은 초록 텍스트)
+ * - main row: 로고(소문자 suaci + sup No.01) / nav / 우측(언어·로그인·카트)
+ * - category strip
  */
 export default function Header() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const t = useTranslations("header");
-
-  const toggleMenu = () => setIsMenuOpen((prev) => !prev);
-  const closeMenu = () => setIsMenuOpen(false);
-  const openLogin = () => {
-    closeMenu();
-    setIsLoginOpen(true);
-  };
-  const closeLogin = () => setIsLoginOpen(false);
-
-  // 메뉴 열릴 때 스크롤 잠금
-  useEffect(() => {
-    document.body.style.overflow = isMenuOpen ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isMenuOpen]);
-
-  // 스크롤 감지 — 히어로(100vh) 지나면 dark 모드
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > window.innerHeight * 0.85);
-    };
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const isDark = scrolled && !isMenuOpen;
+  const [noticeOpen, setNoticeOpen] = useState(true);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
+  const tNotice = useTranslations("notice");
+  const tHeader = useTranslations("header");
+  const tNav = useTranslations("nav");
 
   return (
     <>
-      <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-500 ${
-          isDark ? "bg-white/90 backdrop-blur-md" : ""
-        }`}
-      >
-        <div className={`w-full ${SECTION_PADDING_X}`}>
-          <div className="grid grid-cols-3 items-center h-14 sm:h-16 md:h-18 lg:h-20">
-            {/* ── 좌측: MENU 버튼 ── */}
-            <div className="flex items-center justify-start">
-              <button
-                onClick={toggleMenu}
-                className={`text-[11px] sm:text-xs tracking-[0.2em] font-bold transition-colors duration-300 p-1 ${
-                  isDark
-                    ? "text-foreground hover:text-foreground/50"
-                    : "text-white hover:text-white/60"
-                }`}
-                aria-label={isMenuOpen ? t("menuClose") : t("menuOpen")}
-              >
-                {isMenuOpen ? t("close") : t("menu")}
-              </button>
-            </div>
-
-            {/* ── 중앙: 로고 이미지 ── */}
-            <div className="flex items-center justify-center">
-              <Link href="/" onClick={closeMenu}>
-                <Image
-                  src="/logo.png"
-                  alt="SUACI"
-                  width={120}
-                  height={40}
-                  priority
-                  className={`h-4 sm:h-5 lg:h-6 w-auto object-contain transition-[filter] duration-500 ${
-                    isDark ? "brightness-0" : "brightness-0 invert"
-                  }`}
-                />
-              </Link>
-            </div>
-
-            {/* ── 우측: 아이콘 3개 ── */}
-            <div className="flex items-center justify-end gap-3 sm:gap-4 lg:gap-5">
-              <HeaderLanguageSwitcher dark={isDark} />
-              <IconButton icon="search" label={t("search")} dark={isDark} />
-              <IconButton icon="user" label={t("mypage")} dark={isDark} />
-              <IconButton icon="cart" label={t("cart")} badgeCount={0} dark={isDark} />
-            </div>
+      {noticeOpen && (
+        <div className="relative z-50 border-b border-line bg-background">
+          <div className="max-w-[1480px] mx-auto px-[18px] md:px-[28px] py-[9px] flex items-center justify-center gap-[14px] relative">
+            <span className="text-[12px] text-green leading-none">
+              {tNotice("text")}
+            </span>
+            <span className="font-en text-[11px] tracking-[0.08em] uppercase text-green inline-block -translate-y-px">
+              →
+            </span>
+            <button
+              type="button"
+              onClick={() => setNoticeOpen(false)}
+              aria-label={tNotice("close")}
+              className="absolute right-[14px] md:right-[22px] top-1/2 -translate-y-1/2 text-ink-mute text-[14px] leading-none p-[6px] hover:text-foreground transition-colors"
+            >
+              ×
+            </button>
           </div>
+        </div>
+      )}
+
+      <header className="sticky top-0 z-40 bg-[rgba(250,250,247,0.92)] backdrop-blur-md backdrop-saturate-150 border-b border-line">
+        <div className="max-w-[1480px] mx-auto px-[18px] md:px-[28px] py-[14px] flex items-center gap-4 md:gap-8">
+          <Link href="/" className="flex items-baseline leading-none">
+            <span className="font-en font-medium text-[22px] tracking-[-0.01em] text-green">
+              suaci
+            </span>
+            <sup className="font-en font-normal text-[9px] text-ink-mute tracking-[0.06em] uppercase ml-[6px]">
+              No.01
+            </sup>
+          </Link>
+
+          <nav className="ml-auto hidden md:flex gap-[30px] font-en text-[13px] tracking-[0.06em] uppercase text-ink-soft">
+            <Link href="/#story" className="hover:text-green transition-colors">
+              {tNav("story")}
+            </Link>
+            <Link href="/#product" className="hover:text-green transition-colors">
+              {tNav("product")}
+            </Link>
+            <Link href="/#order" className="hover:text-green transition-colors">
+              {tNav("order")}
+            </Link>
+          </nav>
+
+          <div className="flex items-center gap-[14px] md:gap-[22px] md:pl-[22px] md:border-l md:border-line ml-auto md:ml-0">
+            <LangToggle />
+            <button
+              type="button"
+              onClick={() => setLoginOpen(true)}
+              aria-label={tHeader("login")}
+              className="inline-flex items-center justify-center w-[26px] h-[26px] text-ink-soft hover:text-green transition-colors"
+            >
+              <UserIcon />
+            </button>
+            <button
+              type="button"
+              onClick={() => setCartOpen(true)}
+              aria-label={tHeader("cart")}
+              className="relative inline-flex items-center justify-center w-[26px] h-[26px] text-ink-soft hover:text-green transition-colors"
+            >
+              <CartIcon />
+              <span className="absolute -top-[2px] -right-[6px] min-w-[15px] h-[15px] px-[4px] rounded-full bg-green text-white font-en text-[9px] font-semibold tracking-[0.02em] inline-flex items-center justify-center leading-none">
+                2
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div className="max-w-[1480px] mx-auto px-[18px] md:px-[28px] pt-[10px] pb-[14px] flex items-center gap-[22px] font-en text-[12px] tracking-[0.06em] text-ink-mute border-t border-dotted border-line overflow-x-auto">
+          <a href="#" className="text-ink hover:text-foreground transition-colors whitespace-nowrap">
+            {tNav("categories.all")}
+          </a>
+          <a href="#" className="hover:text-ink transition-colors whitespace-nowrap">
+            {tNav("categories.calming")}
+          </a>
+          <a href="#" className="hover:text-ink transition-colors whitespace-nowrap">
+            {tNav("categories.cleansing")}
+          </a>
+          <a href="#" className="hover:text-ink transition-colors whitespace-nowrap">
+            {tNav("categories.sun")}
+          </a>
+          <a href="#" className="hover:text-ink transition-colors whitespace-nowrap">
+            {tNav("categories.mask")}
+          </a>
+          <span className="flex-1 h-px bg-transparent" />
+          <a
+            href="#"
+            className="inline-flex items-center gap-[8px] text-green whitespace-nowrap"
+          >
+            <span className="w-[6px] h-[6px] rounded-full bg-green dot-pulse" />
+            {tNav("categories.new")}
+          </a>
         </div>
       </header>
 
-      {/* ── 메뉴 패널 ── */}
-      <SideMenu isOpen={isMenuOpen} onClose={closeMenu} onLoginClick={openLogin} />
-
-      {/* ── 로그인 모달 ── */}
-      <LoginModal isOpen={isLoginOpen} onClose={closeLogin} />
+      <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
+      <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
     </>
   );
 }
 
-/* ─── 사이드 메뉴 ──────────────────────────────── */
+/* ─── 하위 컴포넌트 ─────────────────────────── */
 
-function SideMenu({
-  isOpen,
-  onClose,
-  onLoginClick,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onLoginClick: () => void;
-}) {
-  const t = useTranslations("nav");
-  const tHeader = useTranslations("header");
+function LangToggle() {
+  const locale = useLocale() as Locale;
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const navItems = [
-    { label: t("product"), href: "#product" },
-    { label: t("story"), href: "#story" },
-    { label: t("event"), href: "/event" },
-  ];
+  const handleChange = (code: Locale) => {
+    if (code === locale) return;
+    router.replace(pathname, { locale: code });
+  };
 
   return (
-    <>
-      {/* 배경 딤 */}
-      <div
-        className={`fixed inset-0 z-40 bg-black/60 transition-opacity duration-500 ${
-          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
-        onClick={onClose}
-      />
-
-      {/* 패널 — 모바일: 풀스크린 / md+: 왼쪽 1/3 */}
-      <div
-        className={`fixed top-0 left-0 z-50 h-full bg-foreground text-white
-          w-full md:w-[38%] lg:w-[33%] xl:w-[28%]
-          transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
-          ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
-      >
-        {/* 닫기 버튼 */}
-        <div className="flex items-center h-14 sm:h-16 md:h-18 lg:h-20 px-6 sm:px-8">
-          <button
-            onClick={onClose}
-            className="text-[11px] sm:text-xs tracking-[0.2em] font-bold text-white/70 hover:text-white transition-colors"
-          >
-            {tHeader("close")}
-          </button>
-        </div>
-
-        {/* 내비게이션 */}
-        <nav className="flex flex-col px-6 sm:px-8 pt-6 sm:pt-10">
-          {navItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href as any}
-              onClick={onClose}
-              className="block py-3 sm:py-4 text-3xl sm:text-4xl md:text-2xl lg:text-3xl tracking-[0.04em] font-bold text-white hover:text-[#A9FF39] transition-colors duration-300"
-            >
-              {item.label}
-            </Link>
-          ))}
-
-          <div className="border-t border-white/10 mt-8 pt-6 flex flex-col gap-3">
-            <button
-              onClick={onLoginClick}
-              className="text-xs tracking-[0.15em] text-white/40 hover:text-white transition-colors text-left"
-            >
-              {t("login")}
-            </button>
-            <Link
-              href="/signup"
-              onClick={onClose}
-              className="text-xs tracking-[0.15em] text-white/40 hover:text-white transition-colors"
-            >
-              {t("join")}
-            </Link>
-          </div>
-        </nav>
-
-        {/* 하단 — 언어 스위처 + 태그라인 */}
-        <div className="absolute bottom-8 left-6 sm:left-8 right-6 sm:right-8">
-          <LanguageSwitcher />
-          <p className="text-[10px] tracking-[0.1em] text-white/20 mt-4">
-            Recover Right After the Ride.
-          </p>
-        </div>
-      </div>
-    </>
-  );
-}
-
-/* ─── 아이콘 컴포넌트 ────────────────────────────── */
-
-interface IconButtonProps {
-  icon: "search" | "user" | "cart";
-  label: string;
-  badgeCount?: number;
-  dark?: boolean;
-}
-
-function IconButton({ icon, label, badgeCount, dark }: IconButtonProps) {
-  return (
-    <button
-      className={`p-1 transition-colors relative ${
-        dark
-          ? "text-foreground hover:text-foreground/50"
-          : "text-white hover:text-white/60"
-      }`}
-      aria-label={label}
+    <div
+      aria-label="language"
+      className="hidden md:flex gap-0 items-center font-en text-[11px] tracking-[0.06em] text-ink-mute uppercase"
     >
-      {icon === "search" && <SearchIcon />}
-      {icon === "user" && <UserIcon />}
-      {icon === "cart" && (
-        <>
-          <CartIcon />
-          {badgeCount !== undefined && (
-            <span
-              className={`absolute -top-0.5 -right-1 text-[9px] sm:text-[10px] w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full flex items-center justify-center leading-none ${
-                dark ? "bg-foreground text-white" : "bg-white text-black"
-              }`}
-            >
-              {badgeCount}
-            </span>
-          )}
-        </>
-      )}
-    </button>
-  );
-}
-
-/* ─── SVG 아이콘 ──────────────────────────────────── */
-
-const ICON_PROPS = {
-  xmlns: "http://www.w3.org/2000/svg",
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 1.5,
-  strokeLinecap: "round" as const,
-  strokeLinejoin: "round" as const,
-  className: "w-[18px] h-[18px] sm:w-5 sm:h-5",
-};
-
-function SearchIcon() {
-  return (
-    <svg {...ICON_PROPS}>
-      <circle cx="11" cy="11" r="8" />
-      <path d="m21 21-4.35-4.35" />
-    </svg>
+      {LOCALES.map((code, idx) => (
+        <button
+          key={code}
+          type="button"
+          onClick={() => handleChange(code)}
+          className={`px-[6px] leading-none transition-colors ${
+            idx > 0 ? "border-l border-line" : ""
+          } ${code === locale ? "text-green" : "hover:text-foreground"}`}
+        >
+          {code}
+        </button>
+      ))}
+    </div>
   );
 }
 
 function UserIcon() {
   return (
-    <svg {...ICON_PROPS}>
-      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.2"
+    >
+      <circle cx="8" cy="5.5" r="2.5" />
+      <path d="M2.5 14c.5-3 3-4.5 5.5-4.5s5 1.5 5.5 4.5" />
     </svg>
   );
 }
 
 function CartIcon() {
   return (
-    <svg {...ICON_PROPS}>
-      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
-      <path d="M3 6h18" />
-      <path d="M16 10a4 4 0 0 1-8 0" />
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.2"
+    >
+      <path d="M3 4.5h10l-.9 8.2a1 1 0 0 1-1 .9H4.9a1 1 0 0 1-1-.9L3 4.5Z" />
+      <path d="M5.5 4.5V3a2.5 2.5 0 0 1 5 0v1.5" />
     </svg>
   );
 }
