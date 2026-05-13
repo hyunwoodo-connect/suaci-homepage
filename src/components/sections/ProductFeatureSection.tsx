@@ -52,7 +52,7 @@ export default function ProductFeatureSection() {
           </div>
 
           {/* 중앙: 보틀 */}
-          <div className="reveal relative flex justify-center max-md:order-1">
+          <div className="reveal-scale relative flex justify-center max-md:order-1">
             <Image
               src={product.images.bottle.src}
               alt={product.images.bottle.alt}

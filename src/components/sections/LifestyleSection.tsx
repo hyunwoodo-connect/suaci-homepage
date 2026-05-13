@@ -11,9 +11,19 @@ export default function LifestyleSection() {
   return (
     <section
       id="story"
-      className={`lifestyle ${SECTION_PADDING_Y_LG} border-t border-line bg-background overflow-hidden`}
+      className={`lifestyle relative ${SECTION_PADDING_Y_LG} bg-background overflow-hidden`}
     >
-      <div className={SHELL}>
+      {/* gradient bridge — Product(bg-warm) → Lifestyle(background) */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-0 top-0 h-[180px] pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(180deg, var(--color-bg-warm) 0%, var(--color-background) 100%)",
+        }}
+      />
+
+      <div className={`relative ${SHELL}`}>
         {/* Eyebrow + opening pull */}
         <div className="grid grid-cols-[160px_1fr] gap-[48px] items-baseline mb-[80px] max-md:grid-cols-1 max-md:gap-[18px] max-md:mb-[40px]">
           <span className="font-en text-[11px] tracking-[0.22em] uppercase text-green flex gap-[10px] items-baseline">

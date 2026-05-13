@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import Button from "@/components/ui/Button";
+import HeroPhotosBackground from "@/components/sections/hero/HeroPhotosBackground";
 import { getPrimaryProduct } from "@/data/products";
 import {
   formatKRW,
@@ -11,10 +12,9 @@ import {
 /**
  * Hero — editorial split.
  *
- * 좌 42%: chip + 큰 serif headline + sub + commerce 카드
- * 우 58%: 풀블리드 mood 사진 crossfade + 매거진 코너 라벨
- *
- * 사이트 전체 톤을 결정하는 첫 화면.
+ * 좌 42%: chip + 큰 serif headline (character-by-character reveal) +
+ *         sub + commerce 카드
+ * 우 58%: 풀블리드 mood 사진 crossfade + 마우스 parallax + 매거진 코너 라벨
  */
 export default function HeroSection() {
   const t = useTranslations("hero");
@@ -37,18 +37,22 @@ export default function HeroSection() {
 
             <div className="hero-headline reveal mt-auto mb-0">
               <h1 className="font-serif font-light text-[clamp(48px,5.4vw,82px)] leading-[1.05] tracking-[-0.025em] text-ink text-balance max-w-[14ch] max-md:text-[42px] max-md:max-w-none">
-                <span className="w">{t("headline1")} </span>
+                <span className="w">
+                  <CharReveal text={`${t("headline1")} `} baseDelay={60} />
+                </span>
                 <span className="w relative inline-block text-green">
-                  {t("headlineHighlight")}
+                  <CharReveal text={t("headlineHighlight")} baseDelay={220} />
                   <span
                     aria-hidden="true"
                     className="absolute left-[-2px] right-[-2px] bottom-[0.08em] h-[0.42em] bg-[rgba(15,61,46,0.10)] -z-10"
                   />
                 </span>
                 <br />
-                <span className="w">{t("headline2")}</span>
+                <span className="w">
+                  <CharReveal text={t("headline2")} baseDelay={420} />
+                </span>
                 <span className="w font-fraunces italic font-light text-green text-[0.92em] tracking-[-0.04em]">
-                  {t("headlinePeriod")}
+                  <CharReveal text={t("headlinePeriod")} baseDelay={760} />
                 </span>
               </h1>
             </div>
@@ -118,19 +122,9 @@ export default function HeroSection() {
             </div>
           </div>
 
-          {/* ── Right: cinematic mood ── */}
+          {/* ── Right: cinematic mood (with mouse parallax) ── */}
           <div className="relative overflow-hidden bg-[#1a2a20] max-md:h-[62vh] max-md:min-h-[420px]">
-            {heroPhotos.slice(0, 3).map((photo, i) => (
-              <Image
-                key={photo.src}
-                src={photo.src}
-                alt={photo.alt}
-                fill
-                priority={i === 0}
-                sizes="(max-width: 900px) 100vw, 58vw"
-                className={`hero-photo f${i + 1} object-cover`}
-              />
-            ))}
+            <HeroPhotosBackground photos={heroPhotos} />
             <div
               aria-hidden="true"
               className="absolute inset-0 pointer-events-none z-[1]"
@@ -173,5 +167,29 @@ export default function HeroSection() {
         </div>
       </div>
     </section>
+  );
+}
+
+/* ─── 하위 헬퍼 ─────────────────────────── */
+
+interface CharRevealProps {
+  text: string;
+  baseDelay?: number;
+  perChar?: number;
+}
+
+function CharReveal({ text, baseDelay = 0, perChar = 38 }: CharRevealProps) {
+  return (
+    <>
+      {Array.from(text).map((c, i) => (
+        <span
+          key={i}
+          className="ch"
+          style={{ transitionDelay: `${baseDelay + i * perChar}ms` }}
+        >
+          {c === " " ? " " : c}
+        </span>
+      ))}
+    </>
   );
 }

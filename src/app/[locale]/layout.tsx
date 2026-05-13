@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 import { SITE } from "@/constants/site";
 import SmoothScroll from "@/components/ui/SmoothScroll";
+import CustomCursor from "@/components/ui/CustomCursor";
 import "../globals.css";
 
 export async function generateMetadata({
@@ -73,6 +74,7 @@ export default async function LocaleLayout({
       </head>
       <body className="antialiased">
         <SmoothScroll />
+        <CustomCursor />
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>
     </html>
