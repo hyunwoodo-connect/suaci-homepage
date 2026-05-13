@@ -33,7 +33,7 @@ export default function StorySection() {
 
         <figure className="reveal mt-[48px] mx-auto w-[min(560px,80%)] relative bg-bg-warm m-0">
           <Image
-            src="/home/ref-wishlist.jpg"
+            src="/old/home/ref-wishlist.jpg"
             alt="SUACI 브랜드 노트 에디토리얼 컷"
             width={800}
             height={500}

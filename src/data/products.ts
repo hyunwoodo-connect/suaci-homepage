@@ -17,21 +17,21 @@ export const DAILY_CALMING_MIST: Product = {
   },
   images: {
     bottle: {
-      src: "/home/suaci-bottle.png",
+      src: "/old/home/suaci-bottle.png",
       alt: "짙은 초록색 SUACI Daily Calming Mist 80ml 미스트 보틀",
     },
     hero: [
       {
-        src: "/home/hero-reading.jpg",
-        alt: "창가에서 조용히 책을 읽는 오후의 한 장면",
+        src: "/image/mood/mood-01.jpg",
+        alt: "잔디 위에 누워 책을 읽는 두 사람의 평온한 오후",
       },
       {
-        src: "/home/hero-cat.jpg",
-        alt: "햇볕이 닿는 창가에서 쉬는 고양이",
+        src: "/image/mood/mood-02.jpg",
+        alt: "햇살이 들어오는 공간의 무드 컷",
       },
       {
-        src: "/home/hero-lake.jpg",
-        alt: "잔잔한 호수와 안개가 낀 풍경",
+        src: "/image/mood/mood-03.jpg",
+        alt: "차분한 분위기의 일상 한 장면",
       },
     ],
   },

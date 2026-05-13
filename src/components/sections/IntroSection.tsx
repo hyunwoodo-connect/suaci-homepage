@@ -84,7 +84,7 @@ export default function IntroSection() {
       <div className="reveal mt-[80px] pt-[36px] border-t border-dotted border-line grid grid-cols-2 gap-[36px] items-end px-[56px] pb-[80px] max-md:grid-cols-1 max-md:gap-[18px] max-md:px-[18px] max-md:mt-[40px] max-md:pb-[48px]">
         <figure className="m-0 bg-bg-warm relative">
           <Image
-            src="/home/ref-khaki.jpg"
+            src="/old/home/ref-khaki.jpg"
             alt="카키 톤 아우터를 입은 인물의 일상 한 장면"
             width={1200}
             height={760}

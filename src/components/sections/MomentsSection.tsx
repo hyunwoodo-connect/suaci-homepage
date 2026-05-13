@@ -24,7 +24,7 @@ const MOMENTS: MomentItem[] = [
     body1Key: "moment1Body1",
     body2Key: "moment1Body2",
     body3Key: "moment1Body3",
-    img: "/home/ref-reading.jpg",
+    img: "/old/home/ref-reading.jpg",
     imgAlt: "사무실에서 책을 읽는 실내 컷",
   },
   {
@@ -35,7 +35,7 @@ const MOMENTS: MomentItem[] = [
     body1Key: "moment2Body1",
     body2Key: "moment2Body2",
     body3Key: "moment2Body3",
-    img: "/home/ref-puffer.jpg",
+    img: "/old/home/ref-puffer.jpg",
     imgAlt: "메이크업 위 클로즈업 컷",
   },
   {
@@ -46,7 +46,7 @@ const MOMENTS: MomentItem[] = [
     body1Key: "moment3Body1",
     body2Key: "moment3Body2",
     body3Key: "moment3Body3",
-    img: "/home/ref-walking-coat.jpg",
+    img: "/old/home/ref-walking-coat.jpg",
     imgAlt: "코트를 입고 외부를 걷는 컷",
   },
   {
@@ -57,7 +57,7 @@ const MOMENTS: MomentItem[] = [
     body1Key: "moment4Body1",
     body2Key: "moment4Body2",
     body3Key: "moment4Body3",
-    img: "/home/ref-walking-white.jpg",
+    img: "/old/home/ref-walking-white.jpg",
     imgAlt: "흰색 아우터를 입고 걷는 미니멀 컷",
   },
 ];
