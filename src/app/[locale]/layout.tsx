@@ -73,7 +73,6 @@ export default async function LocaleLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className="antialiased">
-        <SmoothScroll />
         <CustomCursor />
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>
