@@ -16,7 +16,9 @@ export default function RevealOnScroll() {
       window.matchMedia &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    const nodes = Array.from(document.querySelectorAll<HTMLElement>(".reveal"));
+    const nodes = Array.from(
+      document.querySelectorAll<HTMLElement>(".reveal, .reveal-mask"),
+    );
     if (reduce) {
       nodes.forEach((n) => n.classList.add("in"));
       return;

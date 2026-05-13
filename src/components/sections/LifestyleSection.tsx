@@ -28,7 +28,7 @@ export default function LifestyleSection() {
         </div>
 
         {/* Image 1 — full-bleed tall mood (호숫가) */}
-        <figure className="reveal relative aspect-[16/10] m-0 bg-bg-warm overflow-hidden max-md:aspect-[4/5]">
+        <figure className="reveal-mask relative aspect-[16/10] m-0 bg-bg-warm overflow-hidden max-md:aspect-[4/5]">
           <Image
             src="/image/mood/mood-03.jpg"
             alt="호숫가 잔디 위에 앉아 카메라를 들고 있는 평온한 오후"
@@ -57,7 +57,7 @@ export default function LifestyleSection() {
 
         {/* Image 2 + 3 — asymmetric 2-up */}
         <div className="grid grid-cols-[1fr_1.3fr] gap-[24px] items-stretch max-md:grid-cols-1">
-          <figure className="reveal relative aspect-[4/5] m-0 bg-bg-warm overflow-hidden max-md:aspect-[4/3]">
+          <figure className="reveal-mask relative aspect-[4/5] m-0 bg-bg-warm overflow-hidden max-md:aspect-[4/3]">
             <Image
               src="/image/daily/daily-03.jpg"
               alt="햇살이 들어오는 공간, 책상 앞의 차분한 일상"
@@ -70,7 +70,7 @@ export default function LifestyleSection() {
             </figcaption>
           </figure>
 
-          <figure className="reveal relative aspect-[5/6] m-0 bg-bg-warm overflow-hidden max-md:aspect-[4/3]">
+          <figure className="reveal-mask relative aspect-[5/6] m-0 bg-bg-warm overflow-hidden max-md:aspect-[4/3]">
             <Image
               src="/image/usage/usage-02.jpg"
               alt="햇살 아래 미스트를 가볍게 분사하는 손과 흩날리는 물방울"

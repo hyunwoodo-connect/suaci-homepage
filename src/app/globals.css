@@ -82,6 +82,24 @@ img {
   color: #fff;
 }
 
+/* ── Lenis smooth scroll (required CSS) ─────────── */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: clip;
+}
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
 /* ── reveal-on-scroll ──────────────────────────── */
 .reveal {
   opacity: 0;
@@ -91,6 +109,16 @@ img {
 .reveal.in {
   opacity: 1;
   transform: none;
+}
+
+/* ── image mask reveal (bottom-up clip-path) ──── */
+.reveal-mask {
+  clip-path: inset(100% 0 0 0);
+  transition: clip-path 1.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+  will-change: clip-path;
+}
+.reveal-mask.in {
+  clip-path: inset(0 0 0 0);
 }
 
 /* ── hero word-by-word ──────────────────────────── */
