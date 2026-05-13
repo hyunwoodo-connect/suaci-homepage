@@ -2,16 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations } from "next-intl/server";
-import { Archivo } from "next/font/google";
 import { routing } from "@/i18n/routing";
 import { SITE } from "@/constants/site";
 import "../globals.css";
-
-const archivo = Archivo({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-archivo",
-});
 
 export async function generateMetadata({
   params,
@@ -71,17 +64,11 @@ export default async function LocaleLayout({
   }
 
   return (
-    <html lang={locale} className={archivo.variable}>
+    <html lang={locale}>
       <head>
-        <link
-          rel="preconnect"
-          href="https://cdn.jsdelivr.net"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
-        />
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className="antialiased">
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
