@@ -123,6 +123,7 @@
 
 ## 7. 일하는 방식
 
+0. **모델은 opus만.** 모든 `Agent` 디스패치(subagent / general-purpose / Explore 등)는 `model: "opus"`로 고정. 단순/기계적 작업처럼 보여도 haiku·sonnet 사용 금지. (오너 명시 — 2026-05-13)
 1. **창의적 작업(새 페이지/섹션/기능)은 PM부터.** `pm` 에이전트를 디스패치해서 스펙을 받은 뒤 `frontend-engineer`로 넘긴다.
 2. **순수 구현 task는 바로 `frontend-engineer`로.** 스펙이 명확하면 PM 단계 생략 가능.
 3. **시각 작업에는 `frontend-design` 스킬을 반드시 쓴다.** Claude의 기본 미감으로 가면 generic해진다.
