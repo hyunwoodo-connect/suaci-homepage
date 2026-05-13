@@ -40,5 +40,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# superpowers visual brainstorming workspace
+.superpowers/
+
 # claude code (per-user)
 .claude/settings.local.json
