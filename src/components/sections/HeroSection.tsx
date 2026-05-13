@@ -1,7 +1,6 @@
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import Button from "@/components/ui/Button";
-import HeroPhotosBackground from "@/components/sections/hero/HeroPhotosBackground";
 import { getPrimaryProduct } from "@/data/products";
 import {
   formatKRW,
@@ -122,9 +121,19 @@ export default function HeroSection() {
             </div>
           </div>
 
-          {/* ── Right: cinematic mood (with mouse parallax) ── */}
+          {/* ── Right: cinematic mood ── */}
           <div className="relative overflow-hidden bg-[#1a2a20] max-md:h-[62vh] max-md:min-h-[420px]">
-            <HeroPhotosBackground photos={heroPhotos} />
+            {heroPhotos.slice(0, 3).map((photo, i) => (
+              <Image
+                key={photo.src}
+                src={photo.src}
+                alt={photo.alt}
+                fill
+                priority={i === 0}
+                sizes="(max-width: 900px) 100vw, 58vw"
+                className={`hero-photo f${i + 1} object-cover`}
+              />
+            ))}
             <div
               aria-hidden="true"
               className="absolute inset-0 pointer-events-none z-[1]"
