@@ -1,14 +1,26 @@
 import Image from "next/image";
 import { useTranslations } from "next-intl";
+import Button from "@/components/ui/Button";
+import { getPrimaryProduct } from "@/data/products";
+import {
+  formatKRW,
+  formatRatingScore,
+  getEffectivePrice,
+} from "@/utils/commerce";
 
 /**
  * Hero — image-led split
  *
  * 좌측 42%: 칩 + 명조 헤드라인 + sub + commerce card
  * 우측 58%: 풀블리드 풍경 사진 크로스페이드 + 오버레이
+ *
+ * 가격·이미지·등급 등 SKU 데이터는 `src/data/products.ts`에서 끌어쓴다.
+ * 마케팅 카피·라벨은 i18n에 둔다.
  */
 export default function HeroSection() {
   const t = useTranslations("hero");
+  const product = getPrimaryProduct();
+  const heroPhotos = product.images.hero ?? [];
 
   return (
     <section className="hero relative min-h-screen overflow-hidden bg-background">
@@ -19,8 +31,8 @@ export default function HeroSection() {
             <div className="inline-flex items-center gap-[10px] self-start font-en text-[11px] tracking-[0.22em] uppercase text-green">
               <span className="w-[7px] h-[7px] rounded-full bg-green shadow-[0_0_0_5px_rgba(15,61,46,0.12)]" />
               <span>
-                <b className="font-medium">{t("chipNumber")}</b>
-                &nbsp;·&nbsp;{t("chipLabel")}
+                <b className="font-medium">{product.issueNumber}</b>
+                &nbsp;·&nbsp;{product.name}
               </span>
             </div>
 
@@ -60,8 +72,8 @@ export default function HeroSection() {
               <div className="flex items-center gap-[16px] max-md:flex-wrap">
                 <div className="w-[72px] h-[90px] bg-bg-warm flex items-center justify-center flex-shrink-0 overflow-hidden">
                   <Image
-                    src="/home/suaci-bottle.png"
-                    alt=""
+                    src={product.images.bottle.src}
+                    alt={product.images.bottle.alt}
                     width={72}
                     height={90}
                     className="h-[92%] w-auto object-contain drop-shadow-[0_6px_10px_rgba(15,61,46,0.18)]"
@@ -69,43 +81,37 @@ export default function HeroSection() {
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col gap-[6px]">
                   <div className="font-medium text-[16px] text-ink tracking-[-0.01em]">
-                    {t("productName")}{" "}
+                    {product.nameKo}{" "}
                     <em className="font-en not-italic font-normal text-ink-mute text-[12px] ml-[6px] tracking-[0.04em]">
-                      {t("productVolume")}
+                      {product.volume}
                     </em>
                   </div>
-                  <div className="font-en text-[11px] tracking-[0.16em] uppercase text-ink-mute flex gap-[10px] items-center">
-                    <span className="text-green tracking-normal text-[12px]">
-                      {t("rating")}
-                    </span>
-                    <span>{t("ratingCount")}</span>
-                  </div>
+                  {product.rating && (
+                    <div className="font-en text-[11px] tracking-[0.16em] uppercase text-ink-mute flex gap-[10px] items-center">
+                      <span className="text-green tracking-normal text-[12px] num">
+                        {formatRatingScore(product.rating.score)}
+                      </span>
+                      <span>{t("ratingCount")}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-col items-end gap-[2px] text-right flex-shrink-0">
-                  <span className="font-en text-[12px] text-ink-mute line-through">
-                    {t("priceWas")}
+                  <span className="font-en text-[12px] text-ink-mute line-through num">
+                    {formatKRW(product.price.list)}
                   </span>
-                  <span className="font-en font-medium text-[22px] text-green tracking-[-0.01em]">
-                    {t("priceNow")}
+                  <span className="font-en font-medium text-[22px] text-green tracking-[-0.01em] num">
+                    {formatKRW(getEffectivePrice(product.price))}
                   </span>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-[8px] max-md:grid-cols-1">
-                <button
-                  type="button"
-                  className="px-[18px] py-[15px] text-[14px] font-medium tracking-[0.02em] text-center border border-green bg-green text-white hover:bg-foreground hover:border-foreground transition-colors"
-                >
-                  {t("ctaAddToCart")}
-                </button>
-                <button
-                  type="button"
-                  className="px-[18px] py-[15px] text-[14px] font-medium tracking-[0.02em] text-center border border-green text-green hover:bg-green hover:text-white transition-colors"
-                >
-                  {t("ctaBuyNow")}
-                </button>
+                <Button variant="primary">{t("ctaAddToCart")}</Button>
+                <Button variant="secondary">{t("ctaBuyNow")}</Button>
               </div>
               <div className="font-en text-[11px] tracking-[0.12em] uppercase text-ink-mute flex gap-[14px] items-center pt-[2px] flex-wrap">
-                <span className="text-green font-medium">{t("shipFree")}</span>
+                {product.shipping?.free && (
+                  <span className="text-green font-medium">{t("shipFree")}</span>
+                )}
                 <span>{t("shipMin")}</span>
                 <span>·</span>
                 <span>{t("shipToday")}</span>
@@ -115,28 +121,17 @@ export default function HeroSection() {
 
           {/* ── 우측 ── */}
           <div className="relative overflow-hidden bg-[#1a2a20] max-md:h-[62vh] max-md:min-h-[380px]">
-            <Image
-              src="/home/hero-reading.jpg"
-              alt=""
-              fill
-              priority
-              sizes="(max-width: 900px) 100vw, 58vw"
-              className="hero-photo f1 object-cover"
-            />
-            <Image
-              src="/home/hero-cat.jpg"
-              alt=""
-              fill
-              sizes="(max-width: 900px) 100vw, 58vw"
-              className="hero-photo f2 object-cover"
-            />
-            <Image
-              src="/home/hero-lake.jpg"
-              alt=""
-              fill
-              sizes="(max-width: 900px) 100vw, 58vw"
-              className="hero-photo f3 object-cover"
-            />
+            {heroPhotos.slice(0, 3).map((photo, i) => (
+              <Image
+                key={photo.src}
+                src={photo.src}
+                alt={photo.alt}
+                fill
+                priority={i === 0}
+                sizes="(max-width: 900px) 100vw, 58vw"
+                className={`hero-photo f${i + 1} object-cover`}
+              />
+            ))}
             <div
               aria-hidden="true"
               className="absolute inset-0 pointer-events-none z-[1]"
@@ -149,7 +144,8 @@ export default function HeroSection() {
 
             <div className="absolute top-[36px] right-[36px] text-right flex flex-col gap-[6px] z-[3] font-en text-[11px] tracking-[0.22em] uppercase text-white/85 max-md:hidden">
               <span>
-                {t("issue")} <b className="text-white font-medium">{t("issueNumber")}</b>
+                {t("issue")}{" "}
+                <b className="text-white font-medium">{product.issueNumber}</b>
               </span>
               <span>{t("season")}</span>
             </div>

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function NotFound() {
   return (
     <html lang="ko">
@@ -16,9 +18,9 @@ export default function NotFound() {
           <p style={{ marginTop: "1rem", color: "#666" }}>
             페이지를 찾을 수 없습니다
           </p>
-          <a href="/" style={{ color: "#111", marginTop: "1.5rem", display: "inline-block" }}>
+          <Link href="/" style={{ color: "#111", marginTop: "1.5rem", display: "inline-block" }}>
             홈으로 돌아가기
-          </a>
+          </Link>
         </div>
       </body>
     </html>

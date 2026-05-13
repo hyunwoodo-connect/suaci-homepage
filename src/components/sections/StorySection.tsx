@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { SHELL } from "@/constants/site";
+import { SECTION_PADDING_Y_LG, SHELL } from "@/constants/site";
 import SectionEyebrow from "@/components/ui/SectionEyebrow";
 
 /**
@@ -16,7 +16,7 @@ export default function StorySection() {
   return (
     <section
       id="story"
-      className="story py-[160px] border-t border-line text-center bg-background max-md:py-[80px]"
+      className={`story ${SECTION_PADDING_Y_LG} border-t border-line text-center bg-background`}
     >
       <div className={SHELL}>
         <div className="reveal inline-flex justify-center mb-[48px]">
@@ -34,7 +34,7 @@ export default function StorySection() {
         <figure className="reveal mt-[48px] mx-auto w-[min(560px,80%)] relative bg-bg-warm m-0">
           <Image
             src="/home/ref-wishlist.jpg"
-            alt=""
+            alt="SUACI 브랜드 노트 에디토리얼 컷"
             width={800}
             height={500}
             className="w-full h-[340px] object-cover block grayscale-[0.05]"

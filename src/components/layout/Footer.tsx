@@ -1,5 +1,8 @@
+import type { ComponentProps } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+
+type LinkHref = ComponentProps<typeof Link>["href"];
 
 /**
  * 사이트 공통 푸터 — 매거진 톤
@@ -80,7 +83,7 @@ export default function Footer() {
 
 interface FooterLink {
   label: string;
-  href: string;
+  href: LinkHref;
 }
 
 interface FooterColProps {
@@ -98,7 +101,7 @@ function FooterCol({ title, links }: FooterColProps) {
         {links.map((link) => (
           <li key={link.label}>
             <Link
-              href={link.href as never}
+              href={link.href}
               className="text-[15px] text-ink hover:text-green transition-colors"
             >
               {link.label}

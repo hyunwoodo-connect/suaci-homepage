@@ -2,12 +2,24 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { SHELL } from "@/constants/site";
 import SectionEyebrow from "@/components/ui/SectionEyebrow";
+import Button from "@/components/ui/Button";
+import { getPrimaryProduct } from "@/data/products";
+import {
+  formatKRW,
+  getDiscountPercent,
+  getEffectivePrice,
+} from "@/utils/commerce";
 
 /**
  * Product Feature — 좌측 큰 제품 컷 + 우측 정보 컬럼
+ *
+ * 가격·할인율·이미지·용량은 commerce 데이터에서 끌어쓴다.
+ * 라벨/카피는 i18n에 둔다.
  */
 export default function ProductFeatureSection() {
   const t = useTranslations("product");
+  const product = getPrimaryProduct();
+  const discountPercent = getDiscountPercent(product.price);
 
   return (
     <section
@@ -25,8 +37,8 @@ export default function ProductFeatureSection() {
             </span>
             <span className="absolute top-1/2 left-[24px] w-px h-[48px] bg-green" />
             <Image
-              src="/home/suaci-bottle.png"
-              alt="SUACI Daily Calming Mist bottle"
+              src={product.images.bottle.src}
+              alt={product.images.bottle.alt}
               width={720}
               height={960}
               className="bottle-float max-h-[80vh] w-auto object-contain mix-blend-multiply contrast-[1.02] max-md:max-h-[60vh]"
@@ -38,7 +50,7 @@ export default function ProductFeatureSection() {
               {t("cornerBR")}
             </span>
             <span className="absolute left-1/2 bottom-[32px] -translate-x-1/2 bg-background px-[14px] py-[8px] font-en text-[10px] tracking-[0.22em] uppercase text-green border border-line">
-              {t("ticket")}
+              {product.name}
             </span>
           </div>
 
@@ -67,38 +79,30 @@ export default function ProductFeatureSection() {
 
             <div className="reveal flex items-baseline gap-[18px] pt-[20px] border-t border-line mt-[8px]">
               <span className="num text-ink-mute line-through text-[13px] font-en">
-                {t("priceWas")}
+                {formatKRW(product.price.list)}
               </span>
               <span className="num text-green font-en font-medium text-[22px] tracking-[-0.01em]">
-                {t("priceNow")}
+                {formatKRW(getEffectivePrice(product.price))}
                 <span className="text-[12px] text-ink-mute font-normal ml-[2px]">
-                  {t("priceCurrency")}
+                  {product.price.currency}
                 </span>
               </span>
-              <span className="ml-auto font-en text-[10px] tracking-[0.18em] uppercase border border-green text-green px-[8px] py-[4px]">
-                {t("priceOff")}
-              </span>
+              {discountPercent !== null && (
+                <span className="num ml-auto font-en text-[10px] tracking-[0.18em] uppercase border border-green text-green px-[8px] py-[4px]">
+                  −{discountPercent}%
+                </span>
+              )}
             </div>
 
             <div className="reveal grid grid-cols-2 gap-[8px] mt-[8px] mb-[4px] max-md:grid-cols-1">
-              <button
-                type="button"
-                className="px-[18px] py-[15px] text-[14px] font-medium tracking-[0.02em] text-center border border-green bg-green text-white hover:bg-foreground hover:border-foreground transition-colors"
-              >
-                {t("ctaAddToCart")}
-              </button>
-              <button
-                type="button"
-                className="px-[18px] py-[15px] text-[14px] font-medium tracking-[0.02em] text-center border border-green text-green hover:bg-green hover:text-white transition-colors"
-              >
-                {t("ctaBuyNow")}
-              </button>
+              <Button variant="primary">{t("ctaAddToCart")}</Button>
+              <Button variant="secondary">{t("ctaBuyNow")}</Button>
             </div>
 
             <div className="reveal grid grid-cols-3 mt-auto border-t border-line max-md:grid-cols-2">
-              <SpecCell k={t("specVolumeKey")} v={t("specVolumeValue")} />
-              <SpecCell k={t("specTypeKey")} v={t("specTypeValue")} />
-              <SpecCell k={t("specUseKey")} v={t("specUseValue")} last />
+              <SpecCell label={t("specVolumeKey")} value={product.volumeDetail} />
+              <SpecCell label={t("specTypeKey")} value={t("specTypeValue")} />
+              <SpecCell label={t("specUseKey")} value={t("specUseValue")} isLast />
             </div>
           </div>
         </div>
@@ -110,22 +114,22 @@ export default function ProductFeatureSection() {
 /* ─── 하위 컴포넌트 ─────────────────────────── */
 
 interface SpecCellProps {
-  k: string;
-  v: string;
-  last?: boolean;
+  label: string;
+  value: string;
+  isLast?: boolean;
 }
 
-function SpecCell({ k, v, last }: SpecCellProps) {
+function SpecCell({ label, value, isLast }: SpecCellProps) {
   return (
     <div
       className={`py-[14px] pr-[12px] ${
-        last ? "" : "border-r border-dotted border-line"
+        isLast ? "" : "border-r border-dotted border-line"
       }`}
     >
       <span className="font-en text-[10px] tracking-[0.18em] uppercase text-ink-mute block mb-[6px]">
-        {k}
+        {label}
       </span>
-      <span className="font-en text-[13px] text-ink num">{v}</span>
+      <span className="font-en text-[13px] text-ink num">{value}</span>
     </div>
   );
 }

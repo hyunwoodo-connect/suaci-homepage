@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { SHELL } from "@/constants/site";
+import { SECTION_PADDING_Y, SHELL } from "@/constants/site";
 import SectionEyebrow from "@/components/ui/SectionEyebrow";
 
 interface MomentItem {
@@ -12,6 +12,7 @@ interface MomentItem {
   body2Key: string;
   body3Key: string;
   img: string;
+  imgAlt: string;
 }
 
 const MOMENTS: MomentItem[] = [
@@ -24,6 +25,7 @@ const MOMENTS: MomentItem[] = [
     body2Key: "moment1Body2",
     body3Key: "moment1Body3",
     img: "/home/ref-reading.jpg",
+    imgAlt: "사무실에서 책을 읽는 실내 컷",
   },
   {
     n: "M02",
@@ -34,6 +36,7 @@ const MOMENTS: MomentItem[] = [
     body2Key: "moment2Body2",
     body3Key: "moment2Body3",
     img: "/home/ref-puffer.jpg",
+    imgAlt: "메이크업 위 클로즈업 컷",
   },
   {
     n: "M03",
@@ -44,6 +47,7 @@ const MOMENTS: MomentItem[] = [
     body2Key: "moment3Body2",
     body3Key: "moment3Body3",
     img: "/home/ref-walking-coat.jpg",
+    imgAlt: "코트를 입고 외부를 걷는 컷",
   },
   {
     n: "M04",
@@ -54,6 +58,7 @@ const MOMENTS: MomentItem[] = [
     body2Key: "moment4Body2",
     body3Key: "moment4Body3",
     img: "/home/ref-walking-white.jpg",
+    imgAlt: "흰색 아우터를 입고 걷는 미니멀 컷",
   },
 ];
 
@@ -64,7 +69,7 @@ export default function MomentsSection() {
   const t = useTranslations("moments");
 
   return (
-    <section className="moments py-[140px] border-t border-line max-md:py-[80px]">
+    <section className={`moments ${SECTION_PADDING_Y} border-t border-line`}>
       <div className={SHELL}>
         <div className="grid grid-cols-[160px_1fr_1fr] gap-[48px] items-end mb-[80px] max-md:grid-cols-1 max-md:gap-[18px] max-md:mb-[36px]">
           <SectionEyebrow number={t("eyebrowNumber")} label={t("eyebrowLabel")} />
@@ -96,7 +101,7 @@ export default function MomentsSection() {
                 </span>
                 <Image
                   src={m.img}
-                  alt=""
+                  alt={m.imgAlt}
                   width={500}
                   height={400}
                   className="w-full h-[300px] object-cover block transition-transform duration-[1.4s] ease-[cubic-bezier(0.22,0.61,0.36,1)] group-hover:scale-[1.03]"

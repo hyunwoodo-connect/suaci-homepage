@@ -5,9 +5,13 @@ import type { FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { SHELL } from "@/constants/site";
 import SectionEyebrow from "@/components/ui/SectionEyebrow";
+import Button from "@/components/ui/Button";
 
 /**
- * Order — 출시 알림 이메일 등록 폼 (UI 쉘, 동작은 비어있음)
+ * Order — 출시 알림 이메일 등록 폼 (UI 쉘, 동작은 비어있음).
+ *
+ * 페이지 마지막 섹션이라 푸터로 넘어가기 전에 호흡을 더 주려고
+ * pb를 section-lg만큼 늘렸다. (pt는 일반 섹션과 동일)
  */
 export default function OrderSection() {
   const t = useTranslations("order");
@@ -23,7 +27,7 @@ export default function OrderSection() {
   return (
     <section
       id="order"
-      className="order py-[140px] pb-[160px] border-t border-line max-md:py-[80px]"
+      className="order py-section-sm md:pt-section md:pb-section-lg border-t border-line"
     >
       <div className={SHELL}>
         <div className="grid grid-cols-[160px_1fr_1fr] gap-[48px] items-end max-md:grid-cols-1 max-md:gap-[24px]">
@@ -51,12 +55,9 @@ export default function OrderSection() {
                 placeholder={t("placeholder")}
                 className="flex-1 bg-transparent border-0 py-[14px] text-[15px] outline-none"
               />
-              <button
-                type="submit"
-                className="px-[22px] py-[14px] bg-green text-white font-en text-[11px] tracking-[0.18em] uppercase hover:bg-green-2 transition-colors"
-              >
+              <Button variant="uppercase" type="submit">
                 {t("submit")}
-              </button>
+              </Button>
             </div>
             <div className="font-en text-[11px] tracking-[0.06em] text-ink-mute flex justify-between gap-[12px] mt-[6px] max-md:flex-col max-md:gap-[6px]">
               <span className="font-sans tracking-normal">

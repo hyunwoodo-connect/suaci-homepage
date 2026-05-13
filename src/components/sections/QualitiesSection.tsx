@@ -1,5 +1,5 @@
 import { useTranslations } from "next-intl";
-import { SHELL } from "@/constants/site";
+import { SECTION_PADDING_Y, SHELL } from "@/constants/site";
 import SectionEyebrow from "@/components/ui/SectionEyebrow";
 
 interface QualityItem {
@@ -23,7 +23,7 @@ export default function QualitiesSection() {
   const t = useTranslations("qualities");
 
   return (
-    <section className="qualities py-[140px] border-t border-line bg-bg-warm max-md:py-[80px]">
+    <section className={`qualities ${SECTION_PADDING_Y} border-t border-line bg-bg-warm`}>
       <div className={SHELL}>
         <div className="grid grid-cols-[160px_1fr_1fr] gap-[48px] items-end mb-[80px] max-md:grid-cols-1 max-md:gap-[18px] max-md:mb-[36px]">
           <SectionEyebrow number={t("eyebrowNumber")} label={t("eyebrowLabel")} />

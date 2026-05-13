@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import Button from "@/components/ui/Button";
+import InputField from "@/components/ui/InputField";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -10,19 +12,11 @@ interface LoginModalProps {
 }
 
 /**
- * 로그인 모달 — 매거진 톤, 짙은 초록 보더, UI 쉘
+ * 로그인 모달 — 매거진 톤, 짙은 초록 보더, UI 쉘 (실 인증 미연결).
  */
 export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const t = useTranslations("login");
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isOpen]);
+  useBodyScrollLock(isOpen);
 
   if (!isOpen) return null;
 
@@ -33,7 +27,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="fixed inset-0 bg-[rgba(15,61,46,0.18)] z-[100] flex items-center justify-center p-[20px]"
+      className="fixed inset-0 bg-overlay z-[100] flex items-center justify-center p-[20px]"
     >
       <div className="relative bg-background border border-green w-full max-w-[420px] px-[36px] py-[40px]">
         <button
@@ -57,36 +51,19 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
           }}
           className="flex flex-col gap-[14px] mt-[28px]"
         >
-          <div>
-            <label className="block font-en text-[10px] tracking-[0.18em] uppercase text-ink-mute mb-[6px]">
-              {t("labelEmail")}
-            </label>
-            <div className="border border-green px-[14px] py-[12px]">
-              <input
-                type="email"
-                placeholder={t("placeholderEmail")}
-                className="w-full bg-transparent border-0 outline-none text-[14px]"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block font-en text-[10px] tracking-[0.18em] uppercase text-ink-mute mb-[6px]">
-              {t("labelPassword")}
-            </label>
-            <div className="border border-green px-[14px] py-[12px]">
-              <input
-                type="password"
-                placeholder={t("placeholderPassword")}
-                className="w-full bg-transparent border-0 outline-none text-[14px]"
-              />
-            </div>
-          </div>
-          <button
-            type="submit"
-            className="mt-[14px] bg-green text-white px-[14px] py-[14px] font-en text-[11px] tracking-[0.18em] uppercase hover:bg-green-2 transition-colors"
-          >
+          <InputField
+            label={t("labelEmail")}
+            type="email"
+            placeholder={t("placeholderEmail")}
+          />
+          <InputField
+            label={t("labelPassword")}
+            type="password"
+            placeholder={t("placeholderPassword")}
+          />
+          <Button variant="uppercase" type="submit" className="mt-[14px] w-full">
             {t("submit")}
-          </button>
+          </Button>
           <div className="mt-[18px] flex justify-between font-en text-[11px] tracking-[0.06em] text-ink-mute">
             <span>{t("altPrompt")}</span>
             <Link

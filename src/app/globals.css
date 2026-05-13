@@ -17,6 +17,15 @@
   --color-green: #0f3d2e;
   --color-green-2: #1a4d3a;
   --color-accent: #0f3d2e;
+  --color-overlay: rgba(15, 61, 46, 0.18);
+
+  /* ── 시맨틱 spacing 토큰 ── */
+  /* 모바일 섹션 padding-y / 데스크탑 섹션 padding-y / 더 긴 섹션(hero, story) padding-y */
+  --spacing-section-sm: 80px;
+  --spacing-section: 140px;
+  --spacing-section-lg: 160px;
+  --spacing-shell: 28px;
+  --spacing-shell-mobile: 18px;
 
   /* ── 폰트 패밀리 ── */
   --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", sans-serif;

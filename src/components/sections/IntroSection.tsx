@@ -85,7 +85,7 @@ export default function IntroSection() {
         <figure className="m-0 bg-bg-warm relative">
           <Image
             src="/home/ref-khaki.jpg"
-            alt=""
+            alt="카키 톤 아우터를 입은 인물의 일상 한 장면"
             width={1200}
             height={760}
             className="w-full h-[380px] object-cover block max-md:h-[300px]"
