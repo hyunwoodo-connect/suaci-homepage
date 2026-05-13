@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { SHELL } from "@/constants/site";
+import SectionEyebrow from "@/components/ui/SectionEyebrow";
 
 interface QualityItem {
   n: string;
@@ -25,13 +26,7 @@ export default function QualitiesSection() {
     <section className="qualities py-[140px] border-t border-line bg-bg-warm max-md:py-[80px]">
       <div className={SHELL}>
         <div className="grid grid-cols-[160px_1fr_1fr] gap-[48px] items-end mb-[80px] max-md:grid-cols-1 max-md:gap-[18px] max-md:mb-[36px]">
-          <div className="reveal font-en text-[11px] tracking-[0.22em] uppercase text-green flex gap-[10px] items-baseline">
-            <span className="num text-ink-mute tracking-[0.18em]">
-              {t("eyebrowNumber")}
-            </span>
-            <span className="inline-block w-[18px] h-px bg-green -translate-y-[3px]" />
-            <span>{t("eyebrowLabel")}</span>
-          </div>
+          <SectionEyebrow number={t("eyebrowNumber")} label={t("eyebrowLabel")} />
           <h2 className="reveal font-normal text-[clamp(28px,3.4vw,46px)] leading-[1.25] tracking-[-0.015em] max-w-[14ch] max-md:text-[28px]">
             {t("headline")}
           </h2>

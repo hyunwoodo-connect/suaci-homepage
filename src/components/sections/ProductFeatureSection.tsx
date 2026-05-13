@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { SHELL } from "@/constants/site";
+import SectionEyebrow from "@/components/ui/SectionEyebrow";
 
 /**
  * Product Feature — 좌측 큰 제품 컷 + 우측 정보 컬럼
@@ -42,13 +43,7 @@ export default function ProductFeatureSection() {
           </div>
 
           <div className="pt-[20px] flex flex-col gap-[32px]">
-            <div className="reveal font-en text-[11px] tracking-[0.22em] uppercase text-green flex gap-[10px] items-baseline">
-              <span className="num text-ink-mute tracking-[0.18em]">
-                {t("eyebrowNumber")}
-              </span>
-              <span className="inline-block w-[18px] h-px bg-green -translate-y-[3px]" />
-              <span>{t("eyebrowLabel")}</span>
-            </div>
+            <SectionEyebrow number={t("eyebrowNumber")} label={t("eyebrowLabel")} />
             <h2 className="reveal font-normal text-[clamp(32px,3.6vw,52px)] leading-[1.22] tracking-[-0.015em] max-w-[14ch] text-balance max-md:text-[28px]">
               {t("headline1")}
               <br />

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { SHELL } from "@/constants/site";
+import SectionEyebrow from "@/components/ui/SectionEyebrow";
 
 /**
  * Story — Brand Note (Brand Story 인라인 통합)
@@ -18,12 +19,8 @@ export default function StorySection() {
       className="story py-[160px] border-t border-line text-center bg-background max-md:py-[80px]"
     >
       <div className={SHELL}>
-        <div className="reveal inline-flex justify-center font-en text-[11px] tracking-[0.22em] uppercase text-green mb-[48px] gap-[10px] items-baseline">
-          <span className="num text-ink-mute tracking-[0.18em]">
-            {t("eyebrowNumber")}
-          </span>
-          <span className="inline-block w-[18px] h-px bg-green -translate-y-[3px]" />
-          <span>{t("eyebrowLabel")}</span>
+        <div className="reveal inline-flex justify-center mb-[48px]">
+          <SectionEyebrow number={t("eyebrowNumber")} label={t("eyebrowLabel")} />
         </div>
 
         <h2 className="reveal font-normal text-[clamp(34px,4.4vw,64px)] leading-[1.32] tracking-[-0.02em] text-balance max-w-[18ch] mx-auto text-ink m-0 max-md:text-[32px]">

@@ -26,12 +26,20 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   }, [isOpen]);
 
   return (
-    <aside
-      aria-label="cart"
-      className={`fixed top-0 right-0 h-screen w-full max-w-[420px] bg-background z-[90] border-l border-green flex flex-col transition-transform duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] ${
-        isOpen ? "translate-x-0" : "translate-x-full"
-      }`}
-    >
+    <>
+      <div
+        aria-hidden="true"
+        onClick={onClose}
+        className={`fixed inset-0 bg-[rgba(15,61,46,0.18)] z-[89] transition-opacity duration-500 ${
+          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+      />
+      <aside
+        aria-label="cart"
+        className={`fixed top-0 right-0 h-screen w-full max-w-[420px] bg-background z-[90] border-l border-green flex flex-col transition-transform duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] ${
+          isOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
       <div className="flex items-center justify-between px-[28px] py-[24px] border-b border-line">
         <div className="font-en text-[11px] tracking-[0.22em] uppercase text-green">
           {t("title")}
@@ -58,5 +66,6 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
         {t("foot")}
       </div>
     </aside>
+    </>
   );
 }

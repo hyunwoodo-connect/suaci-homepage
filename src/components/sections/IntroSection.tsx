@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { useTranslations } from "next-intl";
+import SectionEyebrow from "@/components/ui/SectionEyebrow";
 
 /**
  * Intro — 왜 만들었나
@@ -29,13 +30,7 @@ export default function IntroSection() {
       </div>
 
       <div className="px-[56px] pt-[80px] pb-[28px] flex flex-col gap-[24px] max-md:px-[18px] max-md:pt-[48px] max-md:pb-[24px]">
-        <div className="reveal font-en text-[11px] tracking-[0.22em] uppercase text-green flex gap-[10px] items-baseline">
-          <span className="num text-ink-mute tracking-[0.18em]">
-            {t("eyebrowNumber")}
-          </span>
-          <span className="inline-block w-[18px] h-px bg-green -translate-y-[3px]" />
-          <span>{t("eyebrowLabel")}</span>
-        </div>
+        <SectionEyebrow number={t("eyebrowNumber")} label={t("eyebrowLabel")} />
         <h2 className="reveal font-serif font-light text-[clamp(56px,9.2vw,164px)] leading-[0.98] tracking-[-0.035em] text-ink text-balance m-0 max-md:text-[44px]">
           {t("headline1")}
           <br />
