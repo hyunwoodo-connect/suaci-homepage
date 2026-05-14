@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 
@@ -16,15 +15,17 @@ export default function HeroSection() {
 
   return (
     <section className="relative h-[calc(100vh-96px)] min-h-[680px] overflow-hidden bg-[#0a1a13] text-[#f4efe1] max-sm:h-[calc(100vh-86px)] max-sm:min-h-[560px]">
-      {/* Background image with breathing animation */}
-      <Image
-        src="/image/mood/mood-01.jpg"
-        alt="햇살 가득한 나무 그늘 아래 평온한 오후"
-        fill
-        priority
-        sizes="100vw"
-        className="object-cover [animation:heroBreathe_14s_ease-in-out_infinite]"
-      />
+      {/* Background video */}
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        className="absolute inset-0 w-full h-full object-cover"
+      >
+        <source src="/banner.mp4" type="video/mp4" />
+      </video>
 
       {/* Gradient overlays */}
       <div
