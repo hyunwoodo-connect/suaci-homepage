@@ -11,7 +11,7 @@ export default function RulebarSection() {
 
   return (
     <section className="bg-background border-t border-line border-b border-b-line">
-      <div className="max-w-[1480px] mx-auto px-[18px] md:px-[32px] py-[18px] flex items-center gap-[24px] flex-wrap font-en text-[11px] tracking-[0.22em] uppercase text-ink-mute">
+      <div className="max-w-[1480px] mx-auto px-[18px] md:px-[32px] py-[18px] flex items-center gap-[24px] font-en text-[11px] tracking-[0.22em] uppercase text-ink-mute overflow-x-auto whitespace-nowrap max-sm:gap-[14px] max-sm:text-[10px]">
         <span>
           {t("brand")}{" "}
           <b className="font-semibold text-ink tracking-[0.18em]">
@@ -26,11 +26,11 @@ export default function RulebarSection() {
           </b>
         </span>
         <Dot />
-        <span>{t("feature")}</span>
-        <Dot />
-        <span>{t("launch")}</span>
-        <span className="flex-1" />
-        <span>{t("slogan")}</span>
+        <span className="max-sm:hidden">{t("feature")}</span>
+        <span className="max-sm:hidden"><Dot /></span>
+        <span className="max-sm:hidden">{t("launch")}</span>
+        <span className="flex-1 max-sm:hidden" />
+        <span className="max-sm:hidden">{t("slogan")}</span>
       </div>
     </section>
   );

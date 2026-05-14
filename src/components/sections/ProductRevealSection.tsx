@@ -44,7 +44,7 @@ export default function ProductRevealSection() {
         </div>
 
         {/* Center bottle */}
-        <div className="reveal reveal-delay-1 relative flex justify-center items-end h-full">
+        <div className="reveal relative flex justify-center items-end h-full">
           <Image
             src="/image/suaci-bottle.png"
             alt="짙은 초록색 SUACI Daily Calming Mist 보틀"
