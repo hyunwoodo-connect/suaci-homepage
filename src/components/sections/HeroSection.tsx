@@ -1,66 +1,85 @@
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import Button from "@/components/ui/Button";
-import { getPrimaryProduct } from "@/data/products";
-import {
-  formatKRW,
-  formatRatingScore,
-  getEffectivePrice,
-} from "@/utils/commerce";
+import { Link } from "@/i18n/navigation";
 
 /**
- * Hero — editorial split.
+ * Hero — Home v2 풀블리드 매거진 히어로.
  *
- * 좌 42%: chip + 큰 serif headline (character-by-character reveal) +
- *         sub + commerce 카드
- * 우 58%: 풀블리드 mood 사진 crossfade + 마우스 parallax + 매거진 코너 라벨
+ * 구조:
+ * - 풀블리드 mood 사진 (heroBreathe 애니메이션)
+ * - 그라데이션 오버레이 (하단 + 좌측)
+ * - 코너 프레임 (1px white border inset 18px)
+ * - 3-row 그리드: top(meta) / center(headline) / bottom(caption · scroll · CTA)
  */
 export default function HeroSection() {
-  const t = useTranslations("hero");
-  const product = getPrimaryProduct();
-  const heroPhotos = product.images.hero ?? [];
+  const t = useTranslations("hero2");
 
   return (
-    <section className="hero relative min-h-screen overflow-hidden bg-background">
-      <div className="relative h-screen min-h-[680px] max-md:h-auto max-md:min-h-0">
-        <div className="absolute inset-0 grid grid-cols-[minmax(440px,42%)_1fr] max-md:relative max-md:flex max-md:flex-col max-md:inset-auto">
-          {/* ── Left: editorial info column ── */}
-          <div className="relative z-[2] flex flex-col gap-[32px] bg-background border-r border-line pt-[88px] pb-[52px] px-[56px] max-md:border-r-0 max-md:pt-[60px] max-md:pb-[32px] max-md:px-[22px] max-md:gap-[24px]">
-            <div className="inline-flex items-center gap-[10px] self-start font-en text-[11px] tracking-[0.22em] uppercase text-green">
-              <span className="w-[7px] h-[7px] rounded-full bg-green shadow-[0_0_0_5px_rgba(15,61,46,0.12)]" />
-              <span>
-                <b className="font-medium">{t("chipNumber")}</b>
-                &nbsp;·&nbsp;{t("chipLabel")}
-              </span>
-            </div>
+    <section className="relative h-[calc(100vh-96px)] min-h-[680px] overflow-hidden bg-[#0a1a13] text-[#f4efe1] max-sm:h-[calc(100vh-86px)] max-sm:min-h-[560px]">
+      {/* Background image with breathing animation */}
+      <Image
+        src="/image/mood/mood-01.jpg"
+        alt="햇살 가득한 나무 그늘 아래 평온한 오후"
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover [animation:heroBreathe_14s_ease-in-out_infinite]"
+      />
 
-            <div className="hero-headline reveal mt-auto mb-0">
-              <h1 className="font-serif font-light text-[clamp(48px,5.4vw,82px)] leading-[1.05] tracking-[-0.025em] text-ink text-balance max-w-[14ch] max-md:text-[42px] max-md:max-w-none">
-                <span className="w">
-                  <CharReveal text={`${t("headline1")} `} baseDelay={60} />
-                </span>
-                <span className="w relative inline-block text-green">
-                  <CharReveal text={t("headlineHighlight")} baseDelay={220} />
-                  <span
-                    aria-hidden="true"
-                    className="absolute left-[-2px] right-[-2px] bottom-[0.08em] h-[0.42em] bg-[rgba(15,61,46,0.10)] -z-10"
-                  />
-                </span>
-                <br />
-                <span className="w">
-                  <CharReveal text={t("headline2")} baseDelay={420} />
-                </span>
-                <span className="w font-fraunces italic font-light text-green text-[0.92em] tracking-[-0.04em]">
-                  <CharReveal text={t("headlinePeriod")} baseDelay={760} />
-                </span>
-              </h1>
-            </div>
+      {/* Gradient overlays */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(180deg,rgba(10,28,18,.10) 0%,rgba(10,28,18,0) 28%,rgba(10,28,18,.62) 100%),linear-gradient(90deg,rgba(10,28,18,.32) 0%,rgba(10,28,18,0) 38%)",
+        }}
+      />
 
-            <div className="text-[15px] leading-[1.78] text-ink-soft max-w-[32ch]">
-              <span className="block font-en text-[11px] tracking-[0.22em] uppercase text-green mb-[10px]">
-                {t("subLabel")}
-              </span>
-              {t("subText")
+      {/* Corner frame */}
+      <span className="absolute inset-[18px] border border-[#f4efe1]/[0.18] pointer-events-none z-[1]" />
+
+      {/* Content grid */}
+      <div className="relative z-[2] h-full max-w-[1480px] mx-auto px-[18px] md:px-[32px] grid grid-rows-[auto_1fr_auto]">
+        {/* Top: meta labels */}
+        <div className="flex items-start justify-between pt-[36px]">
+          <div className="micro micro--light">
+            <b className="text-[#f4efe1] font-medium">{t("metaLeft")}</b>
+            {" "}·{" "}
+            {t("metaLeftSub")}
+          </div>
+          <div className="flex flex-col items-end gap-[6px]">
+            <div className="micro micro--light">
+              {t("issueLabel")}{" "}
+              <b className="text-[#f4efe1] font-medium">{t("issueNumber")}</b>
+            </div>
+            <div className="micro micro--light">{t("issueSeason")}</div>
+          </div>
+        </div>
+
+        {/* Center: headline */}
+        <div className="flex items-end pb-[14px]">
+          <h1 className="m-0 font-serif font-light text-[clamp(64px,9vw,148px)] leading-[0.95] tracking-[-0.035em] text-[#f4efe1] max-w-[14ch] text-balance max-sm:text-[60px]">
+            {t("headline1")}
+            <br />
+            <span className="font-fraunces italic font-light text-[#dbe6c8]">
+              {t("headline2")}
+            </span>
+            <span className="font-fraunces italic text-[#dbe6c8] inline-block ml-[0.04em]">
+              .
+            </span>
+          </h1>
+        </div>
+
+        {/* Bottom: 3-col — caption / scroll / CTA */}
+        <div className="grid grid-cols-3 items-end gap-[24px] pb-[40px] max-lg:grid-cols-2 max-lg:gap-[18px] max-sm:grid-cols-1 max-sm:pb-[24px]">
+          {/* Caption */}
+          <div className="max-lg:hidden">
+            <b className="block font-en font-medium text-[11px] tracking-[0.32em] uppercase text-[#f4efe1]/55 mb-[14px] not-italic">
+              {t("captionLabel")}
+            </b>
+            <div className="font-fraunces italic font-light text-[18px] leading-[1.4] text-[#f4efe1]/86 max-w-[28ch]">
+              {t("captionText")
                 .split("\n")
                 .map((line, i, arr) => (
                   <span key={i}>
@@ -69,136 +88,31 @@ export default function HeroSection() {
                   </span>
                 ))}
             </div>
-
-            <div className="flex flex-col gap-[18px] pt-[24px] border-t border-line">
-              <div className="flex items-center gap-[16px] max-md:flex-wrap">
-                <div className="w-[72px] h-[90px] bg-bg-warm flex items-center justify-center flex-shrink-0 overflow-hidden">
-                  <Image
-                    src={product.images.bottle.src}
-                    alt={product.images.bottle.alt}
-                    width={72}
-                    height={90}
-                    className="h-[92%] w-auto object-contain drop-shadow-[0_6px_10px_rgba(15,61,46,0.18)]"
-                  />
-                </div>
-                <div className="flex-1 min-w-0 flex flex-col gap-[6px]">
-                  <div className="font-medium text-[16px] text-ink tracking-[-0.01em]">
-                    {product.nameKo}{" "}
-                    <em className="font-en not-italic font-normal text-ink-mute text-[12px] ml-[6px] tracking-[0.04em]">
-                      {product.volume}
-                    </em>
-                  </div>
-                  {product.rating && (
-                    <div className="font-en text-[11px] tracking-[0.16em] uppercase text-ink-mute flex gap-[10px] items-center">
-                      <span className="text-green tracking-normal text-[12px] num">
-                        {formatRatingScore(product.rating.score)}
-                      </span>
-                      <span>{t("ratingCount")}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col items-end gap-[2px] text-right flex-shrink-0">
-                  <span className="font-en text-[12px] text-ink-mute line-through num">
-                    {formatKRW(product.price.list)}
-                  </span>
-                  <span className="font-en font-medium text-[22px] text-green tracking-[-0.01em] num">
-                    {formatKRW(getEffectivePrice(product.price))}
-                  </span>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-[8px] max-md:grid-cols-1">
-                <Button variant="primary">{t("ctaAddToCart")}</Button>
-                <Button variant="secondary">{t("ctaBuyNow")}</Button>
-              </div>
-              <div className="font-en text-[11px] tracking-[0.12em] uppercase text-ink-mute flex gap-[14px] items-center pt-[2px] flex-wrap">
-                {product.shipping?.free && (
-                  <span className="text-green font-medium">{t("shipFree")}</span>
-                )}
-                <span>{t("shipMin")}</span>
-                <span>·</span>
-                <span>{t("shipToday")}</span>
-              </div>
-            </div>
           </div>
 
-          {/* ── Right: cinematic mood ── */}
-          <div className="relative overflow-hidden bg-[#1a2a20] max-md:h-[62vh] max-md:min-h-[420px]">
-            {heroPhotos.slice(0, 3).map((photo, i) => (
-              <Image
-                key={photo.src}
-                src={photo.src}
-                alt={photo.alt}
-                fill
-                priority={i === 0}
-                sizes="(max-width: 900px) 100vw, 58vw"
-                className={`hero-photo f${i + 1} object-cover`}
-              />
-            ))}
-            <div
-              aria-hidden="true"
-              className="absolute inset-0 pointer-events-none z-[1]"
-              style={{
-                background:
-                  "linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.5) 100%), linear-gradient(90deg, rgba(0,0,0,0.14) 0%, rgba(0,0,0,0) 28%)",
-              }}
-            />
-            <span className="absolute inset-[24px] border border-white/20 pointer-events-none z-[2] max-md:inset-[14px]" />
+          {/* Scroll indicator */}
+          <div className="justify-self-center flex flex-col items-center gap-[10px] font-en text-[10px] tracking-[0.32em] uppercase text-[#f4efe1]/70 max-lg:hidden">
+            {t("scroll")}
+            <span className="w-px h-[32px] bg-[#f4efe1]/50" />
+          </div>
 
-            <div className="absolute top-[36px] right-[36px] text-right flex flex-col gap-[6px] z-[3] font-en text-[11px] tracking-[0.22em] uppercase text-white/85 max-md:hidden">
-              <span>
-                {t("issue")}{" "}
-                <b className="text-white font-medium">{product.issueNumber}</b>
-              </span>
-              <span>{t("season")}</span>
-            </div>
-            <div className="absolute bottom-[36px] left-[36px] flex flex-col gap-[6px] z-[3] font-en text-[11px] tracking-[0.22em] uppercase text-white/85 max-md:hidden">
-              <span>{t("fieldReel")}</span>
-              <span>{t("fieldLocation")}</span>
-            </div>
-            <div className="absolute bottom-[36px] right-[36px] flex flex-col items-end gap-[14px] z-[3] font-en text-[11px] tracking-[0.22em] uppercase text-white/90 max-w-[30ch] max-md:hidden">
-              <div className="font-fraunces italic font-light text-[26px] leading-[1.36] tracking-[-0.01em] normal-case text-white text-right">
-                {t("quote")
-                  .split("\n")
-                  .map((line, i, arr) => (
-                    <span key={i}>
-                      {line}
-                      {i < arr.length - 1 && <br />}
-                    </span>
-                  ))}
-              </div>
-              <span>{t("quoteCaption")}</span>
-            </div>
-            <div className="absolute left-1/2 bottom-[18px] -translate-x-1/2 z-[3] flex flex-col items-center gap-[10px] font-en text-[10px] tracking-[0.32em] uppercase text-white/75 [writing-mode:vertical-rl] [text-orientation:mixed] max-md:hidden">
-              <span>{t("scroll")}</span>
-              <span className="w-px h-[36px] bg-white/60" />
-            </div>
+          {/* CTA */}
+          <div className="justify-self-end flex flex-col items-end gap-[10px] max-sm:justify-self-start max-sm:items-start">
+            <span className="font-en font-medium text-[14px] tracking-[0.06em] text-[#f4efe1]/78">
+              <s className="text-[#f4efe1]/45 mr-[8px] font-normal">
+                {t("priceOld")}
+              </s>
+              {t("priceNew")} · {t("priceVolume")}
+            </span>
+            <Link
+              href="/#product"
+              className="font-en text-[11px] tracking-[0.32em] uppercase text-[#0a1a13] bg-[#f4efe1] px-[24px] py-[14px] inline-flex items-center gap-[14px] hover:-translate-y-[2px] transition-transform duration-250"
+            >
+              {t("cta")} <span>→</span>
+            </Link>
           </div>
         </div>
       </div>
     </section>
-  );
-}
-
-/* ─── 하위 헬퍼 ─────────────────────────── */
-
-interface CharRevealProps {
-  text: string;
-  baseDelay?: number;
-  perChar?: number;
-}
-
-function CharReveal({ text, baseDelay = 0, perChar = 38 }: CharRevealProps) {
-  return (
-    <>
-      {Array.from(text).map((c, i) => (
-        <span
-          key={i}
-          className="ch"
-          style={{ transitionDelay: `${baseDelay + i * perChar}ms` }}
-        >
-          {c === " " ? " " : c}
-        </span>
-      ))}
-    </>
   );
 }

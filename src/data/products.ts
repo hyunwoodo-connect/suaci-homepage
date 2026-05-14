@@ -17,7 +17,7 @@ export const DAILY_CALMING_MIST: Product = {
   },
   images: {
     bottle: {
-      src: "/old/home/suaci-bottle.png",
+      src: "/image/suaci-bottle.png",
       alt: "짙은 초록색 SUACI Daily Calming Mist 80ml 미스트 보틀",
     },
     hero: [
