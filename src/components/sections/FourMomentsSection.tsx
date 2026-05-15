@@ -89,10 +89,30 @@ export default function FourMomentsSection() {
         </h2>
       </div>
 
-      {/* Items */}
-      {items.map((item) => (
-        <MomentItem key={item.num} item={item} />
-      ))}
+      {/* Items — Desktop: zigzag stack */}
+      <div className="max-lg:hidden">
+        {items.map((item) => (
+          <MomentItem key={item.num} item={item} />
+        ))}
+      </div>
+
+      {/* Items — Mobile: horizontal scroll-snap carousel */}
+      <div className="lg:hidden">
+        <div className="flex gap-[16px] overflow-x-auto snap-x snap-mandatory scroll-smooth px-[18px] pb-[8px] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {items.map((item) => (
+            <MomentCard key={item.num} item={item} />
+          ))}
+        </div>
+        {/* Scroll indicator dots */}
+        <div className="flex justify-center gap-[6px] mt-[24px]">
+          {items.map((item) => (
+            <span
+              key={item.num}
+              className="w-[6px] h-[6px] rounded-full bg-ink-mute/30"
+            />
+          ))}
+        </div>
+      </div>
     </section>
   );
 }
@@ -101,6 +121,40 @@ export default function FourMomentsSection() {
 
 interface MomentItemProps {
   item: MomentItemData;
+}
+
+function MomentCard({ item }: MomentItemProps) {
+  return (
+    <div className="flex-shrink-0 w-[85vw] snap-center">
+      <figure
+        data-num={item.num}
+        className="relative h-[320px] overflow-hidden bg-beige m-0 before:content-[attr(data-num)] before:absolute before:top-[-12px] before:left-[-8px] before:z-[2] before:font-en before:font-medium before:text-[100px] before:leading-[0.8] before:text-green before:tracking-[-0.05em] before:pointer-events-none"
+      >
+        <Image
+          src={item.image}
+          alt={item.alt}
+          fill
+          sizes="85vw"
+          className="object-cover"
+        />
+      </figure>
+      <div className="flex flex-col gap-[12px] pt-[20px]">
+        <span className="micro text-green font-medium">{item.micro}</span>
+        <h3 className="m-0 font-serif font-light text-[28px] leading-[1.16] tracking-[-0.02em] text-balance">
+          {item.title1}{" "}
+          <span className="font-fraunces italic text-green">
+            {item.titleAccent}
+          </span>
+        </h3>
+        <p className="m-0 text-ink-soft text-[15px] leading-[1.8] max-w-[32ch]">
+          {item.body}
+        </p>
+        <span className="mt-[4px] font-en text-[10px] tracking-[0.32em] uppercase text-ink-mute">
+          {item.where}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 function MomentItem({ item }: MomentItemProps) {
