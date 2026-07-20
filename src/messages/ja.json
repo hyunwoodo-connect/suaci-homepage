@@ -228,5 +228,59 @@
     "empty": "비어있습니다.",
     "emptySub": "Your bag is empty",
     "foot": "— No.01 · Daily Calming Mist"
+  },
+  "v4": {
+    "nav": {
+      "product": "プロダクト",
+      "moments": "モーメント",
+      "story": "ストーリー",
+      "waitlist": "ウェイトリスト",
+      "cta": "発売通知"
+    },
+    "hero": {
+      "heroAlt": "公園でくつろぐ人々",
+      "leadPre": "一日のまんなかのための、ポケットサイズのリセット。",
+      "leadStrong": "治すのではなく、鎮める。",
+      "leadPost": "ひと押しで、ノイズがすっと下がる。",
+      "volumeLabel": "容量",
+      "statusLabel": "ステータス",
+      "statusValue": "2026年発売予定",
+      "keyLine": "ひと押しで、落ち着く。"
+    },
+    "product": {
+      "secMeta": "小さなボトル、大きな深呼吸",
+      "imgAlt": "手のひらのSUACIミスト",
+      "headline": "押した瞬間、空気が半トーン下がる。",
+      "body": "デスクで、電車で、気が重い予定の10分前に — どこへでも持ち歩ける、軽くて細かいミスト。",
+      "specFinishLabel": "使用感",
+      "specFinish": "重さゼロ、残留感ゼロ",
+      "specUseLabel": "使い方",
+      "specUse": "いつでも、メイクの上からも",
+      "specVolumeLabel": "容量",
+      "cta": "ウェイトリストに参加"
+    },
+    "moments": {
+      "secMeta": "日常のどこに",
+      "m1Title": "午後のまんなか",
+      "m1Body": "画面がにじみ始めたら。ひと押しして、椅子に戻る。",
+      "m2Title": "仕事のあと",
+      "m2Body": "日は低く、足は重い。帰り道の前の、ひんやりひと息。",
+      "m3Title": "メイクの上に",
+      "m3Body": "にじまない、直さなくていい。静かな鎮静をひと重ね。"
+    },
+    "quote": {
+      "pre": "私たちは薬を作らなかった。作ったのは",
+      "bold": "休止符",
+      "post": "。"
+    },
+    "waitlist": {
+      "secMeta": "最初に押す人へ",
+      "imgAlt": "穏やかな街の一場面",
+      "body": "メールアドレスだけ残してください。準備ができたら一度だけ、初回バッチのコードと一緒にご連絡します。うるさくしません。",
+      "placeholder": "you@email.com",
+      "submit": "通知を受け取る",
+      "note": "押すだけで完了。メールは一度だけ。",
+      "success": "リストに載りました。近いうちに。"
+    }
   }
 }

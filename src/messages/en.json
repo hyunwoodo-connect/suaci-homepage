@@ -228,5 +228,59 @@
     "empty": "Empty.",
     "emptySub": "Your bag is empty",
     "foot": "— No.01 · Daily Calming Mist"
+  },
+  "v4": {
+    "nav": {
+      "product": "Product",
+      "moments": "Moments",
+      "story": "Story",
+      "waitlist": "Waitlist",
+      "cta": "Get notified"
+    },
+    "hero": {
+      "heroAlt": "People relaxing in the park",
+      "leadPre": "A pocket-sized reset for the middle of the day.",
+      "leadStrong": "Calm, not cured.",
+      "leadPost": "One press, and the noise turns down a notch.",
+      "volumeLabel": "Volume",
+      "statusLabel": "Status",
+      "statusValue": "Launching 2026",
+      "keyLine": "One press, and it settles."
+    },
+    "product": {
+      "secMeta": "Small bottle, big exhale",
+      "imgAlt": "SUACI mist in hand",
+      "headline": "Press it. Feel the room drop half a tone.",
+      "body": "A fine, weightless mist you can carry anywhere — desk, train, the ten minutes before the thing you're dreading.",
+      "specFinishLabel": "Finish",
+      "specFinish": "Weightless, no residue",
+      "specUseLabel": "Use",
+      "specUse": "Anytime, over makeup",
+      "specVolumeLabel": "Volume",
+      "cta": "Join the waitlist"
+    },
+    "moments": {
+      "secMeta": "Where it fits in",
+      "m1Title": "Mid-afternoon",
+      "m1Body": "When the screen starts to blur. One press, back in the chair.",
+      "m2Title": "After hours",
+      "m2Body": "Sun low, feet tired. A cool breath before the walk home.",
+      "m3Title": "Over makeup",
+      "m3Body": "No smudge, no reset. Just a quiet layer of calm."
+    },
+    "quote": {
+      "pre": "We didn't make a cure. We made a",
+      "bold": "pause",
+      "post": "."
+    },
+    "waitlist": {
+      "secMeta": "Be first to press",
+      "imgAlt": "A calm city moment",
+      "body": "Drop your email. You'll hear from us once — when it's ready, with a first-batch code. No noise, promise.",
+      "placeholder": "you@email.com",
+      "submit": "Notify me",
+      "note": "One press to join. We only email once.",
+      "success": "On the list. Talk soon."
+    }
   }
 }

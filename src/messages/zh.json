@@ -228,5 +228,59 @@
     "empty": "비어있습니다.",
     "emptySub": "Your bag is empty",
     "foot": "— No.01 · Daily Calming Mist"
+  },
+  "v4": {
+    "nav": {
+      "product": "产品",
+      "moments": "片刻",
+      "story": "故事",
+      "waitlist": "等候名单",
+      "cta": "上市通知"
+    },
+    "hero": {
+      "heroAlt": "在公园里放松的人们",
+      "leadPre": "为一天的正中间准备的口袋重启键。",
+      "leadStrong": "不是治愈，是安抚。",
+      "leadPost": "按一下，噪音降半格。",
+      "volumeLabel": "容量",
+      "statusLabel": "状态",
+      "statusValue": "2026年上市",
+      "keyLine": "按一下，就静下来。"
+    },
+    "product": {
+      "secMeta": "小瓶子，大长舒一口气",
+      "imgAlt": "手中的SUACI喷雾",
+      "headline": "按下去，感觉房间安静了半个音。",
+      "body": "在办公桌前、地铁上、那件让你发怵的事开始前十分钟 — 随身携带的轻盈细雾。",
+      "specFinishLabel": "肤感",
+      "specFinish": "零负担，无残留",
+      "specUseLabel": "使用",
+      "specUse": "随时随地，妆后也可以",
+      "specVolumeLabel": "容量",
+      "cta": "加入等候名单"
+    },
+    "moments": {
+      "secMeta": "它属于哪些时刻",
+      "m1Title": "下午正中",
+      "m1Body": "屏幕开始模糊的时候。按一下，重新回到椅子上。",
+      "m2Title": "下班之后",
+      "m2Body": "太阳低了，腿也沉了。回家路前的一口清凉。",
+      "m3Title": "妆容之上",
+      "m3Body": "不晕妆，不用补。只是安静地敷上一层平静。"
+    },
+    "quote": {
+      "pre": "我们没有做解药。我们做的是一个",
+      "bold": "暂停键",
+      "post": "。"
+    },
+    "waitlist": {
+      "secMeta": "第一个按下的人",
+      "imgAlt": "城市里安静的一幕",
+      "body": "留下邮箱就好。准备好时我们只联系你一次 — 附上首批优惠码。绝不打扰。",
+      "placeholder": "you@email.com",
+      "submit": "通知我",
+      "note": "一键加入。邮件只发一封。",
+      "success": "已经在名单上了。回头见。"
+    }
   }
 }

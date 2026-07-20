@@ -228,5 +228,59 @@
     "empty": "비어있습니다.",
     "emptySub": "Your bag is empty",
     "foot": "— No.01 · Daily Calming Mist"
+  },
+  "v4": {
+    "nav": {
+      "product": "제품",
+      "moments": "순간들",
+      "story": "이야기",
+      "waitlist": "웨이트리스트",
+      "cta": "출시 알림"
+    },
+    "hero": {
+      "heroAlt": "공원에서 쉬는 사람들",
+      "leadPre": "하루 한가운데를 위한 주머니 속 리셋.",
+      "leadStrong": "치료 말고, 진정.",
+      "leadPost": "한 번 누르면, 소음이 반 톤 내려갑니다.",
+      "volumeLabel": "용량",
+      "statusLabel": "상태",
+      "statusValue": "2026 출시 예정",
+      "keyLine": "한 번 누르면, 가라앉아요."
+    },
+    "product": {
+      "secMeta": "작은 병, 큰 한숨",
+      "imgAlt": "손에 쥔 SUACI 미스트",
+      "headline": "누르는 순간, 공기가 반 톤 낮아집니다.",
+      "body": "책상에서, 지하철에서, 부담스러운 일 10분 전에 — 어디든 들고 다니는 가볍고 고운 미스트.",
+      "specFinishLabel": "사용감",
+      "specFinish": "무게감 없음, 잔여감 없음",
+      "specUseLabel": "사용",
+      "specUse": "언제든, 메이크업 위에도",
+      "specVolumeLabel": "용량",
+      "cta": "웨이트리스트 참여"
+    },
+    "moments": {
+      "secMeta": "일상 속 자리",
+      "m1Title": "오후 한가운데",
+      "m1Body": "화면이 흐려지기 시작할 때. 한 번 누르고, 다시 의자로.",
+      "m2Title": "퇴근 무렵",
+      "m2Body": "해는 낮고 다리는 무겁고. 집 가는 길 앞의 시원한 한 모금.",
+      "m3Title": "메이크업 위에",
+      "m3Body": "번짐도, 다시 할 필요도 없이. 조용한 진정 한 겹."
+    },
+    "quote": {
+      "pre": "우리는 치료제를 만들지 않았습니다. 우리가 만든 건",
+      "bold": "쉼표",
+      "post": "입니다."
+    },
+    "waitlist": {
+      "secMeta": "가장 먼저 누르기",
+      "imgAlt": "차분한 도시의 한 장면",
+      "body": "이메일만 남겨주세요. 준비되면 딱 한 번, 첫 배치 코드와 함께 연락드립니다. 시끄럽게 안 할게요.",
+      "placeholder": "you@email.com",
+      "submit": "알림 받기",
+      "note": "누르면 끝. 메일은 딱 한 번만 보냅니다.",
+      "success": "명단에 올랐어요. 조만간 연락드릴게요."
+    }
   }
 }
