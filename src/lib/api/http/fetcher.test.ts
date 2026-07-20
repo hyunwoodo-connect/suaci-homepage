@@ -1,0 +1,47 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createHttpClient } from './index'
+import { tokenStore } from '@/lib/auth/token-store'
+
+function mockFetchOnce(status: number, body: unknown) {
+  return vi.fn().mockResolvedValueOnce({
+    ok: status >= 200 && status < 300, status,
+    text: async () => JSON.stringify(body),
+  })
+}
+
+describe('http client', () => {
+  beforeEach(() => { localStorage.clear(); vi.restoreAllMocks() })
+
+  it('envelope 언랩: {data} → data', async () => {
+    vi.stubGlobal('fetch', mockFetchOnce(200, { data: { slug: 'x', variants: [] } }))
+    const api = createHttpClient('https://api.test')
+    const p = await api.getProduct('x')
+    expect(p.slug).toBe('x')
+  })
+
+  it('에러 매핑: {error,message,field} → ApiClientError', async () => {
+    vi.stubGlobal('fetch', mockFetchOnce(400, { error: 'PAYMENT_AMOUNT_MISMATCH', message: '금액불일치', field: 'amount' }))
+    const api = createHttpClient('https://api.test')
+    await expect(api.confirmPayment('o1', { paymentKey: 'k', amount: 1 }))
+      .rejects.toMatchObject({ code: 'PAYMENT_AMOUNT_MISMATCH', status: 400, field: 'amount' })
+  })
+
+  it('인증헤더 주입 + 401시 refresh 1회 후 재요청', async () => {
+    tokenStore.save({ idToken: 'i', accessToken: 'old', refreshToken: 'r', expiresIn: 1 })
+    const fetchMock = vi.fn()
+      // 1) 최초 보호요청 401
+      .mockResolvedValueOnce({ ok: false, status: 401, text: async () => JSON.stringify({ error: 'UNAUTHORIZED', message: '만료' }) })
+      // 2) refresh 성공
+      .mockResolvedValueOnce({ ok: true, status: 200, text: async () => JSON.stringify({ data: { idToken: 'i2', accessToken: 'new', refreshToken: 'r2', expiresIn: 3600 } }) })
+      // 3) 재요청 성공
+      .mockResolvedValueOnce({ ok: true, status: 200, text: async () => JSON.stringify({ data: { userId: 'u', email: 'e', name: 'n', status: 'active', createdAt: 1, createdDtm: 'x' } }) })
+    vi.stubGlobal('fetch', fetchMock)
+    const api = createHttpClient('https://api.test')
+    const me = await api.getMe()
+    expect(me.userId).toBe('u')
+    expect(tokenStore.getAccessToken()).toBe('new') // refresh 저장됨
+    // 재요청에 새 토큰 사용됐는지
+    const lastCall = fetchMock.mock.calls[2]
+    expect((lastCall[1].headers as Record<string, string>).Authorization).toBe('Bearer new')
+  })
+})
