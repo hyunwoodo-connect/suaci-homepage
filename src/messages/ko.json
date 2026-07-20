@@ -4,15 +4,6 @@
     "description": "빡빡한 하루에 3초의 유쾌한 휴식. 예민해진 피부를 가볍게 진정시키는 데일리 카밍 미스트 100ml, SUACI. Calm your skin, wherever you are."
   },
   "v4": {
-    "nav": {
-      "product": "제품",
-      "moments": "순간들",
-      "story": "이야기",
-      "waitlist": "웨이트리스트",
-      "cta": "출시 알림",
-      "account": "계정",
-      "login": "로그인"
-    },
     "hero": {
       "heroAlt": "공원에서 쉬는 사람들",
       "leadPre": "하루 한가운데를 위한 주머니 속 리셋.",
@@ -89,9 +80,6 @@
     "email": "이메일",
     "memberSince": "가입일",
     "status": "상태",
-    "menuAddresses": "배송지",
-    "menuOrders": "주문 내역",
-    "menuCart": "장바구니",
     "logout": "로그아웃"
   },
   "addresses": {
@@ -109,8 +97,7 @@
     "addr2": "상세 주소",
     "label": "라벨",
     "labelPlaceholder": "집, 회사 …",
-    "submitAdd": "추가하기",
-    "backAccount": "계정으로"
+    "submitAdd": "추가하기"
   },
   "cart": {
     "meta": "하나면 충분하지만",
@@ -127,13 +114,11 @@
     "meta": "지금까지의 쉼",
     "needLogin": "로그인이 필요해요",
     "empty": "아직 주문이 없어요",
-    "backAccount": "계정으로",
     "payment": "결제",
     "subtotal": "상품 합계",
     "shipping": "배송비",
     "discount": "할인",
     "grandTotal": "총 결제 금액",
-    "shippingTo": "배송지",
-    "backToList": "주문 목록으로"
+    "shippingTo": "배송지"
   }
 }

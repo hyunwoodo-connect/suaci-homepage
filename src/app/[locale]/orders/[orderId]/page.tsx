@@ -89,7 +89,7 @@ export default function OrderDetailPage({
           </div>
 
           <Link href="/orders" className="font-mono text-[11px] uppercase tracking-[0.06em] text-grey hover:text-ink">
-            ← {t("backToList")}
+            ← All orders
           </Link>
         </div>
       )}

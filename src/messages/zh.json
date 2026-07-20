@@ -4,15 +4,6 @@
     "description": "为忙碌的一天准备的3秒愉快小憩。轻柔安抚敏感肌肤的每日舒缓喷雾100ml，SUACI。"
   },
   "v4": {
-    "nav": {
-      "product": "产品",
-      "moments": "片刻",
-      "story": "故事",
-      "waitlist": "等候名单",
-      "cta": "上市通知",
-      "account": "账户",
-      "login": "登录"
-    },
     "hero": {
       "heroAlt": "在公园里放松的人们",
       "leadPre": "为一天的正中间准备的口袋重启键。",
@@ -89,9 +80,6 @@
     "email": "邮箱",
     "memberSince": "注册日期",
     "status": "状态",
-    "menuAddresses": "收货地址",
-    "menuOrders": "订单",
-    "menuCart": "购物车",
     "logout": "退出登录"
   },
   "addresses": {
@@ -109,8 +97,7 @@
     "addr2": "详细地址",
     "label": "标签",
     "labelPlaceholder": "家、公司 …",
-    "submitAdd": "添加",
-    "backAccount": "返回账户"
+    "submitAdd": "添加"
   },
   "cart": {
     "meta": "一瓶就够，但是",
@@ -127,13 +114,11 @@
     "meta": "到目前为止的小憩",
     "needLogin": "需要登录",
     "empty": "还没有订单",
-    "backAccount": "返回账户",
     "payment": "支付",
     "subtotal": "商品小计",
     "shipping": "运费",
     "discount": "折扣",
     "grandTotal": "应付总额",
-    "shippingTo": "收货地址",
-    "backToList": "返回订单列表"
+    "shippingTo": "收货地址"
   }
 }

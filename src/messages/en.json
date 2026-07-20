@@ -4,15 +4,6 @@
     "description": "A cheerful three-second break for packed days. SUACI Daily Calming Mist 100ml gently soothes stressed skin. Calm your skin, wherever you are."
   },
   "v4": {
-    "nav": {
-      "product": "Product",
-      "moments": "Moments",
-      "story": "Story",
-      "waitlist": "Waitlist",
-      "cta": "Get notified",
-      "account": "Account",
-      "login": "Sign in"
-    },
     "hero": {
       "heroAlt": "People relaxing in the park",
       "leadPre": "A pocket-sized reset for the middle of the day.",
@@ -89,9 +80,6 @@
     "email": "Email",
     "memberSince": "Member since",
     "status": "Status",
-    "menuAddresses": "Addresses",
-    "menuOrders": "Orders",
-    "menuCart": "Cart",
     "logout": "Sign out"
   },
   "addresses": {
@@ -109,8 +97,7 @@
     "addr2": "Address 2",
     "label": "Label",
     "labelPlaceholder": "Home, office …",
-    "submitAdd": "Add",
-    "backAccount": "Back to account"
+    "submitAdd": "Add"
   },
   "cart": {
     "meta": "One is enough, but",
@@ -127,13 +114,11 @@
     "meta": "Your breaks so far",
     "needLogin": "Sign in required",
     "empty": "No orders yet",
-    "backAccount": "Back to account",
     "payment": "Payment",
     "subtotal": "Subtotal",
     "shipping": "Shipping",
     "discount": "Discount",
     "grandTotal": "Grand total",
-    "shippingTo": "Ship to",
-    "backToList": "Back to orders"
+    "shippingTo": "Ship to"
   }
 }

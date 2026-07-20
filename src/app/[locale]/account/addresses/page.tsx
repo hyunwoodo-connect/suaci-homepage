@@ -145,7 +145,7 @@ export default function AddressesPage() {
       </div>
 
       <Link href="/account" className="inline-block mt-[36px] font-mono text-[11px] uppercase tracking-[0.06em] text-grey hover:text-ink">
-        ← {t("backAccount")}
+        ← Account
       </Link>
     </PageShell>
   );

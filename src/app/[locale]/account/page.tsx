@@ -48,11 +48,11 @@ export default function AccountPage() {
           <SpecRow label={t("status")} value={user.status.toUpperCase()} last />
         </div>
 
-        {/* 메뉴 */}
+        {/* 메뉴 — 디자인 타이포 요소로 EN 고정 */}
         <div className="grid grid-cols-3 gap-[12px] max-sm:grid-cols-1 mb-[28px]">
-          <MenuCard href="/account/addresses" label={t("menuAddresses")} />
-          <MenuCard href="/orders" label={t("menuOrders")} />
-          <MenuCard href="/cart" label={`${t("menuCart")} (${itemCount})`} />
+          <MenuCard href="/account/addresses" label="Addresses" />
+          <MenuCard href="/orders" label="Orders" />
+          <MenuCard href="/cart" label={`Cart (${itemCount})`} />
         </div>
 
         <Button

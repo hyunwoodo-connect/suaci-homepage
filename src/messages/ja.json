@@ -4,15 +4,6 @@
     "description": "詰まった一日に、3秒の愉快なひと休み。敏感になった肌をやさしく鎮めるデイリーカーミングミスト100ml、SUACI。"
   },
   "v4": {
-    "nav": {
-      "product": "プロダクト",
-      "moments": "モーメント",
-      "story": "ストーリー",
-      "waitlist": "ウェイトリスト",
-      "cta": "発売通知",
-      "account": "アカウント",
-      "login": "ログイン"
-    },
     "hero": {
       "heroAlt": "公園でくつろぐ人々",
       "leadPre": "一日のまんなかのための、ポケットサイズのリセット。",
@@ -89,9 +80,6 @@
     "email": "メール",
     "memberSince": "登録日",
     "status": "ステータス",
-    "menuAddresses": "配送先",
-    "menuOrders": "注文履歴",
-    "menuCart": "カート",
     "logout": "ログアウト"
   },
   "addresses": {
@@ -109,8 +97,7 @@
     "addr2": "住所2",
     "label": "ラベル",
     "labelPlaceholder": "自宅、会社 …",
-    "submitAdd": "追加",
-    "backAccount": "アカウントへ"
+    "submitAdd": "追加"
   },
   "cart": {
     "meta": "ひとつで十分ですが",
@@ -127,13 +114,11 @@
     "meta": "これまでのひと休み",
     "needLogin": "ログインが必要です",
     "empty": "注文はまだありません",
-    "backAccount": "アカウントへ",
     "payment": "支払い",
     "subtotal": "小計",
     "shipping": "送料",
     "discount": "割引",
     "grandTotal": "合計金額",
-    "shippingTo": "配送先",
-    "backToList": "注文一覧へ"
+    "shippingTo": "配送先"
   }
 }

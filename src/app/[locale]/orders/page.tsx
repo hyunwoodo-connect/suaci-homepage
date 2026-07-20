@@ -63,7 +63,7 @@ export default function OrdersPage() {
           ))}
         </ul>
         <Link href="/account" className="inline-block mt-[32px] font-mono text-[11px] uppercase tracking-[0.06em] text-grey hover:text-ink">
-          ← {t("backAccount")}
+          ← Account
         </Link>
       </div>
     </PageShell>
