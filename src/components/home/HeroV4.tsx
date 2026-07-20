@@ -1,6 +1,4 @@
-/* eslint-disable @next/next/no-img-element */
 import { useTranslations } from "next-intl";
-import { HOME_V4_IMAGES } from "@/constants/homeImages";
 
 /**
  * Home v4 히어로 — 풀블리드 비주얼 셀 + 리드/메타/키 3분할 행.
@@ -12,7 +10,9 @@ export default function HeroV4() {
   return (
     <>
       <div className="cell hero-v">
-        <img src={HOME_V4_IMAGES.hero} alt={t("heroAlt")} />
+        <video autoPlay muted loop playsInline preload="auto" aria-label={t("heroAlt")}>
+          <source src="/video/hero.mp4" type="video/mp4" />
+        </video>
         <span className="kick">SUACI · Daily Portable Mist · 50ML · Fig.01</span>
         <span className="badge">
           <i />
