@@ -3,54 +3,15 @@
     "title": "SUACI — Daily Calming Mist",
     "description": "빡빡한 하루에 3초의 유쾌한 휴식. 예민해진 피부를 가볍게 진정시키는 데일리 카밍 미스트 100ml, SUACI. Calm your skin, wherever you are."
   },
-  "login": {
-    "eyebrow": "No.— · Sign in",
-    "title": "로그인",
-    "labelEmail": "Email",
-    "labelPassword": "Password",
-    "placeholderEmail": "name@suaci.co",
-    "placeholderPassword": "••••••••",
-    "submit": "로그인",
-    "altPrompt": "처음 방문이신가요?",
-    "altLink": "회원가입 →",
-    "email": "이메일",
-    "password": "비밀번호",
-    "loginButton": "로그인",
-    "or": "OR",
-    "googleLogin": "Google로 계속하기",
-    "noAccount": "계정이 없으신가요?",
-    "signUp": "회원가입"
-  },
-  "signup": {
-    "title": "CREATE ACCOUNT",
-    "name": "이름",
-    "email": "이메일",
-    "password": "비밀번호",
-    "passwordConfirm": "비밀번호 확인",
-    "agreeAll": "전체 동의",
-    "agreeTerms": "이용약관에 동의합니다",
-    "agreePrivacy": "개인정보 수집·이용에 동의합니다",
-    "agreeAge": "만 14세 이상입니다",
-    "agreeMarketing": "마케팅 정보 수신에 동의합니다",
-    "signUpButton": "JOIN US",
-    "or": "OR",
-    "googleSignUp": "Google로 시작하기",
-    "hasAccount": "이미 계정이 있으신가요?",
-    "loginLink": "로그인"
-  },
-  "cart": {
-    "title": "Cart",
-    "empty": "비어있습니다.",
-    "emptySub": "Your bag is empty",
-    "foot": "— No.01 · Daily Calming Mist"
-  },
   "v4": {
     "nav": {
       "product": "제품",
       "moments": "순간들",
       "story": "이야기",
       "waitlist": "웨이트리스트",
-      "cta": "출시 알림"
+      "cta": "출시 알림",
+      "account": "계정",
+      "login": "로그인"
     },
     "hero": {
       "heroAlt": "공원에서 쉬는 사람들",
@@ -97,5 +58,82 @@
       "note": "누르면 끝. 메일은 딱 한 번만 보냅니다.",
       "success": "명단에 올랐어요. 조만간 연락드릴게요."
     }
+  },
+  "auth": {
+    "loginSub": "다시 온 김에, 잠깐 쉬었다 가요",
+    "email": "이메일",
+    "password": "비밀번호",
+    "name": "이름",
+    "submitLogin": "로그인",
+    "noAccount": "처음이세요?",
+    "goSignup": "가입하기",
+    "error": "확인 후 다시 시도해주세요",
+    "signupSub": "30초면 끝나요. 진짜로.",
+    "confirmSub": "메일함만 확인하면 끝",
+    "consents": "동의",
+    "consentTerms": "이용약관 동의 (필수)",
+    "consentPrivacy": "개인정보 수집·이용 동의 (필수)",
+    "consentAge": "만 14세 이상입니다 (필수)",
+    "consentMarketing": "소식 수신 동의 (선택)",
+    "submitSignup": "가입하기",
+    "confirmBody": "{email}로 인증코드를 보냈어요. 스팸함도 한 번 봐주세요.",
+    "codeLabel": "인증코드",
+    "submitConfirm": "인증하고 시작하기",
+    "hasAccount": "이미 계정이 있으세요?",
+    "goLogin": "로그인"
+  },
+  "account": {
+    "needLogin": "로그인이 필요해요",
+    "goLogin": "로그인하러 가기",
+    "name": "이름",
+    "email": "이메일",
+    "memberSince": "가입일",
+    "status": "상태",
+    "menuAddresses": "배송지",
+    "menuOrders": "주문 내역",
+    "menuCart": "장바구니",
+    "logout": "로그아웃"
+  },
+  "addresses": {
+    "meta": "칙— 이 도착할 곳",
+    "needLogin": "로그인이 필요해요",
+    "empty": "저장된 배송지가 없어요",
+    "defaultBadge": "기본",
+    "setDefault": "기본으로",
+    "delete": "삭제",
+    "addTitle": "새 배송지",
+    "recipient": "받는 사람",
+    "phone": "연락처",
+    "zipcode": "우편번호",
+    "addr1": "주소",
+    "addr2": "상세 주소",
+    "label": "라벨",
+    "labelPlaceholder": "집, 회사 …",
+    "submitAdd": "추가하기",
+    "backAccount": "계정으로"
+  },
+  "cart": {
+    "meta": "하나면 충분하지만",
+    "needLogin": "로그인이 필요해요",
+    "empty": "아직 비어 있어요",
+    "addSample": "데모 상품 담기",
+    "remove": "삭제",
+    "total": "합계",
+    "needAddress": "배송지를 먼저 등록해주세요",
+    "goAddresses": "배송지 등록",
+    "checkout": "주문하기"
+  },
+  "orders": {
+    "meta": "지금까지의 쉼",
+    "needLogin": "로그인이 필요해요",
+    "empty": "아직 주문이 없어요",
+    "backAccount": "계정으로",
+    "payment": "결제",
+    "subtotal": "상품 합계",
+    "shipping": "배송비",
+    "discount": "할인",
+    "grandTotal": "총 결제 금액",
+    "shippingTo": "배송지",
+    "backToList": "주문 목록으로"
   }
 }

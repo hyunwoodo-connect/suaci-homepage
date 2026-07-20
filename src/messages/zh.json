@@ -3,54 +3,15 @@
     "title": "SUACI — Daily Calming Mist",
     "description": "为忙碌的一天准备的3秒愉快小憩。轻柔安抚敏感肌肤的每日舒缓喷雾100ml，SUACI。"
   },
-  "login": {
-    "eyebrow": "No.— · Sign in",
-    "title": "로그인",
-    "labelEmail": "Email",
-    "labelPassword": "Password",
-    "placeholderEmail": "name@suaci.co",
-    "placeholderPassword": "••••••••",
-    "submit": "로그인",
-    "altPrompt": "처음 방문이신가요?",
-    "altLink": "회원가입 →",
-    "email": "이메일",
-    "password": "비밀번호",
-    "loginButton": "로그인",
-    "or": "OR",
-    "googleLogin": "Google로 계속하기",
-    "noAccount": "계정이 없으신가요?",
-    "signUp": "회원가입"
-  },
-  "signup": {
-    "title": "CREATE ACCOUNT",
-    "name": "이름",
-    "email": "이메일",
-    "password": "비밀번호",
-    "passwordConfirm": "비밀번호 확인",
-    "agreeAll": "전체 동의",
-    "agreeTerms": "이용약관에 동의합니다",
-    "agreePrivacy": "개인정보 수집·이용에 동의합니다",
-    "agreeAge": "만 14세 이상입니다",
-    "agreeMarketing": "마케팅 정보 수신에 동의합니다",
-    "signUpButton": "JOIN US",
-    "or": "OR",
-    "googleSignUp": "Google로 시작하기",
-    "hasAccount": "이미 계정이 있으신가요?",
-    "loginLink": "로그인"
-  },
-  "cart": {
-    "title": "Cart",
-    "empty": "비어있습니다.",
-    "emptySub": "Your bag is empty",
-    "foot": "— No.01 · Daily Calming Mist"
-  },
   "v4": {
     "nav": {
       "product": "产品",
       "moments": "片刻",
       "story": "故事",
       "waitlist": "等候名单",
-      "cta": "上市通知"
+      "cta": "上市通知",
+      "account": "账户",
+      "login": "登录"
     },
     "hero": {
       "heroAlt": "在公园里放松的人们",
@@ -97,5 +58,82 @@
       "note": "一键加入。邮件只发一封。",
       "success": "已经在名单上了。回头见。"
     }
+  },
+  "auth": {
+    "loginSub": "欢迎回来。先深呼吸一下。",
+    "email": "邮箱",
+    "password": "密码",
+    "name": "姓名",
+    "submitLogin": "登录",
+    "noAccount": "第一次来？",
+    "goSignup": "注册",
+    "error": "请检查后重试",
+    "signupSub": "30秒搞定。真的。",
+    "confirmSub": "查一下邮箱就好",
+    "consents": "同意",
+    "consentTerms": "同意服务条款 (必选)",
+    "consentPrivacy": "同意个人信息处理 (必选)",
+    "consentAge": "我已年满14岁 (必选)",
+    "consentMarketing": "接收消息与优惠 (可选)",
+    "submitSignup": "创建账户",
+    "confirmBody": "验证码已发送至{email}。记得也看看垃圾邮件。",
+    "codeLabel": "验证码",
+    "submitConfirm": "验证并开始",
+    "hasAccount": "已有账户？",
+    "goLogin": "登录"
+  },
+  "account": {
+    "needLogin": "需要登录",
+    "goLogin": "去登录",
+    "name": "姓名",
+    "email": "邮箱",
+    "memberSince": "注册日期",
+    "status": "状态",
+    "menuAddresses": "收货地址",
+    "menuOrders": "订单",
+    "menuCart": "购物车",
+    "logout": "退出登录"
+  },
+  "addresses": {
+    "meta": "唰—抵达的地方",
+    "needLogin": "需要登录",
+    "empty": "还没有收货地址",
+    "defaultBadge": "默认",
+    "setDefault": "设为默认",
+    "delete": "删除",
+    "addTitle": "新地址",
+    "recipient": "收件人",
+    "phone": "电话",
+    "zipcode": "邮编",
+    "addr1": "地址",
+    "addr2": "详细地址",
+    "label": "标签",
+    "labelPlaceholder": "家、公司 …",
+    "submitAdd": "添加",
+    "backAccount": "返回账户"
+  },
+  "cart": {
+    "meta": "一瓶就够，但是",
+    "needLogin": "需要登录",
+    "empty": "还是空的",
+    "addSample": "添加演示商品",
+    "remove": "删除",
+    "total": "合计",
+    "needAddress": "请先添加收货地址",
+    "goAddresses": "添加地址",
+    "checkout": "下单"
+  },
+  "orders": {
+    "meta": "到目前为止的小憩",
+    "needLogin": "需要登录",
+    "empty": "还没有订单",
+    "backAccount": "返回账户",
+    "payment": "支付",
+    "subtotal": "商品小计",
+    "shipping": "运费",
+    "discount": "折扣",
+    "grandTotal": "应付总额",
+    "shippingTo": "收货地址",
+    "backToList": "返回订单列表"
   }
 }

@@ -4,6 +4,8 @@ import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 import { SITE } from "@/constants/site";
+import { AuthProvider } from "@/lib/auth/auth-context";
+import { CartProvider } from "@/lib/cart/cart-context";
 import "../globals.css";
 
 export async function generateMetadata({
@@ -71,7 +73,11 @@ export default async function LocaleLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className="antialiased">
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider>
+          <AuthProvider>
+            <CartProvider>{children}</CartProvider>
+          </AuthProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

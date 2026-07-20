@@ -3,54 +3,15 @@
     "title": "SUACI — Daily Calming Mist",
     "description": "พัก 3 วินาทีอย่างสดใสในวันที่แน่นขนัด สเปรย์ปลอบผิว Daily Calming Mist 100ml จาก SUACI"
   },
-  "login": {
-    "eyebrow": "No.— · Sign in",
-    "title": "로그인",
-    "labelEmail": "Email",
-    "labelPassword": "Password",
-    "placeholderEmail": "name@suaci.co",
-    "placeholderPassword": "••••••••",
-    "submit": "로그인",
-    "altPrompt": "처음 방문이신가요?",
-    "altLink": "회원가입 →",
-    "email": "이메일",
-    "password": "비밀번호",
-    "loginButton": "로그인",
-    "or": "OR",
-    "googleLogin": "Google로 계속하기",
-    "noAccount": "계정이 없으신가요?",
-    "signUp": "회원가입"
-  },
-  "signup": {
-    "title": "CREATE ACCOUNT",
-    "name": "이름",
-    "email": "이메일",
-    "password": "비밀번호",
-    "passwordConfirm": "비밀번호 확인",
-    "agreeAll": "전체 동의",
-    "agreeTerms": "이용약관에 동의합니다",
-    "agreePrivacy": "개인정보 수집·이용에 동의합니다",
-    "agreeAge": "만 14세 이상입니다",
-    "agreeMarketing": "마케팅 정보 수신에 동의합니다",
-    "signUpButton": "JOIN US",
-    "or": "OR",
-    "googleSignUp": "Google로 시작하기",
-    "hasAccount": "이미 계정이 있으신가요?",
-    "loginLink": "로그인"
-  },
-  "cart": {
-    "title": "Cart",
-    "empty": "비어있습니다.",
-    "emptySub": "Your bag is empty",
-    "foot": "— No.01 · Daily Calming Mist"
-  },
   "v4": {
     "nav": {
       "product": "สินค้า",
       "moments": "ช่วงเวลา",
       "story": "เรื่องราว",
       "waitlist": "รายชื่อรอ",
-      "cta": "แจ้งเตือนเปิดตัว"
+      "cta": "แจ้งเตือนเปิดตัว",
+      "account": "บัญชี",
+      "login": "เข้าสู่ระบบ"
     },
     "hero": {
       "heroAlt": "ผู้คนพักผ่อนในสวนสาธารณะ",
@@ -97,5 +58,82 @@
       "note": "กดครั้งเดียวก็เรียบร้อย เราส่งอีเมลแค่ฉบับเดียว",
       "success": "อยู่ในรายชื่อแล้ว แล้วพบกัน"
     }
+  },
+  "auth": {
+    "loginSub": "ยินดีต้อนรับกลับ หายใจลึกๆ ก่อน",
+    "email": "อีเมล",
+    "password": "รหัสผ่าน",
+    "name": "ชื่อ",
+    "submitLogin": "เข้าสู่ระบบ",
+    "noAccount": "มาครั้งแรกใช่ไหม",
+    "goSignup": "สมัครสมาชิก",
+    "error": "กรุณาตรวจสอบแล้วลองอีกครั้ง",
+    "signupSub": "30 วินาทีเสร็จ จริงๆ นะ",
+    "confirmSub": "แค่เช็กกล่องเมลก็พอ",
+    "consents": "ความยินยอม",
+    "consentTerms": "ยอมรับข้อกำหนดการใช้งาน (จำเป็น)",
+    "consentPrivacy": "ยินยอมการใช้ข้อมูลส่วนบุคคล (จำเป็น)",
+    "consentAge": "อายุ 14 ปีขึ้นไป (จำเป็น)",
+    "consentMarketing": "รับข่าวสารและสิทธิพิเศษ (ไม่บังคับ)",
+    "submitSignup": "สร้างบัญชี",
+    "confirmBody": "ส่งรหัสยืนยันไปที่ {email} แล้ว เช็กถังสแปมด้วยนะ",
+    "codeLabel": "รหัสยืนยัน",
+    "submitConfirm": "ยืนยันแล้วเริ่มเลย",
+    "hasAccount": "มีบัญชีอยู่แล้ว?",
+    "goLogin": "เข้าสู่ระบบ"
+  },
+  "account": {
+    "needLogin": "ต้องเข้าสู่ระบบก่อน",
+    "goLogin": "ไปเข้าสู่ระบบ",
+    "name": "ชื่อ",
+    "email": "อีเมล",
+    "memberSince": "สมัครเมื่อ",
+    "status": "สถานะ",
+    "menuAddresses": "ที่อยู่จัดส่ง",
+    "menuOrders": "คำสั่งซื้อ",
+    "menuCart": "ตะกร้า",
+    "logout": "ออกจากระบบ"
+  },
+  "addresses": {
+    "meta": "ที่ที่ ฟึ่บ— จะไปถึง",
+    "needLogin": "ต้องเข้าสู่ระบบก่อน",
+    "empty": "ยังไม่มีที่อยู่จัดส่ง",
+    "defaultBadge": "ค่าเริ่มต้น",
+    "setDefault": "ตั้งเป็นค่าเริ่มต้น",
+    "delete": "ลบ",
+    "addTitle": "ที่อยู่ใหม่",
+    "recipient": "ผู้รับ",
+    "phone": "โทรศัพท์",
+    "zipcode": "รหัสไปรษณีย์",
+    "addr1": "ที่อยู่",
+    "addr2": "รายละเอียดที่อยู่",
+    "label": "ป้ายกำกับ",
+    "labelPlaceholder": "บ้าน, ที่ทำงาน …",
+    "submitAdd": "เพิ่ม",
+    "backAccount": "กลับไปที่บัญชี"
+  },
+  "cart": {
+    "meta": "ขวดเดียวก็พอ แต่ว่า",
+    "needLogin": "ต้องเข้าสู่ระบบก่อน",
+    "empty": "ยังว่างอยู่เลย",
+    "addSample": "เพิ่มสินค้าเดโม",
+    "remove": "ลบ",
+    "total": "รวม",
+    "needAddress": "กรุณาเพิ่มที่อยู่จัดส่งก่อน",
+    "goAddresses": "เพิ่มที่อยู่",
+    "checkout": "สั่งซื้อ"
+  },
+  "orders": {
+    "meta": "การพักของคุณที่ผ่านมา",
+    "needLogin": "ต้องเข้าสู่ระบบก่อน",
+    "empty": "ยังไม่มีคำสั่งซื้อ",
+    "backAccount": "กลับไปที่บัญชี",
+    "payment": "การชำระเงิน",
+    "subtotal": "ยอดสินค้า",
+    "shipping": "ค่าจัดส่ง",
+    "discount": "ส่วนลด",
+    "grandTotal": "ยอดรวมทั้งหมด",
+    "shippingTo": "จัดส่งไปที่",
+    "backToList": "กลับไปที่คำสั่งซื้อ"
   }
 }

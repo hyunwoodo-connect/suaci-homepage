@@ -3,54 +3,15 @@
     "title": "SUACI — Daily Calming Mist",
     "description": "詰まった一日に、3秒の愉快なひと休み。敏感になった肌をやさしく鎮めるデイリーカーミングミスト100ml、SUACI。"
   },
-  "login": {
-    "eyebrow": "No.— · Sign in",
-    "title": "로그인",
-    "labelEmail": "Email",
-    "labelPassword": "Password",
-    "placeholderEmail": "name@suaci.co",
-    "placeholderPassword": "••••••••",
-    "submit": "로그인",
-    "altPrompt": "처음 방문이신가요?",
-    "altLink": "회원가입 →",
-    "email": "이메일",
-    "password": "비밀번호",
-    "loginButton": "로그인",
-    "or": "OR",
-    "googleLogin": "Google로 계속하기",
-    "noAccount": "계정이 없으신가요?",
-    "signUp": "회원가입"
-  },
-  "signup": {
-    "title": "CREATE ACCOUNT",
-    "name": "이름",
-    "email": "이메일",
-    "password": "비밀번호",
-    "passwordConfirm": "비밀번호 확인",
-    "agreeAll": "전체 동의",
-    "agreeTerms": "이용약관에 동의합니다",
-    "agreePrivacy": "개인정보 수집·이용에 동의합니다",
-    "agreeAge": "만 14세 이상입니다",
-    "agreeMarketing": "마케팅 정보 수신에 동의합니다",
-    "signUpButton": "JOIN US",
-    "or": "OR",
-    "googleSignUp": "Google로 시작하기",
-    "hasAccount": "이미 계정이 있으신가요?",
-    "loginLink": "로그인"
-  },
-  "cart": {
-    "title": "Cart",
-    "empty": "비어있습니다.",
-    "emptySub": "Your bag is empty",
-    "foot": "— No.01 · Daily Calming Mist"
-  },
   "v4": {
     "nav": {
       "product": "プロダクト",
       "moments": "モーメント",
       "story": "ストーリー",
       "waitlist": "ウェイトリスト",
-      "cta": "発売通知"
+      "cta": "発売通知",
+      "account": "アカウント",
+      "login": "ログイン"
     },
     "hero": {
       "heroAlt": "公園でくつろぐ人々",
@@ -97,5 +58,82 @@
       "note": "押すだけで完了。メールは一度だけ。",
       "success": "リストに載りました。近いうちに。"
     }
+  },
+  "auth": {
+    "loginSub": "おかえりなさい。まずひと息。",
+    "email": "メール",
+    "password": "パスワード",
+    "name": "名前",
+    "submitLogin": "ログイン",
+    "noAccount": "はじめてですか？",
+    "goSignup": "登録する",
+    "error": "確認してもう一度お試しください",
+    "signupSub": "30秒で終わります。本当に。",
+    "confirmSub": "メールを確認するだけ",
+    "consents": "同意",
+    "consentTerms": "利用規約に同意 (必須)",
+    "consentPrivacy": "個人情報の取り扱いに同意 (必須)",
+    "consentAge": "14歳以上です (必須)",
+    "consentMarketing": "お知らせ受信に同意 (任意)",
+    "submitSignup": "アカウント作成",
+    "confirmBody": "{email}に認証コードを送りました。迷惑メールもご確認を。",
+    "codeLabel": "認証コード",
+    "submitConfirm": "認証してはじめる",
+    "hasAccount": "すでにアカウントをお持ちですか？",
+    "goLogin": "ログイン"
+  },
+  "account": {
+    "needLogin": "ログインが必要です",
+    "goLogin": "ログインへ",
+    "name": "名前",
+    "email": "メール",
+    "memberSince": "登録日",
+    "status": "ステータス",
+    "menuAddresses": "配送先",
+    "menuOrders": "注文履歴",
+    "menuCart": "カート",
+    "logout": "ログアウト"
+  },
+  "addresses": {
+    "meta": "シュッ—が届く場所",
+    "needLogin": "ログインが必要です",
+    "empty": "配送先がまだありません",
+    "defaultBadge": "既定",
+    "setDefault": "既定にする",
+    "delete": "削除",
+    "addTitle": "新しい配送先",
+    "recipient": "受取人",
+    "phone": "電話番号",
+    "zipcode": "郵便番号",
+    "addr1": "住所",
+    "addr2": "住所2",
+    "label": "ラベル",
+    "labelPlaceholder": "自宅、会社 …",
+    "submitAdd": "追加",
+    "backAccount": "アカウントへ"
+  },
+  "cart": {
+    "meta": "ひとつで十分ですが",
+    "needLogin": "ログインが必要です",
+    "empty": "まだ空です",
+    "addSample": "デモ商品を追加",
+    "remove": "削除",
+    "total": "合計",
+    "needAddress": "先に配送先を登録してください",
+    "goAddresses": "配送先を登録",
+    "checkout": "注文する"
+  },
+  "orders": {
+    "meta": "これまでのひと休み",
+    "needLogin": "ログインが必要です",
+    "empty": "注文はまだありません",
+    "backAccount": "アカウントへ",
+    "payment": "支払い",
+    "subtotal": "小計",
+    "shipping": "送料",
+    "discount": "割引",
+    "grandTotal": "合計金額",
+    "shippingTo": "配送先",
+    "backToList": "注文一覧へ"
   }
 }

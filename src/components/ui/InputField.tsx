@@ -1,13 +1,10 @@
 import type { InputHTMLAttributes } from "react";
 
 /**
- * 매거진 톤의 라벨 + 보더 박스형 인풋.
- * 라벨은 EN 작게 + uppercase + tracking. 인풋 자체는 보더 없는 평문(외곽 div가 보더).
- *
- * 다른 톤의 인풋(예: Order 섹션의 underline형)은 별도 컴포넌트로 두는 게 깔끔하다.
+ * 공용 인풋 — v4 acid grid.
+ * mono 대문자 라벨 + 1.5px 잉크 보더 박스. 포커스 시 페이퍼 배경.
  */
 interface InputFieldProps extends InputHTMLAttributes<HTMLInputElement> {
-  /** 라벨 텍스트. 보통 i18n("login.labelEmail") 같은 키의 결과. */
   label: string;
 }
 
@@ -19,16 +16,14 @@ export default function InputField({
 }: InputFieldProps) {
   return (
     <div>
-      <label className="block font-en text-[10px] tracking-[0.18em] uppercase text-ink-mute mb-[6px]">
+      <label className="block font-mono text-[10px] tracking-[0.1em] uppercase text-grey mb-[6px]">
         {label}
       </label>
-      <div className="border border-green px-[14px] py-[12px]">
-        <input
-          type={type}
-          className={`w-full bg-transparent border-0 outline-none text-[14px] ${className}`}
-          {...rest}
-        />
-      </div>
+      <input
+        type={type}
+        className={`w-full border-[1.5px] border-ink bg-transparent px-[14px] py-[12px] font-mono text-[13px] text-ink outline-none focus:bg-paper transition-colors ${className}`}
+        {...rest}
+      />
     </div>
   );
 }

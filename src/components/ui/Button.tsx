@@ -1,33 +1,31 @@
 import type { ButtonHTMLAttributes } from "react";
 
 /**
- * 사이트 공통 버튼.
+ * 공용 버튼 — v4 acid grid.
+ * 사각형 + Space Mono 대문자. pill/라운드 금지 (v4 형태 언어).
  *
  * variant:
- *  - "primary"   장바구니/구매 등 주 CTA. 짙은 초록 채움.
- *  - "secondary" 보조 CTA. 짙은 초록 보더, hover 시 채움.
- *  - "uppercase" 폼 제출용. EN 대문자, 작고 짙은 톤. (Order/Login 제출)
- *
- * 디자인 톤상 버튼은 거의 항상 사각형(보더 라운드 없음).
- * 사이즈가 다양해지면 size prop을 별도로 추가한다.
+ *  - "primary" 잉크 채움 + 페이퍼 텍스트, hover 시 페이퍼 채움 (.bar__cta와 동일 문법)
+ *  - "outline" 1.5px 잉크 보더, hover 시 잉크 채움 + 애시드 텍스트
+ *  - "danger"  잉크 보더 + 붉은 텍스트 (삭제류)
  */
-type ButtonVariant = "primary" | "secondary" | "uppercase";
+type ButtonVariant = "primary" | "outline" | "danger";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant: ButtonVariant;
+  variant?: ButtonVariant;
 }
 
+const BASE =
+  "inline-flex items-center justify-center gap-[8px] px-[22px] py-[13px] font-mono text-[12px] uppercase tracking-[0.08em] transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none";
+
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary:
-    "px-[18px] py-[15px] text-[14px] font-medium tracking-[0.02em] text-center border border-green bg-green text-white hover:bg-foreground hover:border-foreground transition-colors",
-  secondary:
-    "px-[18px] py-[15px] text-[14px] font-medium tracking-[0.02em] text-center border border-green text-green hover:bg-green hover:text-white transition-colors",
-  uppercase:
-    "px-[22px] py-[14px] bg-green text-white font-en text-[11px] tracking-[0.18em] uppercase hover:bg-green-2 transition-colors",
+  primary: "bg-ink text-paper hover:bg-paper hover:text-ink border-[1.5px] border-ink",
+  outline: "border-[1.5px] border-ink text-ink hover:bg-ink hover:text-acid",
+  danger: "border-[1.5px] border-ink text-[#c0392b] hover:bg-[#c0392b] hover:text-paper hover:border-[#c0392b]",
 };
 
 export default function Button({
-  variant,
+  variant = "primary",
   type = "button",
   className = "",
   ...rest
@@ -35,7 +33,7 @@ export default function Button({
   return (
     <button
       type={type}
-      className={`${VARIANT_CLASSES[variant]} ${className}`}
+      className={`${BASE} ${VARIANT_CLASSES[variant]} ${className}`}
       {...rest}
     />
   );

@@ -3,54 +3,15 @@
     "title": "SUACI — Daily Calming Mist",
     "description": "A cheerful three-second break for packed days. SUACI Daily Calming Mist 100ml gently soothes stressed skin. Calm your skin, wherever you are."
   },
-  "login": {
-    "eyebrow": "No.— · Sign in",
-    "title": "Login",
-    "labelEmail": "Email",
-    "labelPassword": "Password",
-    "placeholderEmail": "name@suaci.co",
-    "placeholderPassword": "••••••••",
-    "submit": "Login",
-    "altPrompt": "First time here?",
-    "altLink": "Sign up →",
-    "email": "Email",
-    "password": "Password",
-    "loginButton": "Login",
-    "or": "OR",
-    "googleLogin": "Continue with Google",
-    "noAccount": "Don't have an account?",
-    "signUp": "Sign up"
-  },
-  "signup": {
-    "title": "CREATE ACCOUNT",
-    "name": "Name",
-    "email": "Email",
-    "password": "Password",
-    "passwordConfirm": "Confirm password",
-    "agreeAll": "Agree to all",
-    "agreeTerms": "I agree to the Terms of Service",
-    "agreePrivacy": "I agree to the Privacy Policy",
-    "agreeAge": "I am over 14 years old",
-    "agreeMarketing": "I agree to receive marketing info",
-    "signUpButton": "JOIN US",
-    "or": "OR",
-    "googleSignUp": "Start with Google",
-    "hasAccount": "Already have an account?",
-    "loginLink": "Login"
-  },
-  "cart": {
-    "title": "Cart",
-    "empty": "Empty.",
-    "emptySub": "Your bag is empty",
-    "foot": "— No.01 · Daily Calming Mist"
-  },
   "v4": {
     "nav": {
       "product": "Product",
       "moments": "Moments",
       "story": "Story",
       "waitlist": "Waitlist",
-      "cta": "Get notified"
+      "cta": "Get notified",
+      "account": "Account",
+      "login": "Sign in"
     },
     "hero": {
       "heroAlt": "People relaxing in the park",
@@ -97,5 +58,82 @@
       "note": "One press to join. We only email once.",
       "success": "On the list. Talk soon."
     }
+  },
+  "auth": {
+    "loginSub": "Welcome back. Take a breath first.",
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "submitLogin": "Sign in",
+    "noAccount": "First time here?",
+    "goSignup": "Join",
+    "error": "Please check and try again",
+    "signupSub": "Thirty seconds. Really.",
+    "confirmSub": "Just check your inbox",
+    "consents": "Consents",
+    "consentTerms": "Terms of service (required)",
+    "consentPrivacy": "Privacy policy (required)",
+    "consentAge": "I am 14 or older (required)",
+    "consentMarketing": "News & perks (optional)",
+    "submitSignup": "Create account",
+    "confirmBody": "We sent a code to {email}. Check spam too, just in case.",
+    "codeLabel": "Code",
+    "submitConfirm": "Verify & start",
+    "hasAccount": "Already have an account?",
+    "goLogin": "Sign in"
+  },
+  "account": {
+    "needLogin": "You need to sign in",
+    "goLogin": "Go to sign in",
+    "name": "Name",
+    "email": "Email",
+    "memberSince": "Member since",
+    "status": "Status",
+    "menuAddresses": "Addresses",
+    "menuOrders": "Orders",
+    "menuCart": "Cart",
+    "logout": "Sign out"
+  },
+  "addresses": {
+    "meta": "Where the psst— arrives",
+    "needLogin": "Sign in required",
+    "empty": "No addresses yet",
+    "defaultBadge": "Default",
+    "setDefault": "Make default",
+    "delete": "Delete",
+    "addTitle": "New address",
+    "recipient": "Recipient",
+    "phone": "Phone",
+    "zipcode": "Zip",
+    "addr1": "Address",
+    "addr2": "Address 2",
+    "label": "Label",
+    "labelPlaceholder": "Home, office …",
+    "submitAdd": "Add",
+    "backAccount": "Back to account"
+  },
+  "cart": {
+    "meta": "One is enough, but",
+    "needLogin": "Sign in required",
+    "empty": "Nothing here yet",
+    "addSample": "Add demo item",
+    "remove": "Remove",
+    "total": "Total",
+    "needAddress": "Add a shipping address first",
+    "goAddresses": "Add address",
+    "checkout": "Place order"
+  },
+  "orders": {
+    "meta": "Your breaks so far",
+    "needLogin": "Sign in required",
+    "empty": "No orders yet",
+    "backAccount": "Back to account",
+    "payment": "Payment",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "discount": "Discount",
+    "grandTotal": "Grand total",
+    "shippingTo": "Ship to",
+    "backToList": "Back to orders"
   }
 }
