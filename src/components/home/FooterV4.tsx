@@ -23,7 +23,7 @@ export default function FooterV4() {
         <a href="mailto:hello@suaci.com">hello@suaci.com</a>
       </div>
       <div className="cell ft-bottom">
-        <span>© 2026 SUACI — Calm, not cured.</span>
+        <span>© 2026 SUACI — Calm your skin, wherever you are.</span>
         <span>Made for the middle of the day.</span>
       </div>
     </>

@@ -13,7 +13,7 @@ export default function HeroV4() {
         <video autoPlay muted loop playsInline preload="auto" aria-label={t("heroAlt")}>
           <source src="/video/hero.mp4" type="video/mp4" />
         </video>
-        <span className="kick">SUACI · Daily Portable Mist · 50ML · Fig.01</span>
+        <span className="kick">SUACI · Daily Calming Mist · 100ML · Fig.01</span>
         <span className="badge">
           <i />
           Film — 01
@@ -32,7 +32,7 @@ export default function HeroV4() {
       </div>
       <div className="cell hero-meta">
         <span className="mono">{t("volumeLabel")}</span>
-        <b>50 ml · 1.7 fl.oz</b>
+        <b>100 ml · 3.4 fl.oz</b>
         <span className="mono" style={{ marginTop: "8px" }}>
           {t("statusLabel")}
         </span>

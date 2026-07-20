@@ -40,7 +40,7 @@ export default function ProductV4() {
         </div>
         <div className="r">
           <span>{t("specVolumeLabel")}</span>
-          <b>50 ml · 1.7 fl.oz</b>
+          <b>100 ml · 3.4 fl.oz</b>
         </div>
       </div>
       <div className="cell pr-cta">

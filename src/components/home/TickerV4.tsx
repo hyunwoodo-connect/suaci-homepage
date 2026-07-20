@@ -2,7 +2,7 @@ const ITEMS = [
   "Held steady",
   "One press",
   "Portable calm",
-  "50ml",
+  "100ml",
   "Daily ritual",
 ];
 
