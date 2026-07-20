@@ -42,8 +42,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    void refresh()
-  }, [refresh])
+    let active = true
+    const restore = async () => {
+      if (!tokenStore.getAccessToken()) {
+        if (active) setStatus('anonymous')
+        return
+      }
+      try {
+        const me = await api.getMe()
+        if (active) {
+          setUser(me)
+          setStatus('authenticated')
+        }
+      } catch {
+        tokenStore.clear()
+        if (active) setStatus('anonymous')
+      }
+    }
+    void restore()
+    return () => {
+      active = false
+    }
+  }, [])
 
   const login = useCallback(async (email: string, password: string) => {
     const tokens = await api.login({ email, password })

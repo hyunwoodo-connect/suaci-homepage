@@ -1,9 +1,9 @@
 import type {
   Address, AddToCartRequest, ApiPage, Brand, Cart, CartLine, CartTotals,
-  Claim, ClaimLine, ConfirmPaymentRequest, ConfirmRequest, CreateAddressRequest,
-  CreateClaimRequest, CreateOrderRequest, LoginRequest, Order, OrderItem,
-  OrderSummary, Product, ProductSummary, ResetPasswordRequest, SignupRequest,
-  TokenResponse, UpdateAddressRequest, User, ChangePasswordRequest, PageParams,
+  Claim, ClaimLine, ConfirmPaymentRequest, CreateAddressRequest,
+  CreateClaimRequest, CreateOrderRequest, Order, OrderItem,
+  OrderSummary, Product, ProductSummary, SignupRequest,
+  TokenResponse, UpdateAddressRequest, User,
 } from '@/types'
 import type { ApiClient } from '../client'
 import { ApiClientError } from '../errors'
@@ -95,16 +95,16 @@ function makeOrderNo(): string {
 export function createMockClient(): ApiClient {
   return {
     // ---- auth ----
-    async signup(_r: SignupRequest): Promise<{ email: string }> {
-      return { email: _r.email }
+    async signup(r: SignupRequest): Promise<{ email: string }> {
+      return { email: r.email }
     },
-    async confirm(_r: ConfirmRequest): Promise<{ confirmed: boolean }> {
+    async confirm(): Promise<{ confirmed: boolean }> {
       return { confirmed: true }
     },
-    async resendCode(_email: string): Promise<{ sent: boolean }> {
+    async resendCode(): Promise<{ sent: boolean }> {
       return { sent: true }
     },
-    async login(_r: LoginRequest): Promise<TokenResponse> {
+    async login(): Promise<TokenResponse> {
       return {
         idToken: 'mock.id.user_demo',
         accessToken: 'mock.access.user_demo',
@@ -112,7 +112,7 @@ export function createMockClient(): ApiClient {
         expiresIn: 3600,
       }
     },
-    async refresh(_refreshToken: string): Promise<TokenResponse> {
+    async refresh(): Promise<TokenResponse> {
       return {
         idToken: 'mock.id.user_demo',
         accessToken: 'mock.access.user_demo',
@@ -120,13 +120,13 @@ export function createMockClient(): ApiClient {
         expiresIn: 3600,
       }
     },
-    async forgotPassword(_email: string): Promise<{ sent: boolean }> {
+    async forgotPassword(): Promise<{ sent: boolean }> {
       return { sent: true }
     },
-    async resetPassword(_r: ResetPasswordRequest): Promise<{ reset: boolean }> {
+    async resetPassword(): Promise<{ reset: boolean }> {
       return { reset: true }
     },
-    async changePassword(_r: ChangePasswordRequest): Promise<{ changed: boolean }> {
+    async changePassword(): Promise<{ changed: boolean }> {
       requireAuth()
       return { changed: true }
     },
@@ -140,7 +140,7 @@ export function createMockClient(): ApiClient {
     },
 
     // ---- catalog (public) ----
-    async listBrands(_p?: PageParams): Promise<ApiPage<Brand>> {
+    async listBrands(): Promise<ApiPage<Brand>> {
       return { data: brands }
     },
     async getBrand(slug: string): Promise<Brand> {
@@ -247,7 +247,7 @@ export function createMockClient(): ApiClient {
     },
 
     // ---- order / payment ----
-    async listOrders(_p?: PageParams): Promise<ApiPage<OrderSummary>> {
+    async listOrders(): Promise<ApiPage<OrderSummary>> {
       requireAuth()
       const orders = [...store.readOrders()].sort((a, b) => b.createdAt - a.createdAt)
       return { data: orders.map(toOrderSummary) }
