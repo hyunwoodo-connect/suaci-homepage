@@ -7,6 +7,7 @@ export const MOCK_KEYS = {
   addresses: 'suaci.mock.addresses',
   orders: 'suaci.mock.orders',
   claims: 'suaci.mock.claims',
+  // Idempotency-key → resource-id map. Intentionally unbounded (dev-only mock; no eviction/TTL).
   idem: 'suaci.mock.idem',
   refunded: 'suaci.mock.refunded',
 } as const

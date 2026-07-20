@@ -16,6 +16,7 @@ import { store } from './store'
 
 const FREE_SHIP_THRESHOLD = 50000
 const SHIPPING_FEE = 3000
+const REFUND_DUE_MS = 3 * 24 * 60 * 60 * 1000
 
 const now = (): { createdAt: number; createdDtm: string } => {
   const ms = Date.now()
@@ -24,9 +25,17 @@ const now = (): { createdAt: number; createdDtm: string } => {
 
 const uuid = (): string => crypto.randomUUID()
 
+// Enforce the single-default-address invariant: if the list is non-empty but
+// no address is marked default (e.g. after deleting or demoting one), promote the first.
+function ensureSingleDefault(list: Address[]): void {
+  if (list.length > 0 && !list.some((a) => a.isDefault)) {
+    list[0] = { ...list[0], isDefault: true }
+  }
+}
+
 function requireAuth(): void {
   if (!tokenStore.getAccessToken()) {
-    throw new ApiClientError('UNAUTHORIZED', '로그인이 필요합니다', 401)
+    throw new ApiClientError('AUTH_REQUIRED', '로그인이 필요합니다', 401)
   }
 }
 
@@ -192,14 +201,16 @@ export function createMockClient(): ApiClient {
       const updated: Address = { ...list[idx], ...r, addressId: id }
       if (updated.isDefault) list = list.map((a) => ({ ...a, isDefault: false }))
       list[idx] = updated
+      ensureSingleDefault(list)
       store.writeAddresses(list)
-      return updated
+      return list.find((a) => a.addressId === id) as Address
     },
     async deleteAddress(id: string): Promise<void> {
       requireAuth()
       const list = store.readAddresses()
       const next = list.filter((a) => a.addressId !== id)
       if (next.length === list.length) throw new ApiClientError('ADDRESS_NOT_FOUND', '주소를 찾을 수 없습니다', 404)
+      ensureSingleDefault(next)
       store.writeAddresses(next)
     },
 
@@ -267,9 +278,9 @@ export function createMockClient(): ApiClient {
         if (existing) return existing
       }
       const cartItems = store.readCart()
-      if (cartItems.length === 0) throw new ApiClientError('EMPTY_CART', '장바구니가 비어 있습니다', 400)
+      if (cartItems.length === 0) throw new ApiClientError('CART_EMPTY', '장바구니가 비어 있습니다', 400)
       const addr = store.readAddresses().find((a) => a.addressId === r.addressId)
-      if (!addr) throw new ApiClientError('ADDRESS_NOT_FOUND', '주소를 찾을 수 없습니다', 400)
+      if (!addr) throw new ApiClientError('ADDRESS_NOT_FOUND', '주소를 찾을 수 없습니다', 404)
 
       const itemsSubtotal = cartItems.reduce((s, i) => s + i.lineSubtotal, 0)
       const discountTotal = cartItems.reduce((s, i) => s + i.lineDiscount, 0)
@@ -378,18 +389,20 @@ export function createMockClient(): ApiClient {
 
       const lines: ClaimLine[] = (r.lines ?? []).map((l) => {
         const item = order.items.find((i) => i.lineId === l.lineId)
-        if (!item) throw new ApiClientError('ORDER_ITEM_NOT_FOUND', '주문 항목을 찾을 수 없습니다', 404)
+        if (!item) throw new ApiClientError('INVALID_CLAIM_LINE', '주문 항목을 찾을 수 없습니다', 400)
         return { lineId: item.lineId, productId: item.productId, variantId: item.variantId, quantity: l.quantity }
       })
 
+      const claimLines = r.lines ?? []
+      const isFullClaim = claimLines.length === 0
       let refundAmount: number
       let refundedShipping: number
-      if (!r.lines || r.lines.length === 0) {
+      if (isFullClaim) {
         refundAmount = order.totals.grandTotal
         refundedShipping = order.totals.shippingFee
       } else {
         refundedShipping = 0
-        refundAmount = r.lines.reduce((sum, l) => {
+        refundAmount = claimLines.reduce((sum, l) => {
           const item = order.items.find((i) => i.lineId === l.lineId)
           if (!item) return sum
           const perUnit = item.quantity > 0 ? item.lineSubtotal / item.quantity : 0
@@ -399,7 +412,9 @@ export function createMockClient(): ApiClient {
 
       const refunded = store.readRefunded()
       const prior = refunded[orderId] ?? 0
-      if (prior + refundAmount > order.totals.grandTotal) {
+      // Full claims may refund goods + original shipping (once); line claims refund goods only.
+      const refundCap = isFullClaim ? order.totals.grandTotal : order.totals.itemsSubtotal
+      if (prior + refundAmount > refundCap) {
         throw new ApiClientError('OVER_REFUND', '환불 가능 금액을 초과했습니다', 409)
       }
 
@@ -415,8 +430,8 @@ export function createMockClient(): ApiClient {
         refundAmount,
         refundedShipping,
         returnShippingFee: 0,
-        refundDueAt: createdAt + 3 * 24 * 60 * 60 * 1000,
-        refundDueDtm: new Date(createdAt + 3 * 24 * 60 * 60 * 1000).toISOString(),
+        refundDueAt: createdAt + REFUND_DUE_MS,
+        refundDueDtm: new Date(createdAt + REFUND_DUE_MS).toISOString(),
         createdAt,
         createdDtm,
       }
@@ -425,10 +440,13 @@ export function createMockClient(): ApiClient {
       refunded[orderId] = nextRefunded
       store.writeRefunded(refunded)
 
-      orders[oIdx] = {
-        ...order,
-        paymentStatus: nextRefunded >= order.totals.grandTotal ? 'refunded' : 'partially_refunded',
-      }
+      const nextPaymentStatus: Order['paymentStatus'] =
+        nextRefunded >= order.totals.grandTotal
+          ? 'refunded'
+          : nextRefunded > 0
+            ? 'partially_refunded'
+            : order.paymentStatus
+      orders[oIdx] = { ...order, paymentStatus: nextPaymentStatus }
       store.writeOrders(orders)
 
       claims.push(claim)

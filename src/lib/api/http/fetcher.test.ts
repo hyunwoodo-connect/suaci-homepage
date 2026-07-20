@@ -44,4 +44,21 @@ describe('http client', () => {
     const lastCall = fetchMock.mock.calls[2]
     expect((lastCall[1].headers as Record<string, string>).Authorization).toBe('Bearer new')
   })
+
+  it('최초 401 → refresh도 401 → getMe 실패 + 토큰 클리어', async () => {
+    tokenStore.save({ idToken: 'i', accessToken: 'old', refreshToken: 'r', expiresIn: 1 })
+    const fetchMock = vi.fn()
+      // 1) 최초 보호요청 401
+      .mockResolvedValueOnce({ ok: false, status: 401, text: async () => JSON.stringify({ error: 'AUTH_REQUIRED', message: '만료' }) })
+      // 2) refresh 성공 (새 토큰 발급)
+      .mockResolvedValueOnce({ ok: true, status: 200, text: async () => JSON.stringify({ data: { idToken: 'i2', accessToken: 'new', refreshToken: 'r2', expiresIn: 3600 } }) })
+      // 3) 재요청도 401
+      .mockResolvedValueOnce({ ok: false, status: 401, text: async () => JSON.stringify({ error: 'AUTH_REQUIRED', message: '여전히 만료' }) })
+    vi.stubGlobal('fetch', fetchMock)
+    const api = createHttpClient('https://api.test')
+    await expect(api.getMe()).rejects.toMatchObject({ code: 'AUTH_REQUIRED', status: 401 })
+    expect(tokenStore.getAccessToken()).toBeNull()
+    // 재시도는 정확히 1회 — fetch 총 3회 (요청 → refresh → 재요청)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+  })
 })

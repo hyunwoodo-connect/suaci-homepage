@@ -86,7 +86,15 @@ export function createFetcher(baseUrl: string) {
       if (err instanceof ApiClientError && err.status === 401) {
         const tokens = await refreshTokens()
         if (tokens) {
-          return request<T>(path, { ...opts, auth: true }, tokens.accessToken)
+          // Exactly one retry. If it also 401s, clear the (now-stale) tokens before propagating.
+          try {
+            return await request<T>(path, { ...opts, auth: true }, tokens.accessToken)
+          } catch (retryErr) {
+            if (retryErr instanceof ApiClientError && retryErr.status === 401) {
+              tokenStore.clear()
+            }
+            throw retryErr
+          }
         }
         tokenStore.clear()
       }
