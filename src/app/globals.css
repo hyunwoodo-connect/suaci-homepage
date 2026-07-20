@@ -33,6 +33,18 @@
 
 /* ══════════════════════════════════════════════════
    Home v4 — acid grid system (from Home v4.html)
+
+   ── TYPE SCALE (사이트 전체 기준) ─────────────────
+   Display XL  Space Grotesk 700  clamp(52,10vw,168) / 0.84 / -0.04em  (hero h1)
+   Display L   Space Grotesk 700  clamp(32,5vw,68)   / 0.90 / -0.03em  (or-txt h2)
+   Display M   Space Grotesk 700  clamp(26,3vw,40)   / 0.98 / -0.02em  (pr-txt h3)
+   Heading     Space Grotesk 600  clamp(18,2.2vw,28) / 1.05 / -0.02em  (sec__ti)
+   Serif       Fraunces 300 italic — 인용·키라인 액센트 전용
+   Body        15–16px / 1.6 / 0   (ko는 -0.01em, CJK 행간 +0.1)
+   Body S      13.5–14px / 1.55 / 0
+   Caps 라벨 규칙(대문자는 +자간 필수):
+     10px → 0.1em · 11–12px → 0.08em · 13px+ → 0.06em
+   디스플레이는 클수록 타이트하게(-0.02→-0.04em), 소문자 본문 자간 금지.
    ══════════════════════════════════════════════════ */
 
 html {
@@ -43,8 +55,26 @@ body {
   background: var(--color-acid);
   color: var(--color-ink);
   font-family: var(--font-disp);
+  font-size: 16px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+}
+
+/* CJK 본문 보정 — 행간 여유, 한글은 Pretendard 관용 자간 */
+:lang(ko) .hero-lead p,
+:lang(ko) .pr-txt p,
+:lang(ko) .mo-txt p,
+:lang(ko) .or-txt > p {
+  letter-spacing: -0.01em;
+}
+:lang(ja) .hero-lead p, :lang(zh) .hero-lead p,
+:lang(ja) .pr-txt p, :lang(zh) .pr-txt p,
+:lang(ja) .mo-txt p, :lang(zh) .mo-txt p {
+  line-height: 1.7;
+}
+:lang(ko) .quote p, :lang(ja) .quote p, :lang(zh) .quote p {
+  line-height: 1.24;
 }
 
 img {
@@ -60,7 +90,7 @@ img {
 .mono {
   font-family: var(--font-mono);
   font-size: 11px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -154,7 +184,7 @@ img {
   font-family: var(--font-mono);
   font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   color: var(--color-grey);
   cursor: pointer;
   transition: color 0.15s;
@@ -284,7 +314,7 @@ img {
   grid-column: 1/7;
   padding: 22px 16px;
   font-size: 16px;
-  line-height: 1.5;
+  line-height: 1.6;
   color: var(--color-ink);
   display: flex;
   align-items: center;
@@ -342,7 +372,7 @@ img {
   font-family: var(--font-mono);
   font-size: 15px;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.06em;
   padding: 0 22px;
   display: inline-flex;
   gap: 22px;
@@ -423,7 +453,7 @@ img {
 }
 .pr-txt p {
   font-size: 15px;
-  line-height: 1.55;
+  line-height: 1.6;
   color: var(--color-ink);
   max-width: 34ch;
 }
@@ -494,7 +524,7 @@ img {
   font-family: var(--font-mono);
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   background: var(--color-acid);
   border-top: 1.5px solid var(--color-line-ink);
   border-right: 1.5px solid var(--color-line-ink);
@@ -536,7 +566,7 @@ img {
 }
 .mo-txt p {
   font-size: 14px;
-  line-height: 1.45;
+  line-height: 1.55;
   color: var(--color-grey);
 }
 .mo-txt .n {
@@ -594,7 +624,7 @@ img {
   font-family: var(--font-mono);
   font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
   padding: 6px 10px;
 }
 .or-txt {
@@ -719,7 +749,7 @@ img {
   font-size: 11px;
   color: var(--color-grey);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
 }
 
 /* ── SUBPAGE ─────────────────────────────────────── */

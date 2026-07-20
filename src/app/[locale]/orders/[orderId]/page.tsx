@@ -31,7 +31,7 @@ export default function OrderDetailPage({
   return (
     <PageShell no="OR" title={<>Order <em>detail</em></>} meta={order?.orderNo ?? ""}>
       {!order ? (
-        <p className="font-mono text-[11px] uppercase tracking-[0.06em] text-grey">…</p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-grey">…</p>
       ) : (
         <div className="max-w-[860px]">
           {/* 상태 라인 */}
@@ -50,7 +50,7 @@ export default function OrderDetailPage({
               >
                 <div className="flex-1">
                   <b className="font-display text-[15px] block">{item.productName}</b>
-                  <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-grey">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-grey">
                     {item.optionName} × {item.quantity}
                   </span>
                 </div>
@@ -69,7 +69,7 @@ export default function OrderDetailPage({
               <TotalRow label={t("shipping")} value={krw(order.totals.shippingFee)} />
               <TotalRow label={t("discount")} value={`−${krw(order.totals.discountTotal)}`} />
               <div className="flex justify-between items-baseline border-t-[1.5px] border-ink mt-[10px] pt-[10px]">
-                <span className="font-mono text-[10px] uppercase tracking-[0.08em]">{t("grandTotal")}</span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.1em]">{t("grandTotal")}</span>
                 <b className="font-display text-[20px] num">{krw(order.totals.grandTotal)}</b>
               </div>
             </div>
@@ -88,7 +88,7 @@ export default function OrderDetailPage({
             </div>
           </div>
 
-          <Link href="/orders" className="font-mono text-[11px] uppercase tracking-[0.06em] text-grey hover:text-ink">
+          <Link href="/orders" className="font-mono text-[11px] uppercase tracking-[0.08em] text-grey hover:text-ink">
             ← All orders
           </Link>
         </div>
@@ -101,7 +101,7 @@ export default function OrderDetailPage({
 
 function Badge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="font-mono text-[10px] uppercase tracking-[0.06em] bg-ink text-acid px-[8px] py-[3px]">
+    <span className="font-mono text-[10px] uppercase tracking-[0.1em] bg-ink text-acid px-[8px] py-[3px]">
       {children}
     </span>
   );
@@ -110,7 +110,7 @@ function Badge({ children }: { children: React.ReactNode }) {
 function TotalRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between items-baseline py-[3px]">
-      <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-grey">{label}</span>
+      <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-grey">{label}</span>
       <span className="font-mono text-[12px] num">{value}</span>
     </div>
   );

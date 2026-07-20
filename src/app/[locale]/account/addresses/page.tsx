@@ -73,7 +73,7 @@ export default function AddressesPage() {
         {/* 목록 */}
         <div>
           {loaded && items.length === 0 && (
-            <p className="font-mono text-[11px] uppercase tracking-[0.06em] text-grey">{t("empty")}</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-grey">{t("empty")}</p>
           )}
           <ul className="list-none m-0 p-0 flex flex-col gap-[14px]">
             {items.map((a) => (
@@ -81,12 +81,12 @@ export default function AddressesPage() {
                 <div className="flex items-center gap-[10px] mb-[8px]">
                   <b className="font-display text-[15px]">{a.recipient}</b>
                   {a.label && (
-                    <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-grey">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-grey">
                       {a.label}
                     </span>
                   )}
                   {a.isDefault && (
-                    <span className="font-mono text-[10px] uppercase tracking-[0.06em] bg-ink text-acid px-[7px] py-[2px]">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.1em] bg-ink text-acid px-[7px] py-[2px]">
                       {t("defaultBadge")}
                     </span>
                   )}
@@ -144,7 +144,7 @@ export default function AddressesPage() {
         </form>
       </div>
 
-      <Link href="/account" className="inline-block mt-[36px] font-mono text-[11px] uppercase tracking-[0.06em] text-grey hover:text-ink">
+      <Link href="/account" className="inline-block mt-[36px] font-mono text-[11px] uppercase tracking-[0.08em] text-grey hover:text-ink">
         ← Account
       </Link>
     </PageShell>

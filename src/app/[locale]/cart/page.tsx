@@ -82,7 +82,7 @@ export default function CartPage() {
       <div className="max-w-[860px]">
         {items.length === 0 ? (
           <div className="flex flex-col items-start gap-[16px]">
-            <p className="font-mono text-[11px] uppercase tracking-[0.06em] text-grey m-0">
+            <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-grey m-0">
               {t("empty")}
             </p>
             <Button variant="outline" onClick={addSample} disabled={busy}>
@@ -99,7 +99,7 @@ export default function CartPage() {
                 >
                   <div className="flex-1 min-w-[160px]">
                     <b className="font-display text-[15px] block">{line.productName}</b>
-                    <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-grey">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-grey">
                       {line.optionName} · {line.sku}
                     </span>
                   </div>
@@ -122,14 +122,14 @@ export default function CartPage() {
             </ul>
 
             <div className="flex justify-between items-baseline border-[1.5px] border-ink bg-paper px-[16px] py-[14px] mb-[20px]">
-              <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-grey">
+              <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-grey">
                 {t("total")} · {cart?.totals.itemCount}
               </span>
               <b className="font-display text-[22px] num">{krw(cart?.totals.itemsSubtotal ?? 0)}</b>
             </div>
 
             {note && (
-              <p className="font-mono text-[11px] uppercase tracking-[0.06em] text-[#c0392b] mb-[14px]">
+              <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-[#c0392b] mb-[14px]">
                 ✕ {note}{" "}
                 <Link href="/account/addresses" className="text-ink underline underline-offset-[3px]">
                   {t("goAddresses")} →

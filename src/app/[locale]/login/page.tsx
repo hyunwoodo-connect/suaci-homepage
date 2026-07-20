@@ -59,7 +59,7 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
           {error && (
-            <p className="font-mono text-[11px] uppercase tracking-[0.06em] text-[#c0392b] m-0">
+            <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-[#c0392b] m-0">
               ✕ {error}
             </p>
           )}
@@ -68,7 +68,7 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <p className="mt-[24px] font-mono text-[11px] uppercase tracking-[0.06em] text-grey">
+        <p className="mt-[24px] font-mono text-[11px] uppercase tracking-[0.08em] text-grey">
           {t("noAccount")}{" "}
           <Link href="/signup" className="text-ink underline underline-offset-[3px] hover:text-acid-deep">
             {t("goSignup")} →

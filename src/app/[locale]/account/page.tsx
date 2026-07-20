@@ -19,7 +19,7 @@ export default function AccountPage() {
   if (status === "loading") {
     return (
       <PageShell no="AC" title={<>My <em>account</em></>} meta="">
-        <p className="font-mono text-[11px] uppercase tracking-[0.06em] text-grey">…</p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-grey">…</p>
       </PageShell>
     );
   }
@@ -74,7 +74,7 @@ export default function AccountPage() {
 function SpecRow({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
   return (
     <div className={`flex items-baseline gap-[16px] px-[16px] py-[13px] ${last ? "" : "border-b-[1.5px] border-ink"}`}>
-      <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-grey w-[120px] shrink-0">
+      <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-grey w-[120px] shrink-0">
         {label}
       </span>
       <b className="font-display text-[15px]">{value}</b>

@@ -140,7 +140,7 @@ export default function SignupPage() {
           </form>
         )}
 
-        <p className="mt-[24px] font-mono text-[11px] uppercase tracking-[0.06em] text-grey">
+        <p className="mt-[24px] font-mono text-[11px] uppercase tracking-[0.08em] text-grey">
           {t("hasAccount")}{" "}
           <Link href="/login" className="text-ink underline underline-offset-[3px] hover:text-acid-deep">
             {t("goLogin")} →
@@ -179,7 +179,7 @@ function Consent({
 
 function ErrorNote({ text }: { text: string }) {
   return (
-    <p className="font-mono text-[11px] uppercase tracking-[0.06em] text-[#c0392b] m-0">
+    <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-[#c0392b] m-0">
       ✕ {text}
     </p>
   );
