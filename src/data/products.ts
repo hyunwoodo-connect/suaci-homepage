@@ -1,4 +1,4 @@
-import type { Product } from "@/types";
+import type { Product } from "@/types/commerce";
 
 export const DAILY_CALMING_MIST: Product = {
   sku: "SCI-DCM-080-001",
