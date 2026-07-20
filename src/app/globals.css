@@ -175,16 +175,15 @@ img {
   height: 100%;
   object-fit: cover;
 }
+/* 검정 헤드라인 가독용 — 어두운 그라데이션 대신 은은한 밝은 배경광만 */
 .hero-v::after {
   content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(18, 18, 16, 0.35) 0%,
-    rgba(18, 18, 16, 0) 32%,
-    rgba(18, 18, 16, 0) 55%,
-    rgba(18, 18, 16, 0.66) 100%
+    rgba(251, 251, 249, 0) 60%,
+    rgba(251, 251, 249, 0.18) 100%
   );
 }
 .hero-v .kick {
@@ -196,7 +195,7 @@ img {
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-paper);
+  color: var(--color-ink);
 }
 .hero-v .badge {
   position: absolute;
@@ -244,14 +243,14 @@ img {
   line-height: 0.84;
   letter-spacing: -0.04em;
   text-transform: uppercase;
-  color: var(--color-paper);
+  color: var(--color-ink);
 }
 .hero-v h1 em {
   font-family: var(--font-fr);
   font-style: italic;
   font-weight: 300;
   text-transform: none;
-  color: var(--color-paper);
+  color: var(--color-ink);
 }
 .hero-lead {
   grid-column: 1/7;
