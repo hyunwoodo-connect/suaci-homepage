@@ -1,4 +1,4 @@
-import type { Price } from "@/types";
+import type { Price } from "@/types/commerce";
 
 /** ₩ 기호 + 한국 천 단위 콤마. */
 export function formatKRW(amount: number): string {
