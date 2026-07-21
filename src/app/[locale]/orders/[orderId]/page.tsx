@@ -8,8 +8,10 @@ import Button from "@/components/ui/Button";
 import PageShell from "@/components/shell/PageShell";
 import { api, ApiClientError } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
-import { formatKRW } from "@/lib/format";
+import { formatDateKST, formatKRW } from "@/lib/format";
 import type {
+  Claim,
+  ClaimStatus,
   Order,
   OrderItem,
   OrderStatus,
@@ -60,9 +62,15 @@ function OrderDetail({ orderId }: { orderId: string }) {
   const welcome = searchParams.get("welcome") === "1";
 
   const [order, setOrder] = useState<Order | null>(null);
+  const [claims, setClaims] = useState<Claim[]>([]);
 
   const refresh = useCallback(async () => {
-    setOrder(await api.getOrder(orderId));
+    const [o, cs] = await Promise.all([
+      api.getOrder(orderId),
+      api.listClaims(orderId).catch(() => [] as Claim[]),
+    ]);
+    setOrder(o);
+    setClaims(cs);
   }, [orderId]);
 
   useEffect(() => {
@@ -70,6 +78,7 @@ function OrderDetail({ orderId }: { orderId: string }) {
     // Inline load (matches the existing .then()-in-effect pattern that satisfies
     // react-hooks/set-state-in-effect). `refresh` is used by action handlers.
     void api.getOrder(orderId).then(setOrder).catch(() => setOrder(null));
+    void api.listClaims(orderId).then(setClaims).catch(() => setClaims([]));
   }, [status, orderId]);
 
   return (
@@ -143,6 +152,9 @@ function OrderDetail({ orderId }: { orderId: string }) {
 
           {/* 관리 — 주문 취소 / 환불 요청 */}
           <OrderActions order={order} onDone={refresh} />
+
+          {/* 환불 내역 */}
+          <ClaimsList claims={claims} />
 
           <Link href="/orders" className="font-mono text-[11px] uppercase tracking-[0.08em] text-grey hover:text-ink">
             ← All orders
@@ -433,6 +445,40 @@ function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }
   );
 }
 
+/* ─── 환불 내역 (Task 2) ─────────────────────── */
+
+function ClaimsList({ claims }: { claims: Claim[] }) {
+  const tc = useTranslations("claims");
+
+  if (claims.length === 0) return null;
+
+  return (
+    <section className="border-[1.5px] border-ink mb-[28px]">
+      <h3 className="font-mono text-[10px] uppercase tracking-[0.1em] text-grey m-0 px-[16px] py-[12px] border-b-[1.5px] border-ink">
+        {tc("historyTitle")}
+      </h3>
+      <ul className="list-none m-0 p-0">
+        {claims.map((c) => (
+          <li key={c.claimId} className="px-[16px] py-[14px] border-b-[1.5px] border-ink last:border-b-0">
+            <div className="flex items-center gap-[10px] flex-wrap mb-[6px]">
+              <b className="font-display text-[15px]">{tc(`reasonCode.${c.reasonCode}`)}</b>
+              <ClaimStatusBadge status={c.status} label={tc(`status.${c.status}`)} />
+              <b className="font-display text-[15px] num ml-auto">{formatKRW(c.refundAmount)}</b>
+            </div>
+            {c.reasonDetail && (
+              <p className="text-[13px] text-ink-soft m-0 mb-[6px] leading-[1.6]">{c.reasonDetail}</p>
+            )}
+            <div className="flex gap-[16px] flex-wrap font-mono text-[10px] uppercase tracking-[0.1em] text-grey">
+              <span>{tc("refundDue", { date: formatDateKST(c.refundDueAt) })}</span>
+              <span>{tc("requestedAt", { date: c.createdDtm.slice(0, 10) })}</span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 /* ─── 상태 뱃지 & 톤 ─────────────────────────── */
 
 type Tone = "solid" | "acid" | "muted" | "outline";
@@ -466,6 +512,20 @@ function StatusBadge({ label, value, tone }: { label: string; value: string; ton
     <span className={`inline-flex items-baseline gap-[6px] font-mono text-[10px] uppercase tracking-[0.1em] px-[8px] py-[3px] ${TONE_CLASSES[tone]}`}>
       <span className="opacity-60">{label}</span>
       <span>{value}</span>
+    </span>
+  );
+}
+
+function claimStatusTone(s: ClaimStatus): Tone {
+  if (s === "completed" || s === "approved") return "acid";
+  if (s === "rejected" || s === "failed") return "muted";
+  return "outline";
+}
+
+function ClaimStatusBadge({ status, label }: { status: ClaimStatus; label: string }) {
+  return (
+    <span className={`font-mono text-[10px] uppercase tracking-[0.1em] px-[8px] py-[3px] ${TONE_CLASSES[claimStatusTone(status)]}`}>
+      {label}
     </span>
   );
 }
