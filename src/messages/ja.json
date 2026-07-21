@@ -112,11 +112,9 @@
     "meta": "ひとつで十分ですが",
     "needLogin": "ログインが必要です",
     "empty": "まだ空です",
-    "addSample": "デモ商品を追加",
+    "continueShopping": "買い物を続ける",
     "remove": "削除",
     "total": "合計",
-    "needAddress": "先に配送先を登録してください",
-    "goAddresses": "配送先を登録",
     "checkout": "注文する"
   },
   "checkout": {

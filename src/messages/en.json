@@ -112,11 +112,9 @@
     "meta": "One is enough, but",
     "needLogin": "Sign in required",
     "empty": "Nothing here yet",
-    "addSample": "Add demo item",
+    "continueShopping": "Continue shopping",
     "remove": "Remove",
     "total": "Total",
-    "needAddress": "Add a shipping address first",
-    "goAddresses": "Add address",
     "checkout": "Place order"
   },
   "checkout": {

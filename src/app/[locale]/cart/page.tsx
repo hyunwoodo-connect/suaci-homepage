@@ -1,69 +1,20 @@
 "use client";
 
-import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Link, useRouter } from "@/i18n/navigation";
-import Button from "@/components/ui/Button";
+import { Link } from "@/i18n/navigation";
 import PageShell from "@/components/shell/PageShell";
-import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useCart } from "@/lib/cart/cart-context";
 
 const krw = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
 
 /**
- * 장바구니 — cart-context(getCart/update/remove) + 주문 데모 플로우.
- * 주문하기: 기본 배송지 → createOrder → confirmPayment (mock 결제) → 주문 상세로 이동.
+ * 장바구니 — cart-context(getCart/update/remove). 결제는 /checkout으로 위임.
  */
 export default function CartPage() {
   const t = useTranslations("cart");
-  const router = useRouter();
   const { status } = useAuth();
-  const { cart, setQty, remove, refresh } = useCart();
-
-  const [busy, setBusy] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
-
-  const addSample = async () => {
-    setBusy(true);
-    setNote(null);
-    try {
-      const page = await api.listProducts({ limit: 1 });
-      const first = page.data[0];
-      const product = await api.getProduct(first.slug);
-      const variant = product.variants[0];
-      await api.addToCart({ productId: product.productId, variantId: variant.variantId, quantity: 1 });
-      await refresh();
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const checkout = async () => {
-    if (!cart || cart.items.length === 0) return;
-    setBusy(true);
-    setNote(null);
-    try {
-      const addresses = await api.listAddresses();
-      const addr = addresses.find((a) => a.isDefault) ?? addresses[0];
-      if (!addr) {
-        setNote(t("needAddress"));
-        return;
-      }
-      const order = await api.createOrder({
-        addressId: addr.addressId,
-        idempotencyKey: crypto.randomUUID(),
-      });
-      await api.confirmPayment(order.orderId, {
-        paymentKey: `mockpay_${order.orderId}`,
-        amount: order.totals.grandTotal,
-      });
-      await refresh();
-      router.push(`/orders/${order.orderId}`);
-    } finally {
-      setBusy(false);
-    }
-  };
+  const { cart, setQty, remove } = useCart();
 
   if (status !== "authenticated") {
     return (
@@ -85,9 +36,12 @@ export default function CartPage() {
             <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-grey m-0">
               {t("empty")}
             </p>
-            <Button variant="outline" onClick={addSample} disabled={busy}>
-              {busy ? "..." : t("addSample")}
-            </Button>
+            <Link
+              href="/products"
+              className="font-mono text-[12px] uppercase tracking-[0.08em] text-ink underline underline-offset-[3px] hover:text-acid-deep"
+            >
+              {t("continueShopping")} →
+            </Link>
           </div>
         ) : (
           <>
@@ -128,18 +82,20 @@ export default function CartPage() {
               <b className="font-display text-[22px] num">{krw(cart?.totals.itemsSubtotal ?? 0)}</b>
             </div>
 
-            {note && (
-              <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-[#c0392b] mb-[14px]">
-                ✕ {note}{" "}
-                <Link href="/account/addresses" className="text-ink underline underline-offset-[3px]">
-                  {t("goAddresses")} →
-                </Link>
-              </p>
-            )}
-
-            <Button onClick={checkout} disabled={busy}>
-              {busy ? "..." : t("checkout")}
-            </Button>
+            <div className="flex flex-wrap items-center gap-[16px]">
+              <Link
+                href="/checkout"
+                className="inline-flex items-center justify-center gap-[8px] px-[22px] py-[13px] font-mono text-[12px] uppercase tracking-[0.08em] transition-colors bg-ink text-paper hover:bg-paper hover:text-ink border-[1.5px] border-ink"
+              >
+                {t("checkout")}
+              </Link>
+              <Link
+                href="/products"
+                className="font-mono text-[11px] uppercase tracking-[0.08em] text-grey hover:text-ink"
+              >
+                {t("continueShopping")} →
+              </Link>
+            </div>
           </>
         )}
       </div>
