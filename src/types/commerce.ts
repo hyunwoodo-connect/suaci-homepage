@@ -53,9 +53,9 @@ export interface Product {
   nameKo: string;
   /** 카테고리 식별자 (filter, related products용). */
   category: string;
-  /** 표기용 용량 문자열 ("80ml"). */
+  /** 표기용 용량 문자열 ("100ml"). */
   volume: string;
-  /** 표기용 상세 용량 ("80 ml / 2.7 fl.oz"). */
+  /** 표기용 상세 용량 ("100 ml / 3.4 fl.oz"). */
   volumeDetail: string;
   /** 짧은 영문 디스크립터 ("Portable calming mist"). */
   shortDescriptor: string;

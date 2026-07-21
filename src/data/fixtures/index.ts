@@ -49,8 +49,8 @@ export const products: Product[] = [
     variants: [
       {
         variantId: 'var_daily_80',
-        sku: 'SUACI-MIST-80',
-        optionName: '80ml',
+        sku: 'SUACI-MIST-100',
+        optionName: '100ml',
         price: krw(38000, 34200),
         stock: 120,
         available: 120,
@@ -58,8 +58,8 @@ export const products: Product[] = [
       },
       {
         variantId: 'var_daily_80x2',
-        sku: 'SUACI-MIST-80-SET2',
-        optionName: '80ml 2개 세트',
+        sku: 'SUACI-MIST-100-SET2',
+        optionName: '100ml 2개 세트',
         price: krw(72000, 62000),
         stock: 40,
         available: 40,

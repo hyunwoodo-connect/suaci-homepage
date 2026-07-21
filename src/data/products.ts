@@ -1,14 +1,14 @@
 import type { Product } from "@/types/commerce";
 
 export const DAILY_CALMING_MIST: Product = {
-  sku: "SCI-DCM-080-001",
+  sku: "SCI-DCM-100-001",
   slug: "daily-calming-mist",
   issueNumber: "No.01",
   name: "Daily Calming Mist",
   nameKo: "데일리 카밍 미스트",
   category: "calming",
-  volume: "80ml",
-  volumeDetail: "80 ml / 2.7 fl.oz",
+  volume: "100ml",
+  volumeDetail: "100 ml / 3.4 fl.oz",
   shortDescriptor: "Portable calming mist",
   price: {
     list: 38000,
@@ -18,7 +18,7 @@ export const DAILY_CALMING_MIST: Product = {
   images: {
     bottle: {
       src: "/image/suaci-bottle.png",
-      alt: "짙은 초록색 SUACI Daily Calming Mist 80ml 미스트 보틀",
+      alt: "짙은 초록색 SUACI Daily Calming Mist 100ml 미스트 보틀",
     },
     hero: [
       {
