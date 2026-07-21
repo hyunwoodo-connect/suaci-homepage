@@ -129,5 +129,37 @@
     "discount": "割引",
     "grandTotal": "合計金額",
     "shippingTo": "配送先"
+  },
+  "shop": {
+    "meta": "suaci が選んだもの",
+    "loading": "読み込み中",
+    "error": "しばらくしてからもう一度お試しください",
+    "empty": "まだ商品がありません",
+    "loadMore": "もっと見る",
+    "soldout": "完売",
+    "view": "詳しく見る"
+  },
+  "product": {
+    "loading": "読み込み中",
+    "error": "しばらくしてからもう一度お試しください",
+    "notFound": "商品が見つかりません",
+    "notFoundBody": "リンクが変更されたか、販売が終了した商品の可能性があります。",
+    "backToShop": "ショップに戻る",
+    "selectOption": "オプションを選択",
+    "soldout": "完売",
+    "addToBag": "カートに入れる",
+    "buyNow": "今すぐ購入",
+    "added": "カートに入れました",
+    "viewCart": "カートを見る",
+    "off": "OFF"
+  },
+  "brands": {
+    "meta": "取り扱いブランド",
+    "loading": "読み込み中",
+    "error": "しばらくしてからもう一度お試しください",
+    "empty": "登録されたブランドがありません",
+    "viewProducts": "商品を見る",
+    "productsMeta": "このブランドの商品",
+    "noProducts": "このブランドの商品はまだありません"
   }
 }

@@ -129,5 +129,37 @@
     "discount": "折扣",
     "grandTotal": "应付总额",
     "shippingTo": "收货地址"
+  },
+  "shop": {
+    "meta": "suaci 的甄选",
+    "loading": "加载中",
+    "error": "请稍后再试",
+    "empty": "还没有商品",
+    "loadMore": "查看更多",
+    "soldout": "已售罄",
+    "view": "查看"
+  },
+  "product": {
+    "loading": "加载中",
+    "error": "请稍后再试",
+    "notFound": "找不到该商品",
+    "notFoundBody": "链接可能已更改，或该商品已停售。",
+    "backToShop": "返回商店",
+    "selectOption": "选择规格",
+    "soldout": "已售罄",
+    "addToBag": "加入购物袋",
+    "buyNow": "立即购买",
+    "added": "已加入购物袋",
+    "viewCart": "查看购物车",
+    "off": "折扣"
+  },
+  "brands": {
+    "meta": "我们合作的品牌",
+    "loading": "加载中",
+    "error": "请稍后再试",
+    "empty": "还没有品牌",
+    "viewProducts": "查看产品",
+    "productsMeta": "该品牌的产品",
+    "noProducts": "该品牌暂无产品"
   }
 }

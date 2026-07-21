@@ -129,5 +129,37 @@
     "discount": "Discount",
     "grandTotal": "Grand total",
     "shippingTo": "Ship to"
+  },
+  "shop": {
+    "meta": "Curated by suaci",
+    "loading": "Loading",
+    "error": "Please try again in a moment",
+    "empty": "No products yet",
+    "loadMore": "Load more",
+    "soldout": "Sold out",
+    "view": "View"
+  },
+  "product": {
+    "loading": "Loading",
+    "error": "Please try again in a moment",
+    "notFound": "Product not found",
+    "notFoundBody": "The link may have changed or the product is no longer sold.",
+    "backToShop": "Back to shop",
+    "selectOption": "Select option",
+    "soldout": "Sold out",
+    "addToBag": "Add to bag",
+    "buyNow": "Buy now",
+    "added": "Added to bag",
+    "viewCart": "View cart",
+    "off": "off"
+  },
+  "brands": {
+    "meta": "Brands we carry",
+    "loading": "Loading",
+    "error": "Please try again in a moment",
+    "empty": "No brands yet",
+    "viewProducts": "View products",
+    "productsMeta": "Products from this brand",
+    "noProducts": "No products from this brand yet"
   }
 }

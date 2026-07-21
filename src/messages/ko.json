@@ -129,5 +129,37 @@
     "discount": "할인",
     "grandTotal": "총 결제 금액",
     "shippingTo": "배송지"
+  },
+  "shop": {
+    "meta": "수아치가 고른 것들",
+    "loading": "불러오는 중",
+    "error": "잠시 후 다시 시도해주세요",
+    "empty": "아직 상품이 없어요",
+    "loadMore": "더 보기",
+    "soldout": "품절",
+    "view": "자세히 보기"
+  },
+  "product": {
+    "loading": "불러오는 중",
+    "error": "잠시 후 다시 시도해주세요",
+    "notFound": "상품을 찾을 수 없어요",
+    "notFoundBody": "링크가 바뀌었거나 판매가 종료된 상품일 수 있어요.",
+    "backToShop": "샵으로 돌아가기",
+    "selectOption": "옵션 선택",
+    "soldout": "품절",
+    "addToBag": "담기",
+    "buyNow": "바로 구매",
+    "added": "담았어요",
+    "viewCart": "장바구니 보기",
+    "off": "할인"
+  },
+  "brands": {
+    "meta": "수아치가 함께하는 브랜드",
+    "loading": "불러오는 중",
+    "error": "잠시 후 다시 시도해주세요",
+    "empty": "등록된 브랜드가 없어요",
+    "viewProducts": "제품 보기",
+    "productsMeta": "이 브랜드의 제품",
+    "noProducts": "아직 이 브랜드의 제품이 없어요"
   }
 }
