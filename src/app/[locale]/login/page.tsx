@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import { Link, useRouter } from "@/i18n/navigation";
 import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
@@ -10,11 +11,23 @@ import { useAuth } from "@/lib/auth/auth-context";
 
 /**
  * 로그인 — mock ApiClient 계약(login → getMe) 호출.
+ * ?next= 파라미터가 있으면 로그인 후 해당 경로로 복귀(PDP 담기 게이트 등).
  * 백엔드 연결 시 NEXT_PUBLIC_API_MODE 스위칭 외 수정 불필요.
  */
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+/* ─── 하위 컴포넌트 ─────────────────────────── */
+
+function LoginForm() {
   const t = useTranslations("auth");
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
 
   const [email, setEmail] = useState("");
@@ -28,7 +41,8 @@ export default function LoginPage() {
     setError(null);
     try {
       await login(email, password);
-      router.push("/account");
+      const next = searchParams.get("next");
+      router.push(next && next.startsWith("/") ? next : "/account");
     } catch {
       setError(t("error"));
     } finally {
