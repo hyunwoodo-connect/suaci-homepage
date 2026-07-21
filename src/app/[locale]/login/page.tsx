@@ -68,6 +68,12 @@ export default function LoginPage() {
           </Button>
         </form>
 
+        <p className="mt-[16px] font-mono text-[11px] uppercase tracking-[0.08em]">
+          <Link href="/password/forgot" className="text-grey hover:text-acid-deep">
+            {t("forgotPassword")} →
+          </Link>
+        </p>
+
         <p className="mt-[24px] font-mono text-[11px] uppercase tracking-[0.08em] text-grey">
           {t("noAccount")}{" "}
           <Link href="/signup" className="text-ink underline underline-offset-[3px] hover:text-acid-deep">
