@@ -119,6 +119,35 @@
     "goAddresses": "เพิ่มที่อยู่",
     "checkout": "สั่งซื้อ"
   },
+  "checkout": {
+    "meta": "อีกขั้นตอนสุดท้าย",
+    "emptyCart": "ตะกร้าของคุณว่างเปล่า",
+    "continueShopping": "เลือกซื้อสินค้าต่อ",
+    "addressTitle": "ที่อยู่จัดส่ง",
+    "noAddress": "ยังไม่มีที่อยู่จัดส่งที่บันทึกไว้",
+    "addAddress": "เพิ่มที่อยู่",
+    "defaultBadge": "ค่าเริ่มต้น",
+    "selectAddress": "กรุณาเลือกที่อยู่จัดส่ง",
+    "summaryTitle": "สรุปคำสั่งซื้อ",
+    "subtotal": "ยอดสินค้า",
+    "discount": "ส่วนลด",
+    "shipping": "ค่าจัดส่ง",
+    "freeShipping": "ฟรี",
+    "shippingCalcNote": "คำนวณตอนสั่งซื้อ",
+    "freeShippingNote": "ส่งฟรีเมื่อซื้อครบ {amount}",
+    "grandTotal": "ยอดที่ต้องชำระ",
+    "finalTotalNote": "ยอดสุดท้ายจะยืนยันตอนสั่งซื้อ",
+    "placeOrder": "สั่งซื้อและชำระเงิน",
+    "mockPaymentNote": "การชำระเงินจะเชื่อมต่อหลังเปิดตัว",
+    "error": {
+      "EMPTY_CART": "ตะกร้าของคุณว่างเปล่า",
+      "ADDRESS_NOT_FOUND": "ไม่พบที่อยู่จัดส่ง",
+      "PAYMENT_AMOUNT_MISMATCH": "จำนวนเงินชำระไม่ตรงกัน",
+      "OUT_OF_STOCK": "สินค้าบางรายการหมดสต็อก",
+      "AUTH_REQUIRED": "กรุณาเข้าสู่ระบบอีกครั้ง",
+      "GENERIC": "กรุณาลองใหม่อีกครั้งในภายหลัง"
+    }
+  },
   "orders": {
     "meta": "การพักของคุณที่ผ่านมา",
     "needLogin": "ต้องเข้าสู่ระบบก่อน",

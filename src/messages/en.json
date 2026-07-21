@@ -119,6 +119,35 @@
     "goAddresses": "Add address",
     "checkout": "Place order"
   },
+  "checkout": {
+    "meta": "One last step",
+    "emptyCart": "Your cart is empty",
+    "continueShopping": "Continue shopping",
+    "addressTitle": "Shipping address",
+    "noAddress": "No saved address yet",
+    "addAddress": "Add address",
+    "defaultBadge": "Default",
+    "selectAddress": "Please select an address",
+    "summaryTitle": "Order summary",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "shipping": "Shipping",
+    "freeShipping": "Free",
+    "shippingCalcNote": "Calculated at checkout",
+    "freeShippingNote": "Free shipping over {amount}",
+    "grandTotal": "Amount due",
+    "finalTotalNote": "Final amount is confirmed at checkout",
+    "placeOrder": "Place order & pay",
+    "mockPaymentNote": "Payment connects after launch",
+    "error": {
+      "EMPTY_CART": "Your cart is empty",
+      "ADDRESS_NOT_FOUND": "Address not found",
+      "PAYMENT_AMOUNT_MISMATCH": "Payment amount doesn't match",
+      "OUT_OF_STOCK": "Some items are out of stock",
+      "AUTH_REQUIRED": "Please sign in again",
+      "GENERIC": "Please try again in a moment"
+    }
+  },
   "orders": {
     "meta": "Your breaks so far",
     "needLogin": "Sign in required",

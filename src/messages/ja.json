@@ -119,6 +119,35 @@
     "goAddresses": "配送先を登録",
     "checkout": "注文する"
   },
+  "checkout": {
+    "meta": "最後のひと手間",
+    "emptyCart": "カートが空です",
+    "continueShopping": "買い物を続ける",
+    "addressTitle": "配送先",
+    "noAddress": "登録された配送先がありません",
+    "addAddress": "配送先を登録",
+    "defaultBadge": "既定",
+    "selectAddress": "配送先を選択してください",
+    "summaryTitle": "注文内容",
+    "subtotal": "小計",
+    "discount": "割引",
+    "shipping": "送料",
+    "freeShipping": "無料",
+    "shippingCalcNote": "注文時に計算",
+    "freeShippingNote": "{amount}以上で送料無料",
+    "grandTotal": "お支払い予定金額",
+    "finalTotalNote": "最終金額は注文時に確定します",
+    "placeOrder": "注文・支払い",
+    "mockPaymentNote": "決済はローンチ後に連携します",
+    "error": {
+      "EMPTY_CART": "カートが空です",
+      "ADDRESS_NOT_FOUND": "配送先が見つかりません",
+      "PAYMENT_AMOUNT_MISMATCH": "支払い金額が一致しません",
+      "OUT_OF_STOCK": "在庫が不足している商品があります",
+      "AUTH_REQUIRED": "もう一度ログインしてください",
+      "GENERIC": "しばらくしてからもう一度お試しください"
+    }
+  },
   "orders": {
     "meta": "これまでのひと休み",
     "needLogin": "ログインが必要です",

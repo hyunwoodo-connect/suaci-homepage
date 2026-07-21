@@ -119,6 +119,35 @@
     "goAddresses": "添加地址",
     "checkout": "下单"
   },
+  "checkout": {
+    "meta": "最后一步",
+    "emptyCart": "购物车是空的",
+    "continueShopping": "继续购物",
+    "addressTitle": "收货地址",
+    "noAddress": "还没有收货地址",
+    "addAddress": "添加地址",
+    "defaultBadge": "默认",
+    "selectAddress": "请选择收货地址",
+    "summaryTitle": "订单摘要",
+    "subtotal": "商品小计",
+    "discount": "折扣",
+    "shipping": "运费",
+    "freeShipping": "免费",
+    "shippingCalcNote": "结算时计算",
+    "freeShippingNote": "满{amount}免运费",
+    "grandTotal": "应付金额",
+    "finalTotalNote": "最终金额于结算时确定",
+    "placeOrder": "下单并支付",
+    "mockPaymentNote": "支付将在上线后接入",
+    "error": {
+      "EMPTY_CART": "购物车是空的",
+      "ADDRESS_NOT_FOUND": "找不到收货地址",
+      "PAYMENT_AMOUNT_MISMATCH": "支付金额不一致",
+      "OUT_OF_STOCK": "部分商品库存不足",
+      "AUTH_REQUIRED": "请重新登录",
+      "GENERIC": "请稍后再试"
+    }
+  },
   "orders": {
     "meta": "到目前为止的小憩",
     "needLogin": "需要登录",
