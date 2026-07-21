@@ -155,7 +155,9 @@
     "shipping": "배송비",
     "discount": "할인",
     "grandTotal": "총 결제 금액",
-    "shippingTo": "배송지"
+    "shippingTo": "배송지",
+    "welcomeTitle": "주문이 완료되었어요",
+    "welcomeOrderNo": "주문번호 {orderNo}"
   },
   "shop": {
     "meta": "수아치가 고른 것들",

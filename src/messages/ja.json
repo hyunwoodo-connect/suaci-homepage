@@ -155,7 +155,9 @@
     "shipping": "送料",
     "discount": "割引",
     "grandTotal": "合計金額",
-    "shippingTo": "配送先"
+    "shippingTo": "配送先",
+    "welcomeTitle": "ご注文が完了しました",
+    "welcomeOrderNo": "注文番号 {orderNo}"
   },
   "shop": {
     "meta": "suaci が選んだもの",

@@ -1,7 +1,8 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { Suspense, use, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import PageShell from "@/components/shell/PageShell";
 import { api } from "@/lib/api";
@@ -12,6 +13,7 @@ const krw = (n: number) => `₩${n.toLocaleString("ko-KR")}`;
 
 /**
  * 주문 상세 — getOrder 계약 호출.
+ * ?welcome=1(체크아웃 직후) 이면 상단에 완료 배너 표시.
  */
 export default function OrderDetailPage({
   params,
@@ -19,8 +21,20 @@ export default function OrderDetailPage({
   params: Promise<{ orderId: string }>;
 }) {
   const { orderId } = use(params);
+  return (
+    <Suspense>
+      <OrderDetail orderId={orderId} />
+    </Suspense>
+  );
+}
+
+/* ─── 하위 컴포넌트 ─────────────────────────── */
+
+function OrderDetail({ orderId }: { orderId: string }) {
   const t = useTranslations("orders");
   const { status } = useAuth();
+  const searchParams = useSearchParams();
+  const welcome = searchParams.get("welcome") === "1";
   const [order, setOrder] = useState<Order | null>(null);
 
   useEffect(() => {
@@ -34,6 +48,15 @@ export default function OrderDetailPage({
         <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-grey">…</p>
       ) : (
         <div className="max-w-[860px]">
+          {welcome && (
+            <div className="border-[1.5px] border-ink bg-acid px-[16px] py-[13px] mb-[20px] flex items-baseline justify-between gap-[12px] flex-wrap">
+              <b className="font-display text-[15px] text-ink">{t("welcomeTitle")}</b>
+              <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink num">
+                {t("welcomeOrderNo", { orderNo: order.orderNo })}
+              </span>
+            </div>
+          )}
+
           {/* 상태 라인 */}
           <div className="flex gap-[8px] flex-wrap mb-[20px]">
             <Badge>{order.status}</Badge>
@@ -96,8 +119,6 @@ export default function OrderDetailPage({
     </PageShell>
   );
 }
-
-/* ─── 하위 컴포넌트 ─────────────────────────── */
 
 function Badge({ children }: { children: React.ReactNode }) {
   return (

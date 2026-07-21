@@ -155,7 +155,9 @@
     "shipping": "运费",
     "discount": "折扣",
     "grandTotal": "应付总额",
-    "shippingTo": "收货地址"
+    "shippingTo": "收货地址",
+    "welcomeTitle": "订单已完成",
+    "welcomeOrderNo": "订单号 {orderNo}"
   },
   "shop": {
     "meta": "suaci 的甄选",

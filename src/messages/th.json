@@ -155,7 +155,9 @@
     "shipping": "ค่าจัดส่ง",
     "discount": "ส่วนลด",
     "grandTotal": "ยอดรวมทั้งหมด",
-    "shippingTo": "จัดส่งไปที่"
+    "shippingTo": "จัดส่งไปที่",
+    "welcomeTitle": "สั่งซื้อสำเร็จแล้ว",
+    "welcomeOrderNo": "หมายเลขคำสั่งซื้อ {orderNo}"
   },
   "shop": {
     "meta": "คัดสรรโดย suaci",

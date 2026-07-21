@@ -155,7 +155,9 @@
     "shipping": "Shipping",
     "discount": "Discount",
     "grandTotal": "Grand total",
-    "shippingTo": "Ship to"
+    "shippingTo": "Ship to",
+    "welcomeTitle": "Your order is complete",
+    "welcomeOrderNo": "Order no. {orderNo}"
   },
   "shop": {
     "meta": "Curated by suaci",
