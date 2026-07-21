@@ -187,6 +187,44 @@ img {
   background: var(--color-paper);
   color: var(--color-ink);
 }
+/* 모바일 전용 계정/장바구니 진입점 — 데스크톱 nav가 있을 땐 숨김 */
+.bar__mob {
+  display: none;
+}
+.bar__mob-link {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-ink);
+  transition: background 0.15s, color 0.15s;
+}
+.bar__mob-link:first-child {
+  border-right: 1px solid rgba(18, 18, 16, 0.15);
+}
+.bar__mob-link:active {
+  background: var(--color-ink);
+  color: var(--color-acid);
+}
+.bar__mob-badge {
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-ink);
+  color: var(--color-acid);
+  font-size: 10px;
+  line-height: 1;
+  border-radius: 9px;
+}
 
 /* ── HERO (full-bleed visual) ────────────────────── */
 .hero-v {
@@ -760,13 +798,19 @@ img {
 /* ── RESPONSIVE ──────────────────────────────────── */
 @media (max-width: 860px) {
   .bar__logo {
-    grid-column: 1/8;
+    grid-column: 1/5;
   }
   .bar__nav {
     display: none;
   }
+  .bar__mob {
+    display: flex;
+    grid-column: 5/10;
+    align-items: stretch;
+    border-right: 1.5px solid var(--color-line-ink);
+  }
   .bar__cta {
-    grid-column: 8/13;
+    grid-column: 10/13;
   }
   .hero-lead {
     grid-column: 1/13;

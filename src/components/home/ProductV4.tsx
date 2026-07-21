@@ -1,12 +1,15 @@
 /* eslint-disable @next/next/no-img-element */
 import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { HOME_V4_IMAGES } from "@/constants/homeImages";
+import { DAILY_CALMING_MIST } from "@/data/products";
 
 /**
- * Home v4 섹션 01 — 제품. 라벨 행 + 이미지/카피/스펙 + 풀폭 CTA.
+ * Home v4 섹션 01 — 제품. 라벨 행 + 이미지/카피/스펙 + 풀폭 CTA(샵 PDP로).
  */
 export default function ProductV4() {
   const t = useTranslations("v4.product");
+  const tShop = useTranslations("shop");
 
   return (
     <>
@@ -44,7 +47,7 @@ export default function ProductV4() {
         </div>
       </div>
       <div className="cell pr-cta">
-        <a href="#order">{t("cta")} →</a>
+        <Link href={`/products/${DAILY_CALMING_MIST.slug}`}>{tShop("view")} →</Link>
       </div>
     </>
   );
