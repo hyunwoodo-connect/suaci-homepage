@@ -157,7 +157,76 @@
     "grandTotal": "应付总额",
     "shippingTo": "收货地址",
     "welcomeTitle": "订单已完成",
-    "welcomeOrderNo": "订单号 {orderNo}"
+    "welcomeOrderNo": "订单号 {orderNo}",
+    "manage": "管理",
+    "statusLabel": "订单",
+    "paymentLabel": "支付",
+    "fulfillmentLabel": "配送",
+    "cancelOrder": "取消订单",
+    "cancelConfirm": "确定要取消吗？",
+    "cancelYes": "确认取消",
+    "cancelNo": "保留订单",
+    "requestRefund": "申请退款",
+    "orderStatus": {
+      "pending": "待支付",
+      "open": "处理中",
+      "completed": "已完成",
+      "cancelled": "已取消"
+    },
+    "paymentStatus": {
+      "pending": "待支付",
+      "authorized": "已授权",
+      "paid": "已支付",
+      "partially_refunded": "部分退款",
+      "refunded": "已退款",
+      "voided": "已作废",
+      "refunding": "退款处理中"
+    },
+    "fulfillmentStatus": {
+      "unfulfilled": "待发货",
+      "partially_fulfilled": "部分发货",
+      "fulfilled": "已发货",
+      "returned": "已退货"
+    }
+  },
+  "claims": {
+    "formTitle": "申请退款",
+    "reason": "退款原因",
+    "reasonCode": {
+      "단순변심": "个人原因（不想要了）",
+      "상품하자": "商品瑕疵",
+      "오배송": "错发商品",
+      "표시광고상이": "与描述不符",
+      "배송지연": "配送延迟",
+      "기타": "其他"
+    },
+    "detail": "详细说明（可选）",
+    "detailPlaceholder": "请填写详细原因",
+    "scope": "退款范围",
+    "scopeFull": "全额退款",
+    "scopePartial": "部分退款",
+    "ownedQty": "已订{n}件",
+    "increase": "增加数量",
+    "decrease": "减少数量",
+    "partialHint": "请选择要退款的数量",
+    "submit": "申请退款",
+    "cancel": "关闭",
+    "historyTitle": "退款记录",
+    "refundDue": "退款期限 {date}",
+    "requestedAt": "申请日期 {date}",
+    "status": {
+      "requested": "已申请",
+      "approved": "已批准",
+      "rejected": "已拒绝",
+      "completed": "已完成",
+      "failed": "失败"
+    },
+    "error": {
+      "ORDER_NOT_CANCELLABLE": "该订单无法取消",
+      "CLAIM_NOT_ALLOWED": "该订单无法申请退款",
+      "OVER_REFUND": "超出可退款金额",
+      "default": "无法处理您的请求"
+    }
   },
   "shop": {
     "meta": "suaci 的甄选",

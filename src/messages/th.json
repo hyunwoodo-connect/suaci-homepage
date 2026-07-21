@@ -157,7 +157,76 @@
     "grandTotal": "ยอดรวมทั้งหมด",
     "shippingTo": "จัดส่งไปที่",
     "welcomeTitle": "สั่งซื้อสำเร็จแล้ว",
-    "welcomeOrderNo": "หมายเลขคำสั่งซื้อ {orderNo}"
+    "welcomeOrderNo": "หมายเลขคำสั่งซื้อ {orderNo}",
+    "manage": "จัดการ",
+    "statusLabel": "คำสั่งซื้อ",
+    "paymentLabel": "การชำระเงิน",
+    "fulfillmentLabel": "การจัดส่ง",
+    "cancelOrder": "ยกเลิกคำสั่งซื้อ",
+    "cancelConfirm": "ต้องการยกเลิกใช่ไหม？",
+    "cancelYes": "ยืนยันยกเลิก",
+    "cancelNo": "เก็บไว้ตามเดิม",
+    "requestRefund": "ขอคืนเงิน",
+    "orderStatus": {
+      "pending": "รอชำระเงิน",
+      "open": "กำลังดำเนินการ",
+      "completed": "เสร็จสิ้น",
+      "cancelled": "ยกเลิกแล้ว"
+    },
+    "paymentStatus": {
+      "pending": "รอชำระเงิน",
+      "authorized": "อนุมัติแล้ว",
+      "paid": "ชำระเงินแล้ว",
+      "partially_refunded": "คืนเงินบางส่วน",
+      "refunded": "คืนเงินแล้ว",
+      "voided": "ยกเลิกการชำระ",
+      "refunding": "กำลังคืนเงิน"
+    },
+    "fulfillmentStatus": {
+      "unfulfilled": "ยังไม่จัดส่ง",
+      "partially_fulfilled": "จัดส่งบางส่วน",
+      "fulfilled": "จัดส่งแล้ว",
+      "returned": "ส่งคืนแล้ว"
+    }
+  },
+  "claims": {
+    "formTitle": "ขอคืนเงิน",
+    "reason": "เหตุผลในการคืนเงิน",
+    "reasonCode": {
+      "단순변심": "เปลี่ยนใจ",
+      "상품하자": "สินค้ามีตำหนิ",
+      "오배송": "จัดส่งผิดสินค้า",
+      "표시광고상이": "ไม่ตรงตามที่โฆษณา",
+      "배송지연": "จัดส่งล่าช้า",
+      "기타": "อื่นๆ"
+    },
+    "detail": "รายละเอียด (ไม่บังคับ)",
+    "detailPlaceholder": "โปรดระบุเหตุผลเพิ่มเติม",
+    "scope": "ขอบเขตการคืนเงิน",
+    "scopeFull": "คืนเงินทั้งหมด",
+    "scopePartial": "คืนเงินบางส่วน",
+    "ownedQty": "สั่งซื้อ {n} ชิ้น",
+    "increase": "เพิ่มจำนวน",
+    "decrease": "ลดจำนวน",
+    "partialHint": "โปรดเลือกจำนวนที่ต้องการคืนเงิน",
+    "submit": "ส่งคำขอคืนเงิน",
+    "cancel": "ปิด",
+    "historyTitle": "ประวัติการคืนเงิน",
+    "refundDue": "กำหนดคืนเงิน {date}",
+    "requestedAt": "วันที่ขอ {date}",
+    "status": {
+      "requested": "ส่งคำขอแล้ว",
+      "approved": "อนุมัติแล้ว",
+      "rejected": "ปฏิเสธ",
+      "completed": "เสร็จสิ้น",
+      "failed": "ล้มเหลว"
+    },
+    "error": {
+      "ORDER_NOT_CANCELLABLE": "ไม่สามารถยกเลิกคำสั่งซื้อนี้ได้",
+      "CLAIM_NOT_ALLOWED": "ไม่สามารถขอคืนเงินสำหรับคำสั่งซื้อนี้ได้",
+      "OVER_REFUND": "เกินจำนวนเงินที่คืนได้",
+      "default": "ไม่สามารถดำเนินการตามคำขอได้"
+    }
   },
   "shop": {
     "meta": "คัดสรรโดย suaci",

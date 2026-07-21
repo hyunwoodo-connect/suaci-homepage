@@ -157,7 +157,76 @@
     "grandTotal": "Grand total",
     "shippingTo": "Ship to",
     "welcomeTitle": "Your order is complete",
-    "welcomeOrderNo": "Order no. {orderNo}"
+    "welcomeOrderNo": "Order no. {orderNo}",
+    "manage": "Manage",
+    "statusLabel": "Order",
+    "paymentLabel": "Payment",
+    "fulfillmentLabel": "Shipping",
+    "cancelOrder": "Cancel order",
+    "cancelConfirm": "Cancel this order?",
+    "cancelYes": "Cancel it",
+    "cancelNo": "Keep it",
+    "requestRefund": "Request refund",
+    "orderStatus": {
+      "pending": "Pending",
+      "open": "Processing",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "paymentStatus": {
+      "pending": "Pending",
+      "authorized": "Authorized",
+      "paid": "Paid",
+      "partially_refunded": "Partially refunded",
+      "refunded": "Refunded",
+      "voided": "Voided",
+      "refunding": "Refunding"
+    },
+    "fulfillmentStatus": {
+      "unfulfilled": "Unfulfilled",
+      "partially_fulfilled": "Partially shipped",
+      "fulfilled": "Fulfilled",
+      "returned": "Returned"
+    }
+  },
+  "claims": {
+    "formTitle": "Request a refund",
+    "reason": "Reason",
+    "reasonCode": {
+      "단순변심": "Changed my mind",
+      "상품하자": "Defective item",
+      "오배송": "Wrong item shipped",
+      "표시광고상이": "Not as described",
+      "배송지연": "Shipping delay",
+      "기타": "Other"
+    },
+    "detail": "Details (optional)",
+    "detailPlaceholder": "Tell us more",
+    "scope": "Refund scope",
+    "scopeFull": "Full refund",
+    "scopePartial": "Partial refund",
+    "ownedQty": "{n} ordered",
+    "increase": "Increase quantity",
+    "decrease": "Decrease quantity",
+    "partialHint": "Choose the quantity to refund",
+    "submit": "Request refund",
+    "cancel": "Close",
+    "historyTitle": "Refund history",
+    "refundDue": "Refund by {date}",
+    "requestedAt": "Requested {date}",
+    "status": {
+      "requested": "Requested",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "completed": "Completed",
+      "failed": "Failed"
+    },
+    "error": {
+      "ORDER_NOT_CANCELLABLE": "This order can't be cancelled",
+      "CLAIM_NOT_ALLOWED": "A refund can't be requested for this order",
+      "OVER_REFUND": "That exceeds the refundable amount",
+      "default": "We couldn't process your request"
+    }
   },
   "shop": {
     "meta": "Curated by suaci",

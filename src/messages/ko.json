@@ -157,7 +157,76 @@
     "grandTotal": "총 결제 금액",
     "shippingTo": "배송지",
     "welcomeTitle": "주문이 완료되었어요",
-    "welcomeOrderNo": "주문번호 {orderNo}"
+    "welcomeOrderNo": "주문번호 {orderNo}",
+    "manage": "관리",
+    "statusLabel": "주문",
+    "paymentLabel": "결제",
+    "fulfillmentLabel": "배송",
+    "cancelOrder": "주문 취소",
+    "cancelConfirm": "정말 취소할까요?",
+    "cancelYes": "취소하기",
+    "cancelNo": "그대로 두기",
+    "requestRefund": "환불 요청",
+    "orderStatus": {
+      "pending": "결제 대기",
+      "open": "처리 중",
+      "completed": "완료",
+      "cancelled": "취소됨"
+    },
+    "paymentStatus": {
+      "pending": "결제 대기",
+      "authorized": "승인됨",
+      "paid": "결제 완료",
+      "partially_refunded": "부분 환불",
+      "refunded": "환불 완료",
+      "voided": "결제 취소",
+      "refunding": "환불 처리 중"
+    },
+    "fulfillmentStatus": {
+      "unfulfilled": "배송 전",
+      "partially_fulfilled": "부분 배송",
+      "fulfilled": "배송 완료",
+      "returned": "반품됨"
+    }
+  },
+  "claims": {
+    "formTitle": "환불 요청",
+    "reason": "환불 사유",
+    "reasonCode": {
+      "단순변심": "단순 변심",
+      "상품하자": "상품 하자",
+      "오배송": "오배송",
+      "표시광고상이": "표시·광고 상이",
+      "배송지연": "배송 지연",
+      "기타": "기타"
+    },
+    "detail": "상세 사유 (선택)",
+    "detailPlaceholder": "자세한 사유를 적어주세요",
+    "scope": "환불 범위",
+    "scopeFull": "전체 환불",
+    "scopePartial": "부분 환불",
+    "ownedQty": "주문 {n}개",
+    "increase": "수량 늘리기",
+    "decrease": "수량 줄이기",
+    "partialHint": "환불할 품목의 수량을 선택해주세요",
+    "submit": "환불 요청하기",
+    "cancel": "닫기",
+    "historyTitle": "환불 내역",
+    "refundDue": "환급기한 {date}",
+    "requestedAt": "요청일 {date}",
+    "status": {
+      "requested": "요청됨",
+      "approved": "승인됨",
+      "rejected": "거절됨",
+      "completed": "완료됨",
+      "failed": "실패"
+    },
+    "error": {
+      "ORDER_NOT_CANCELLABLE": "취소할 수 없는 주문이에요",
+      "CLAIM_NOT_ALLOWED": "환불을 요청할 수 없는 주문이에요",
+      "OVER_REFUND": "환불 가능 금액을 초과했어요",
+      "default": "요청을 처리하지 못했어요"
+    }
   },
   "shop": {
     "meta": "수아치가 고른 것들",

@@ -157,7 +157,76 @@
     "grandTotal": "合計金額",
     "shippingTo": "配送先",
     "welcomeTitle": "ご注文が完了しました",
-    "welcomeOrderNo": "注文番号 {orderNo}"
+    "welcomeOrderNo": "注文番号 {orderNo}",
+    "manage": "管理",
+    "statusLabel": "注文",
+    "paymentLabel": "支払い",
+    "fulfillmentLabel": "配送",
+    "cancelOrder": "注文をキャンセル",
+    "cancelConfirm": "本当にキャンセルしますか？",
+    "cancelYes": "キャンセルする",
+    "cancelNo": "そのままにする",
+    "requestRefund": "返金をリクエスト",
+    "orderStatus": {
+      "pending": "支払い待ち",
+      "open": "処理中",
+      "completed": "完了",
+      "cancelled": "キャンセル済み"
+    },
+    "paymentStatus": {
+      "pending": "支払い待ち",
+      "authorized": "承認済み",
+      "paid": "支払い完了",
+      "partially_refunded": "一部返金",
+      "refunded": "返金完了",
+      "voided": "取消済み",
+      "refunding": "返金処理中"
+    },
+    "fulfillmentStatus": {
+      "unfulfilled": "未発送",
+      "partially_fulfilled": "一部発送",
+      "fulfilled": "発送完了",
+      "returned": "返品済み"
+    }
+  },
+  "claims": {
+    "formTitle": "返金をリクエスト",
+    "reason": "返金理由",
+    "reasonCode": {
+      "단순변심": "気が変わった",
+      "상품하자": "商品の不良",
+      "오배송": "誤配送",
+      "표시광고상이": "表示・広告と相違",
+      "배송지연": "配送の遅延",
+      "기타": "その他"
+    },
+    "detail": "詳細（任意）",
+    "detailPlaceholder": "詳しい理由をご記入ください",
+    "scope": "返金範囲",
+    "scopeFull": "全額返金",
+    "scopePartial": "一部返金",
+    "ownedQty": "注文 {n} 点",
+    "increase": "数量を増やす",
+    "decrease": "数量を減らす",
+    "partialHint": "返金する数量を選択してください",
+    "submit": "返金をリクエスト",
+    "cancel": "閉じる",
+    "historyTitle": "返金履歴",
+    "refundDue": "返金期限 {date}",
+    "requestedAt": "リクエスト日 {date}",
+    "status": {
+      "requested": "リクエスト済み",
+      "approved": "承認済み",
+      "rejected": "却下",
+      "completed": "完了",
+      "failed": "失敗"
+    },
+    "error": {
+      "ORDER_NOT_CANCELLABLE": "キャンセルできない注文です",
+      "CLAIM_NOT_ALLOWED": "返金をリクエストできない注文です",
+      "OVER_REFUND": "返金可能額を超えています",
+      "default": "リクエストを処理できませんでした"
+    }
   },
   "shop": {
     "meta": "suaci が選んだもの",
