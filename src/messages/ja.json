@@ -71,7 +71,16 @@
     "codeLabel": "認証コード",
     "submitConfirm": "認証してはじめる",
     "hasAccount": "すでにアカウントをお持ちですか？",
-    "goLogin": "ログイン"
+    "goLogin": "ログイン",
+    "forgotSub": "大丈夫。すぐ戻れます。",
+    "submitForgot": "認証コードを受け取る",
+    "forgotSent": "{email}に認証コードを送りました。迷惑メールもご確認を。",
+    "goReset": "パスワード再設定",
+    "resetSub": "新しいパスワードを決めるだけ。",
+    "newPassword": "新しいパスワード",
+    "submitReset": "パスワードを変更",
+    "forgotPassword": "パスワードをお忘れですか？",
+    "backToLogin": "ログインに戻る"
   },
   "account": {
     "needLogin": "ログインが必要です",
