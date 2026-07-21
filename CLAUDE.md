@@ -8,12 +8,12 @@
 
 ## 1. 이 프로젝트가 뭐인가
 
-**SUACI**는 한국의 코스메틱 D2C 브랜드 사이트다. 단일 SKU 브랜드로 시작한다.
+**SUACI**는 한국의 코스메틱 D2C 브랜드다. 대표 제품에서 출발해 **큐레이션 커머스 샵**으로 확장 중이다.
 
-- **제품**: SUACI **Daily Calming Mist** — 80ml, 휴대용 카밍 미스트
-- **카테고리**: 데일리 카밍 미스트 (휴대용 · 진정에 필요한 성분만 추린 미스트)
+- **대표 제품**: SUACI **Daily Calming Mist** — 100ml, 휴대용 카밍 미스트 (홈의 히어로)
+- **카탈로그**: 브랜드 → 상품 → 옵션(variant) 구조. SUACI 자체 + 큐레이션 파트너 브랜드를 함께 담을 수 있다.
 - **포지셔닝**: "좋아지게 만들기보다, 무너지지 않게." 진정에 필요한 성분만 추려 만든 포터블 미스트.
-- **현재 단계**: **Visual-first phase.** 백엔드·DB·결제·인증 모두 없음. UI 쉘과 브랜드 인상을 먼저 완성한다.
+- **현재 단계**: **커머스 통합(mock-first).** UI는 목데이터로 동작하되, 백엔드 커머스 API(9도메인) 계약(DTO)에 1:1로 맞춰 만든다. 데이터 접근은 단일 seam(`@/lib/api`)으로 몰려 있어 배포 후 `NEXT_PUBLIC_API_MODE=mock→http` 한 줄로 실백엔드에 붙는다. 설계: `docs/superpowers/specs/2026-07-20-frontend-commerce-integration-design.md`. 백엔드는 별도 레포 `../suaci-official-backend`.
 
 ---
 
@@ -24,7 +24,7 @@
 | 브랜드명 | **SUACI** |
 | 워드마크 | 소문자 `suaci` (절대 SUACI 대문자로 로고화하지 않는다) |
 | 제품명 (라벨) | `DAILY CALMING MIST` (대문자, 분리 표기) |
-| 용량 | 80ml |
+| 용량 | 100ml |
 | 슬로건 | `Calm your skin, wherever you are.` |
 | 한 문장 | `피부가 흔들리는 순간을 줄이는, 데일리 카밍 미스트.` |
 | 카피 보이스 규칙 | `docs/site-copy.md` 섹션 0 참조 (이게 권위) |
@@ -47,6 +47,8 @@
 - **하나의 화면에 모션이 한두 개.** 동시에 여러 요소가 움직이지 않는다.
 
 ### 키 컬러
+> **구현 현황(v4 'acid grid' 리디자인, 2026-07):** 실제 사이트 팔레트는 `globals.css`의 `@theme` 토큰이 **권위**다 — `acid #a9ff39` · `acid-deep #6faa0c` · `ink #121210` · `paper #fbfbf9` · `grey #8a8a82`. 신규 UI는 이 토큰을 쓴다. 아래 forest-green 탐색은 초기 방향 기록으로 남겨둔다(현행 아님).
+
 - **Primary**: 짙은 초록 (제품병 컬러와 동일 톤). 실제 값은 제품 사진에서 샘플링해서 확정한다. 후보:
   - `#1A4D3A` (forest deep)
   - `#0F3D2E` (더 깊게)
@@ -71,53 +73,55 @@
 
 ---
 
-## 4. 사이트 구조 (단일 SKU)
+## 4. 사이트 구조 (커머스 샵)
 
-일반 쇼핑몰 구조 **사용 안 한다.** 카테고리 / 상품 리스트 페이지 없음.
+홈은 매거진형, 그 위에 실제 커머스 라우트가 얹혀 있다. 전부 `src/app/[locale]/` 하위, `@/lib/api` seam에 배선(mock 동작).
 
 ```
-/                  Home — 롱스크롤 매거진형 메인
-/story             Brand Story — 길게 읽는 페이지
-/product           제품 상세 — 에디토리얼 톤 PDP (단일 제품)
-/journal           (선택) 짧은 글 모음
-/order             (결제 붙기 전) 출시 알림 / 입고 알림 페이지
-/login, /signup    인증 UI (현재는 UI 쉘만, 백엔드 없음)
+/                         Home — 롱스크롤 매거진형 메인 (v4 acid grid)
+/products                 상품 목록 (브랜드/카테고리 필터·커서 페이지네이션)
+/products/[slug]          상품 상세(PDP) — 옵션 선택·담기·바로구매
+/brands, /brands/[slug]   브랜드 목록·상세 (큐레이션)
+/cart                     장바구니 (수량·삭제·합계)
+/checkout                 체크아웃 (배송지 선택·주문요약·주문/결제)
+/orders, /orders/[id]     주문 목록·상세 (취소·환불요청·환불내역)
+/account                  계정 홈 (내정보·로그아웃·비번변경 진입)
+/account/addresses        주소록 CRUD
+/login, /signup           로그인·회원가입 (이메일 인증 포함)
+/password/forgot, /reset  비밀번호 찾기·재설정
 ```
 
-상세는 `docs/site-copy.md` 섹션 1 참조.
+카피는 `docs/site-copy.md` 섹션 1, i18n는 `src/messages/{locale}.json` 참조. (구 계획의 `/story`·`/journal`은 아직 미구현.)
 
 ---
 
-## 5. 필요한 UI 요소 (백엔드 없이 비주얼만)
+## 5. UI 요소 — 이제 mock으로 동작
 
-오너가 명시한 "기본적인 거": 디자인은 들어가야 하되 동작은 비어있어도 된다.
+기존 "동작 없는 쉘"에서 벗어나, 아래는 seam으로 **실제 동작**한다(배포 시 실백엔드로 스왑):
 
-- **로그인 / 회원가입 폼 + 모달**
-- **할인가 표시** (`정가 / 할인가 / 할인율` UI — 데이터는 `src/data/`에 정적으로)
-- **이벤트 배너** (상단 라인 배너 또는 모달형, 닫기 가능)
-- **장바구니 UI 쉘** (드로어/페이지 디자인만, 동작 X)
-- **언어 토글** (ko 기본, en/ja/zh/th — 메시지 파일만 채워두면 작동)
+- **로그인 / 회원가입 / 비밀번호 재설정** — 백엔드 Cognito 계약대로 동작(mock 토큰 발급).
+- **할인가 표시** (`정가 / 할인가 / 할인율`) — variant `price:{list,sale}`에서 파생, `@/lib/format`.
+- **장바구니 / 체크아웃 / 주문·환불** — 담기 → 주문 → 결제(mock) → 취소/환불까지 상태 있게 동작.
+- **언어**: **ko 고정, 언어 스위처 UI는 숨김.** i18n 인프라(5개 로케일)는 유지하되 전환 버튼은 노출하지 않는다. (오너 지시 2026-07-21)
+- **이벤트 배너** (상단 라인 배너, 닫기 가능) — 유지.
 
-**경고**: 위 요소들은 비어있는 버튼이 어색하지 않도록, 디자인 단계에서 "이 버튼은 출시 후 동작합니다" 같은 마이크로카피 또는 비활성 상태가 자연스럽게 들어가야 한다.
+**결제 주의**: 체크아웃 `confirmPayment`는 mock(`mockpay_…`)이다. 실 토스 결제위젯은 배포 후 교체(코드에 `// TODO(배포)` 마킹).
 
 ---
 
-## 6. 스코프 (이번 페이즈)
+## 6. 스코프
 
 ### IN scope
-- 위 1~5에 정의된 모든 UI / 카피 / 모션 / 비주얼 디자인
-- next-intl 다국어 (한국어 우선, 나머지는 메시지만 비워두고 키만)
-- 정적 데이터 기반 UI (`src/data/products.ts` 등)
-- 이미지 최적화, 반응형, 모바일 우선
+- 위 1~5의 UI / 카피 / 모션 / 비주얼 + 커머스 페이지 전체
+- **`@/lib/api` seam을 통한 백엔드 커머스 통합** — 지금은 mock 구현, 배포 후 http 구현으로 스왑. 타입(`src/types/*`)은 백엔드 DTO에 1:1.
+- next-intl(ko 우선·스위처 숨김), 커서 페이지네이션, 이미지 최적화, 반응형·**모바일 우선**
 
-### OUT of scope (꺼내지 말 것)
-- DB, ORM, Prisma, Supabase
-- 실 인증 (NextAuth, Clerk, JWT, 세션)
-- 결제 / PG / Stripe / 토스
-- 외부 API 호출 (LLM, OG 생성 외 다른 동적 콘텐츠)
-- 관리자 페이지
+### OUT of scope (지금 하지 말 것)
+- 프론트에서 **직접** DB/ORM 접근, 자체 인증 라이브러리(NextAuth/Clerk/JWT 세션), 프론트 내 결제 로직 — 모두 백엔드(`../suaci-official-backend`) 책임. 프론트는 **seam 뒤로만** 호출한다.
+- 관리자(admin) UI, LLM 연동
+- 백엔드 자체 구현(별도 레포). 프론트 task 중 백엔드 **계약(DTO) 변경**이 필요하면 오너에게 보고.
 
-위 OUT 항목이 필요한 task가 들어오면 → **frontend-engineer는 멈추고 오너에게 보고한다.**
+> **주의**: 이 프로젝트는 "visual-first, 백엔드 없음" 단계를 지나 **커머스 통합 단계**로 이동했다. 과거의 "결제/인증/백엔드 task는 무조건 STOP" 규칙은 **더 이상 적용되지 않는다** — seam 경유 통합이 정식 스코프다.
 
 ---
 
@@ -128,7 +132,10 @@
 2. **순수 구현 task는 바로 `frontend-engineer`로.** 스펙이 명확하면 PM 단계 생략 가능.
 3. **시각 작업에는 `frontend-design` 스킬을 반드시 쓴다.** Claude의 기본 미감으로 가면 generic해진다.
 4. **AGENTS.md 컨벤션 엄수.** 코드 스타일·네이밍·import 순서·`@/i18n/navigation` Link 사용 등.
-5. **검증 없이 완료 선언 금지.** 최소 `npx tsc --noEmit` 통과. 가능하면 dev server에서 눈으로 확인.
+5. **검증 없이 완료 선언 금지.** 최소 `npx tsc --noEmit` · `pnpm lint` · `pnpm test` 통과. 시각 작업은 가능하면 dev server에서 **모바일 우선**으로 눈으로 확인.
+6. **모바일 우선.** 오너가 데스크탑 디자인을 직접 담당한다(집에서 해옴). Claude는 **모바일 반응형을 책임**지고, 데스크탑 세부는 오너가 얹을 여지를 남긴다.
+7. **작업 브랜치.** 기본은 페이즈별 브랜치 → 게이트 통과 후 main 머지. 단 오너가 "메인에서 해"라고 하면 브랜치 없이 main 직접 커밋도 허용(게이트는 동일).
+8. **에이전트 위치.** `frontend-engineer`/`pm`은 이 레포 `.claude/agents/`와 `~/.claude/agents/`(유저 스코프) 양쪽에 있어 cwd 무관하게 잡힌다. 새로 설치한 에이전트는 **다음 세션부터** 등록된다.
 
 ---
 
@@ -149,9 +156,12 @@
 | 모든 페이지 카피 초안 | `docs/site-copy.md` |
 | 브랜드 보이스 규칙 (단어 사전) | `docs/site-copy.md` 섹션 0 |
 | 사이트 구조 | `docs/site-copy.md` 섹션 1, 본 문서 섹션 4 |
-| 제품 정적 데이터 | `src/data/products.ts` |
+| 제품 데이터 | 홈용 `src/data/products.ts` · seam 픽스처 `src/data/fixtures/index.ts` |
+| API seam (mock↔http 스왑) | `src/lib/api/` · DTO 타입 `src/types/` · 포맷 `src/lib/format.ts` |
+| 인증/카트 컨텍스트 | `src/lib/auth/`, `src/lib/cart/` |
+| 커머스 통합 설계/플랜 | `docs/superpowers/{specs,plans}/2026-07-20-*` |
 | i18n 메시지 | `src/messages/{locale}.json` |
-| 컴포넌트 | `src/components/{layout,sections,ui}/` |
+| 컴포넌트 | `src/components/{home,shell,ui,shop}/` |
 | PM 에이전트 | `.claude/agents/pm.md` |
 | 프론트엔드 엔지니어 에이전트 | `.claude/agents/frontend-engineer.md` |
 | 디자인 레퍼런스 (예정) | `docs/references/` |
@@ -160,7 +170,7 @@
 
 ## 10. 확정 대기 (오너 답변 필요)
 
-- [x] ~~**용량**~~ → 80ml 확정 (2026-05-12)
+- [x] ~~**용량**~~ → **100ml 확정** (2026-07-21 정정; 구 80ml 표기 전부 정리)
 - [ ] **정확한 키 컬러 hex** — AI 목업이 아닌 실제 제품 사진에서 샘플링
 - [ ] **무드컷 / 제품컷 레퍼런스 이미지** 들어오면 `docs/references/`에 정리
 - [ ] **할인 정책** (정가, 할인가, 할인율) — 마케팅 결정 후 정적 데이터에 반영
