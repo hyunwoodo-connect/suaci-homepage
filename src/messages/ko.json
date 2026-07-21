@@ -71,7 +71,16 @@
     "codeLabel": "인증코드",
     "submitConfirm": "인증하고 시작하기",
     "hasAccount": "이미 계정이 있으세요?",
-    "goLogin": "로그인"
+    "goLogin": "로그인",
+    "forgotSub": "괜찮아요, 금방 다시 들어가요",
+    "submitForgot": "인증코드 받기",
+    "forgotSent": "{email}로 인증코드를 보냈어요. 스팸함도 한 번 봐주세요.",
+    "goReset": "비밀번호 재설정",
+    "resetSub": "새 비밀번호 한 번만 정해주세요",
+    "newPassword": "새 비밀번호",
+    "submitReset": "비밀번호 변경",
+    "forgotPassword": "비밀번호를 잊으셨나요?",
+    "backToLogin": "로그인으로 돌아가기"
   },
   "account": {
     "needLogin": "로그인이 필요해요",

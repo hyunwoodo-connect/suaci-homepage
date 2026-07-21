@@ -71,7 +71,16 @@
     "codeLabel": "Code",
     "submitConfirm": "Verify & start",
     "hasAccount": "Already have an account?",
-    "goLogin": "Sign in"
+    "goLogin": "Sign in",
+    "forgotSub": "No worries. Back in a moment.",
+    "submitForgot": "Send code",
+    "forgotSent": "We sent a code to {email}. Check spam too, just in case.",
+    "goReset": "Reset password",
+    "resetSub": "Just set a new password.",
+    "newPassword": "New password",
+    "submitReset": "Change password",
+    "forgotPassword": "Forgot your password?",
+    "backToLogin": "Back to sign in"
   },
   "account": {
     "needLogin": "You need to sign in",
