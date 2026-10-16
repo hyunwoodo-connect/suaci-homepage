@@ -35,7 +35,7 @@ export default function Moments() {
           className="ml-auto mr-[4%] mt-[clamp(0px,16vw,260px)] w-[max(28%,min(100%,230px))]"
           sizes="(max-width: 767px) 70vw, 28vw"
         />
-        <div className="ml-[calc(50%-50vw)] w-screen">
+        <div className="ml-[calc(50%-50vw)] w-screen shrink-0">
           <Image
             src={HOME_MEDIA.water}
             alt={t("waterAlt")}
