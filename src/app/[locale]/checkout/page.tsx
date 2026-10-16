@@ -94,7 +94,7 @@ export default function CheckoutPage() {
             {t("emptyCart")}
           </p>
           <Link
-            href="/products"
+            href="/"
             className="font-mono text-[12px] uppercase tracking-[0.08em] text-ink underline underline-offset-[3px] hover:text-acid-deep"
           >
             {t("continueShopping")} →

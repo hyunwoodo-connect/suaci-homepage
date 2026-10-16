@@ -3,10 +3,10 @@ export const SITE = {
   name: "SUACI",
   wordmark: "suaci",
   url: process.env.NEXT_PUBLIC_SITE_URL || "https://suaci.com",
-  title: "SUACI — Daily Calming Mist",
-  description: "피부가 흔들리는 순간을 줄이는, 데일리 카밍 미스트. SUACI.",
-  copyright: "© 2026 suaci. All rights reserved.",
-  tagline: "Calm your skin, wherever you are.",
+  title: "suaci — take suaci.",
+  description: "brume no.1 — lime & basil face mist. a quick, playful refresh for the days your mind gets sensitive before your skin does.",
+  copyright: "© 2026 suaci",
+  tagline: "take suaci.",
 } as const;
 
 /** 히어로 슬라이드 자동 전환 간격 (ms) */

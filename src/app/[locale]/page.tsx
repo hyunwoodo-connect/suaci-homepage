@@ -1,27 +1,25 @@
-import TopBar from "@/components/home/TopBar";
-import HeroV4 from "@/components/home/HeroV4";
-import TickerV4 from "@/components/home/TickerV4";
-import ProductV4 from "@/components/home/ProductV4";
-import MomentsV4 from "@/components/home/MomentsV4";
-import QuoteV4 from "@/components/home/QuoteV4";
-import WaitlistV4 from "@/components/home/WaitlistV4";
-import FooterV4 from "@/components/home/FooterV4";
+import BuyBar from "@/components/home/BuyBar";
+import Hero from "@/components/home/Hero";
+import Moments from "@/components/home/Moments";
+import ProductSection from "@/components/home/ProductSection";
+import SiteFooter from "@/components/home/SiteFooter";
+import SiteHeader from "@/components/home/SiteHeader";
+import Story from "@/components/home/Story";
 
 /**
- * Home v4 — acid grid 에디토리얼.
- * 모든 셀은 하나의 12컬럼 마스터 그리드(.frame.v4-grid)의 직계 자식이어야 한다.
+ * Home v5 — white studio. 단일 SKU(brume no.1) 원페이지.
+ * 히어로 영상 → 브랜드 스토리 → 무드 갤러리 → 제품 → 푸터, 하단 원클릭 바.
  */
 export default function Home() {
   return (
-    <main className="frame v4-grid">
-      <TopBar />
-      <HeroV4 />
-      <TickerV4 />
-      <ProductV4 />
-      <MomentsV4 />
-      <QuoteV4 />
-      <WaitlistV4 />
-      <FooterV4 />
+    <main className="relative w-full bg-paper">
+      <SiteHeader overlay />
+      <Hero />
+      <Story />
+      <Moments />
+      <ProductSection />
+      <SiteFooter />
+      <BuyBar />
     </main>
   );
 }

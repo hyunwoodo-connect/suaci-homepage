@@ -1,53 +1,83 @@
 {
   "site": {
-    "title": "SUACI — Daily Calming Mist",
-    "description": "詰まった一日に、3秒の愉快なひと休み。敏感になった肌をやさしく鎮めるデイリーカーミングミスト100ml、SUACI。"
+    "title": "suaci — take suaci.",
+    "description": "brume no.1 — ライム&バジル フェイスミスト。肌より先に心がゆらぐ日のための、軽くて愉快なリフレッシュ。"
   },
-  "v4": {
-    "hero": {
-      "heroAlt": "公園でくつろぐ人々",
-      "leadPre": "一日のまんなかのための、ポケットサイズのリセット。",
-      "leadStrong": "治すのではなく、鎮める。",
-      "leadPost": "ひと押しで、ノイズがすっと下がる。",
-      "volumeLabel": "容量",
-      "statusLabel": "ステータス",
-      "statusValue": "2026年発売予定",
-      "keyLine": "ひと押しで、落ち着く。"
+  "home": {
+    "header": {
+      "account": "アカウント",
+      "signIn": "ログイン",
+      "lang": "言語"
     },
-    "product": {
-      "secMeta": "小さなボトル、大きな深呼吸",
-      "imgAlt": "手のひらのSUACIミスト",
-      "headline": "押した瞬間、空気が半トーン下がる。",
-      "body": "デスクで、電車で、気が重い予定の10分前に — どこへでも持ち歩ける、軽くて細かいミスト。",
-      "specFinishLabel": "使用感",
-      "specFinish": "重さゼロ、残留感ゼロ",
-      "specUseLabel": "使い方",
-      "specUse": "いつでも、メイクの上からも",
-      "specVolumeLabel": "容量",
-      "cta": "ウェイトリストに参加"
+    "hero": {
+      "title": "take suaci.",
+      "product": "brume no.1 — ライム&バジル フェイスミスト",
+      "videoLabel": "ライムグリーンのニットを着た女性が、ライムの入ったネットバッグの横で床に座り、小さく首をかしげて微笑む"
+    },
+    "story": {
+      "label": "our story",
+      "headline": "肌より先に、心がゆらぐ日のために。",
+      "body1": "人と、通知と、一日じゅう。肌より先に、ひと息が必要な日がある。",
+      "body2": "suaciは、軽くて愉快なリフレッシュ。静けさでも、瞑想でもない。ひと吹きして、ちょっと笑って、また一日へ。",
+      "take": "take",
+      "aBreak": "a break",
+      "suaci": "suaci."
     },
     "moments": {
-      "secMeta": "日常のどこに",
-      "m1Title": "午後のまんなか",
-      "m1Body": "画面がにじみ始めたら。ひと押しして、椅子に戻る。",
-      "m2Title": "仕事のあと",
-      "m2Body": "日は低く、足は重い。帰り道の前の、ひんやりひと息。",
-      "m3Title": "メイクの上に",
-      "m3Body": "にじまない、直さなくていい。静かな鎮静をひと重ね。"
+      "label": "moments",
+      "sofa": "午後3時。受信箱はいっぱい。",
+      "sofaAlt": "ライムグリーンのソファに横たわる女性と、床に散らばったノートパソコンと付箋",
+      "paper": "会議のあとで。",
+      "paperAlt": "顔にスマイルの紙を貼って床に座る女性",
+      "waterAlt": "ライム色にゆらめく水面",
+      "turntableAlt": "白いターンテーブルの上で回るライムのスライス",
+      "bottleAlt": "テーブルに腕をのせ、suaciのミストを持つ女性",
+      "basketAlt": "白いテーブルの上の、ライムが入った小さなメタルメッシュのかご",
+      "earringsAlt": "ライムをイヤリングのように耳元に持つ、ライム色のニットの女性"
     },
-    "quote": {
-      "pre": "私たちは薬を作らなかった。作ったのは",
-      "bold": "休止符",
-      "post": "。"
+    "product": {
+      "name": "brume no.1",
+      "descriptor": "ライム&バジル フェイスミスト · 100 ml",
+      "note": "apple pay・google payでワンタップ購入。",
+      "referenceTag": "reference · replace before launch",
+      "imageAlt": "参考用の製品写真(suaciのボトルに差し替え予定)",
+      "howToUse": "使い方",
+      "howToUseBody": "[使い方 — 準備中]",
+      "ingredients": "全成分",
+      "ingredientsBody": "[全成分 — メーカーより受領予定]",
+      "shipping": "配送・返品",
+      "shippingBody": "[配送・返品ポリシー — 準備中]"
     },
-    "waitlist": {
-      "secMeta": "最初に押す人へ",
-      "imgAlt": "穏やかな街の一場面",
-      "body": "メールアドレスだけ残してください。準備ができたら一度だけ、初回バッチのコードと一緒にご連絡します。うるさくしません。",
-      "placeholder": "you@email.com",
-      "submit": "通知を受け取る",
-      "note": "押すだけで完了。メールは一度だけ。",
-      "success": "リストに載りました。近いうちに。"
+    "footer": {
+      "orderLookup": "注文照会",
+      "shipping": "配送・返品",
+      "contact": "お問い合わせ",
+      "instagram": "instagram",
+      "legal": "[会社名・登録番号・所在地 — 準備中]",
+      "terms": "利用規約",
+      "privacy": "プライバシー",
+      "tokushoho": "特定商取引法に基づく表記"
+    },
+    "buy": {
+      "bar": "購入",
+      "open": "brume no.1を購入",
+      "title": "チェックアウト",
+      "close": "閉じる",
+      "quantity": "数量",
+      "decrease": "数量を減らす",
+      "increase": "数量を増やす",
+      "subtotal": "小計",
+      "shipping": "送料",
+      "shippingNote": "お支払い時に計算",
+      "total": "合計",
+      "applePay": "apple pay",
+      "googlePay": "google pay",
+      "card": "カードで支払う",
+      "or": "または",
+      "signInHint": "ログインすると注文の確認がかんたんに。",
+      "signInFirst": "お支払いにはログインが必要です。ゲスト購入はまもなく対応します。",
+      "error": "エラーが発生しました。もう一度お試しください。",
+      "processing": "処理中…"
     }
   },
   "auth": {
@@ -80,7 +110,13 @@
     "newPassword": "新しいパスワード",
     "submitReset": "パスワードを変更",
     "forgotPassword": "パスワードをお忘れですか？",
-    "backToLogin": "ログインに戻る"
+    "backToLogin": "ログインに戻る",
+    "continueWith": "",
+    "google": "googleで続ける",
+    "apple": "appleで続ける",
+    "line": "lineで続ける",
+    "orEmail": "またはメールでログイン",
+    "socialSoon": "ソーシャルログインはまもなく対応します。今はメールをご利用ください。"
   },
   "account": {
     "needLogin": "ログインが必要です",

@@ -5,7 +5,6 @@ import { Link, useRouter } from "@/i18n/navigation";
 import Button from "@/components/ui/Button";
 import PageShell from "@/components/shell/PageShell";
 import { useAuth } from "@/lib/auth/auth-context";
-import { useCart } from "@/lib/cart/cart-context";
 
 /**
  * 계정 — getMe 결과 표시 + 하위 메뉴(배송지/주문/장바구니) + 로그아웃.
@@ -14,7 +13,6 @@ export default function AccountPage() {
   const t = useTranslations("account");
   const router = useRouter();
   const { user, status, logout } = useAuth();
-  const { itemCount } = useCart();
 
   if (status === "loading") {
     return (
@@ -49,10 +47,9 @@ export default function AccountPage() {
         </div>
 
         {/* 메뉴 — 디자인 타이포 요소로 EN 고정 */}
-        <div className="grid grid-cols-3 gap-[12px] max-sm:grid-cols-1 mb-[28px]">
+        <div className="grid grid-cols-2 gap-[12px] max-sm:grid-cols-1 mb-[28px]">
           <MenuCard href="/account/addresses" label="Addresses" />
           <MenuCard href="/orders" label="Orders" />
-          <MenuCard href="/cart" label={`Cart (${itemCount})`} />
         </div>
 
         <Button

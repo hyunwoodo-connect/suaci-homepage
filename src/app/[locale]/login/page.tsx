@@ -53,6 +53,20 @@ function LoginForm() {
   return (
     <PageShell no="AC" title={<>Sign <em>in</em></>} meta={t("loginSub")}>
       <div className="max-w-[440px]">
+        {/* 소셜 로그인 — UI만. TODO(백엔드): Cognito federated(Google/Apple/LINE) 연동 */}
+        <div className="mb-[28px] flex flex-col gap-[10px]">
+          {(["google", "apple", "line"] as const).map((provider) => (
+            <button
+              key={provider}
+              type="button"
+              onClick={() => setError(t("socialSoon"))}
+              className="h-[48px] cursor-pointer rounded-full border border-ink text-[14px] text-ink hover:bg-ink hover:text-paper"
+            >
+              {t("continueWith")} {t(provider)}
+            </button>
+          ))}
+          <p className="m-0 mt-[8px] text-center text-[12px] text-grey">{t("orEmail")}</p>
+        </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-[18px]">
           <InputField
             label={t("email")}

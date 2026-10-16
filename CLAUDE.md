@@ -6,6 +6,22 @@
 
 ---
 
+## 0. 현행 — v5 "white studio" (2026-10, 이 섹션이 아래 내용보다 우선)
+
+- **사이트 성격**: 단일 SKU 원페이지. 제품명 **brume no.1** (lime & basil face mist · 100 ml). 브랜드 무드는 **유쾌한 리프레쉬**(명상·힐링·진정 톤 아님). 슬로건 **take suaci.** (take a break → take suaci).
+- **언어**: `en`(기본, 접두사 없음) + `ja`(`/ja`). ko/zh/th 메시지는 보관만, 라우팅 제외. **영문 카피는 전부 소문자.** 헤더에 en / jp 스위처 노출.
+- **팔레트** (`globals.css @theme`가 권위): `lime #738136`(키컬러, 점·작은 디테일만) · `ink #111111` · `paper #ffffff` · `studio #d3d4d8`(사진 배경) · `grey #5f5f5c` · `line #e4e5e8`. v4 토큰명(acid 등)은 서브페이지 호환용 별칭.
+- **폰트**: Geist + Zen Kaku Gothic New(일본어).
+- **홈 구성** (`src/components/home/`): SiteHeader → Hero(루프 영상) → Story → Moments(엇갈린 7컷) → ProductSection → SiteFooter → BuyBar(하단 원클릭 바 = 유일한 구매 CTA, 구매 시트 포함).
+- **에셋**: `public/image/v5/`, `public/video/v5/`, `public/brand/`. 경로 상수는 `src/constants/product.ts`. 사진은 시안용 AI 컷 — 출시 전 실사로 교체. `product-reference.webp`는 **타사(Purito) 레퍼런스**라 출시 전 반드시 교체.
+- **라우트**: `/` · `/checkout` · `/orders` · `/orders/[id]` · `/account` · `/account/addresses` · `/login` · `/signup` · `/password/*`. 상품목록·브랜드·장바구니 라우트는 제거(단일 SKU). seam·타입은 유지해 확장 가능.
+- **결제/로그인**: UI만 디자인대로(apple pay / google pay / 카드, google·apple·line 로그인 버튼). 실제 동작은 seam mock. TODO: Stripe 연동, Cognito federated 로그인, **게스트 주문 계약(백엔드)** — 지금은 로그인+배송지 필요.
+- 가격 임시 ₩38,000 (fixtures `var_daily_80`).
+
+> 아래 1~10은 v4 이전 기록이다. 충돌 시 이 섹션을 따른다.
+
+---
+
 ## 1. 이 프로젝트가 뭐인가
 
 **SUACI**는 한국의 코스메틱 D2C 브랜드다. 대표 제품에서 출발해 **큐레이션 커머스 샵**으로 확장 중이다.
