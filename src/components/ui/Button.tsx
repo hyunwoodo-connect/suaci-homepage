@@ -16,12 +16,12 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const BASE =
-  "inline-flex items-center justify-center gap-[8px] px-[22px] py-[13px] font-mono text-[12px] uppercase tracking-[0.08em] transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none";
+  "inline-flex items-center justify-center gap-[8px] px-[22px] py-[13px] font-sans text-[12px] transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none";
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary: "bg-ink text-paper hover:bg-paper hover:text-ink border-[1.5px] border-ink",
-  outline: "border-[1.5px] border-ink text-ink hover:bg-ink hover:text-acid",
-  danger: "border-[1.5px] border-ink text-[#c0392b] hover:bg-[#c0392b] hover:text-paper hover:border-[#c0392b]",
+  primary: "bg-ink text-paper hover:bg-paper hover:text-ink border border-line",
+  outline: "border border-line text-ink hover:bg-ink hover:text-lime",
+  danger: "border border-line text-[#c0392b] hover:bg-[#c0392b] hover:text-paper hover:border-[#c0392b]",
 };
 
 export default function Button({

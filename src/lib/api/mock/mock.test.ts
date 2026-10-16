@@ -66,8 +66,8 @@ describe('mock client', () => {
 
   it('라인 부분환불: 상품소계 넘어가면 두번째 클레임 OVER_REFUND', async () => {
     await loginDemo()
-    // travel(19000) qty2 → itemsSubtotal 38000 (<50000 배송비 발생), grandTotal 41000
-    const p = findProductBySlug('travel-calming-mist')!
+    // brume no.1(38000) qty2 → itemsSubtotal 76000
+    const p = findProductBySlug('daily-calming-mist')!
     const v = p.variants[0]
     await api.addToCart({ productId: p.productId, variantId: v.variantId, quantity: 2 })
     const addr = await api.createAddress({ recipient: 'r', phone: '01000000000', zipcode: '06000', addr1: '서울' })
@@ -75,12 +75,12 @@ describe('mock client', () => {
     await api.confirmPayment(order.orderId, { paymentKey: 'k', amount: order.totals.grandTotal })
     const lineId = order.items[0].lineId
 
-    // 1) 1개 라인 환불 (19000) → 상품소계 미만이므로 partially_refunded
+    // 1) 1개 라인 환불 (38000) → 상품소계 미만이므로 partially_refunded
     const c1 = await api.createClaim(order.orderId, { idempotencyKey: 'lc1', reasonCode: '단순변심', lines: [{ lineId, quantity: 1 }] })
-    expect(c1.refundAmount).toBe(19000)
+    expect(c1.refundAmount).toBe(38000)
     expect((await api.getOrder(order.orderId)).paymentStatus).toBe('partially_refunded')
 
-    // 2) 2개 라인 환불 시도 (38000) → 누적 57000 > 상품소계 38000 → OVER_REFUND
+    // 2) 2개 라인 환불 시도 (76000) → 누적 114000 > 상품소계 76000 → OVER_REFUND
     await expect(api.createClaim(order.orderId, { idempotencyKey: 'lc2', reasonCode: '단순변심', lines: [{ lineId, quantity: 2 }] }))
       .rejects.toMatchObject({ code: 'OVER_REFUND' })
   })

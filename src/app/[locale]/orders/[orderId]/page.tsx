@@ -82,15 +82,15 @@ function OrderDetail({ orderId }: { orderId: string }) {
   }, [status, orderId]);
 
   return (
-    <PageShell no="OR" title={<>Order <em>detail</em></>} meta={order?.orderNo ?? ""}>
+    <PageShell title={<>Order <em>detail</em></>} meta={order?.orderNo ?? ""}>
       {!order ? (
-        <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-grey">…</p>
+        <p className="font-sans text-[11px] text-grey">…</p>
       ) : (
         <div className="max-w-[860px]">
           {welcome && (
-            <div className="border-[1.5px] border-ink bg-acid px-[16px] py-[13px] mb-[20px] flex items-baseline justify-between gap-[12px] flex-wrap">
-              <b className="font-display text-[15px] text-ink">{t("welcomeTitle")}</b>
-              <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink num">
+            <div className="border border-line bg-lime px-[16px] py-[13px] mb-[20px] flex items-baseline justify-between gap-[12px] flex-wrap">
+              <b className="font-sans text-[15px] text-ink">{t("welcomeTitle")}</b>
+              <span className="font-sans text-[10px] text-ink num">
                 {t("welcomeOrderNo", { orderNo: order.orderNo })}
               </span>
             </div>
@@ -104,39 +104,39 @@ function OrderDetail({ orderId }: { orderId: string }) {
           </div>
 
           {/* 품목 */}
-          <ul className="list-none m-0 p-0 border-[1.5px] border-ink mb-[20px]">
+          <ul className="list-none m-0 p-0 border border-line mb-[20px]">
             {order.items.map((item) => (
               <li
                 key={item.lineId}
-                className="flex items-center gap-[16px] px-[16px] py-[13px] border-b-[1.5px] border-ink last:border-b-0"
+                className="flex items-center gap-[16px] px-[16px] py-[13px] border-b border-line last:border-b-0"
               >
                 <div className="flex-1">
-                  <b className="font-display text-[15px] block">{item.productName}</b>
-                  <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-grey">
+                  <b className="font-sans text-[15px] block">{item.productName}</b>
+                  <span className="font-sans text-[10px] text-grey">
                     {item.optionName} × {item.quantity}
                   </span>
                 </div>
-                <b className="font-display text-[15px] num">{formatKRW(item.lineSubtotal)}</b>
+                <b className="font-sans text-[15px] num">{formatKRW(item.lineSubtotal)}</b>
               </li>
             ))}
           </ul>
 
           {/* 합계 + 배송지 */}
           <div className="grid grid-cols-2 gap-[20px] max-sm:grid-cols-1 mb-[28px]">
-            <div className="border-[1.5px] border-ink p-[16px]">
-              <h3 className="font-mono text-[10px] uppercase tracking-[0.1em] text-grey mt-0 mb-[12px]">
+            <div className="border border-line p-[16px]">
+              <h3 className="font-sans text-[10px] text-grey mt-0 mb-[12px]">
                 {t("payment")}
               </h3>
               <TotalRow label={t("subtotal")} value={formatKRW(order.totals.itemsSubtotal)} />
               <TotalRow label={t("shipping")} value={formatKRW(order.totals.shippingFee)} />
               <TotalRow label={t("discount")} value={`−${formatKRW(order.totals.discountTotal)}`} />
-              <div className="flex justify-between items-baseline border-t-[1.5px] border-ink mt-[10px] pt-[10px]">
-                <span className="font-mono text-[10px] uppercase tracking-[0.1em]">{t("grandTotal")}</span>
-                <b className="font-display text-[20px] num">{formatKRW(order.totals.grandTotal)}</b>
+              <div className="flex justify-between items-baseline border-t border-line mt-[10px] pt-[10px]">
+                <span className="font-sans text-[10px]">{t("grandTotal")}</span>
+                <b className="font-sans text-[20px] num">{formatKRW(order.totals.grandTotal)}</b>
               </div>
             </div>
-            <div className="border-[1.5px] border-ink p-[16px]">
-              <h3 className="font-mono text-[10px] uppercase tracking-[0.1em] text-grey mt-0 mb-[12px]">
+            <div className="border border-line p-[16px]">
+              <h3 className="font-sans text-[10px] text-grey mt-0 mb-[12px]">
                 {t("shippingTo")}
               </h3>
               <p className="text-[13.5px] text-ink m-0 leading-[1.7]">
@@ -156,7 +156,7 @@ function OrderDetail({ orderId }: { orderId: string }) {
           {/* 환불 내역 */}
           <ClaimsList claims={claims} />
 
-          <Link href="/orders" className="font-mono text-[11px] uppercase tracking-[0.08em] text-grey hover:text-ink">
+          <Link href="/orders" className="font-sans text-[11px] text-grey hover:text-ink">
             ← All orders
           </Link>
         </div>
@@ -205,8 +205,8 @@ function OrderActions({ order, onDone }: { order: Order; onDone: () => Promise<v
   };
 
   return (
-    <section className="border-[1.5px] border-ink mb-[28px]">
-      <h3 className="font-mono text-[10px] uppercase tracking-[0.1em] text-grey m-0 px-[16px] py-[12px] border-b-[1.5px] border-ink">
+    <section className="border border-line mb-[28px]">
+      <h3 className="font-sans text-[10px] text-grey m-0 px-[16px] py-[12px] border-b border-line">
         {t("manage")}
       </h3>
 
@@ -222,7 +222,7 @@ function OrderActions({ order, onDone }: { order: Order; onDone: () => Promise<v
               </Button>
             ) : (
               <>
-                <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink">
+                <span className="font-sans text-[11px] text-ink">
                   {t("cancelConfirm")}
                 </span>
                 <Button variant="danger" disabled={busy} onClick={handleCancel}>
@@ -315,12 +315,12 @@ function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="border-[1.5px] border-ink p-[16px] flex flex-col gap-[18px]">
-      <b className="font-display text-[16px] text-ink">{tc("formTitle")}</b>
+    <form onSubmit={handleSubmit} className="border border-line p-[16px] flex flex-col gap-[18px]">
+      <b className="font-sans text-[16px] text-ink">{tc("formTitle")}</b>
 
       {/* 사유 */}
       <fieldset className="border-0 p-0 m-0">
-        <legend className="font-mono text-[10px] uppercase tracking-[0.1em] text-grey mb-[8px] p-0">
+        <legend className="font-sans text-[10px] text-grey mb-[8px] p-0">
           {tc("reason")}
         </legend>
         <div className="flex flex-wrap gap-[8px]">
@@ -332,8 +332,8 @@ function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }
                 type="button"
                 aria-pressed={active}
                 onClick={() => setReasonCode(code)}
-                className={`font-mono text-[11px] uppercase tracking-[0.06em] px-[12px] py-[8px] border-[1.5px] border-ink transition-colors cursor-pointer ${
-                  active ? "bg-ink text-acid" : "bg-transparent text-ink hover:bg-paper"
+                className={`font-sans text-[11px] px-[12px] py-[8px] border border-line transition-colors cursor-pointer ${
+                  active ? "bg-ink text-lime" : "bg-transparent text-ink hover:bg-paper"
                 }`}
               >
                 {tc(`reasonCode.${code}`)}
@@ -345,7 +345,7 @@ function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }
 
       {/* 상세 (선택) */}
       <div>
-        <label className="block font-mono text-[10px] tracking-[0.1em] uppercase text-grey mb-[6px]">
+        <label className="block font-sans text-[10px] text-grey mb-[6px]">
           {tc("detail")}
         </label>
         <textarea
@@ -353,13 +353,13 @@ function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }
           onChange={(e) => setReasonDetail(e.target.value)}
           rows={3}
           placeholder={tc("detailPlaceholder")}
-          className="w-full border-[1.5px] border-ink bg-transparent px-[14px] py-[12px] font-mono text-[13px] text-ink outline-none focus:bg-paper transition-colors resize-y"
+          className="w-full border border-line bg-transparent px-[14px] py-[12px] font-sans text-[13px] text-ink outline-none focus:bg-paper transition-colors resize-y"
         />
       </div>
 
       {/* 범위 토글 */}
       <fieldset className="border-0 p-0 m-0">
-        <legend className="font-mono text-[10px] uppercase tracking-[0.1em] text-grey mb-[8px] p-0">
+        <legend className="font-sans text-[10px] text-grey mb-[8px] p-0">
           {tc("scope")}
         </legend>
         <div className="flex gap-[8px]">
@@ -371,8 +371,8 @@ function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }
                 type="button"
                 aria-pressed={active}
                 onClick={() => setScope(s)}
-                className={`flex-1 font-mono text-[11px] uppercase tracking-[0.06em] px-[12px] py-[10px] border-[1.5px] border-ink transition-colors cursor-pointer ${
-                  active ? "bg-ink text-acid" : "bg-transparent text-ink hover:bg-paper"
+                className={`flex-1 font-sans text-[11px] px-[12px] py-[10px] border border-line transition-colors cursor-pointer ${
+                  active ? "bg-ink text-lime" : "bg-transparent text-ink hover:bg-paper"
                 }`}
               >
                 {tc(s === "full" ? "scopeFull" : "scopePartial")}
@@ -384,38 +384,38 @@ function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }
 
       {/* 부분 환불 라인 선택 */}
       {scope === "partial" && (
-        <ul className="list-none m-0 p-0 border-[1.5px] border-ink">
+        <ul className="list-none m-0 p-0 border border-line">
           {order.items.map((item) => {
             const value = qty[item.lineId] ?? 0;
             return (
               <li
                 key={item.lineId}
-                className="flex items-center gap-[12px] px-[14px] py-[12px] border-b-[1.5px] border-ink last:border-b-0 flex-wrap"
+                className="flex items-center gap-[12px] px-[14px] py-[12px] border-b border-line last:border-b-0 flex-wrap"
               >
                 <div className="flex-1 min-w-[140px]">
-                  <b className="font-display text-[14px] block">{item.productName}</b>
-                  <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-grey">
+                  <b className="font-sans text-[14px] block">{item.productName}</b>
+                  <span className="font-sans text-[10px] text-grey">
                     {item.optionName} · {tc("ownedQty", { n: item.quantity })}
                   </span>
                 </div>
-                <div className="flex items-center border-[1.5px] border-ink">
+                <div className="flex items-center border border-line">
                   <button
                     type="button"
                     aria-label={tc("decrease")}
                     onClick={() => setLineQty(item, value - 1)}
-                    className="font-mono text-[13px] px-[12px] py-[6px] text-ink hover:bg-ink hover:text-acid transition-colors cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+                    className="font-sans text-[13px] px-[12px] py-[6px] text-ink hover:bg-ink hover:text-lime transition-colors cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
                     disabled={value <= 0}
                   >
                     −
                   </button>
-                  <span className="font-mono text-[13px] num min-w-[28px] text-center border-x-[1.5px] border-ink py-[6px]">
+                  <span className="font-sans text-[13px] num min-w-[28px] text-center border-x-[1.5px] border-line py-[6px]">
                     {value}
                   </span>
                   <button
                     type="button"
                     aria-label={tc("increase")}
                     onClick={() => setLineQty(item, value + 1)}
-                    className="font-mono text-[13px] px-[12px] py-[6px] text-ink hover:bg-ink hover:text-acid transition-colors cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+                    className="font-sans text-[13px] px-[12px] py-[6px] text-ink hover:bg-ink hover:text-lime transition-colors cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
                     disabled={value >= item.quantity}
                   >
                     +
@@ -428,7 +428,7 @@ function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }
       )}
 
       {partialInvalid && (
-        <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-grey m-0">
+        <p className="font-sans text-[10px] text-grey m-0">
           {tc("partialHint")}
         </p>
       )}
@@ -453,22 +453,22 @@ function ClaimsList({ claims }: { claims: Claim[] }) {
   if (claims.length === 0) return null;
 
   return (
-    <section className="border-[1.5px] border-ink mb-[28px]">
-      <h3 className="font-mono text-[10px] uppercase tracking-[0.1em] text-grey m-0 px-[16px] py-[12px] border-b-[1.5px] border-ink">
+    <section className="border border-line mb-[28px]">
+      <h3 className="font-sans text-[10px] text-grey m-0 px-[16px] py-[12px] border-b border-line">
         {tc("historyTitle")}
       </h3>
       <ul className="list-none m-0 p-0">
         {claims.map((c) => (
-          <li key={c.claimId} className="px-[16px] py-[14px] border-b-[1.5px] border-ink last:border-b-0">
+          <li key={c.claimId} className="px-[16px] py-[14px] border-b border-line last:border-b-0">
             <div className="flex items-center gap-[10px] flex-wrap mb-[6px]">
-              <b className="font-display text-[15px]">{tc(`reasonCode.${c.reasonCode}`)}</b>
+              <b className="font-sans text-[15px]">{tc(`reasonCode.${c.reasonCode}`)}</b>
               <ClaimStatusBadge status={c.status} label={tc(`status.${c.status}`)} />
-              <b className="font-display text-[15px] num ml-auto">{formatKRW(c.refundAmount)}</b>
+              <b className="font-sans text-[15px] num ml-auto">{formatKRW(c.refundAmount)}</b>
             </div>
             {c.reasonDetail && (
               <p className="text-[13px] text-ink-soft m-0 mb-[6px] leading-[1.6]">{c.reasonDetail}</p>
             )}
-            <div className="flex gap-[16px] flex-wrap font-mono text-[10px] uppercase tracking-[0.1em] text-grey">
+            <div className="flex gap-[16px] flex-wrap font-sans text-[10px] text-grey">
               <span>{tc("refundDue", { date: formatDateKST(c.refundDueAt) })}</span>
               <span>{tc("requestedAt", { date: c.createdDtm.slice(0, 10) })}</span>
             </div>
@@ -501,15 +501,15 @@ function fulfillmentTone(s: FulfillmentStatus): Tone {
 }
 
 const TONE_CLASSES: Record<Tone, string> = {
-  solid: "bg-ink text-acid",
-  acid: "bg-acid text-ink border-[1.5px] border-ink",
-  muted: "bg-transparent text-grey border-[1.5px] border-grey",
-  outline: "bg-transparent text-ink border-[1.5px] border-ink",
+  solid: "bg-ink text-lime",
+  acid: "bg-lime text-ink border border-line",
+  muted: "bg-transparent text-grey border border-grey",
+  outline: "bg-transparent text-ink border border-line",
 };
 
 function StatusBadge({ label, value, tone }: { label: string; value: string; tone: Tone }) {
   return (
-    <span className={`inline-flex items-baseline gap-[6px] font-mono text-[10px] uppercase tracking-[0.1em] px-[8px] py-[3px] ${TONE_CLASSES[tone]}`}>
+    <span className={`inline-flex items-baseline gap-[6px] font-sans text-[10px] px-[8px] py-[3px] ${TONE_CLASSES[tone]}`}>
       <span className="opacity-60">{label}</span>
       <span>{value}</span>
     </span>
@@ -524,7 +524,7 @@ function claimStatusTone(s: ClaimStatus): Tone {
 
 function ClaimStatusBadge({ status, label }: { status: ClaimStatus; label: string }) {
   return (
-    <span className={`font-mono text-[10px] uppercase tracking-[0.1em] px-[8px] py-[3px] ${TONE_CLASSES[claimStatusTone(status)]}`}>
+    <span className={`font-sans text-[10px] px-[8px] py-[3px] ${TONE_CLASSES[claimStatusTone(status)]}`}>
       {label}
     </span>
   );
@@ -533,15 +533,15 @@ function ClaimStatusBadge({ status, label }: { status: ClaimStatus; label: strin
 function TotalRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between items-baseline py-[3px]">
-      <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-grey">{label}</span>
-      <span className="font-mono text-[12px] num">{value}</span>
+      <span className="font-sans text-[10px] text-grey">{label}</span>
+      <span className="font-sans text-[12px] num">{value}</span>
     </div>
   );
 }
 
 function ErrorNote({ text }: { text: string }) {
   return (
-    <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-[#c0392b] m-0">
+    <p className="font-sans text-[11px] text-[#c0392b] m-0">
       ✕ {text}
     </p>
   );

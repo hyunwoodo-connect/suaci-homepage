@@ -7,8 +7,6 @@ import SiteHeader from "@/components/home/SiteHeader";
  * 헤더 + 페이지 타이틀 행(.sec) + 콘텐츠(.page-cell) + 푸터.
  */
 interface PageShellProps {
-  /** v4 호환용 번호 라벨 (v5에선 표시하지 않음) */
-  no: string;
   /** 페이지 타이틀 */
   title: ReactNode;
   /** 타이틀 우측 메타 */
@@ -16,16 +14,15 @@ interface PageShellProps {
   children: ReactNode;
 }
 
-export default function PageShell({ no, title, meta, children }: PageShellProps) {
+export default function PageShell({ title, meta, children }: PageShellProps) {
   return (
-    <main className="frame relative w-full bg-paper">
+    <main className="relative flex min-h-dvh w-full flex-col bg-paper">
       <SiteHeader />
       <div className="sec">
-        <div className="sec__no">{no}</div>
         <h1 className="sec__ti m-0">{title}</h1>
         <div className="sec__me">{meta}</div>
       </div>
-      <div className="cell page-cell">{children}</div>
+      <div className="page-cell flex-1">{children}</div>
       <SiteFooter />
     </main>
   );

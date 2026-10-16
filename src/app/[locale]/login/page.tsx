@@ -51,7 +51,7 @@ function LoginForm() {
   };
 
   return (
-    <PageShell no="AC" title={<>Sign <em>in</em></>} meta={t("loginSub")}>
+    <PageShell title={<>Sign <em>in</em></>} meta={t("loginSub")}>
       <div className="max-w-[440px]">
         {/* 소셜 로그인 — UI만. TODO(백엔드): Cognito federated(Google/Apple/LINE) 연동 */}
         <div className="mb-[28px] flex flex-col gap-[10px]">
@@ -60,9 +60,9 @@ function LoginForm() {
               key={provider}
               type="button"
               onClick={() => setError(t("socialSoon"))}
-              className="h-[48px] cursor-pointer rounded-full border border-ink text-[14px] text-ink hover:bg-ink hover:text-paper"
+              className="h-[48px] cursor-pointer rounded-full border border-line text-[14px] text-ink hover:bg-ink hover:text-paper"
             >
-              {t("continueWith")} {t(provider)}
+              {t("continueWith", { provider: t(provider) })}
             </button>
           ))}
           <p className="m-0 mt-[8px] text-center text-[12px] text-grey">{t("orEmail")}</p>
@@ -87,7 +87,7 @@ function LoginForm() {
             onChange={(e) => setPassword(e.target.value)}
           />
           {error && (
-            <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-[#c0392b] m-0">
+            <p className="font-sans text-[11px] text-[#c0392b] m-0">
               ✕ {error}
             </p>
           )}
@@ -96,15 +96,15 @@ function LoginForm() {
           </Button>
         </form>
 
-        <p className="mt-[16px] font-mono text-[11px] uppercase tracking-[0.08em]">
-          <Link href="/password/forgot" className="text-grey hover:text-acid-deep">
+        <p className="mt-[16px] font-sans text-[11px]">
+          <Link href="/password/forgot" className="text-grey hover:text-lime">
             {t("forgotPassword")} →
           </Link>
         </p>
 
-        <p className="mt-[24px] font-mono text-[11px] uppercase tracking-[0.08em] text-grey">
+        <p className="mt-[24px] font-sans text-[11px] text-grey">
           {t("noAccount")}{" "}
-          <Link href="/signup" className="text-ink underline underline-offset-[3px] hover:text-acid-deep">
+          <Link href="/signup" className="text-ink underline underline-offset-[3px] hover:text-lime">
             {t("goSignup")} →
           </Link>
         </p>

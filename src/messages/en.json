@@ -73,9 +73,7 @@
       "applePay": "apple pay",
       "googlePay": "google pay",
       "card": "pay with card",
-      "or": "or",
       "signInHint": "sign in to track orders faster.",
-      "signInFirst": "sign in to pay — guest checkout is coming soon.",
       "error": "something went wrong. please try again.",
       "processing": "processing…"
     }
@@ -111,7 +109,7 @@
     "submitReset": "change password",
     "forgotPassword": "forgot your password?",
     "backToLogin": "back to sign in",
-    "continueWith": "continue with",
+    "continueWith": "continue with {provider}",
     "google": "google",
     "apple": "apple",
     "line": "line",

@@ -16,15 +16,15 @@ export default function AccountPage() {
 
   if (status === "loading") {
     return (
-      <PageShell no="AC" title={<>My <em>account</em></>} meta="">
-        <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-grey">…</p>
+      <PageShell title={<>My <em>account</em></>} meta="">
+        <p className="font-sans text-[11px] text-grey">…</p>
       </PageShell>
     );
   }
 
   if (status !== "authenticated" || !user) {
     return (
-      <PageShell no="AC" title={<>My <em>account</em></>} meta={t("needLogin")}>
+      <PageShell title={<>My <em>account</em></>} meta={t("needLogin")}>
         <div className="max-w-[440px] flex flex-col gap-[18px]">
           <p className="text-[15px] text-ink m-0">{t("needLogin")}</p>
           <Link href="/login">
@@ -36,20 +36,19 @@ export default function AccountPage() {
   }
 
   return (
-    <PageShell no="AC" title={<>My <em>account</em></>} meta={user.email}>
+    <PageShell title={<>My <em>account</em></>} meta={user.email}>
       <div className="max-w-[720px]">
-        {/* 프로필 스펙 행 — pr-spec 문법 재사용 */}
-        <div className="border-[1.5px] border-ink mb-[28px]">
+        <div className="border border-line mb-[28px]">
           <SpecRow label={t("name")} value={user.name} />
           <SpecRow label={t("email")} value={user.email} />
           <SpecRow label={t("memberSince")} value={user.createdDtm.slice(0, 10)} />
           <SpecRow label={t("status")} value={user.status.toUpperCase()} last />
         </div>
 
-        {/* 메뉴 — 디자인 타이포 요소로 EN 고정 */}
+        {/* 메뉴 */}
         <div className="grid grid-cols-2 gap-[12px] max-sm:grid-cols-1 mb-[28px]">
-          <MenuCard href="/account/addresses" label="Addresses" />
-          <MenuCard href="/orders" label="Orders" />
+          <MenuCard href="/account/addresses" label="addresses" />
+          <MenuCard href="/orders" label="orders" />
         </div>
 
         <Button
@@ -70,11 +69,11 @@ export default function AccountPage() {
 
 function SpecRow({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
   return (
-    <div className={`flex items-baseline gap-[16px] px-[16px] py-[13px] ${last ? "" : "border-b-[1.5px] border-ink"}`}>
-      <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-grey w-[120px] shrink-0">
+    <div className={`flex items-baseline gap-[16px] px-[16px] py-[13px] ${last ? "" : "border-b border-line"}`}>
+      <span className="font-sans text-[10px] text-grey w-[120px] shrink-0">
         {label}
       </span>
-      <b className="font-display text-[15px]">{value}</b>
+      <b className="font-sans text-[15px]">{value}</b>
     </div>
   );
 }
@@ -83,7 +82,7 @@ function MenuCard({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
-      className="border-[1.5px] border-ink px-[16px] py-[18px] font-mono text-[12px] uppercase tracking-[0.08em] text-ink hover:bg-ink hover:text-acid transition-colors"
+      className="border border-line px-[16px] py-[18px] font-sans text-[12px] text-ink hover:bg-ink hover:text-lime transition-colors"
     >
       {label} →
     </Link>

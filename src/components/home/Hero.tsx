@@ -24,7 +24,6 @@ export default function Hero() {
         className="absolute inset-0 h-full w-full object-cover object-[62%_50%]"
       >
         <source src={HOME_MEDIA.heroWebm} type="video/webm" />
-        <source src={HOME_MEDIA.heroMp4Small} type="video/mp4" media="(max-width: 767px)" />
         <source src={HOME_MEDIA.heroMp4} type="video/mp4" />
       </video>
 

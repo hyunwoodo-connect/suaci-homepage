@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { PRODUCT } from "@/constants/product";
@@ -23,6 +23,7 @@ type PayMethod = "applePay" | "googlePay" | "card";
 export default function BuyBar() {
   const t = useTranslations("home.buy");
   const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
 
   return (
     <>
@@ -43,7 +44,7 @@ export default function BuyBar() {
           </span>
         </button>
       </div>
-      {open && <BuySheet onClose={() => setOpen(false)} />}
+      {open && <BuySheet onClose={close} />}
     </>
   );
 }
@@ -76,7 +77,6 @@ function BuySheet({ onClose }: { onClose: () => void }) {
   const pay = async (method: PayMethod) => {
     if (busy) return;
     if (status !== "authenticated") {
-      setNote(t("signInFirst"));
       router.push("/login?next=/");
       return;
     }
@@ -217,7 +217,7 @@ function PayButton({ onClick, busy, label, busyLabel, dark = false }: PayButtonP
       onClick={onClick}
       disabled={busy}
       className={`h-[52px] cursor-pointer rounded-full text-[15px] font-medium transition-opacity disabled:opacity-60 ${
-        dark ? "bg-ink text-paper" : "border border-ink bg-paper text-ink"
+        dark ? "bg-ink text-paper" : "border border-line bg-paper text-ink"
       }`}
     >
       {busy ? busyLabel : label}

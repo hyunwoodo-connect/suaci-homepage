@@ -29,8 +29,8 @@ export default function OrdersPage() {
 
   if (status !== "authenticated") {
     return (
-      <PageShell no="OR" title={<>Your <em>orders</em></>} meta="">
-        <Link href="/login" className="font-mono text-[12px] uppercase tracking-[0.08em] text-ink underline underline-offset-[3px]">
+      <PageShell title={<>Your <em>orders</em></>} meta="">
+        <Link href="/login" className="font-sans text-[12px] text-ink underline underline-offset-[3px]">
           {t("needLogin")} →
         </Link>
       </PageShell>
@@ -38,31 +38,31 @@ export default function OrdersPage() {
   }
 
   return (
-    <PageShell no="OR" title={<>Your <em>orders</em></>} meta={t("meta")}>
+    <PageShell title={<>Your <em>orders</em></>} meta={t("meta")}>
       <div className="max-w-[860px]">
         {loaded && items.length === 0 && (
-          <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-grey">{t("empty")}</p>
+          <p className="font-sans text-[11px] text-grey">{t("empty")}</p>
         )}
         <ul className="list-none m-0 p-0 flex flex-col gap-[12px]">
           {items.map((o) => (
             <li key={o.orderId}>
               <Link
                 href={`/orders/${o.orderId}`}
-                className="flex items-center gap-[16px] border-[1.5px] border-ink px-[16px] py-[14px] hover:bg-paper transition-colors max-sm:flex-wrap"
+                className="flex items-center gap-[16px] border border-line px-[16px] py-[14px] hover:bg-paper transition-colors max-sm:flex-wrap"
               >
-                <span className="font-mono text-[12px] text-ink">{o.orderNo}</span>
-                <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-grey">
+                <span className="font-sans text-[12px] text-ink">{o.orderNo}</span>
+                <span className="font-sans text-[10px] text-grey">
                   {o.createdDtm.slice(0, 10)}
                 </span>
-                <span className="font-mono text-[10px] uppercase tracking-[0.1em] bg-ink text-acid px-[7px] py-[2px]">
+                <span className="font-sans text-[10px] bg-ink text-lime px-[7px] py-[2px]">
                   {o.status}
                 </span>
-                <b className="font-display text-[15px] num ml-auto">{krw(o.grandTotal)}</b>
+                <b className="font-sans text-[15px] num ml-auto">{krw(o.grandTotal)}</b>
               </Link>
             </li>
           ))}
         </ul>
-        <Link href="/account" className="inline-block mt-[32px] font-mono text-[11px] uppercase tracking-[0.08em] text-grey hover:text-ink">
+        <Link href="/account" className="inline-block mt-[32px] font-sans text-[11px] text-grey hover:text-ink">
           ← Account
         </Link>
       </div>

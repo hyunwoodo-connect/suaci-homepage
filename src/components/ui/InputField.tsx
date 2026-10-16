@@ -16,12 +16,12 @@ export default function InputField({
 }: InputFieldProps) {
   return (
     <div>
-      <label className="block font-mono text-[10px] tracking-[0.1em] uppercase text-grey mb-[6px]">
+      <label className="block font-sans text-[10px] text-grey mb-[6px]">
         {label}
       </label>
       <input
         type={type}
-        className={`w-full border-[1.5px] border-ink bg-transparent px-[14px] py-[12px] font-mono text-[13px] text-ink outline-none focus:bg-paper transition-colors ${className}`}
+        className={`w-full border border-line bg-transparent px-[14px] py-[12px] font-sans text-[13px] text-ink outline-none focus:bg-paper transition-colors ${className}`}
         {...rest}
       />
     </div>

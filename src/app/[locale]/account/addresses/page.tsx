@@ -59,8 +59,8 @@ export default function AddressesPage() {
 
   if (status !== "authenticated") {
     return (
-      <PageShell no="AD" title={<>Ship <em>to</em></>} meta="">
-        <Link href="/login" className="font-mono text-[12px] uppercase tracking-[0.08em] text-ink underline underline-offset-[3px]">
+      <PageShell title={<>Ship <em>to</em></>} meta="">
+        <Link href="/login" className="font-sans text-[12px] text-ink underline underline-offset-[3px]">
           {t("needLogin")} →
         </Link>
       </PageShell>
@@ -68,25 +68,25 @@ export default function AddressesPage() {
   }
 
   return (
-    <PageShell no="AD" title={<>Ship <em>to</em></>} meta={t("meta")}>
+    <PageShell title={<>Ship <em>to</em></>} meta={t("meta")}>
       <div className="grid grid-cols-[1.2fr_1fr] gap-[40px] max-lg:grid-cols-1 max-w-[1040px]">
         {/* 목록 */}
         <div>
           {loaded && items.length === 0 && (
-            <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-grey">{t("empty")}</p>
+            <p className="font-sans text-[11px] text-grey">{t("empty")}</p>
           )}
           <ul className="list-none m-0 p-0 flex flex-col gap-[14px]">
             {items.map((a) => (
-              <li key={a.addressId} className="border-[1.5px] border-ink p-[16px]">
+              <li key={a.addressId} className="border border-line p-[16px]">
                 <div className="flex items-center gap-[10px] mb-[8px]">
-                  <b className="font-display text-[15px]">{a.recipient}</b>
+                  <b className="font-sans text-[15px]">{a.recipient}</b>
                   {a.label && (
-                    <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-grey">
+                    <span className="font-sans text-[10px] text-grey">
                       {a.label}
                     </span>
                   )}
                   {a.isDefault && (
-                    <span className="font-mono text-[10px] uppercase tracking-[0.1em] bg-ink text-acid px-[7px] py-[2px]">
+                    <span className="font-sans text-[10px] bg-ink text-lime px-[7px] py-[2px]">
                       {t("defaultBadge")}
                     </span>
                   )}
@@ -127,7 +127,7 @@ export default function AddressesPage() {
 
         {/* 추가 폼 */}
         <form onSubmit={handleAdd} className="flex flex-col gap-[14px]">
-          <h3 className="font-mono text-[11px] uppercase tracking-[0.1em] text-grey m-0">
+          <h3 className="font-sans text-[11px] text-grey m-0">
             {t("addTitle")}
           </h3>
           <InputField label={t("recipient")} required value={recipient} onChange={(e) => setRecipient(e.target.value)} />
@@ -144,7 +144,7 @@ export default function AddressesPage() {
         </form>
       </div>
 
-      <Link href="/account" className="inline-block mt-[36px] font-mono text-[11px] uppercase tracking-[0.08em] text-grey hover:text-ink">
+      <Link href="/account" className="inline-block mt-[36px] font-sans text-[11px] text-grey hover:text-ink">
         ← Account
       </Link>
     </PageShell>

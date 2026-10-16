@@ -73,9 +73,7 @@
       "applePay": "apple pay",
       "googlePay": "google pay",
       "card": "カードで支払う",
-      "or": "または",
       "signInHint": "ログインすると注文の確認がかんたんに。",
-      "signInFirst": "お支払いにはログインが必要です。ゲスト購入はまもなく対応します。",
       "error": "エラーが発生しました。もう一度お試しください。",
       "processing": "処理中…"
     }
@@ -111,10 +109,10 @@
     "submitReset": "パスワードを変更",
     "forgotPassword": "パスワードをお忘れですか？",
     "backToLogin": "ログインに戻る",
-    "continueWith": "",
-    "google": "googleで続ける",
-    "apple": "appleで続ける",
-    "line": "lineで続ける",
+    "continueWith": "{provider}で続ける",
+    "google": "google",
+    "apple": "apple",
+    "line": "line",
     "orEmail": "またはメールでログイン",
     "socialSoon": "ソーシャルログインはまもなく対応します。今はメールをご利用ください。"
   },

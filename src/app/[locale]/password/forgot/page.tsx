@@ -35,7 +35,7 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <PageShell no="PW" title={<>Reset <em>password</em></>} meta={t("forgotSub")}>
+    <PageShell title={<>Reset <em>password</em></>} meta={t("forgotSub")}>
       <div className="max-w-[440px]">
         {sent ? (
           <div className="flex flex-col gap-[18px]">
@@ -44,12 +44,12 @@ export default function ForgotPasswordPage() {
             </p>
             <Link
               href={{ pathname: "/password/reset", query: { email } }}
-              className="inline-flex items-center justify-center gap-[8px] px-[22px] py-[13px] font-mono text-[12px] uppercase tracking-[0.08em] bg-ink text-paper border-[1.5px] border-ink transition-colors hover:bg-paper hover:text-ink"
+              className="inline-flex items-center justify-center gap-[8px] px-[22px] py-[13px] font-sans text-[12px] bg-ink text-paper border border-line transition-colors hover:bg-paper hover:text-ink"
             >
               {t("goReset")} →
             </Link>
-            <p className="mt-[6px] font-mono text-[11px] uppercase tracking-[0.08em] text-grey">
-              <Link href="/login" className="text-grey hover:text-acid-deep">
+            <p className="mt-[6px] font-sans text-[11px] text-grey">
+              <Link href="/login" className="text-grey hover:text-lime">
                 {t("backToLogin")} →
               </Link>
             </p>
@@ -67,7 +67,7 @@ export default function ForgotPasswordPage() {
                 onChange={(e) => setEmail(e.target.value)}
               />
               {error && (
-                <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-[#c0392b] m-0">
+                <p className="font-sans text-[11px] text-[#c0392b] m-0">
                   ✕ {error}
                 </p>
               )}
@@ -76,8 +76,8 @@ export default function ForgotPasswordPage() {
               </Button>
             </form>
 
-            <p className="mt-[24px] font-mono text-[11px] uppercase tracking-[0.08em] text-grey">
-              <Link href="/login" className="text-ink underline underline-offset-[3px] hover:text-acid-deep">
+            <p className="mt-[24px] font-sans text-[11px] text-grey">
+              <Link href="/login" className="text-ink underline underline-offset-[3px] hover:text-lime">
                 {t("backToLogin")} →
               </Link>
             </p>

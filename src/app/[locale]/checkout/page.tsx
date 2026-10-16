@@ -68,8 +68,8 @@ export default function CheckoutPage() {
   // 로그인 상태 확인 중 — 스피너 대체(마이크로 로딩 라벨).
   if (status === "loading") {
     return (
-      <PageShell no="CO" title={<>Check <em>out</em></>} meta="">
-        <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-grey">…</p>
+      <PageShell title={<>Check <em>out</em></>} meta="">
+        <p className="font-sans text-[11px] text-grey">…</p>
       </PageShell>
     );
   }
@@ -77,8 +77,8 @@ export default function CheckoutPage() {
   // 리다이렉트 진행 중(anonymous) — 깜빡임 방지용 빈 셸.
   if (status !== "authenticated") {
     return (
-      <PageShell no="CO" title={<>Check <em>out</em></>} meta="">
-        <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-grey">…</p>
+      <PageShell title={<>Check <em>out</em></>} meta="">
+        <p className="font-sans text-[11px] text-grey">…</p>
       </PageShell>
     );
   }
@@ -88,14 +88,14 @@ export default function CheckoutPage() {
   // 장바구니 비어 있음.
   if (items.length === 0) {
     return (
-      <PageShell no="CO" title={<>Check <em>out</em></>} meta={t("meta")}>
+      <PageShell title={<>Check <em>out</em></>} meta={t("meta")}>
         <div className="flex flex-col items-start gap-[16px] max-w-[860px]">
-          <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-grey m-0">
+          <p className="font-sans text-[11px] text-grey m-0">
             {t("emptyCart")}
           </p>
           <Link
             href="/"
-            className="font-mono text-[12px] uppercase tracking-[0.08em] text-ink underline underline-offset-[3px] hover:text-acid-deep"
+            className="font-sans text-[12px] text-ink underline underline-offset-[3px] hover:text-lime"
           >
             {t("continueShopping")} →
           </Link>
@@ -142,22 +142,22 @@ export default function CheckoutPage() {
   const freeShipping = subtotal >= FREE_SHIPPING_OVER;
 
   return (
-    <PageShell no="CO" title={<>Check <em>out</em></>} meta={t("meta")}>
+    <PageShell title={<>Check <em>out</em></>} meta={t("meta")}>
       <div className="max-w-[860px] flex flex-col gap-[36px]">
         {/* ── 배송지 ── */}
         <section>
           <SectionLabel>{t("addressTitle")}</SectionLabel>
 
           {!addrLoaded ? (
-            <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-grey m-0">…</p>
+            <p className="font-sans text-[11px] text-grey m-0">…</p>
           ) : addresses.length === 0 ? (
-            <div className="flex flex-col items-start gap-[14px] border-[1.5px] border-ink p-[16px]">
-              <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-grey m-0">
+            <div className="flex flex-col items-start gap-[14px] border border-line p-[16px]">
+              <p className="font-sans text-[11px] text-grey m-0">
                 {t("noAddress")}
               </p>
               <Link
                 href="/account/addresses"
-                className="font-mono text-[12px] uppercase tracking-[0.08em] text-ink underline underline-offset-[3px] hover:text-acid-deep"
+                className="font-sans text-[12px] text-ink underline underline-offset-[3px] hover:text-lime"
               >
                 {t("addAddress")} →
               </Link>
@@ -172,21 +172,21 @@ export default function CheckoutPage() {
                       type="button"
                       onClick={() => setOverrideId(a.addressId)}
                       aria-pressed={active}
-                      className={`w-full text-left border-[1.5px] border-ink p-[16px] cursor-pointer transition-colors ${
+                      className={`w-full text-left border border-line p-[16px] cursor-pointer transition-colors ${
                         active ? "bg-ink text-paper" : "bg-transparent text-ink hover:bg-[#f0f0ea]"
                       }`}
                     >
                       <div className="flex items-center gap-[10px] mb-[8px]">
                         <span
                           aria-hidden
-                          className={`inline-block w-[12px] h-[12px] border-[1.5px] ${
-                            active ? "border-acid bg-acid" : "border-ink"
+                          className={`inline-block w-[12px] h-[12px] border ${
+                            active ? "border-lime bg-lime" : "border-line"
                           }`}
                         />
-                        <b className="font-display text-[15px]">{a.recipient}</b>
+                        <b className="font-sans text-[15px]">{a.recipient}</b>
                         {a.label && (
                           <span
-                            className={`font-mono text-[10px] uppercase tracking-[0.1em] ${
+                            className={`font-sans text-[10px] ${
                               active ? "text-paper/70" : "text-grey"
                             }`}
                           >
@@ -195,8 +195,8 @@ export default function CheckoutPage() {
                         )}
                         {a.isDefault && (
                           <span
-                            className={`font-mono text-[10px] uppercase tracking-[0.1em] px-[7px] py-[2px] ${
-                              active ? "bg-acid text-ink" : "bg-ink text-acid"
+                            className={`font-sans text-[10px] px-[7px] py-[2px] ${
+                              active ? "bg-lime text-ink" : "bg-ink text-lime"
                             }`}
                           >
                             {t("defaultBadge")}
@@ -219,7 +219,7 @@ export default function CheckoutPage() {
               <li>
                 <Link
                   href="/account/addresses"
-                  className="inline-block mt-[2px] font-mono text-[11px] uppercase tracking-[0.08em] text-grey hover:text-ink"
+                  className="inline-block mt-[2px] font-sans text-[11px] text-grey hover:text-ink"
                 >
                   + {t("addAddress")}
                 </Link>
@@ -232,24 +232,24 @@ export default function CheckoutPage() {
         <section>
           <SectionLabel>{t("summaryTitle")}</SectionLabel>
 
-          <ul className="list-none m-0 p-0 border-[1.5px] border-ink mb-[16px]">
+          <ul className="list-none m-0 p-0 border border-line mb-[16px]">
             {items.map((line) => (
               <li
                 key={line.variantId}
-                className="flex items-center gap-[16px] px-[16px] py-[13px] border-b-[1.5px] border-ink last:border-b-0 max-sm:flex-wrap"
+                className="flex items-center gap-[16px] px-[16px] py-[13px] border-b border-line last:border-b-0 max-sm:flex-wrap"
               >
                 <div className="flex-1 min-w-[160px]">
-                  <b className="font-display text-[15px] block">{line.productName}</b>
-                  <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-grey">
+                  <b className="font-sans text-[15px] block">{line.productName}</b>
+                  <span className="font-sans text-[10px] text-grey">
                     {line.optionName} × {line.quantity}
                   </span>
                 </div>
-                <b className="font-display text-[15px] num">{formatKRW(line.lineSubtotal)}</b>
+                <b className="font-sans text-[15px] num">{formatKRW(line.lineSubtotal)}</b>
               </li>
             ))}
           </ul>
 
-          <div className="border-[1.5px] border-ink p-[16px]">
+          <div className="border border-line p-[16px]">
             <TotalRow label={t("subtotal")} value={formatKRW(subtotal)} />
             {discount > 0 && (
               <TotalRow label={t("discount")} value={`−${formatKRW(discount)}`} muted />
@@ -259,14 +259,14 @@ export default function CheckoutPage() {
               value={freeShipping ? t("freeShipping") : t("shippingCalcNote")}
               muted
             />
-            <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-grey mt-[6px] mb-0">
+            <p className="font-sans text-[10px] text-grey mt-[6px] mb-0">
               {t("freeShippingNote", { amount: formatKRW(FREE_SHIPPING_OVER) })}
             </p>
-            <div className="flex justify-between items-baseline border-t-[1.5px] border-ink mt-[12px] pt-[12px]">
-              <span className="font-mono text-[10px] uppercase tracking-[0.1em]">{t("grandTotal")}</span>
-              <b className="font-display text-[20px] num">{formatKRW(subtotal - discount)}</b>
+            <div className="flex justify-between items-baseline border-t border-line mt-[12px] pt-[12px]">
+              <span className="font-sans text-[10px]">{t("grandTotal")}</span>
+              <b className="font-sans text-[20px] num">{formatKRW(subtotal - discount)}</b>
             </div>
-            <p className="font-mono text-[9px] uppercase tracking-[0.08em] text-grey mt-[8px] mb-0">
+            <p className="font-sans text-[9px] text-grey mt-[8px] mb-0">
               {t("finalTotalNote")}
             </p>
           </div>
@@ -275,7 +275,7 @@ export default function CheckoutPage() {
         {/* ── 결제 안내 + CTA ── */}
         <section>
           {note && (
-            <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-[#c0392b] mb-[14px]">
+            <p className="font-sans text-[11px] text-[#c0392b] mb-[14px]">
               ✕ {note}
             </p>
           )}
@@ -286,7 +286,7 @@ export default function CheckoutPage() {
           >
             {busy ? "…" : t("placeOrder")}
           </Button>
-          <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-grey mt-[12px] mb-0 text-center">
+          <p className="font-sans text-[10px] text-grey mt-[12px] mb-0 text-center">
             {t("mockPaymentNote")}
           </p>
         </section>
@@ -299,7 +299,7 @@ export default function CheckoutPage() {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="font-mono text-[11px] uppercase tracking-[0.1em] text-grey mt-0 mb-[14px]">
+    <h2 className="font-sans text-[11px] text-grey mt-0 mb-[14px]">
       {children}
     </h2>
   );
@@ -308,8 +308,8 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 function TotalRow({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
   return (
     <div className="flex justify-between items-baseline py-[3px]">
-      <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-grey">{label}</span>
-      <span className={`font-mono text-[12px] num ${muted ? "text-grey" : "text-ink"}`}>{value}</span>
+      <span className="font-sans text-[10px] text-grey">{label}</span>
+      <span className={`font-sans text-[12px] num ${muted ? "text-grey" : "text-ink"}`}>{value}</span>
     </div>
   );
 }

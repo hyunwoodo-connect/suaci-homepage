@@ -5,7 +5,7 @@ import { HOME_MEDIA } from "@/constants/product";
 /**
  * v5 무드 갤러리 — 완벽한 그리드가 아닌 엇갈린 배치.
  * 폭은 `max(데스크톱 %, min(100%, 모바일 최소 px))` 한 줄로 반응형 처리(미디어쿼리 없음).
- * 3번째 물결 컷은 섹션 패딩을 뚫는 풀블리드.
+ * 3번째 물결 컷은 뷰포트 풀블리드(body overflow-x hidden 전제).
  */
 export default function Moments() {
   const t = useTranslations("home.moments");
@@ -35,7 +35,7 @@ export default function Moments() {
           className="ml-auto mr-[4%] mt-[clamp(0px,16vw,260px)] w-[max(28%,min(100%,230px))]"
           sizes="(max-width: 767px) 70vw, 28vw"
         />
-        <div className="mx-[calc(-1*clamp(16px,4vw,48px))] w-[calc(100%+2*clamp(16px,4vw,48px))]">
+        <div className="ml-[calc(50%-50vw)] w-screen">
           <Image
             src={HOME_MEDIA.water}
             alt={t("waterAlt")}

@@ -18,7 +18,7 @@ export default function ResetPasswordPage() {
   const t = useTranslations("auth");
 
   return (
-    <PageShell no="PW" title={<>Reset <em>password</em></>} meta={t("resetSub")}>
+    <PageShell title={<>Reset <em>password</em></>} meta={t("resetSub")}>
       <div className="max-w-[440px]">
         <Suspense fallback={null}>
           <ResetForm />
@@ -86,7 +86,7 @@ function ResetForm() {
           onChange={(e) => setNewPassword(e.target.value)}
         />
         {error && (
-          <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-[#c0392b] m-0">
+          <p className="font-sans text-[11px] text-[#c0392b] m-0">
             ✕ {error}
           </p>
         )}
@@ -95,8 +95,8 @@ function ResetForm() {
         </Button>
       </form>
 
-      <p className="mt-[24px] font-mono text-[11px] uppercase tracking-[0.08em] text-grey">
-        <Link href="/login" className="text-ink underline underline-offset-[3px] hover:text-acid-deep">
+      <p className="mt-[24px] font-sans text-[11px] text-grey">
+        <Link href="/login" className="text-ink underline underline-offset-[3px] hover:text-lime">
           {t("backToLogin")} →
         </Link>
       </p>

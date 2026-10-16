@@ -71,7 +71,6 @@ export default function SignupPage() {
 
   return (
     <PageShell
-      no="AC"
       title={<>Join <em>suaci</em></>}
       meta={step === "form" ? t("signupSub") : t("confirmSub")}
     >
@@ -105,8 +104,8 @@ export default function SignupPage() {
               onChange={(e) => setPassword(e.target.value)}
             />
 
-            <fieldset className="border-[1.5px] border-ink p-[16px] m-0 flex flex-col gap-[10px]">
-              <legend className="font-mono text-[10px] uppercase tracking-[0.1em] text-grey px-[6px]">
+            <fieldset className="border border-line p-[16px] m-0 flex flex-col gap-[10px]">
+              <legend className="font-sans text-[10px] text-grey px-[6px]">
                 {t("consents")}
               </legend>
               <Consent checked={terms} onChange={setTerms} label={t("consentTerms")} />
@@ -140,9 +139,9 @@ export default function SignupPage() {
           </form>
         )}
 
-        <p className="mt-[24px] font-mono text-[11px] uppercase tracking-[0.08em] text-grey">
+        <p className="mt-[24px] font-sans text-[11px] text-grey">
           {t("hasAccount")}{" "}
-          <Link href="/login" className="text-ink underline underline-offset-[3px] hover:text-acid-deep">
+          <Link href="/login" className="text-ink underline underline-offset-[3px] hover:text-lime">
             {t("goLogin")} →
           </Link>
         </p>
@@ -179,7 +178,7 @@ function Consent({
 
 function ErrorNote({ text }: { text: string }) {
   return (
-    <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-[#c0392b] m-0">
+    <p className="font-sans text-[11px] text-[#c0392b] m-0">
       ✕ {text}
     </p>
   );
