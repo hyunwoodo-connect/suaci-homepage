@@ -27,7 +27,8 @@ export default function BuyBar() {
 
   return (
     <>
-      <div className="pointer-events-none sticky bottom-0 z-20 flex justify-center px-[16px] pb-[16px]">
+      {/* 바 높이(52+16px)만큼 끌어올려 푸터 아래에 빈 띠가 생기지 않게 한다. */}
+      <div className="pointer-events-none sticky bottom-0 z-20 -mt-[68px] flex justify-center px-[16px] pb-[16px]">
         <button
           type="button"
           onClick={() => setOpen(true)}
