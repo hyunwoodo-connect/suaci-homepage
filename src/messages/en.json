@@ -38,7 +38,7 @@
     "product": {
       "name": "brume no.1",
       "descriptor": "lime & basil face mist · 100 ml",
-      "note": "one-tap checkout with apple pay or google pay.",
+      "note": "a fine, cool mist of lime and basil. spray, breathe, back to your day. over makeup is fine.",
       "referenceTag": "reference · replace before launch",
       "imageAlt": "reference product photo, to be replaced with the suaci bottle",
       "howToUse": "how to use",
@@ -46,7 +46,13 @@
       "ingredients": "ingredients",
       "ingredientsBody": "[full ingredient list — from the manufacturer]",
       "shipping": "shipping & returns",
-      "shippingBody": "[shipping & returns policy — coming]"
+      "shippingBody": "[shipping & returns policy — coming]",
+      "label": "the product",
+      "grassAlt": "reference product photo lying in grass in warm light",
+      "grassCaption": "lime. basil. that’s the idea.",
+      "pourAlt": "reference product photo with texture pouring over the bottle",
+      "pourCaption": "fine mist. no drip, no sting.",
+      "referenceTagShort": "reference"
     },
     "footer": {
       "orderLookup": "order lookup",

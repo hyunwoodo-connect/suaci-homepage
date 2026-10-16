@@ -38,7 +38,7 @@
     "product": {
       "name": "brume no.1",
       "descriptor": "ライム&バジル フェイスミスト · 100 ml",
-      "note": "apple pay・google payでワンタップ購入。",
+      "note": "ライムとバジルの、細かくてひんやりしたミスト。ひと吹きして、深呼吸して、また一日へ。メイクの上からでも。",
       "referenceTag": "reference · replace before launch",
       "imageAlt": "参考用の製品写真(suaciのボトルに差し替え予定)",
       "howToUse": "使い方",
@@ -46,7 +46,13 @@
       "ingredients": "全成分",
       "ingredientsBody": "[全成分 — メーカーより受領予定]",
       "shipping": "配送・返品",
-      "shippingBody": "[配送・返品ポリシー — 準備中]"
+      "shippingBody": "[配送・返品ポリシー — 準備中]",
+      "label": "the product",
+      "grassAlt": "草の上に置かれた参考用製品写真",
+      "grassCaption": "ライム。バジル。それだけ。",
+      "pourAlt": "テクスチャーがボトルに流れる参考用製品写真",
+      "pourCaption": "細かいミスト。垂れない、しみない。",
+      "referenceTagShort": "reference"
     },
     "footer": {
       "orderLookup": "注文照会",

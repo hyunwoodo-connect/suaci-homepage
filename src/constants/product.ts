@@ -27,6 +27,8 @@ export const HOME_MEDIA = {
   basket: "/image/v5/moment-basket.webp",
   earrings: "/image/v5/moment-earrings.webp",
   productReference: "/image/v5/product-reference.webp",
+  productReferenceGrass: "/image/v5/product-reference-grass.webp",
+  productReferencePour: "/image/v5/product-reference-pour.webp",
   logoBlack: "/brand/logo-black.svg",
   logoWhite: "/brand/logo-white.svg",
 } as const;
