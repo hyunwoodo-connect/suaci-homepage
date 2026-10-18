@@ -1,153 +1,131 @@
-# AGENTS.md — SUACI Official
+# AGENTS.md
 
-## Build / Lint / Test Commands
+사람과 코딩 에이전트가 같이 따르는 코드 규칙. 자주 안 바뀌는 기본만 둔다.
 
-| Command            | Description                                                       |
-| ------------------ | ----------------------------------------------------------------- |
-| `pnpm install`     | Install dependencies                                              |
-| `pnpm dev`         | Start dev server (Next.js 16)                                     |
-| `pnpm build`       | Production build                                                  |
-| `pnpm lint`        | Run ESLint (eslint-config-next with core-web-vitals + typescript) |
-| `npx tsc --noEmit` | TypeScript type check (strict mode)                               |
-| `pnpm test`        | Vitest (jsdom). Node 24 required — see `.nvmrc`                   |
+## Commands
 
-CI (`.github/workflows/ci.yml`) runs lint → tsc → test → build on every PR and push to main.
+| Command                  | Description           |
+| ------------------------ | --------------------- |
+| `pnpm install`           | Install dependencies  |
+| `pnpm dev`               | Dev server            |
+| `pnpm build`             | Production build      |
+| `pnpm lint`              | ESLint                |
+| `pnpm exec tsc --noEmit` | Type check (strict)   |
+| `pnpm test`              | Vitest (jsdom)        |
+| `pnpm format`            | Prettier — write      |
+| `pnpm format:check`      | Prettier — check only |
 
-## Environment Variables
+**Done = `pnpm format:check` · `pnpm lint` · `pnpm exec tsc --noEmit` · `pnpm test` all pass.** CI runs the same on every PR.
 
-Copy `.env.example` to `.env.local` and fill in values:
+Node version is pinned in `.nvmrc`. Env vars: copy `.env.example` to `.env.local`.
 
-```bash
-cp .env.example .env.local
-```
+## Stack
 
-Key variables: `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_API_MODE` (`mock` | `http`), `NEXT_PUBLIC_API_BASE_URL`.
+Next.js (App Router) · React · TypeScript strict · Tailwind CSS v4 · next-intl · Vitest · pnpm. Path alias `@/*` → `./src/*`.
 
-## Tech Stack
+## Boundaries
 
-- **Framework**: Next.js 16 (App Router) + React 19 + TypeScript 5 (strict)
-- **Styling**: Tailwind CSS v4 (config in `src/app/globals.css` via `@theme inline`)
-- **i18n**: next-intl v4 — 2 locales: `en` (default), `ja`
-- **Tests**: Vitest + jsdom + @testing-library/jest-dom
-- **Hosting**: AWS Amplify (SSR), build config in `amplify.yml`
-- **Package manager**: pnpm
-- **Path alias**: `@/*` → `./src/*`
+- All data access goes through `@/lib/api`. Pages and components never call `fetch` for app data directly.
+- `src/types/` mirrors backend DTOs. Don't change a DTO shape on the frontend alone.
+- No auth library, DB access, or payment logic in this repo — that is the backend's job.
+- Don't add code "for later" (YAGNI). Unused exports, methods, locales, and dependencies get deleted.
 
-## Project Structure
+## Formatting
 
-```
-src/
-├── app/                    # Next.js App Router pages
-│   └── [locale]/           # i18n pages (home, checkout, orders, account, auth)
-├── components/
-│   ├── home/               # Home sections (SiteHeader, Hero, Story, Moments, ProductSection, SiteFooter, BuyBar)
-│   ├── shell/              # PageShell for sub-pages
-│   └── ui/                 # Shared UI primitives
-├── constants/              # App-wide constants (UPPER_SNAKE_CASE, `as const`)
-├── data/fixtures/          # Mock data for the API seam
-├── hooks/                  # Custom React hooks
-├── i18n/                   # next-intl config (routing, navigation, request)
-├── lib/
-│   ├── api/                # API seam — `mock/` and `http/` clients behind one interface
-│   ├── auth/               # Auth context + token store
-│   └── cart/               # Cart context
-├── messages/               # i18n JSON message files (en, ja)
-├── test/                   # Vitest setup
-└── types/                  # Backend DTO types + barrel index
-```
+Prettier owns formatting (`.prettierrc.json`): 2 spaces, double quotes, semicolons, trailing commas, 100 columns. Don't hand-format; run `pnpm format`.
 
-All data access goes through `@/lib/api`. `NEXT_PUBLIC_API_MODE=mock` uses local fixtures; `http` calls the backend (`../suaci-official-backend`).
+## Imports
 
-## Code Style Guidelines
+Groups, separated by a blank line:
 
-### Formatting
+1. `"use client"` (first line, only if needed)
+2. `react`, `react-dom`
+3. Framework / third-party (`next/*`, `next-intl`)
+4. Internal aliases (`@/...`)
+5. Relative (`./`, `../`)
 
-- **Indentation**: 2 spaces (no tabs)
-- **Quotes**: Double quotes (`"`) everywhere — imports, JSX attributes, strings
-- **Semicolons**: Always
-- **Trailing commas**: Yes in multi-line objects/arrays/parameters
-- **Interface fields**: End with `;` (not commas)
+Type-only imports use `import type { ... }`.
 
-### Imports
+## Components
 
-Order imports in these groups, separated by blank lines:
-
-1. `"use client"` directive (if needed, always first line)
-2. React built-ins (`react`, `react-dom`)
-3. Framework/third-party (`next/*`, `next-intl`)
-4. Internal aliases (`@/i18n/*`, `@/constants/*`, `@/components/*`, `@/lib/*`, `@/types`, `@/utils/*`)
-5. Relative imports (`./`, `../`)
-
-Use `import type { ... } from "..."` for type-only imports (never inline `type`).
-
-### Components
-
-- **Always use function declarations**: `export default function MyComponent()` — never arrow function components
-- **One default export per component file** for the primary component
-- **Sub-components** go in the same file below the main component, separated by:
+- Function declarations: `export default function MyComponent()`. No arrow-function components.
+- One primary component per file, as the default export. File-local sub-components go below it after:
   ```ts
   /* ─── 하위 컴포넌트 ─────────────────────────── */
   ```
-- **Props**: Define a named interface (`ComponentNameProps`) above the component. For file-local helpers, inline types are acceptable.
-- **`"use client"`** only when needed (useState, useEffect, event handlers, browser APIs). Default to Server Components.
+- Props: `interface ComponentNameProps` above the component.
+- Server Components by default. `"use client"` only for state, effects, event handlers, or browser APIs.
+- Links and routers come from `@/i18n/navigation`, never `next/link`.
+- No hardcoded user-facing copy in JSX — it goes in `src/messages/*.json`.
 
-### Naming Conventions
+## Naming
 
-| Category             | Convention                | Example                                |
-| -------------------- | ------------------------- | -------------------------------------- |
-| Component files      | PascalCase `.tsx`         | `ProductCard.tsx`                      |
-| Non-component files  | camelCase `.ts`           | `useCarousel.ts`, `format.ts`          |
-| Directories          | lowercase, single word    | `sections/`, `hooks/`, `utils/`        |
-| Components           | PascalCase                | `ResultCard`, `ScoreGauge`             |
-| Functions            | camelCase                 | `handleCapture`, `formatPrice`         |
-| Hooks                | `use` prefix              | `useCarousel`                          |
-| Constants (exported) | UPPER_SNAKE_CASE          | `SITE`, `LOADING_MESSAGES`             |
-| Interfaces           | PascalCase, no `I` prefix | `Product`, `CameraProps`               |
-| Props interfaces     | `ComponentNameProps`      | `ResultCardProps`, `ShareButtonsProps` |
-| Types (aliases)      | PascalCase                | `Locale`, `Phase`                      |
+| What               | Convention                    | Example                  |
+| ------------------ | ----------------------------- | ------------------------ |
+| Component files    | PascalCase `.tsx`             | `BuyBar.tsx`             |
+| Other files        | camelCase `.ts`               | `format.ts`              |
+| Directories        | lowercase                     | `home/`, `lib/`          |
+| Functions          | camelCase, verb first         | `formatKRW`, `handleBuy` |
+| Hooks              | `use` prefix                  | `useBodyScrollLock`      |
+| Exported constants | UPPER_SNAKE_CASE + `as const` | `PRODUCT`, `HOME_MEDIA`  |
+| Interfaces / types | PascalCase, no `I` prefix     | `Order`, `Locale`        |
+| Booleans           | `is` / `has` / `can` prefix   | `isOpen`, `hasAddress`   |
 
-### Types
+## Types
 
-- Prefer **`interface`** for object shapes and props
-- Use **`type`** only for aliases (`type Locale = ...`)
-- Domain types go in `src/types/` with barrel re-export in `index.ts`
-- Props interfaces are co-located in the component file
-- Use `as const` on constant objects and arrays
-- Add JSDoc comments on interfaces (Korean is fine)
+- `interface` for object shapes and props; `type` for unions and aliases.
+- Shared domain types live in `src/types/` and are re-exported from `src/types/index.ts`.
+- No `any`. Use `unknown` and narrow.
 
-### Exports
+## Styling
 
-- **Components**: `export default function` (one per file)
-- **Everything else**: Named exports (`export const`, `export function`, `export interface`)
-- **Types barrel**: `export type { ... } from "./..."` in `src/types/index.ts`
+- Tailwind utility classes. Design tokens live in `src/app/globals.css` (`@theme inline`) — use tokens, not raw hex values.
+- Mobile first: base classes for mobile, then `sm:` / `md:` / `lg:`.
+- Conditional classes with template literals.
 
-### Styling
+## Errors & async
 
-- **Tailwind CSS v4 utility classes only** — no CSS modules, no styled-components
-- Template literals for conditional classes: ``className={`text-sm ${isDark ? "text-foreground" : "text-white"}`}``
-- Shared padding via `SECTION_PADDING_X` constant from `@/constants/site`
-- Custom theme tokens defined in `src/app/globals.css` (`--color-*`, `--font-*`)
-- Responsive: use Tailwind breakpoint prefixes (`sm:`, `md:`, `lg:`, `xl:`)
+- `async`/`await` by default. Inside `useEffect`, a `.then()` chain is fine (keeps `react-hooks` lint happy).
+- The API layer throws `ApiClientError`. UI code catches it and shows a state — never let it crash a page.
+- Use a bare `catch {}` when the error value isn't needed.
+- Invalid route params → `notFound()`.
 
-### Error Handling
+## Comments
 
-- `try/catch` with safe defaults (return `[]`, return error response)
-- Bare `catch` blocks (no error variable) when error details aren't needed
-- Guard clauses with `notFound()` for invalid routes
-- Mark unimplemented logic with `// TODO:` comments
-- No `throw` in application code — errors are caught and returned as responses
+Code says **what**. Comments say **why**.
 
-### Async Patterns
+- Write a comment when the reason isn't obvious from the code: a business rule, a workaround, an invariant, a non-obvious trade-off.
+  ```ts
+  // 재시도는 정확히 1회 — refresh까지 401이면 토큰을 비우고 그대로 던진다
+  ```
+- Exported functions, interfaces, and constants that aren't self-explanatory get a one-line JSDoc `/** ... */`. Korean is fine.
+- Group long objects with `// ---- auth ----` style separators.
+- TODOs carry a scope: `// TODO(배포): Stripe 결제 키로 교체`. No bare `// TODO`.
+- `eslint-disable` must say why on the same line.
+- Don't write:
+  - comments that restate the code (`// 카운트 증가`)
+  - commented-out code — delete it, git has it
+  - history (`// v4에서 바뀜`, dates, "임시로 추가") — that belongs in the commit message
 
-- **async/await only** — no `.then()` chains
-- Next.js 16 `params` are `Promise` — always `await params`
-- Server components can be `async`
-- All async functions use function declarations (no async arrows)
+## Testing
 
-### i18n
+- **Vitest + jsdom.** Test files sit next to the code: `format.ts` → `format.test.ts`.
+- **What to test**: logic with branches — formatting, state machines, API clients, contexts. Not markup or styling.
+- **Names**: `describe("<unit>")`, `it("<조건> → <기대 결과>")`. Korean is fine.
+  ```ts
+  describe("format", () => {
+    it("discountPercent: 할인 없으면 null", () => {
+      expect(discountPercent(money(38000))).toBeNull();
+    });
+  });
+  ```
+- One behavior per `it`. Arrange → act → assert.
+- Test through the public API, not internals.
+- Isolation: `src/test/setup.ts` clears `localStorage` before each test. Stub globals with `vi.stubGlobal` and restore with `vi.restoreAllMocks()`.
+- No snapshot tests. No real network.
+- Fixing a bug → add a failing test first, then fix.
+- Component tests are not set up yet. Add `@testing-library/react` the first time one is needed.
 
-- Use `@/i18n/navigation` for `Link`, `useRouter`, `usePathname` (not `next/link`)
-- Server: `const t = useTranslations("namespace")`
-- Client: same `useTranslations("namespace")` hook
-- Messages in `src/messages/{locale}.json`, organized by namespace
-- Locale prefix strategy: `"as-needed"` (English has no prefix)
+## Commits
+
+`type(scope): 요약` — `feat` · `fix` · `refactor` · `chore` · `docs` · `test` · `ci`. One logical change per commit.
