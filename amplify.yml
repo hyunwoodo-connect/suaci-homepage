@@ -1,0 +1,22 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - nvm install
+        - nvm use
+        # pnpm 버전은 package.json의 packageManager를 따른다
+        - corepack enable
+        # Amplify SSR 번들링은 pnpm 심볼릭 링크 구조를 못 따라가는 경우가 있어 hoisted로 설치
+        - pnpm install --frozen-lockfile --config.node-linker=hoisted
+    build:
+      commands:
+        - pnpm build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - "**/*"
+  cache:
+    paths:
+      - .next/cache/**/*
+      - node_modules/**/*
