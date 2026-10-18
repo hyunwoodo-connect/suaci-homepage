@@ -1,7 +1,6 @@
 import type {
   User, TokenResponse, SignupRequest, ConfirmRequest, LoginRequest,
-  ResetPasswordRequest, ChangePasswordRequest,
-  Brand, ProductSummary, Product,
+  ResetPasswordRequest,
   Address, CreateAddressRequest, UpdateAddressRequest,
   Cart, AddToCartRequest,
   OrderSummary, Order, CreateOrderRequest, ConfirmPaymentRequest,
@@ -12,18 +11,12 @@ import type {
 export interface ApiClient {
   signup(r: SignupRequest): Promise<{ email: string }>
   confirm(r: ConfirmRequest): Promise<{ confirmed: boolean }>
-  resendCode(email: string): Promise<{ sent: boolean }>
   login(r: LoginRequest): Promise<TokenResponse>
   refresh(refreshToken: string): Promise<TokenResponse>
   forgotPassword(email: string): Promise<{ sent: boolean }>
   resetPassword(r: ResetPasswordRequest): Promise<{ reset: boolean }>
-  changePassword(r: ChangePasswordRequest): Promise<{ changed: boolean }>
   logout(): Promise<{ loggedOut: boolean }>
   getMe(): Promise<User>
-  listBrands(p?: PageParams): Promise<ApiPage<Brand>>
-  getBrand(slug: string): Promise<Brand>
-  listProducts(p?: { brandId?: string; category?: string; limit?: number; cursor?: string }): Promise<ApiPage<ProductSummary>>
-  getProduct(slug: string): Promise<Product>
   listAddresses(): Promise<Address[]>
   createAddress(r: CreateAddressRequest): Promise<Address>
   updateAddress(id: string, r: UpdateAddressRequest): Promise<Address>

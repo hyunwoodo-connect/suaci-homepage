@@ -1,8 +1,8 @@
 import type {
-  Address, AddToCartRequest, ApiPage, Brand, Cart, Claim, ConfirmPaymentRequest,
+  Address, AddToCartRequest, ApiPage, Cart, Claim, ConfirmPaymentRequest,
   ConfirmRequest, CreateAddressRequest, CreateClaimRequest, CreateOrderRequest,
-  LoginRequest, Order, OrderSummary, Product, ProductSummary, ResetPasswordRequest,
-  SignupRequest, TokenResponse, UpdateAddressRequest, User, ChangePasswordRequest,
+  LoginRequest, Order, OrderSummary, ResetPasswordRequest,
+  SignupRequest, TokenResponse, UpdateAddressRequest, User,
   PageParams,
 } from '@/types'
 import type { ApiClient } from '../client'
@@ -26,9 +26,6 @@ export function createHttpClient(baseUrl?: string): ApiClient {
     async confirm(r: ConfirmRequest) {
       return unwrap(await request<Envelope<{ confirmed: boolean }>>('/auth/confirm', { method: 'POST', body: r }))
     },
-    async resendCode(email: string) {
-      return unwrap(await request<Envelope<{ sent: boolean }>>('/auth/resend-code', { method: 'POST', body: { email } }))
-    },
     async login(r: LoginRequest) {
       return unwrap(await request<Envelope<TokenResponse>>('/auth/login', { method: 'POST', body: r, auth: false }))
     },
@@ -41,31 +38,11 @@ export function createHttpClient(baseUrl?: string): ApiClient {
     async resetPassword(r: ResetPasswordRequest) {
       return unwrap(await request<Envelope<{ reset: boolean }>>('/auth/password/reset', { method: 'POST', body: r }))
     },
-    async changePassword(r: ChangePasswordRequest) {
-      return unwrap(await authedRequest<Envelope<{ changed: boolean }>>('/auth/password/change', { method: 'POST', body: r }))
-    },
     async logout() {
       return unwrap(await authedRequest<Envelope<{ loggedOut: boolean }>>('/auth/logout', { method: 'POST' }))
     },
     async getMe() {
       return unwrap(await authedRequest<Envelope<User>>('/auth/me', { method: 'GET' }))
-    },
-
-    // ---- catalog ----
-    async listBrands(p?: PageParams) {
-      return request<ApiPage<Brand>>('/brands', { method: 'GET', query: { limit: p?.limit, cursor: p?.cursor } })
-    },
-    async getBrand(slug: string) {
-      return unwrap(await request<Envelope<Brand>>(`/brands/${slug}`, { method: 'GET' }))
-    },
-    async listProducts(p?: { brandId?: string; category?: string; limit?: number; cursor?: string }) {
-      return request<ApiPage<ProductSummary>>('/products', {
-        method: 'GET',
-        query: { brandId: p?.brandId, category: p?.category, limit: p?.limit, cursor: p?.cursor },
-      })
-    },
-    async getProduct(slug: string) {
-      return unwrap(await request<Envelope<Product>>(`/products/${slug}`, { method: 'GET' }))
     },
 
     // ---- address ----

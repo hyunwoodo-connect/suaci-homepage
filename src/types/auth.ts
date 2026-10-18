@@ -13,4 +13,3 @@ export interface SignupRequest { email: string; password: string; name: string; 
 export interface ConfirmRequest { email: string; code: string }
 export interface LoginRequest { email: string; password: string }
 export interface ResetPasswordRequest { email: string; code: string; newPassword: string }
-export interface ChangePasswordRequest { previousPassword: string; proposedPassword: string }

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createMockClient } from './index'
 import { tokenStore } from '@/lib/auth/token-store'
-import { findProductBySlug } from '@/data/fixtures'
+import { products } from '@/data/fixtures'
 
 const api = createMockClient()
 async function loginDemo() { tokenStore.save(await api.login({ email: 'demo@suaci.com', password: 'pw123456' })) }
@@ -15,7 +15,7 @@ describe('mock client', () => {
 
   it('담기→카트 반영, 총액계산', async () => {
     await loginDemo()
-    const p = findProductBySlug('daily-calming-mist')!
+    const p = products[0]
     const v = p.variants[0]
     const cart = await api.addToCart({ productId: p.productId, variantId: v.variantId, quantity: 2 })
     expect(cart.items).toHaveLength(1)
@@ -25,7 +25,7 @@ describe('mock client', () => {
 
   it('체크아웃: createOrder가 카트 비우고 주문 생성, 멱등', async () => {
     await loginDemo()
-    const p = findProductBySlug('daily-calming-mist')!
+    const p = products[0]
     await api.addToCart({ productId: p.productId, variantId: p.variants[0].variantId, quantity: 1 })
     const addr = await api.createAddress({ recipient: '수아치', phone: '01000000000', zipcode: '06000', addr1: '서울', isDefault: true })
     const idem = 'idem-1'
@@ -39,7 +39,7 @@ describe('mock client', () => {
 
   it('confirmPayment: 금액검증 + 상태전이', async () => {
     await loginDemo()
-    const p = findProductBySlug('daily-calming-mist')!
+    const p = products[0]
     await api.addToCart({ productId: p.productId, variantId: p.variants[0].variantId, quantity: 1 })
     const addr = await api.createAddress({ recipient: 'r', phone: '01000000000', zipcode: '06000', addr1: '서울' })
     const order = await api.createOrder({ addressId: addr.addressId, idempotencyKey: 'i2' })
@@ -52,7 +52,7 @@ describe('mock client', () => {
 
   it('cancelOrder는 pending만, claim은 paid·미이행 + over-refund 가드', async () => {
     await loginDemo()
-    const p = findProductBySlug('daily-calming-mist')!
+    const p = products[0]
     await api.addToCart({ productId: p.productId, variantId: p.variants[0].variantId, quantity: 1 })
     const addr = await api.createAddress({ recipient: 'r', phone: '01000000000', zipcode: '06000', addr1: '서울' })
     const order = await api.createOrder({ addressId: addr.addressId, idempotencyKey: 'i3' })
@@ -67,7 +67,7 @@ describe('mock client', () => {
   it('라인 부분환불: 상품소계 넘어가면 두번째 클레임 OVER_REFUND', async () => {
     await loginDemo()
     // brume no.1(38000) qty2 → itemsSubtotal 76000
-    const p = findProductBySlug('daily-calming-mist')!
+    const p = products[0]
     const v = p.variants[0]
     await api.addToCart({ productId: p.productId, variantId: v.variantId, quantity: 2 })
     const addr = await api.createAddress({ recipient: 'r', phone: '01000000000', zipcode: '06000', addr1: '서울' })

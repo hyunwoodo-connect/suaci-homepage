@@ -13,10 +13,10 @@ describe('http client', () => {
   beforeEach(() => { localStorage.clear(); vi.restoreAllMocks() })
 
   it('envelope 언랩: {data} → data', async () => {
-    vi.stubGlobal('fetch', mockFetchOnce(200, { data: { slug: 'x', variants: [] } }))
+    vi.stubGlobal('fetch', mockFetchOnce(200, { data: { sent: true } }))
     const api = createHttpClient('https://api.test')
-    const p = await api.getProduct('x')
-    expect(p.slug).toBe('x')
+    const r = await api.forgotPassword('a@b.c')
+    expect(r.sent).toBe(true)
   })
 
   it('에러 매핑: {error,message,field} → ApiClientError', async () => {

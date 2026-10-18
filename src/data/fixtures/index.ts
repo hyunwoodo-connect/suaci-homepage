@@ -1,4 +1,4 @@
-import type { Brand, Product, ProductSummary, User } from '@/types'
+import type { Product, User } from '@/types'
 
 /** 로그인 목데모 유저. mock 클라이언트의 getMe/인증 판단에 사용. */
 export const demoUser: User = {
@@ -9,18 +9,6 @@ export const demoUser: User = {
   createdAt: 1784041200000,
   createdDtm: '2026-07-20T00:00:00+09:00',
 }
-
-export const brands: Brand[] = [
-  {
-    brandId: 'brand_suaci',
-    slug: 'suaci',
-    name: 'suaci',
-    nameKo: 'suaci',
-    description: 'a quick, playful refresh. lime & basil.',
-    logo: '/brand/logo-black.svg',
-    status: 'active',
-  },
-]
 
 function krw(list: number) {
   return { list, currency: 'KRW' as const }
@@ -51,25 +39,3 @@ export const products: Product[] = [
     ],
   },
 ]
-
-export function findProductBySlug(slug: string): Product | undefined {
-  return products.find((p) => p.slug === slug)
-}
-
-export function findBrandBySlug(slug: string): Brand | undefined {
-  return brands.find((b) => b.slug === slug)
-}
-
-export function listProductSummaries(): ProductSummary[] {
-  return products.map((p) => ({
-    productId: p.productId,
-    brandId: p.brandId,
-    slug: p.slug,
-    name: p.name,
-    nameKo: p.nameKo,
-    descriptor: p.descriptor,
-    category: p.category,
-    images: p.images,
-    status: p.status,
-  }))
-}

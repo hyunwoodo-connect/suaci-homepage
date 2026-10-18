@@ -1,17 +1,15 @@
 import type {
-  Address, AddToCartRequest, ApiPage, Brand, Cart, CartLine, CartTotals,
+  Address, AddToCartRequest, ApiPage, Cart, CartLine, CartTotals,
   Claim, ClaimLine, ConfirmPaymentRequest, CreateAddressRequest,
   CreateClaimRequest, CreateOrderRequest, Order, OrderItem,
-  OrderSummary, Product, ProductSummary, SignupRequest,
+  OrderSummary, SignupRequest,
   TokenResponse, UpdateAddressRequest, User,
 } from '@/types'
 import type { ApiClient } from '../client'
 import { ApiClientError } from '../errors'
 import { effectivePrice } from '@/lib/format'
 import { tokenStore } from '@/lib/auth/token-store'
-import {
-  brands, demoUser, findBrandBySlug, findProductBySlug, listProductSummaries, products,
-} from '@/data/fixtures'
+import { demoUser, products } from '@/data/fixtures'
 import { store } from './store'
 
 const FREE_SHIP_THRESHOLD = 50000
@@ -110,9 +108,6 @@ export function createMockClient(): ApiClient {
     async confirm(): Promise<{ confirmed: boolean }> {
       return { confirmed: true }
     },
-    async resendCode(): Promise<{ sent: boolean }> {
-      return { sent: true }
-    },
     async login(): Promise<TokenResponse> {
       return {
         idToken: 'mock.id.user_demo',
@@ -135,10 +130,6 @@ export function createMockClient(): ApiClient {
     async resetPassword(): Promise<{ reset: boolean }> {
       return { reset: true }
     },
-    async changePassword(): Promise<{ changed: boolean }> {
-      requireAuth()
-      return { changed: true }
-    },
     async logout(): Promise<{ loggedOut: boolean }> {
       requireAuth()
       return { loggedOut: true }
@@ -146,27 +137,6 @@ export function createMockClient(): ApiClient {
     async getMe(): Promise<User> {
       requireAuth()
       return demoUser
-    },
-
-    // ---- catalog (public) ----
-    async listBrands(): Promise<ApiPage<Brand>> {
-      return { data: brands }
-    },
-    async getBrand(slug: string): Promise<Brand> {
-      const brand = findBrandBySlug(slug)
-      if (!brand) throw new ApiClientError('BRAND_NOT_FOUND', '브랜드를 찾을 수 없습니다', 404)
-      return brand
-    },
-    async listProducts(p?: { brandId?: string; category?: string; limit?: number; cursor?: string }): Promise<ApiPage<ProductSummary>> {
-      let data: ProductSummary[] = listProductSummaries()
-      if (p?.brandId) data = data.filter((s) => s.brandId === p.brandId)
-      if (p?.category) data = data.filter((s) => s.category === p.category)
-      return { data }
-    },
-    async getProduct(slug: string): Promise<Product> {
-      const product = findProductBySlug(slug)
-      if (!product) throw new ApiClientError('PRODUCT_NOT_FOUND', '상품을 찾을 수 없습니다', 404)
-      return product
     },
 
     // ---- address ----
