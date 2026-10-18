@@ -3,10 +3,11 @@ frontend:
   phases:
     preBuild:
       commands:
-        - nvm install
+        # 이미지의 기본 전역 패키지(cypress 등)는 깔지 않는다 — 다운로드가 깨지면 빌드가 같이 죽는다
+        - nvm install --skip-default-packages
         - nvm use
-        # pnpm 버전은 package.json의 packageManager를 따른다
-        - corepack enable
+        # pnpm 버전은 package.json의 packageManager를 따른다. yarn shim은 만들지 않는다
+        - corepack enable pnpm
         # Amplify SSR 번들링은 pnpm 심볼릭 링크 구조를 못 따라가는 경우가 있어 hoisted로 설치
         - pnpm install --frozen-lockfile --config.node-linker=hoisted
     build:
