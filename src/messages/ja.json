@@ -148,15 +148,6 @@
     "labelPlaceholder": "自宅、会社 …",
     "submitAdd": "追加"
   },
-  "cart": {
-    "meta": "ひとつで十分ですが",
-    "needLogin": "ログインが必要です",
-    "empty": "まだ空です",
-    "continueShopping": "買い物を続ける",
-    "remove": "削除",
-    "total": "合計",
-    "checkout": "注文する"
-  },
   "checkout": {
     "meta": "最後のひと手間",
     "emptyCart": "カートが空です",
@@ -267,37 +258,5 @@
       "OVER_REFUND": "返金可能額を超えています",
       "default": "リクエストを処理できませんでした"
     }
-  },
-  "shop": {
-    "meta": "suaci が選んだもの",
-    "loading": "読み込み中",
-    "error": "しばらくしてからもう一度お試しください",
-    "empty": "まだ商品がありません",
-    "loadMore": "もっと見る",
-    "soldout": "完売",
-    "view": "詳しく見る"
-  },
-  "product": {
-    "loading": "読み込み中",
-    "error": "しばらくしてからもう一度お試しください",
-    "notFound": "商品が見つかりません",
-    "notFoundBody": "リンクが変更されたか、販売が終了した商品の可能性があります。",
-    "backToShop": "ショップに戻る",
-    "selectOption": "オプションを選択",
-    "soldout": "完売",
-    "addToBag": "カートに入れる",
-    "buyNow": "今すぐ購入",
-    "added": "カートに入れました",
-    "viewCart": "カートを見る",
-    "off": "OFF"
-  },
-  "brands": {
-    "meta": "取り扱いブランド",
-    "loading": "読み込み中",
-    "error": "しばらくしてからもう一度お試しください",
-    "empty": "登録されたブランドがありません",
-    "viewProducts": "商品を見る",
-    "productsMeta": "このブランドの商品",
-    "noProducts": "このブランドの商品はまだありません"
   }
 }

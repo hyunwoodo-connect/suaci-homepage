@@ -148,15 +148,6 @@
     "labelPlaceholder": "home, office …",
     "submitAdd": "add"
   },
-  "cart": {
-    "meta": "one is enough, but",
-    "needLogin": "sign in required",
-    "empty": "nothing here yet",
-    "continueShopping": "continue shopping",
-    "remove": "remove",
-    "total": "total",
-    "checkout": "place order"
-  },
   "checkout": {
     "meta": "one last step",
     "emptyCart": "your cart is empty",
@@ -267,37 +258,5 @@
       "OVER_REFUND": "that exceeds the refundable amount",
       "default": "we couldn't process your request"
     }
-  },
-  "shop": {
-    "meta": "curated by suaci",
-    "loading": "loading",
-    "error": "please try again in a moment",
-    "empty": "no products yet",
-    "loadMore": "load more",
-    "soldout": "sold out",
-    "view": "view"
-  },
-  "product": {
-    "loading": "loading",
-    "error": "please try again in a moment",
-    "notFound": "product not found",
-    "notFoundBody": "the link may have changed or the product is no longer sold.",
-    "backToShop": "back to shop",
-    "selectOption": "select option",
-    "soldout": "sold out",
-    "addToBag": "add to bag",
-    "buyNow": "buy now",
-    "added": "added to bag",
-    "viewCart": "view cart",
-    "off": "off"
-  },
-  "brands": {
-    "meta": "brands we carry",
-    "loading": "loading",
-    "error": "please try again in a moment",
-    "empty": "no brands yet",
-    "viewProducts": "view products",
-    "productsMeta": "products from this brand",
-    "noProducts": "no products from this brand yet"
   }
 }
