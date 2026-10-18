@@ -2,14 +2,14 @@
 
 ## Build / Lint / Test Commands
 
-| Command | Description |
-|---------|-------------|
-| `pnpm install` | Install dependencies |
-| `pnpm dev` | Start dev server (Next.js 16) |
-| `pnpm build` | Production build |
-| `pnpm lint` | Run ESLint (eslint-config-next with core-web-vitals + typescript) |
-| `npx tsc --noEmit` | TypeScript type check (strict mode) |
-| `pnpm test` | Vitest (jsdom). Node 24 required — see `.nvmrc` |
+| Command            | Description                                                       |
+| ------------------ | ----------------------------------------------------------------- |
+| `pnpm install`     | Install dependencies                                              |
+| `pnpm dev`         | Start dev server (Next.js 16)                                     |
+| `pnpm build`       | Production build                                                  |
+| `pnpm lint`        | Run ESLint (eslint-config-next with core-web-vitals + typescript) |
+| `npx tsc --noEmit` | TypeScript type check (strict mode)                               |
+| `pnpm test`        | Vitest (jsdom). Node 24 required — see `.nvmrc`                   |
 
 CI (`.github/workflows/ci.yml`) runs lint → tsc → test → build on every PR and push to main.
 
@@ -93,18 +93,18 @@ Use `import type { ... } from "..."` for type-only imports (never inline `type`)
 
 ### Naming Conventions
 
-| Category | Convention | Example |
-|----------|-----------|---------|
-| Component files | PascalCase `.tsx` | `ProductCard.tsx` |
-| Non-component files | camelCase `.ts` | `useCarousel.ts`, `format.ts` |
-| Directories | lowercase, single word | `sections/`, `hooks/`, `utils/` |
-| Components | PascalCase | `ResultCard`, `ScoreGauge` |
-| Functions | camelCase | `handleCapture`, `formatPrice` |
-| Hooks | `use` prefix | `useCarousel` |
-| Constants (exported) | UPPER_SNAKE_CASE | `SITE`, `LOADING_MESSAGES` |
-| Interfaces | PascalCase, no `I` prefix | `Product`, `CameraProps` |
-| Props interfaces | `ComponentNameProps` | `ResultCardProps`, `ShareButtonsProps` |
-| Types (aliases) | PascalCase | `Locale`, `Phase` |
+| Category             | Convention                | Example                                |
+| -------------------- | ------------------------- | -------------------------------------- |
+| Component files      | PascalCase `.tsx`         | `ProductCard.tsx`                      |
+| Non-component files  | camelCase `.ts`           | `useCarousel.ts`, `format.ts`          |
+| Directories          | lowercase, single word    | `sections/`, `hooks/`, `utils/`        |
+| Components           | PascalCase                | `ResultCard`, `ScoreGauge`             |
+| Functions            | camelCase                 | `handleCapture`, `formatPrice`         |
+| Hooks                | `use` prefix              | `useCarousel`                          |
+| Constants (exported) | UPPER_SNAKE_CASE          | `SITE`, `LOADING_MESSAGES`             |
+| Interfaces           | PascalCase, no `I` prefix | `Product`, `CameraProps`               |
+| Props interfaces     | `ComponentNameProps`      | `ResultCardProps`, `ShareButtonsProps` |
+| Types (aliases)      | PascalCase                | `Locale`, `Phase`                      |
 
 ### Types
 
@@ -124,7 +124,7 @@ Use `import type { ... } from "..."` for type-only imports (never inline `type`)
 ### Styling
 
 - **Tailwind CSS v4 utility classes only** — no CSS modules, no styled-components
-- Template literals for conditional classes: `` className={`text-sm ${isDark ? "text-foreground" : "text-white"}`} ``
+- Template literals for conditional classes: ``className={`text-sm ${isDark ? "text-foreground" : "text-white"}`}``
 - Shared padding via `SECTION_PADDING_X` constant from `@/constants/site`
 - Custom theme tokens defined in `src/app/globals.css` (`--color-*`, `--font-*`)
 - Responsive: use Tailwind breakpoint prefixes (`sm:`, `md:`, `lg:`, `xl:`)
@@ -151,4 +151,3 @@ Use `import type { ... } from "..."` for type-only imports (never inline `type`)
 - Client: same `useTranslations("namespace")` hook
 - Messages in `src/messages/{locale}.json`, organized by namespace
 - Locale prefix strategy: `"as-needed"` (English has no prefix)
-

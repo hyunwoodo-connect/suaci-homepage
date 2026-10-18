@@ -35,13 +35,18 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <PageShell title={<>Reset <em>password</em></>} meta={t("forgotSub")}>
+    <PageShell
+      title={
+        <>
+          Reset <em>password</em>
+        </>
+      }
+      meta={t("forgotSub")}
+    >
       <div className="max-w-[440px]">
         {sent ? (
           <div className="flex flex-col gap-[18px]">
-            <p className="text-[14px] leading-[1.7] text-ink m-0">
-              {t("forgotSent", { email })}
-            </p>
+            <p className="text-[14px] leading-[1.7] text-ink m-0">{t("forgotSent", { email })}</p>
             <Link
               href={{ pathname: "/password/reset", query: { email } }}
               className="inline-flex items-center justify-center gap-[8px] px-[22px] py-[13px] font-sans text-[12px] bg-ink text-paper border border-line transition-colors hover:bg-paper hover:text-ink"
@@ -66,18 +71,17 @@ export default function ForgotPasswordPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
-              {error && (
-                <p className="font-sans text-[11px] text-[#c0392b] m-0">
-                  ✕ {error}
-                </p>
-              )}
+              {error && <p className="font-sans text-[11px] text-[#c0392b] m-0">✕ {error}</p>}
               <Button type="submit" disabled={busy} className="mt-[6px]">
                 {busy ? "..." : t("submitForgot")}
               </Button>
             </form>
 
             <p className="mt-[24px] font-sans text-[11px] text-grey">
-              <Link href="/login" className="text-ink underline underline-offset-[3px] hover:text-lime">
+              <Link
+                href="/login"
+                className="text-ink underline underline-offset-[3px] hover:text-lime"
+              >
                 {t("backToLogin")} →
               </Link>
             </p>

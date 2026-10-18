@@ -95,11 +95,28 @@ interface ReferenceFigureProps {
   className: string;
 }
 
-function ReferenceFigure({ src, alt, w, h, aspect, sizes, tag, caption, className }: ReferenceFigureProps) {
+function ReferenceFigure({
+  src,
+  alt,
+  w,
+  h,
+  aspect,
+  sizes,
+  tag,
+  caption,
+  className,
+}: ReferenceFigureProps) {
   return (
     <figure className={`m-0 flex flex-col gap-[10px] ${className}`}>
       <div className="relative bg-studio">
-        <Image src={src} alt={alt} width={w} height={h} sizes={sizes} className={`${aspect} h-auto w-full object-cover`} />
+        <Image
+          src={src}
+          alt={alt}
+          width={w}
+          height={h}
+          sizes={sizes}
+          className={`${aspect} h-auto w-full object-cover`}
+        />
         <figcaption className="absolute left-[12px] top-[12px] bg-ink px-[8px] py-[4px] text-[11px] text-paper">
           {tag}
         </figcaption>
@@ -114,7 +131,10 @@ function Detail({ title, body }: { title: string; body: string }) {
     <details className="home-details border-b border-line">
       <summary className="flex items-center justify-between py-[16px] text-[14px]">
         {title}
-        <span aria-hidden="true" className="home-details__icon text-[18px] leading-none text-grey transition-transform duration-300">
+        <span
+          aria-hidden="true"
+          className="home-details__icon text-[18px] leading-none text-grey transition-transform duration-300"
+        >
           +
         </span>
       </summary>

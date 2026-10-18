@@ -68,7 +68,14 @@ export default function CheckoutPage() {
   // 로그인 상태 확인 중 — 스피너 대체(마이크로 로딩 라벨).
   if (status === "loading") {
     return (
-      <PageShell title={<>Check <em>out</em></>} meta="">
+      <PageShell
+        title={
+          <>
+            Check <em>out</em>
+          </>
+        }
+        meta=""
+      >
         <p className="font-sans text-[11px] text-grey">…</p>
       </PageShell>
     );
@@ -77,7 +84,14 @@ export default function CheckoutPage() {
   // 리다이렉트 진행 중(anonymous) — 깜빡임 방지용 빈 셸.
   if (status !== "authenticated") {
     return (
-      <PageShell title={<>Check <em>out</em></>} meta="">
+      <PageShell
+        title={
+          <>
+            Check <em>out</em>
+          </>
+        }
+        meta=""
+      >
         <p className="font-sans text-[11px] text-grey">…</p>
       </PageShell>
     );
@@ -88,11 +102,16 @@ export default function CheckoutPage() {
   // 장바구니 비어 있음.
   if (items.length === 0) {
     return (
-      <PageShell title={<>Check <em>out</em></>} meta={t("meta")}>
+      <PageShell
+        title={
+          <>
+            Check <em>out</em>
+          </>
+        }
+        meta={t("meta")}
+      >
         <div className="flex flex-col items-start gap-[16px] max-w-[860px]">
-          <p className="font-sans text-[11px] text-grey m-0">
-            {t("emptyCart")}
-          </p>
+          <p className="font-sans text-[11px] text-grey m-0">{t("emptyCart")}</p>
           <Link
             href="/"
             className="font-sans text-[12px] text-ink underline underline-offset-[3px] hover:text-lime"
@@ -142,7 +161,14 @@ export default function CheckoutPage() {
   const freeShipping = subtotal >= FREE_SHIPPING_OVER;
 
   return (
-    <PageShell title={<>Check <em>out</em></>} meta={t("meta")}>
+    <PageShell
+      title={
+        <>
+          Check <em>out</em>
+        </>
+      }
+      meta={t("meta")}
+    >
       <div className="max-w-[860px] flex flex-col gap-[36px]">
         {/* ── 배송지 ── */}
         <section>
@@ -152,9 +178,7 @@ export default function CheckoutPage() {
             <p className="font-sans text-[11px] text-grey m-0">…</p>
           ) : addresses.length === 0 ? (
             <div className="flex flex-col items-start gap-[14px] border border-line p-[16px]">
-              <p className="font-sans text-[11px] text-grey m-0">
-                {t("noAddress")}
-              </p>
+              <p className="font-sans text-[11px] text-grey m-0">{t("noAddress")}</p>
               <Link
                 href="/account/addresses"
                 className="font-sans text-[12px] text-ink underline underline-offset-[3px] hover:text-lime"
@@ -266,19 +290,13 @@ export default function CheckoutPage() {
               <span className="font-sans text-[10px]">{t("grandTotal")}</span>
               <b className="font-sans text-[20px] num">{formatKRW(subtotal - discount)}</b>
             </div>
-            <p className="font-sans text-[9px] text-grey mt-[8px] mb-0">
-              {t("finalTotalNote")}
-            </p>
+            <p className="font-sans text-[9px] text-grey mt-[8px] mb-0">{t("finalTotalNote")}</p>
           </div>
         </section>
 
         {/* ── 결제 안내 + CTA ── */}
         <section>
-          {note && (
-            <p className="font-sans text-[11px] text-[#c0392b] mb-[14px]">
-              ✕ {note}
-            </p>
-          )}
+          {note && <p className="font-sans text-[11px] text-[#c0392b] mb-[14px]">✕ {note}</p>}
           <Button
             onClick={placeOrder}
             disabled={busy || addresses.length === 0}
@@ -298,18 +316,16 @@ export default function CheckoutPage() {
 /* ─── 하위 컴포넌트 ─────────────────────────── */
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="font-sans text-[11px] text-grey mt-0 mb-[14px]">
-      {children}
-    </h2>
-  );
+  return <h2 className="font-sans text-[11px] text-grey mt-0 mb-[14px]">{children}</h2>;
 }
 
 function TotalRow({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
   return (
     <div className="flex justify-between items-baseline py-[3px]">
       <span className="font-sans text-[10px] text-grey">{label}</span>
-      <span className={`font-sans text-[12px] num ${muted ? "text-grey" : "text-ink"}`}>{value}</span>
+      <span className={`font-sans text-[12px] num ${muted ? "text-grey" : "text-ink"}`}>
+        {value}
+      </span>
     </div>
   );
 }

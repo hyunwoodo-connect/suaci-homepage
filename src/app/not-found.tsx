@@ -15,9 +15,7 @@ export default function NotFound() {
       >
         <div style={{ textAlign: "center" }}>
           <h1 style={{ fontSize: "4rem", fontWeight: 400, margin: 0 }}>404</h1>
-          <p style={{ marginTop: "1rem", color: "#666" }}>
-            page not found.
-          </p>
+          <p style={{ marginTop: "1rem", color: "#666" }}>page not found.</p>
           <Link href="/" style={{ color: "#111", marginTop: "1.5rem", display: "inline-block" }}>
             back to suaci
           </Link>

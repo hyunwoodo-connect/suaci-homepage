@@ -1,30 +1,30 @@
-import type { Address, CartLine, Claim, Order } from '@/types'
+import type { Address, CartLine, Claim, Order } from "@/types";
 
-const hasWindow = (): boolean => typeof window !== 'undefined'
+const hasWindow = (): boolean => typeof window !== "undefined";
 
 export const MOCK_KEYS = {
-  cart: 'suaci.mock.cart',
-  addresses: 'suaci.mock.addresses',
-  orders: 'suaci.mock.orders',
-  claims: 'suaci.mock.claims',
+  cart: "suaci.mock.cart",
+  addresses: "suaci.mock.addresses",
+  orders: "suaci.mock.orders",
+  claims: "suaci.mock.claims",
   // Idempotency-key → resource-id map. Intentionally unbounded (dev-only mock; no eviction/TTL).
-  idem: 'suaci.mock.idem',
-  refunded: 'suaci.mock.refunded',
-} as const
+  idem: "suaci.mock.idem",
+  refunded: "suaci.mock.refunded",
+} as const;
 
 export function read<T>(key: string, fallback: T): T {
-  if (!hasWindow()) return fallback
-  const raw = localStorage.getItem(key)
-  if (!raw) return fallback
+  if (!hasWindow()) return fallback;
+  const raw = localStorage.getItem(key);
+  if (!raw) return fallback;
   try {
-    return JSON.parse(raw) as T
+    return JSON.parse(raw) as T;
   } catch {
-    return fallback
+    return fallback;
   }
 }
 
 export function write<T>(key: string, value: T): void {
-  if (hasWindow()) localStorage.setItem(key, JSON.stringify(value))
+  if (hasWindow()) localStorage.setItem(key, JSON.stringify(value));
 }
 
 export const store = {
@@ -40,4 +40,4 @@ export const store = {
   writeIdem: (v: Record<string, string>): void => write(MOCK_KEYS.idem, v),
   readRefunded: (): Record<string, number> => read<Record<string, number>>(MOCK_KEYS.refunded, {}),
   writeRefunded: (v: Record<string, number>): void => write(MOCK_KEYS.refunded, v),
-}
+};

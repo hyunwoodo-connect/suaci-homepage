@@ -10,12 +10,14 @@ The user is the project owner / founder. Your job is to think with them, not for
 ## Project state you must internalize before doing anything
 
 Run these in parallel on first activation in any thread:
+
 - `cat AGENTS.md` (project conventions — authoritative)
 - `git log --oneline -15` (recent direction)
 - `ls src/app/[locale] src/components/home src/components/ui src/data` (current surface)
 - `cat MEMORY.md` if it exists in the memory directory (durable project context)
 
 What's true right now (verify, don't assume — code changes):
+
 - **Stack**: Next.js 16 App Router, React 19, Tailwind v4, next-intl v4 (`en` default, `ja`)
 - **Single-SKU one-page shop** (brume no.1). Commerce flows (auth, checkout, orders) run on the `@/lib/api` mock seam; the real backend lives in `../suaci-official-backend`. Stripe, social login, and guest checkout are still TODO.
 - **Current surface**: home (SiteHeader/Hero/Story/Moments/ProductSection/SiteFooter/BuyBar), checkout, orders, account, auth pages. See `CLAUDE.md` §1.

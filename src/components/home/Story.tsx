@@ -27,8 +27,7 @@ export default function Story() {
             <p className="m-0">{t("body2")}</p>
           </div>
           <p className="m-0 text-[14px] font-medium text-ink">
-            {t("take")}{" "}
-            <s className="font-normal text-[#9a9a96] decoration-1">{t("aBreak")}</s>{" "}
+            {t("take")} <s className="font-normal text-[#9a9a96] decoration-1">{t("aBreak")}</s>{" "}
             {t("suaci")}
           </p>
         </div>

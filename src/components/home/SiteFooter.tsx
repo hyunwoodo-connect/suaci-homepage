@@ -20,19 +20,33 @@ export default function SiteFooter() {
             {tp("title")} <span className="text-grey">{tp("product")}</span>
           </p>
           <nav className="flex flex-wrap gap-x-[24px] gap-y-[8px] text-[13px]">
-            <Link href="/orders" className="hover:text-grey">{t("orderLookup")}</Link>
+            <Link href="/orders" className="hover:text-grey">
+              {t("orderLookup")}
+            </Link>
             {/* TODO: 정책·연락처 페이지 */}
-            <a href="#" className="hover:text-grey">{t("shipping")}</a>
-            <a href="#" className="hover:text-grey">{t("contact")}</a>
-            <a href="#" className="hover:text-grey">{t("instagram")}</a>
+            <a href="#" className="hover:text-grey">
+              {t("shipping")}
+            </a>
+            <a href="#" className="hover:text-grey">
+              {t("contact")}
+            </a>
+            <a href="#" className="hover:text-grey">
+              {t("instagram")}
+            </a>
           </nav>
         </div>
         <div className="flex flex-wrap items-start justify-between gap-[16px] text-[12px] text-grey">
           <p className="m-0">{t("legal")}</p>
           <nav className="flex flex-wrap gap-x-[20px] gap-y-[6px]">
-            <a href="#" className="hover:text-ink">{t("terms")}</a>
-            <a href="#" className="hover:text-ink">{t("privacy")}</a>
-            <a href="#" className="hover:text-ink">{t("tokushoho")}</a>
+            <a href="#" className="hover:text-ink">
+              {t("terms")}
+            </a>
+            <a href="#" className="hover:text-ink">
+              {t("privacy")}
+            </a>
+            <a href="#" className="hover:text-ink">
+              {t("tokushoho")}
+            </a>
             <span>{SITE.copyright}</span>
           </nav>
         </div>

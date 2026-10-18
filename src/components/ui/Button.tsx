@@ -21,7 +21,8 @@ const BASE =
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary: "bg-ink text-paper hover:bg-paper hover:text-ink border border-line",
   outline: "border border-line text-ink hover:bg-ink hover:text-lime",
-  danger: "border border-line text-[#c0392b] hover:bg-[#c0392b] hover:text-paper hover:border-[#c0392b]",
+  danger:
+    "border border-line text-[#c0392b] hover:bg-[#c0392b] hover:text-paper hover:border-[#c0392b]",
 };
 
 export default function Button({
@@ -31,10 +32,6 @@ export default function Button({
   ...rest
 }: ButtonProps) {
   return (
-    <button
-      type={type}
-      className={`${BASE} ${VARIANT_CLASSES[variant]} ${className}`}
-      {...rest}
-    />
+    <button type={type} className={`${BASE} ${VARIANT_CLASSES[variant]} ${className}`} {...rest} />
   );
 }

@@ -16,9 +16,7 @@ export default function InputField({
 }: InputFieldProps) {
   return (
     <div>
-      <label className="block font-sans text-[10px] text-grey mb-[6px]">
-        {label}
-      </label>
+      <label className="block font-sans text-[10px] text-grey mb-[6px]">{label}</label>
       <input
         type={type}
         className={`w-full border border-line bg-transparent px-[14px] py-[12px] font-sans text-[13px] text-ink outline-none focus:bg-paper transition-colors ${className}`}

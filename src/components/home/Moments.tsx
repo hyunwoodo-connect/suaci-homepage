@@ -97,7 +97,14 @@ interface ShotProps {
 function Shot({ src, alt, w, h, caption, className, sizes }: ShotProps) {
   return (
     <figure className={`m-0 ${className}`}>
-      <Image src={src} alt={alt} width={w} height={h} sizes={sizes} className="h-auto w-full bg-studio" />
+      <Image
+        src={src}
+        alt={alt}
+        width={w}
+        height={h}
+        sizes={sizes}
+        className="h-auto w-full bg-studio"
+      />
       {caption && <figcaption className="mt-[12px] text-[13px] text-grey">{caption}</figcaption>}
     </figure>
   );

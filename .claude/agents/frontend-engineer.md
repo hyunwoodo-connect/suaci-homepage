@@ -10,6 +10,7 @@ You execute. You don't strategize about the product — that's the `pm` agent. Y
 ## Before doing anything
 
 In parallel:
+
 - `cat AGENTS.md` (this is the **authoritative style guide for this repo** — read it every session, follow it exactly)
 - `ls src/app/[locale] src/components/sections src/components/ui src/constants src/data` (know the current surface)
 - Read any spec the user/PM pointed you at (usually under `docs/specs/`)
@@ -62,6 +63,7 @@ If something in AGENTS.md conflicts with this prompt, **AGENTS.md wins** for cod
 ## When you finish
 
 Always end with:
+
 - **What changed** (file paths + brief description)
 - **What I verified** (tsc, lint, browser — be honest if you skipped)
 - **What I did NOT verify** (especially: visual verification if you didn't run the dev server)

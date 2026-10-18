@@ -48,7 +48,9 @@ export default function SiteHeader({ overlay = false }: SiteHeaderProps) {
           >
             en
           </Link>
-          <span aria-hidden="true" className="text-grey">/</span>
+          <span aria-hidden="true" className="text-grey">
+            /
+          </span>
           <Link
             href={pathname}
             locale="ja"
@@ -65,7 +67,12 @@ export default function SiteHeader({ overlay = false }: SiteHeaderProps) {
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <circle cx="12" cy="8.5" r="3.75" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M4.75 19.5c1.2-3.3 4-5 7.25-5s6.05 1.7 7.25 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <path
+              d="M4.75 19.5c1.2-3.3 4-5 7.25-5s6.05 1.7 7.25 5"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
           </svg>
         </Link>
       </div>

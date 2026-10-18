@@ -50,7 +50,12 @@ export default function AddressesPage() {
         label: label || undefined,
         isDefault: items.length === 0,
       });
-      setRecipient(""); setPhone(""); setZipcode(""); setAddr1(""); setAddr2(""); setLabel("");
+      setRecipient("");
+      setPhone("");
+      setZipcode("");
+      setAddr1("");
+      setAddr2("");
+      setLabel("");
       await refresh();
     } finally {
       setBusy(false);
@@ -59,8 +64,18 @@ export default function AddressesPage() {
 
   if (status !== "authenticated") {
     return (
-      <PageShell title={<>Ship <em>to</em></>} meta="">
-        <Link href="/login" className="font-sans text-[12px] text-ink underline underline-offset-[3px]">
+      <PageShell
+        title={
+          <>
+            Ship <em>to</em>
+          </>
+        }
+        meta=""
+      >
+        <Link
+          href="/login"
+          className="font-sans text-[12px] text-ink underline underline-offset-[3px]"
+        >
           {t("needLogin")} →
         </Link>
       </PageShell>
@@ -68,7 +83,14 @@ export default function AddressesPage() {
   }
 
   return (
-    <PageShell title={<>Ship <em>to</em></>} meta={t("meta")}>
+    <PageShell
+      title={
+        <>
+          Ship <em>to</em>
+        </>
+      }
+      meta={t("meta")}
+    >
       <div className="grid grid-cols-[1.2fr_1fr] gap-[40px] max-lg:grid-cols-1 max-w-[1040px]">
         {/* 목록 */}
         <div>
@@ -80,11 +102,7 @@ export default function AddressesPage() {
               <li key={a.addressId} className="border border-line p-[16px]">
                 <div className="flex items-center gap-[10px] mb-[8px]">
                   <b className="font-sans text-[15px]">{a.recipient}</b>
-                  {a.label && (
-                    <span className="font-sans text-[10px] text-grey">
-                      {a.label}
-                    </span>
-                  )}
+                  {a.label && <span className="font-sans text-[10px] text-grey">{a.label}</span>}
                   {a.isDefault && (
                     <span className="font-sans text-[10px] bg-ink text-lime px-[7px] py-[2px]">
                       {t("defaultBadge")}
@@ -127,24 +145,53 @@ export default function AddressesPage() {
 
         {/* 추가 폼 */}
         <form onSubmit={handleAdd} className="flex flex-col gap-[14px]">
-          <h3 className="font-sans text-[11px] text-grey m-0">
-            {t("addTitle")}
-          </h3>
-          <InputField label={t("recipient")} required value={recipient} onChange={(e) => setRecipient(e.target.value)} />
-          <InputField label={t("phone")} required inputMode="tel" placeholder="010-0000-0000" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <h3 className="font-sans text-[11px] text-grey m-0">{t("addTitle")}</h3>
+          <InputField
+            label={t("recipient")}
+            required
+            value={recipient}
+            onChange={(e) => setRecipient(e.target.value)}
+          />
+          <InputField
+            label={t("phone")}
+            required
+            inputMode="tel"
+            placeholder="010-0000-0000"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
           <div className="grid grid-cols-[120px_1fr] gap-[10px]">
-            <InputField label={t("zipcode")} required inputMode="numeric" value={zipcode} onChange={(e) => setZipcode(e.target.value)} />
-            <InputField label={t("addr1")} required value={addr1} onChange={(e) => setAddr1(e.target.value)} />
+            <InputField
+              label={t("zipcode")}
+              required
+              inputMode="numeric"
+              value={zipcode}
+              onChange={(e) => setZipcode(e.target.value)}
+            />
+            <InputField
+              label={t("addr1")}
+              required
+              value={addr1}
+              onChange={(e) => setAddr1(e.target.value)}
+            />
           </div>
           <InputField label={t("addr2")} value={addr2} onChange={(e) => setAddr2(e.target.value)} />
-          <InputField label={t("label")} placeholder={t("labelPlaceholder")} value={label} onChange={(e) => setLabel(e.target.value)} />
+          <InputField
+            label={t("label")}
+            placeholder={t("labelPlaceholder")}
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+          />
           <Button type="submit" disabled={busy} className="mt-[4px]">
             {busy ? "..." : t("submitAdd")}
           </Button>
         </form>
       </div>
 
-      <Link href="/account" className="inline-block mt-[36px] font-sans text-[11px] text-grey hover:text-ink">
+      <Link
+        href="/account"
+        className="inline-block mt-[36px] font-sans text-[11px] text-grey hover:text-ink"
+      >
         ← Account
       </Link>
     </PageShell>

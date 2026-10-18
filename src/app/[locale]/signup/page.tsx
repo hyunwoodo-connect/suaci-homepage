@@ -71,7 +71,11 @@ export default function SignupPage() {
 
   return (
     <PageShell
-      title={<>Join <em>suaci</em></>}
+      title={
+        <>
+          Join <em>suaci</em>
+        </>
+      }
       meta={step === "form" ? t("signupSub") : t("confirmSub")}
     >
       <div className="max-w-[440px]">
@@ -105,13 +109,16 @@ export default function SignupPage() {
             />
 
             <fieldset className="border border-line p-[16px] m-0 flex flex-col gap-[10px]">
-              <legend className="font-sans text-[10px] text-grey px-[6px]">
-                {t("consents")}
-              </legend>
+              <legend className="font-sans text-[10px] text-grey px-[6px]">{t("consents")}</legend>
               <Consent checked={terms} onChange={setTerms} label={t("consentTerms")} />
               <Consent checked={privacy} onChange={setPrivacy} label={t("consentPrivacy")} />
               <Consent checked={age} onChange={setAge} label={t("consentAge")} />
-              <Consent checked={marketing} onChange={setMarketing} label={t("consentMarketing")} optional />
+              <Consent
+                checked={marketing}
+                onChange={setMarketing}
+                label={t("consentMarketing")}
+                optional
+              />
             </fieldset>
 
             {error && <ErrorNote text={error} />}
@@ -121,9 +128,7 @@ export default function SignupPage() {
           </form>
         ) : (
           <form onSubmit={handleConfirm} className="flex flex-col gap-[18px]">
-            <p className="text-[14px] text-ink m-0">
-              {t("confirmBody", { email })}
-            </p>
+            <p className="text-[14px] text-ink m-0">{t("confirmBody", { email })}</p>
             <InputField
               label={t("codeLabel")}
               required
@@ -164,7 +169,9 @@ function Consent({
   optional?: boolean;
 }) {
   return (
-    <label className={`flex items-center gap-[10px] text-[13px] cursor-pointer ${optional ? "text-grey" : "text-ink"}`}>
+    <label
+      className={`flex items-center gap-[10px] text-[13px] cursor-pointer ${optional ? "text-grey" : "text-ink"}`}
+    >
       <input
         type="checkbox"
         checked={checked}
@@ -177,9 +184,5 @@ function Consent({
 }
 
 function ErrorNote({ text }: { text: string }) {
-  return (
-    <p className="font-sans text-[11px] text-[#c0392b] m-0">
-      ✕ {text}
-    </p>
-  );
+  return <p className="font-sans text-[11px] text-[#c0392b] m-0">✕ {text}</p>;
 }

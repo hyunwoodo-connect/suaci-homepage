@@ -52,13 +52,13 @@
 
 ## 7. 빠른 참조
 
-| 찾고 싶은 것 | 어디에 있나 |
-|---|---|
-| 코드 스타일·스택·네이밍 | `AGENTS.md` |
-| 브랜드·비주얼·남은 일 | `docs/project-context.md` |
-| 카피 (en/ja) | `src/messages/{en,ja}.json` |
-| 제품 데이터 | 홈 상수 `src/constants/product.ts` · seam 픽스처 `src/data/fixtures/index.ts` |
-| API seam | `src/lib/api/` · DTO 타입 `src/types/` · 포맷 `src/lib/format.ts` |
-| 인증/카트 컨텍스트 | `src/lib/auth/`, `src/lib/cart/` |
-| 에이전트 | `.claude/agents/{pm,frontend-engineer}.md` |
-| 디자인 레퍼런스 | `docs/references/` |
+| 찾고 싶은 것            | 어디에 있나                                                                   |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| 코드 스타일·스택·네이밍 | `AGENTS.md`                                                                   |
+| 브랜드·비주얼·남은 일   | `docs/project-context.md`                                                     |
+| 카피 (en/ja)            | `src/messages/{en,ja}.json`                                                   |
+| 제품 데이터             | 홈 상수 `src/constants/product.ts` · seam 픽스처 `src/data/fixtures/index.ts` |
+| API seam                | `src/lib/api/` · DTO 타입 `src/types/` · 포맷 `src/lib/format.ts`             |
+| 인증/카트 컨텍스트      | `src/lib/auth/`, `src/lib/cart/`                                              |
+| 에이전트                | `.claude/agents/{pm,frontend-engineer}.md`                                    |
+| 디자인 레퍼런스         | `docs/references/`                                                            |

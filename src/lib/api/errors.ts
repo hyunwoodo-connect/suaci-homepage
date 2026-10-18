@@ -5,7 +5,7 @@ export class ApiClientError extends Error {
     readonly status: number,
     readonly field?: string,
   ) {
-    super(message)
-    this.name = 'ApiClientError'
+    super(message);
+    this.name = "ApiClientError";
   }
 }

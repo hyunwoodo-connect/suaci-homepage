@@ -16,7 +16,14 @@ export default function AccountPage() {
 
   if (status === "loading") {
     return (
-      <PageShell title={<>My <em>account</em></>} meta="">
+      <PageShell
+        title={
+          <>
+            My <em>account</em>
+          </>
+        }
+        meta=""
+      >
         <p className="font-sans text-[11px] text-grey">…</p>
       </PageShell>
     );
@@ -24,7 +31,14 @@ export default function AccountPage() {
 
   if (status !== "authenticated" || !user) {
     return (
-      <PageShell title={<>My <em>account</em></>} meta={t("needLogin")}>
+      <PageShell
+        title={
+          <>
+            My <em>account</em>
+          </>
+        }
+        meta={t("needLogin")}
+      >
         <div className="max-w-[440px] flex flex-col gap-[18px]">
           <p className="text-[15px] text-ink m-0">{t("needLogin")}</p>
           <Link href="/login">
@@ -36,7 +50,14 @@ export default function AccountPage() {
   }
 
   return (
-    <PageShell title={<>My <em>account</em></>} meta={user.email}>
+    <PageShell
+      title={
+        <>
+          My <em>account</em>
+        </>
+      }
+      meta={user.email}
+    >
       <div className="max-w-[720px]">
         <div className="border border-line mb-[28px]">
           <SpecRow label={t("name")} value={user.name} />
@@ -69,10 +90,10 @@ export default function AccountPage() {
 
 function SpecRow({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
   return (
-    <div className={`flex items-baseline gap-[16px] px-[16px] py-[13px] ${last ? "" : "border-b border-line"}`}>
-      <span className="font-sans text-[10px] text-grey w-[120px] shrink-0">
-        {label}
-      </span>
+    <div
+      className={`flex items-baseline gap-[16px] px-[16px] py-[13px] ${last ? "" : "border-b border-line"}`}
+    >
+      <span className="font-sans text-[10px] text-grey w-[120px] shrink-0">{label}</span>
       <b className="font-sans text-[15px]">{value}</b>
     </div>
   );

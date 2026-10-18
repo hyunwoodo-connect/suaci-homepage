@@ -126,10 +126,19 @@ function BuySheet({ onClose }: { onClose: () => void }) {
         tabIndex={-1}
         className="relative flex w-full max-w-[480px] flex-col gap-[20px] rounded-t-[20px] bg-paper px-[20px] pb-[28px] pt-[12px] outline-none md:max-w-[420px] md:rounded-none md:px-[32px] md:pt-[32px]"
       >
-        <span aria-hidden="true" className="mx-auto h-[4px] w-[36px] rounded-full bg-line md:hidden" />
+        <span
+          aria-hidden="true"
+          className="mx-auto h-[4px] w-[36px] rounded-full bg-line md:hidden"
+        />
         <div className="flex items-center justify-between">
-          <h2 id="buy-title" className="m-0 text-[16px] font-medium">{t("title")}</h2>
-          <button type="button" onClick={onClose} className="cursor-pointer text-[13px] text-grey hover:text-ink">
+          <h2 id="buy-title" className="m-0 text-[16px] font-medium">
+            {t("title")}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="cursor-pointer text-[13px] text-grey hover:text-ink"
+          >
             {t("close")}
           </button>
         </div>
@@ -141,7 +150,11 @@ function BuySheet({ onClose }: { onClose: () => void }) {
               {PRODUCT.volume} · {formatKRW(PRODUCT.price)}
             </p>
           </div>
-          <div role="group" aria-label={t("quantity")} className="flex items-center rounded-full border border-line">
+          <div
+            role="group"
+            aria-label={t("quantity")}
+            className="flex items-center rounded-full border border-line"
+          >
             <button
               type="button"
               aria-label={t("decrease")}
@@ -151,7 +164,9 @@ function BuySheet({ onClose }: { onClose: () => void }) {
             >
               −
             </button>
-            <span className="num w-[24px] text-center text-[15px] font-medium" aria-live="polite">{qty}</span>
+            <span className="num w-[24px] text-center text-[15px] font-medium" aria-live="polite">
+              {qty}
+            </span>
             <button
               type="button"
               aria-label={t("increase")}
@@ -174,8 +189,19 @@ function BuySheet({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="flex flex-col gap-[10px]">
-          <PayButton onClick={() => pay("applePay")} busy={busy === "applePay"} label={t("applePay")} busyLabel={t("processing")} dark />
-          <PayButton onClick={() => pay("googlePay")} busy={busy === "googlePay"} label={t("googlePay")} busyLabel={t("processing")} />
+          <PayButton
+            onClick={() => pay("applePay")}
+            busy={busy === "applePay"}
+            label={t("applePay")}
+            busyLabel={t("processing")}
+            dark
+          />
+          <PayButton
+            onClick={() => pay("googlePay")}
+            busy={busy === "googlePay"}
+            label={t("googlePay")}
+            busyLabel={t("processing")}
+          />
           <button
             type="button"
             onClick={() => pay("card")}
@@ -185,7 +211,11 @@ function BuySheet({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {note && <p role="status" className="m-0 text-[13px] text-ink">{note}</p>}
+        {note && (
+          <p role="status" className="m-0 text-[13px] text-ink">
+            {note}
+          </p>
+        )}
         {status !== "authenticated" && !note && (
           <p className="m-0 text-center text-[12px] text-grey">{t("signInHint")}</p>
         )}

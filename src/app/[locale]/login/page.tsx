@@ -51,7 +51,14 @@ function LoginForm() {
   };
 
   return (
-    <PageShell title={<>Sign <em>in</em></>} meta={t("loginSub")}>
+    <PageShell
+      title={
+        <>
+          Sign <em>in</em>
+        </>
+      }
+      meta={t("loginSub")}
+    >
       <div className="max-w-[440px]">
         {/* 소셜 로그인 — UI만. TODO(백엔드): Cognito federated(Google/Apple/LINE) 연동 */}
         <div className="mb-[28px] flex flex-col gap-[10px]">
@@ -86,11 +93,7 @@ function LoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          {error && (
-            <p className="font-sans text-[11px] text-[#c0392b] m-0">
-              ✕ {error}
-            </p>
-          )}
+          {error && <p className="font-sans text-[11px] text-[#c0392b] m-0">✕ {error}</p>}
           <Button type="submit" disabled={busy} className="mt-[6px]">
             {busy ? "..." : t("submitLogin")}
           </Button>
@@ -104,7 +107,10 @@ function LoginForm() {
 
         <p className="mt-[24px] font-sans text-[11px] text-grey">
           {t("noAccount")}{" "}
-          <Link href="/signup" className="text-ink underline underline-offset-[3px] hover:text-lime">
+          <Link
+            href="/signup"
+            className="text-ink underline underline-offset-[3px] hover:text-lime"
+          >
             {t("goSignup")} →
           </Link>
         </p>

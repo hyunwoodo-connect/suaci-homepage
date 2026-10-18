@@ -1,26 +1,59 @@
-import type { Metadata, OrderStatus, PaymentStatus, FulfillmentStatus } from './common'
+import type { Metadata, OrderStatus, PaymentStatus, FulfillmentStatus } from "./common";
 
 export interface OrderTotals {
-  itemsSubtotal: number; discountTotal: number; shippingFee: number
-  taxTotal: number; grandTotal: number
+  itemsSubtotal: number;
+  discountTotal: number;
+  shippingFee: number;
+  taxTotal: number;
+  grandTotal: number;
 }
 export interface OrderItem {
-  lineId: string; productId: string; variantId: string; sku: string
-  productName: string; optionName: string; thumbnail?: string
-  unitPrice: number; compareAtPrice: number; quantity: number; lineSubtotal: number
+  lineId: string;
+  productId: string;
+  variantId: string;
+  sku: string;
+  productName: string;
+  optionName: string;
+  thumbnail?: string;
+  unitPrice: number;
+  compareAtPrice: number;
+  quantity: number;
+  lineSubtotal: number;
 }
 export interface ShippingAddressSnapshot {
-  recipient: string; phone: string; zipcode: string; addr1: string; addr2?: string
+  recipient: string;
+  phone: string;
+  zipcode: string;
+  addr1: string;
+  addr2?: string;
 }
 export interface Order {
-  orderId: string; orderNo: string
-  status: OrderStatus; paymentStatus: PaymentStatus; fulfillmentStatus: FulfillmentStatus
-  totals: OrderTotals; shippingAddress: ShippingAddressSnapshot; items: OrderItem[]
-  createdAt: number; createdDtm: string
+  orderId: string;
+  orderNo: string;
+  status: OrderStatus;
+  paymentStatus: PaymentStatus;
+  fulfillmentStatus: FulfillmentStatus;
+  totals: OrderTotals;
+  shippingAddress: ShippingAddressSnapshot;
+  items: OrderItem[];
+  createdAt: number;
+  createdDtm: string;
 }
 export interface OrderSummary {
-  orderId: string; orderNo: string; status: OrderStatus; paymentStatus: PaymentStatus
-  grandTotal: number; createdAt: number; createdDtm: string
+  orderId: string;
+  orderNo: string;
+  status: OrderStatus;
+  paymentStatus: PaymentStatus;
+  grandTotal: number;
+  createdAt: number;
+  createdDtm: string;
 }
-export interface CreateOrderRequest { addressId: string; idempotencyKey: string; metadata?: Metadata }
-export interface ConfirmPaymentRequest { paymentKey: string; amount: number }
+export interface CreateOrderRequest {
+  addressId: string;
+  idempotencyKey: string;
+  metadata?: Metadata;
+}
+export interface ConfirmPaymentRequest {
+  paymentKey: string;
+  amount: number;
+}

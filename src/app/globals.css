@@ -9,14 +9,13 @@
 
 @theme inline {
   /* ── v5 팔레트 ── */
-  --color-lime: #738136;      /* suaci lime — 키컬러 (소파 그린) */
+  --color-lime: #738136; /* suaci lime — 키컬러 (소파 그린) */
   --color-ink: #111111;
   --color-paper: #ffffff;
-  --color-studio: #d3d4d8;    /* 사진 배경 그레이 */
-  --color-grey: #5f5f5c;      /* 보조 텍스트 */
+  --color-studio: #d3d4d8; /* 사진 배경 그레이 */
+  --color-grey: #5f5f5c; /* 보조 텍스트 */
   --color-ink-soft: #3a3a38;
   --color-line: #e4e5e8;
-
 
   /* ── 폰트 ── Geist(라틴) + Zen Kaku Gothic New(일본어) */
   --font-sans: "Geist", "Zen Kaku Gothic New", "Helvetica Neue", Arial, sans-serif;
@@ -52,7 +51,6 @@ video {
   background: var(--color-ink);
   color: var(--color-paper);
 }
-
 
 .num {
   font-variant-numeric: tabular-nums;
@@ -98,7 +96,6 @@ video {
     padding: 0 48px 160px;
   }
 }
-
 
 /* ── 홈 ─────────────────────────────────────────── */
 .home-details summary {

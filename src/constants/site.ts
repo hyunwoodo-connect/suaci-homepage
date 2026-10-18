@@ -4,7 +4,8 @@ export const SITE = {
   wordmark: "suaci",
   url: process.env.NEXT_PUBLIC_SITE_URL || "https://suaci.com",
   title: "suaci — take suaci.",
-  description: "brume no.1 — lime & basil face mist. a quick, playful refresh for the days your mind gets sensitive before your skin does.",
+  description:
+    "brume no.1 — lime & basil face mist. a quick, playful refresh for the days your mind gets sensitive before your skin does.",
   copyright: "© 2026 suaci",
   tagline: "take suaci.",
 } as const;

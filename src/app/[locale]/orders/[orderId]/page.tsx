@@ -40,11 +40,7 @@ const ERROR_KEYS: Record<string, string> = {
  * 주문 상세 — getOrder / listClaims 계약 호출 + 주문 취소·환불 요청 액션.
  * ?welcome=1(체크아웃 직후) 이면 상단에 완료 배너 표시.
  */
-export default function OrderDetailPage({
-  params,
-}: {
-  params: Promise<{ orderId: string }>;
-}) {
+export default function OrderDetailPage({ params }: { params: Promise<{ orderId: string }> }) {
   const { orderId } = use(params);
   return (
     <Suspense>
@@ -77,12 +73,25 @@ function OrderDetail({ orderId }: { orderId: string }) {
     if (status !== "authenticated") return;
     // Inline load (matches the existing .then()-in-effect pattern that satisfies
     // react-hooks/set-state-in-effect). `refresh` is used by action handlers.
-    void api.getOrder(orderId).then(setOrder).catch(() => setOrder(null));
-    void api.listClaims(orderId).then(setClaims).catch(() => setClaims([]));
+    void api
+      .getOrder(orderId)
+      .then(setOrder)
+      .catch(() => setOrder(null));
+    void api
+      .listClaims(orderId)
+      .then(setClaims)
+      .catch(() => setClaims([]));
   }, [status, orderId]);
 
   return (
-    <PageShell title={<>Order <em>detail</em></>} meta={order?.orderNo ?? ""}>
+    <PageShell
+      title={
+        <>
+          Order <em>detail</em>
+        </>
+      }
+      meta={order?.orderNo ?? ""}
+    >
       {!order ? (
         <p className="font-sans text-[11px] text-grey">…</p>
       ) : (
@@ -98,9 +107,21 @@ function OrderDetail({ orderId }: { orderId: string }) {
 
           {/* 상태 라인 */}
           <div className="flex gap-[8px] flex-wrap mb-[20px]">
-            <StatusBadge label={t("statusLabel")} value={t(`orderStatus.${order.status}`)} tone={orderTone(order.status)} />
-            <StatusBadge label={t("paymentLabel")} value={t(`paymentStatus.${order.paymentStatus}`)} tone={paymentTone(order.paymentStatus)} />
-            <StatusBadge label={t("fulfillmentLabel")} value={t(`fulfillmentStatus.${order.fulfillmentStatus}`)} tone={fulfillmentTone(order.fulfillmentStatus)} />
+            <StatusBadge
+              label={t("statusLabel")}
+              value={t(`orderStatus.${order.status}`)}
+              tone={orderTone(order.status)}
+            />
+            <StatusBadge
+              label={t("paymentLabel")}
+              value={t(`paymentStatus.${order.paymentStatus}`)}
+              tone={paymentTone(order.paymentStatus)}
+            />
+            <StatusBadge
+              label={t("fulfillmentLabel")}
+              value={t(`fulfillmentStatus.${order.fulfillmentStatus}`)}
+              tone={fulfillmentTone(order.fulfillmentStatus)}
+            />
           </div>
 
           {/* 품목 */}
@@ -124,9 +145,7 @@ function OrderDetail({ orderId }: { orderId: string }) {
           {/* 합계 + 배송지 */}
           <div className="grid grid-cols-2 gap-[20px] max-sm:grid-cols-1 mb-[28px]">
             <div className="border border-line p-[16px]">
-              <h3 className="font-sans text-[10px] text-grey mt-0 mb-[12px]">
-                {t("payment")}
-              </h3>
+              <h3 className="font-sans text-[10px] text-grey mt-0 mb-[12px]">{t("payment")}</h3>
               <TotalRow label={t("subtotal")} value={formatKRW(order.totals.itemsSubtotal)} />
               <TotalRow label={t("shipping")} value={formatKRW(order.totals.shippingFee)} />
               <TotalRow label={t("discount")} value={`−${formatKRW(order.totals.discountTotal)}`} />
@@ -136,13 +155,10 @@ function OrderDetail({ orderId }: { orderId: string }) {
               </div>
             </div>
             <div className="border border-line p-[16px]">
-              <h3 className="font-sans text-[10px] text-grey mt-0 mb-[12px]">
-                {t("shippingTo")}
-              </h3>
+              <h3 className="font-sans text-[10px] text-grey mt-0 mb-[12px]">{t("shippingTo")}</h3>
               <p className="text-[13.5px] text-ink m-0 leading-[1.7]">
                 <b>{order.shippingAddress.recipient}</b>
-                <br />
-                ({order.shippingAddress.zipcode}) {order.shippingAddress.addr1}{" "}
+                <br />({order.shippingAddress.zipcode}) {order.shippingAddress.addr1}{" "}
                 {order.shippingAddress.addr2 ?? ""}
                 <br />
                 {order.shippingAddress.phone}
@@ -217,14 +233,19 @@ function OrderActions({ order, onDone }: { order: Order; onDone: () => Promise<v
         {canCancel && (
           <div className="flex items-center gap-[12px] flex-wrap">
             {!confirmCancel ? (
-              <Button variant="outline" disabled={busy} onClick={() => { setError(null); setConfirmCancel(true); }}>
+              <Button
+                variant="outline"
+                disabled={busy}
+                onClick={() => {
+                  setError(null);
+                  setConfirmCancel(true);
+                }}
+              >
                 {t("cancelOrder")}
               </Button>
             ) : (
               <>
-                <span className="font-sans text-[11px] text-ink">
-                  {t("cancelConfirm")}
-                </span>
+                <span className="font-sans text-[11px] text-ink">{t("cancelConfirm")}</span>
                 <Button variant="danger" disabled={busy} onClick={handleCancel}>
                   {busy ? "…" : t("cancelYes")}
                 </Button>
@@ -237,9 +258,16 @@ function OrderActions({ order, onDone }: { order: Order; onDone: () => Promise<v
         )}
 
         {/* 환불 요청 */}
-        {canRefund && (
-          !refundOpen ? (
-            <Button variant="outline" disabled={busy} onClick={() => { setError(null); setRefundOpen(true); }}>
+        {canRefund &&
+          (!refundOpen ? (
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() => {
+                setError(null);
+                setRefundOpen(true);
+              }}
+            >
               {t("requestRefund")}
             </Button>
           ) : (
@@ -255,8 +283,7 @@ function OrderActions({ order, onDone }: { order: Order; onDone: () => Promise<v
                 await onDone();
               }}
             />
-          )
-        )}
+          ))}
       </div>
     </section>
   );
@@ -320,9 +347,7 @@ function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }
 
       {/* 사유 */}
       <fieldset className="border-0 p-0 m-0">
-        <legend className="font-sans text-[10px] text-grey mb-[8px] p-0">
-          {tc("reason")}
-        </legend>
+        <legend className="font-sans text-[10px] text-grey mb-[8px] p-0">{tc("reason")}</legend>
         <div className="flex flex-wrap gap-[8px]">
           {REASON_CODES.map((code) => {
             const active = reasonCode === code;
@@ -345,9 +370,7 @@ function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }
 
       {/* 상세 (선택) */}
       <div>
-        <label className="block font-sans text-[10px] text-grey mb-[6px]">
-          {tc("detail")}
-        </label>
+        <label className="block font-sans text-[10px] text-grey mb-[6px]">{tc("detail")}</label>
         <textarea
           value={reasonDetail}
           onChange={(e) => setReasonDetail(e.target.value)}
@@ -359,9 +382,7 @@ function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }
 
       {/* 범위 토글 */}
       <fieldset className="border-0 p-0 m-0">
-        <legend className="font-sans text-[10px] text-grey mb-[8px] p-0">
-          {tc("scope")}
-        </legend>
+        <legend className="font-sans text-[10px] text-grey mb-[8px] p-0">{tc("scope")}</legend>
         <div className="flex gap-[8px]">
           {(["full", "partial"] as const).map((s) => {
             const active = scope === s;
@@ -427,11 +448,7 @@ function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }
         </ul>
       )}
 
-      {partialInvalid && (
-        <p className="font-sans text-[10px] text-grey m-0">
-          {tc("partialHint")}
-        </p>
-      )}
+      {partialInvalid && <p className="font-sans text-[10px] text-grey m-0">{tc("partialHint")}</p>}
 
       <div className="flex gap-[8px]">
         <Button type="submit" disabled={busy || partialInvalid}>
@@ -466,7 +483,9 @@ function ClaimsList({ claims }: { claims: Claim[] }) {
               <b className="font-sans text-[15px] num ml-auto">{formatKRW(c.refundAmount)}</b>
             </div>
             {c.reasonDetail && (
-              <p className="text-[13px] text-ink-soft m-0 mb-[6px] leading-[1.6]">{c.reasonDetail}</p>
+              <p className="text-[13px] text-ink-soft m-0 mb-[6px] leading-[1.6]">
+                {c.reasonDetail}
+              </p>
             )}
             <div className="flex gap-[16px] flex-wrap font-sans text-[10px] text-grey">
               <span>{tc("refundDue", { date: formatDateKST(c.refundDueAt) })}</span>
@@ -509,7 +528,9 @@ const TONE_CLASSES: Record<Tone, string> = {
 
 function StatusBadge({ label, value, tone }: { label: string; value: string; tone: Tone }) {
   return (
-    <span className={`inline-flex items-baseline gap-[6px] font-sans text-[10px] px-[8px] py-[3px] ${TONE_CLASSES[tone]}`}>
+    <span
+      className={`inline-flex items-baseline gap-[6px] font-sans text-[10px] px-[8px] py-[3px] ${TONE_CLASSES[tone]}`}
+    >
       <span className="opacity-60">{label}</span>
       <span>{value}</span>
     </span>
@@ -524,7 +545,9 @@ function claimStatusTone(s: ClaimStatus): Tone {
 
 function ClaimStatusBadge({ status, label }: { status: ClaimStatus; label: string }) {
   return (
-    <span className={`font-sans text-[10px] px-[8px] py-[3px] ${TONE_CLASSES[claimStatusTone(status)]}`}>
+    <span
+      className={`font-sans text-[10px] px-[8px] py-[3px] ${TONE_CLASSES[claimStatusTone(status)]}`}
+    >
       {label}
     </span>
   );
@@ -540,9 +563,5 @@ function TotalRow({ label, value }: { label: string; value: string }) {
 }
 
 function ErrorNote({ text }: { text: string }) {
-  return (
-    <p className="font-sans text-[11px] text-[#c0392b] m-0">
-      ✕ {text}
-    </p>
-  );
+  return <p className="font-sans text-[11px] text-[#c0392b] m-0">✕ {text}</p>;
 }
