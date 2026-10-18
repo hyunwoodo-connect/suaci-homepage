@@ -22,25 +22,26 @@ If something in AGENTS.md conflicts with this prompt, **AGENTS.md wins** for cod
 - **Next.js 16 App Router** — `params` is now a `Promise`, always `await params`
 - **React 19** — Server Components by default; `"use client"` only when you need state, effects, event handlers, or browser APIs
 - **Tailwind CSS v4** — utility classes only, no CSS modules, no styled-components. Theme tokens live in `src/app/globals.css` via `@theme inline`.
-- **next-intl v4** — 5 locales (ko default, en, zh, ja, th). Use `@/i18n/navigation` for `Link`/`useRouter`/`usePathname`, **never** `next/link`. Translations in `src/messages/{locale}.json`.
+- **next-intl v4** — 2 locales (en default, ja). Use `@/i18n/navigation` for `Link`/`useRouter`/`usePathname`, **never** `next/link`. Translations in `src/messages/{locale}.json`.
 - **Path alias**: `@/*` → `./src/*`
-- **No tests configured.** Don't invent a test framework; verify via type-check, lint, and (when possible) browser.
+- **Vitest** (jsdom) for unit tests — `pnpm test`, Node 24 (`.nvmrc`).
 
 ## Workflow
 
 1. **Read the brief** — spec file, PM handoff, or direct user ask. If it's vague, ask one sharp question rather than guess.
 2. **Use `frontend-design` skill aggressively** for any net-new visual surface (page, section, component with non-trivial layout). This skill exists to push your output past generic-AI aesthetics. Invoke it; don't skip it because "I know what to build."
-3. **Mirror existing patterns first.** Before inventing a new pattern, check how similar sections are built (`src/components/sections/*`). Consistency > novelty for component-level work.
+3. **Mirror existing patterns first.** Before inventing a new pattern, check how similar sections are built (`src/components/home/*`). Consistency > novelty for component-level work.
 4. **Implement.** Edit, don't rewrite, when the file already exists. Keep changes scoped to the brief — don't drag in unrelated cleanup.
 5. **Verify before claiming done** (this is non-negotiable):
    - `npx tsc --noEmit` — must exit 0
    - `pnpm lint` — fix anything you introduced
+   - `pnpm test` — must pass
    - When the change is visual: ask the user if they want the dev server started, or note explicitly in your report that you did NOT visually verify
 6. **Report tightly.** What you changed (with `path:line` refs), what you verified, what you did NOT verify. Korean, founder-friendly.
 
 ## Hard rules
 
-- **Korean text in UI by default.** This is a Korean-first site. Hardcoded English in JSX is almost always a bug — either translate it or move it to `src/messages/ko.json` (and the other 4 locales).
+- **No hardcoded copy in JSX.** Put it in `src/messages/en.json` and `ja.json`. English copy is all lowercase.
 - **Use `@/i18n/navigation` `Link`** — `next/link` will break locale routing.
 - **Function declarations for components** — `export default function MyComponent()`, never `const MyComponent = () => ...`.
 - **PascalCase `.tsx` for components, camelCase `.ts` for everything else.** Props interface named `<ComponentName>Props`, declared above the component.
@@ -48,7 +49,7 @@ If something in AGENTS.md conflicts with this prompt, **AGENTS.md wins** for cod
 - **`as const` on constant objects/arrays.** UPPER_SNAKE_CASE for exported constants.
 - **`import type { ... }`** for type-only imports, separated into the import groups defined in AGENTS.md.
 - **Don't add dependencies casually.** If a feature can be built with what's installed, do that. If you need to add a package, mention it explicitly in your report and explain why nothing in the stack covers it.
-- **Out of scope for this phase**: database, auth, payment, API routes that need backend infrastructure, LLM integrations. If a task requires these, **stop and tell the user / PM** — don't half-build infrastructure.
+- **Backend goes through the `@/lib/api` seam only.** No direct DB access, no auth libraries, no payment logic in the frontend. If a task needs a backend contract (DTO) change, **stop and tell the user / PM**.
 
 ## Aesthetic priors for this brand
 
@@ -56,7 +57,7 @@ If something in AGENTS.md conflicts with this prompt, **AGENTS.md wins** for cod
 - **Mobile is primary.** Design and verify mobile first; desktop is the second pass.
 - **Image-led.** Cosmetics sells on imagery — give product/lifestyle imagery room. Don't choke it with chrome.
 - **Motion is salt, not sauce.** Subtle hover states, gentle reveals. No bouncy springs, no parallax-everything.
-- **Korean typography matters.** Pretendard is the project font — respect line-height and letter-spacing for Korean text (it needs more breathing room than Latin).
+- **Typography**: Geist + Zen Kaku Gothic New (Japanese). No letter-spacing on lowercase body copy.
 
 ## When you finish
 

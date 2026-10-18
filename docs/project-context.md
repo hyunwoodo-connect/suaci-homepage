@@ -35,9 +35,9 @@
 
 ## 저장소 `suaci-official` 상태
 
-- Next.js 16 · React 19 · Tailwind v4 · next-intl · pnpm. Vercel 호스팅 예정.
-- 라우팅 `en`(접두사 없음) + `ja`. ko/zh/th 메시지는 보관만.
-- 라우트: `/` · `/checkout` · `/orders` · `/orders/[id]` · `/account` · `/account/addresses` · `/login` · `/signup` · `/password/*`. 상품목록·브랜드·장바구니는 **제거**(단일 SKU). `@/lib/api` seam·타입은 유지.
+- Next.js 16 · React 19 · Tailwind v4 · next-intl · pnpm. AWS Amplify 호스팅(main 푸시 시 자동 배포), GitHub `hyunwoodo-connect/suaci-homepage`.
+- 라우팅 `en`(접두사 없음) + `ja`.
+- 라우트: `/` · `/checkout` · `/orders` · `/orders/[id]` · `/account` · `/account/addresses` · `/login` · `/signup` · `/password/*`. 상품목록·브랜드·장바구니는 **제거**(단일 SKU). `@/lib/api` seam은 지금 쓰는 메서드만 둔다(YAGNI).
 - 홈 컴포넌트 `src/components/home/`: SiteHeader, Hero, Story, Moments, ProductSection, SiteFooter, BuyBar. 상수 `src/constants/product.ts`.
 - 에셋: `public/image/v5/`, `public/video/v5/hero.{mp4,webm}`, `public/brand/`.
 - 결제·로그인: **UI만** 디자인대로. 동작은 seam mock. TODO: Stripe(Apple/Google Pay), Cognito federated(google/apple/line), **게스트 주문 백엔드 계약**(현재는 로그인+배송지 필요).
