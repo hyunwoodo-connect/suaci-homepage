@@ -25,15 +25,16 @@
     },
     "moments": {
       "label": "moments",
-      "sofa": "3pm. inbox full.",
-      "sofaAlt": "a woman lying across a lime-green sofa with a laptop and sticky notes scattered on the floor",
       "paper": "after the meeting.",
       "paperAlt": "a woman sitting on the studio floor with a smiley-face paper over her face",
       "waterAlt": "soft lime-tinted water ripples",
       "turntableAlt": "a lime slice spinning on a white turntable",
       "bottleAlt": "a woman resting her arms on a table holding a suaci mist bottle",
       "basketAlt": "a small metal mesh basket of limes on a white table",
-      "earringsAlt": "a woman in a lime knit cardigan holding two limes up like earrings"
+      "earringsAlt": "a woman in a lime knit cardigan holding two limes up like earrings",
+      "chair": "battery: 2%.",
+      "chairAlt": "a woman slumped on a wooden chair with an open book over her face, one arm hanging down, legs stretched out in lime socks",
+      "earrings": "five minutes later."
     },
     "product": {
       "name": "brume no.1",

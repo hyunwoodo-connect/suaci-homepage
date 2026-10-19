@@ -18,22 +18,22 @@ export default function Moments() {
     >
       <div className="mx-auto flex max-w-[1344px] flex-wrap items-start justify-between gap-x-[20px] gap-y-[clamp(40px,6vw,96px)]">
         <Shot
-          src={HOME_MEDIA.sofa}
-          alt={t("sofaAlt")}
-          w={1400}
-          h={1750}
-          caption={t("sofa")}
-          className="w-[max(44%,min(100%,300px))]"
-          sizes="(max-width: 767px) 92vw, 44vw"
+          src={HOME_MEDIA.chair}
+          alt={t("chairAlt")}
+          w={1100}
+          h={1656}
+          caption={t("chair")}
+          className="w-[max(40%,min(100%,300px))]"
+          sizes="(max-width: 767px) 92vw, 40vw"
         />
         <Shot
-          src={HOME_MEDIA.paper}
-          alt={t("paperAlt")}
-          w={1200}
-          h={1200}
-          caption={t("paper")}
-          className="ml-auto mr-[4%] mt-[clamp(0px,16vw,260px)] w-[max(28%,min(100%,230px))]"
-          sizes="(max-width: 767px) 70vw, 28vw"
+          src={HOME_MEDIA.earrings}
+          alt={t("earringsAlt")}
+          w={1300}
+          h={1625}
+          caption={t("earrings")}
+          className="ml-auto mr-[4%] mt-[clamp(0px,14vw,220px)] w-[max(30%,min(100%,250px))]"
+          sizes="(max-width: 767px) 70vw, 30vw"
         />
         <div className="ml-[calc(50%-50vw)] w-screen shrink-0">
           {/* 물결 루프 영상(첫·끝 프레임 동일, 무음). 로딩 전엔 poster(첫 프레임). */}
@@ -76,11 +76,12 @@ export default function Moments() {
           sizes="(max-width: 767px) 60vw, 21vw"
         />
         <Shot
-          src={HOME_MEDIA.earrings}
-          alt={t("earringsAlt")}
-          w={1300}
-          h={1625}
-          className="ml-auto mt-[clamp(0px,3vw,48px)] w-[max(27%,min(100%,280px))]"
+          src={HOME_MEDIA.paper}
+          alt={t("paperAlt")}
+          w={1200}
+          h={1200}
+          caption={t("paper")}
+          className="ml-auto mt-[clamp(0px,3vw,48px)] w-[max(27%,min(100%,260px))]"
           sizes="(max-width: 767px) 75vw, 27vw"
         />
       </div>

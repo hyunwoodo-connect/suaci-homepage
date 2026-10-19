@@ -19,7 +19,7 @@ export const HOME_MEDIA = {
   heroPoster: "/image/v5/hero-poster.webp",
   heroWebm: "/video/v5/hero.webm",
   heroMp4: "/video/v5/hero.mp4",
-  sofa: "/image/v5/moment-sofa.webp",
+  chair: "/image/v5/moment-chair.webp",
   paper: "/image/v5/moment-paper.webp",
   waterPoster: "/image/v5/moment-water-poster.webp",
   waterWebm: "/video/v5/water.webm",
