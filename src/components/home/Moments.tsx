@@ -5,7 +5,7 @@ import { HOME_MEDIA } from "@/constants/product";
 /**
  * v5 무드 갤러리 — 완벽한 그리드가 아닌 엇갈린 배치.
  * 폭은 `max(데스크톱 %, min(100%, 모바일 최소 px))` 한 줄로 반응형 처리(미디어쿼리 없음).
- * 3번째 물결 컷은 뷰포트 풀블리드(body overflow-x hidden 전제).
+ * 3번째 물결 컷은 뷰포트 풀블리드 루프 영상(body overflow-x hidden 전제).
  */
 export default function Moments() {
   const t = useTranslations("home.moments");
@@ -36,14 +36,20 @@ export default function Moments() {
           sizes="(max-width: 767px) 70vw, 28vw"
         />
         <div className="ml-[calc(50%-50vw)] w-screen shrink-0">
-          <Image
-            src={HOME_MEDIA.water}
-            alt={t("waterAlt")}
-            width={2048}
-            height={1360}
-            sizes="100vw"
-            className="aspect-[21/9] h-auto w-full object-cover"
-          />
+          {/* 물결 루프 영상(첫·끝 프레임 동일, 무음). 로딩 전엔 poster(첫 프레임). */}
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            poster={HOME_MEDIA.waterPoster}
+            aria-label={t("waterAlt")}
+            className="aspect-[21/9] h-auto w-full bg-studio object-cover"
+          >
+            <source src={HOME_MEDIA.waterWebm} type="video/webm" />
+            <source src={HOME_MEDIA.waterMp4} type="video/mp4" />
+          </video>
         </div>
         <Shot
           src={HOME_MEDIA.turntable}
