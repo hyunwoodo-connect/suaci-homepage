@@ -20,7 +20,8 @@ export async function POST(req: Request) {
     return gateResponse(next, true);
   }
 
-  const res = NextResponse.redirect(new URL(next, req.url), 303);
+  // Amplify 안에서 req.url은 내부 주소(localhost:3000)라 상대 경로로 보낸다
+  const res = new NextResponse(null, { status: 303, headers: { location: next } });
   res.cookies.set(SITE_LOCK_COOKIE, await lockToken(pin), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

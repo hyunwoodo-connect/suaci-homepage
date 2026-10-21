@@ -67,7 +67,7 @@ describe("site-lock", () => {
     vi.stubEnv("SITE_LOCK_PIN", "1234");
     const ok = await post({ pin: "1234", next: "/ja" });
     expect(ok.status).toBe(303);
-    expect(new URL(ok.headers.get("location")!).pathname).toBe("/ja");
+    expect(ok.headers.get("location")).toBe("/ja");
     expect(ok.headers.get("set-cookie")).toContain(
       `${SITE_LOCK_COOKIE}=${await lockToken("1234")}`,
     );
