@@ -12,6 +12,8 @@ frontend:
         - pnpm install --frozen-lockfile --config.node-linker=hoisted
     build:
       commands:
+        # 출시 전 잠금 비번(브랜치 환경 변수)을 서버 실행 때도 읽게 .env.production에 넣는다
+        - env | grep -e '^SITE_LOCK_PIN=' >> .env.production || true
         - pnpm build
   artifacts:
     baseDirectory: .next
