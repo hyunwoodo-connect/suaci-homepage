@@ -16,15 +16,16 @@ const EVENT = {
   copy: {},
   switches: {},
 } as unknown as EventDetail;
+const CTX = { userAgent: "", url: "https://takesuaci.com/events/take-four" };
 
 describe("TAKE_FOUR.route", () => {
   it("booth → 부스(찰칵)", () => {
-    const screen = TAKE_FOUR.route(["booth"], EVENT);
+    const screen = TAKE_FOUR.route(["booth"], EVENT, CTX);
     expect(renderToStaticMarkup(<>{screen}</>)).toContain("찰칵");
   });
 
   it("result → 마지막 띠 화면", () => {
-    expect(TAKE_FOUR.route(["result"], EVENT)).not.toBeNull();
+    expect(TAKE_FOUR.route(["result"], EVENT, CTX)).not.toBeNull();
   });
 
   it.each([
@@ -32,15 +33,15 @@ describe("TAKE_FOUR.route", () => {
     ["no-camera", "앨범에서 넉 장 고르기"],
     ["info", "No.01"],
   ])("%s → 그 화면(%s)", (path, text) => {
-    const screen = TAKE_FOUR.route([path], EVENT);
+    const screen = TAKE_FOUR.route([path], EVENT, CTX);
     expect(renderToStaticMarkup(<>{screen}</>)).toContain(text);
   });
 
   it("모르는 경로 → null", () => {
-    expect(TAKE_FOUR.route(["wall"], EVENT)).toBeNull();
+    expect(TAKE_FOUR.route(["wall"], EVENT, CTX)).toBeNull();
   });
 
   it("더 깊은 경로 → null", () => {
-    expect(TAKE_FOUR.route(["booth", "x"], EVENT)).toBeNull();
+    expect(TAKE_FOUR.route(["booth", "x"], EVENT, CTX)).toBeNull();
   });
 });

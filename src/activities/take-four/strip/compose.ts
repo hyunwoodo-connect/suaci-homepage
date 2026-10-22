@@ -1,3 +1,4 @@
+import { kstDateLabel } from "@/lib/eventDate";
 import type { EventPhase } from "@/types";
 
 import { TAKE_FOUR_COLORS } from "../theme";
@@ -22,19 +23,10 @@ const JPEG_QUALITY = 0.86;
  * 넘으면 기본 글꼴로 찍지 않고 실패로 던진다(현상 화면의 `다시 인화하기`).
  */
 export const FONT_TIMEOUT_MS = 12_000;
-const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
 /** 지금 이벤트 상태로 캡션을 정한다. 놀이는 상설이라 마감 뒤엔 이벤트 표시만 뺀다. */
 export function stripCaption(phase: EventPhase, date: Date): StripCaption {
   return { serial: null, eventLabel: phase === "ended" ? null : EVENT_LABEL, date };
-}
-
-/** 한국 날짜 `MM.DD`(폰 시간대와 상관없이). */
-export function kstDateLabel(date: Date): string {
-  const kst = new Date(date.getTime() + KST_OFFSET_MS);
-  const mm = String(kst.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(kst.getUTCDate()).padStart(2, "0");
-  return `${mm}.${dd}`;
 }
 
 /** 캡션 왼쪽 번호와 오른쪽 회차·날짜. 화면 띠(Strip)와 합성 띠가 같은 글자를 쓴다. */

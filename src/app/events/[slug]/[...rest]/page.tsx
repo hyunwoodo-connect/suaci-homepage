@@ -1,7 +1,9 @@
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { getActivity } from "@/activities";
 
+import { entranceUrl } from "../eventUrl";
 import { loadEvent } from "../loadEvent";
 
 interface EventSubPageProps {
@@ -13,9 +15,15 @@ interface EventSubPageProps {
 export default async function EventSubPage({ params, searchParams }: EventSubPageProps) {
   const { slug, rest } = await params;
   const { preview } = await searchParams;
-  const { event } = await loadEvent(slug, preview);
+  const { event, previewToken } = await loadEvent(slug, preview);
+  const activity = getActivity(event.activityId);
+  if (!activity) notFound();
 
-  const screen = getActivity(event.activityId)?.route(rest, event);
+  const h = await headers();
+  const screen = activity.route(rest, event, {
+    userAgent: h.get("user-agent") ?? "",
+    url: entranceUrl(h, slug, previewToken),
+  });
   if (!screen) notFound();
   return screen;
 }

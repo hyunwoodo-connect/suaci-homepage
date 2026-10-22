@@ -56,19 +56,32 @@ export function cropToFrame(source: CanvasImageSource, size: Sized): HTMLCanvasE
 
 /* ─── 내부 ─────────────────────────── */
 
+/** 먼저 이 폭으로 줄여 푼다 — 48MP 원본을 통째로 풀면 폰에서 200MB 가까이 잡는다 */
+export const DECODE_WIDTH = 1920;
+
 /**
  * createImageBitmap(EXIF 회전 반영)으로 먼저 열고, 안 되면 <img>로 한 번 더(옵션을 모르는 옛 사파리).
  * <img>도 기본으로 EXIF 회전을 따른다. 둘 다 안 되면 못 여는 사진.
+ * 폭 1920으로 줄여 풀었는데 짧은 변이 칸 높이(960)보다 작으면(아주 긴 파노라마) 원본 크기로 한 번 더 푼다.
  */
 async function decode(file: Blob): Promise<Decoded> {
   if (typeof createImageBitmap === "function") {
     try {
-      const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+      let bitmap = await createImageBitmap(file, {
+        imageOrientation: "from-image",
+        resizeWidth: DECODE_WIDTH,
+        resizeQuality: "high",
+      });
+      if (Math.min(bitmap.width, bitmap.height) < ALBUM_FRAME.height) {
+        bitmap.close();
+        bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+      }
+      const decoded = bitmap;
       return {
-        source: bitmap,
-        width: bitmap.width,
-        height: bitmap.height,
-        release: () => bitmap.close(),
+        source: decoded,
+        width: decoded.width,
+        height: decoded.height,
+        release: () => decoded.close(),
       };
     } catch {}
   }

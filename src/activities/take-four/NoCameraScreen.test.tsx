@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
-import { renderToString } from "react-dom/server";
+import { describe, it, expect, afterEach } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
 import { cleanup, render, screen } from "@testing-library/react";
 
 import NoCameraScreen from "./NoCameraScreen";
@@ -10,20 +10,19 @@ const ANDROID_INSTAGRAM =
   "Mozilla/5.0 (Linux; Android 14; SM-S918N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36 Instagram 350.0.0.0";
 const IPHONE_INSTAGRAM =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 350.0.0.0";
+const URL_WITH_TOKEN = "https://takesuaci.com/events/take-four?preview=cookie-token-1234567";
 
-function withUa(ua: string) {
-  vi.spyOn(navigator, "userAgent", "get").mockReturnValue(ua);
+function open(userAgent: string) {
+  render(<NoCameraScreen slug="take-four" userAgent={userAgent} url={URL_WITH_TOKEN} />);
 }
 
 afterEach(() => {
   cleanup();
-  vi.restoreAllMocks();
 });
 
 describe("NoCameraScreen", () => {
   it("카메라 거절 → 막힘 안내, 주 행동 앨범, 보조 행동 부스로 다시", () => {
-    withUa(IPHONE_SAFARI);
-    render(<NoCameraScreen slug="take-four" />);
+    open(IPHONE_SAFARI);
     expect(screen.getByRole("heading", { name: "카메라가 막혀 있어요" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "앨범에서 넉 장 고르기" })).toHaveAttribute(
       "href",
@@ -35,24 +34,25 @@ describe("NoCameraScreen", () => {
     );
   });
 
-  it("서버 그림(UA 모름) → 거절 문구", () => {
-    expect(renderToString(<NoCameraScreen slug="take-four" />)).toContain("카메라가 막혀 있어요");
+  it("인스타 UA → 서버 HTML부터 인앱 문구(깜빡임 없음)", () => {
+    const html = renderToStaticMarkup(
+      <NoCameraScreen slug="take-four" userAgent={ANDROID_INSTAGRAM} url={URL_WITH_TOKEN} />,
+    );
+    expect(html).toContain("여기선 카메라가 안 열려요");
+    expect(html).not.toContain("카메라가 막혀 있어요");
   });
 
-  it("안드로이드 인앱 → 인앱 안내, 앨범 + 크롬으로 입구 열기", () => {
-    withUa(ANDROID_INSTAGRAM);
-    render(<NoCameraScreen slug="take-four" />);
-    expect(screen.getByRole("heading", { name: "여기선 카메라가 안 열려요" })).toBeInTheDocument();
+  it("안드로이드 인앱 → 크롬 intent로 입구, 쿠키로만 온 미리보기 토큰도 따라간다", () => {
+    open(ANDROID_INSTAGRAM);
     expect(screen.getByRole("link", { name: "앨범에서 넉 장 고르기" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "다른 브라우저로 열기" })).toHaveAttribute(
       "href",
-      "intent://localhost:3000/events/take-four#Intent;scheme=http;package=com.android.chrome;end",
+      "intent://takesuaci.com/events/take-four?preview=cookie-token-1234567#Intent;scheme=https;package=com.android.chrome;end",
     );
   });
 
   it("넘길 방법이 없는 iOS 인앱 → 본문 안내만, 부스로 다시 열기는 없다", () => {
-    withUa(IPHONE_INSTAGRAM);
-    render(<NoCameraScreen slug="take-four" />);
+    open(IPHONE_INSTAGRAM);
     expect(screen.getByText(/오른쪽 위 ··· 를 누르고/)).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "다른 브라우저로 열기" })).toBeNull();
     expect(screen.queryByRole("link", { name: "허용했어요, 다시 열기" })).toBeNull();

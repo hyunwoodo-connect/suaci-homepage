@@ -115,4 +115,24 @@ describe("AlbumScreen", () => {
       "/events/take-four/no-camera",
     );
   });
+
+  it("여는 중 → 칸은 aria-disabled(포커스 유지), 눌러도 앨범을 또 열지 않는다", async () => {
+    let finish: (c: HTMLCanvasElement) => void = () => {};
+    album.loadAlbumFrame.mockImplementation(() => new Promise((resolve) => (finish = resolve)));
+    render(<AlbumScreen slug="take-four" onDone={vi.fn()} />);
+    const first = screen.getByRole("button", { name: "무표정 칸에 사진 넣기" });
+    first.focus();
+    fireEvent.click(first);
+    await act(async () => {
+      fireEvent.change(input(), { target: { files: [new File(["x"], "a")] } });
+    });
+    const other = screen.getByRole("button", { name: "방긋 칸에 사진 넣기" });
+    expect(other).toHaveAttribute("aria-disabled", "true");
+    expect(other).toBeEnabled();
+    expect(document.activeElement).toBe(first);
+    fireEvent.click(other);
+    expect(HTMLInputElement.prototype.click).toHaveBeenCalledTimes(1);
+    await act(async () => finish(frame("a")));
+    expect(other).toHaveAttribute("aria-disabled", "false");
+  });
 });

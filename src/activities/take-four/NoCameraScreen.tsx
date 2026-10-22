@@ -1,7 +1,3 @@
-"use client";
-
-import { useSyncExternalStore } from "react";
-
 import PillButton from "./parts/PillButton";
 import Screen from "./parts/Screen";
 import TextLink from "./parts/TextLink";
@@ -11,6 +7,10 @@ import { androidIntentUrl, detectEnv, kakaoExternalUrl } from "./env";
 
 interface NoCameraScreenProps {
   slug: string;
+  /** 요청 UA — 인앱인지 서버에서 가린다 */
+  userAgent: string;
+  /** 입구의 절대 주소(미리보기 토큰 포함). 밖의 브라우저가 여기서 다시 시작한다 */
+  url: string;
 }
 
 /**
@@ -18,12 +18,17 @@ interface NoCameraScreenProps {
  * 막다른 길이 되지 않게 주 행동은 늘 `앨범에서 넉 장 고르기`. 보조 행동은 거절이면 부스로 다시,
  * 인앱이면 밖의 브라우저로 넘기기(넘길 방법이 없는 iOS 인앱은 본문 안내만).
  */
-export default function NoCameraScreen({ slug }: NoCameraScreenProps) {
-  // 인앱 여부는 폰 UA로만 안다. 서버 그림은 거절 문구로 두고 하이드레이션 뒤에 바꾼다
-  const userAgent = useSyncExternalStore(subscribeNever, readUserAgent, readNoUserAgent);
+export default function NoCameraScreen({ slug, userAgent, url }: NoCameraScreenProps) {
   const base = `/events/${slug}`;
   const { inApp, os } = detectEnv(userAgent);
-  const handOff = inApp ? handOffUrl(base, inApp === "kakao", os) : null;
+  // 입구 인앱 안내와 같은 넘기기: 안드로이드는 크롬 intent, iOS 카카오톡은 외부 열기 스킴
+  const handOff = !inApp
+    ? null
+    : os === "android"
+      ? androidIntentUrl(url)
+      : os === "ios" && inApp === "kakao"
+        ? kakaoExternalUrl(url)
+        : null;
 
   return (
     <Screen tone="lime">
@@ -57,33 +62,4 @@ export default function NoCameraScreen({ slug }: NoCameraScreenProps) {
       </div>
     </Screen>
   );
-}
-
-/* ─── 하위 함수 ─────────────────────────── */
-
-function subscribeNever() {
-  return () => {};
-}
-
-function readUserAgent() {
-  return navigator.userAgent;
-}
-
-function readNoUserAgent() {
-  return "";
-}
-
-/**
- * 입구 인앱 안내와 같은 넘기기: 안드로이드는 크롬 intent, iOS 카카오톡은 외부 열기 스킴.
- * 밖의 브라우저에선 입구부터 다시 연다(쿼리의 미리보기 토큰은 따라간다).
- */
-function handOffUrl(
-  base: string,
-  isKakao: boolean,
-  os: "ios" | "android" | "other",
-): string | null {
-  const here = `${window.location.origin}${base}${window.location.search}`;
-  if (os === "android") return androidIntentUrl(here);
-  if (os === "ios" && isKakao) return kakaoExternalUrl(here);
-  return null;
 }

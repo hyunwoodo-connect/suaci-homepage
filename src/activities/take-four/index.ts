@@ -12,7 +12,7 @@ import NoCameraScreen from "./NoCameraScreen";
 export const TAKE_FOUR: ActivityModule = {
   id: "take-four",
   Entrance,
-  route(rest, event) {
+  route(rest, event, ctx) {
     if (rest.length !== 1) return null;
     switch (rest[0]) {
       case "booth":
@@ -22,7 +22,7 @@ export const TAKE_FOUR: ActivityModule = {
       case "result":
         return createElement(LastResult, { event });
       case "no-camera":
-        return createElement(NoCameraScreen, { slug: event.slug });
+        return createElement(NoCameraScreen, { slug: event.slug, ...ctx });
       case "info":
         return createElement(InfoScreen, { event, now: Date.now() });
       default:

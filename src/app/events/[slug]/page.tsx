@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { getActivity } from "@/activities";
 import EventWaiting from "@/components/events/EventWaiting";
 
+import { entranceUrl } from "./eventUrl";
 import { loadEvent } from "./loadEvent";
 
 interface EventPageProps {
@@ -19,9 +20,7 @@ export default async function EventPage({ params, searchParams }: EventPageProps
   const activity = getActivity(event.activityId);
   if (activity) {
     const h = await headers();
-    // 쿠키로만 들어온 미리보기도 밖의 브라우저(쿠키 없음)에서 열리도록 토큰을 주소에 다시 붙인다
-    const query = previewToken ? `?preview=${encodeURIComponent(previewToken)}` : "";
-    const url = `${requestOrigin(h)}/events/${encodeURIComponent(slug)}${query}`;
+    const url = entranceUrl(h, slug, previewToken);
     return <activity.Entrance event={event} userAgent={h.get("user-agent") ?? ""} url={url} />;
   }
 
@@ -48,31 +47,4 @@ export default async function EventPage({ params, searchParams }: EventPageProps
       )}
     </main>
   );
-}
-
-/* ─── 하위 함수 ─────────────────────────── */
-
-const SITE_ORIGIN = "https://takesuaci.com";
-const PROD_ORIGINS = new Set([SITE_ORIGIN, "https://www.takesuaci.com"]);
-const LOCAL_ORIGIN = /^http:\/\/(localhost|127\.0\.0\.1)(:\d{1,5})?$/;
-
-// 이 주소는 앱 밖으로 넘기는 링크가 되므로 요청 헤더를 그대로 믿지 않고 허용 목록만 쓴다.
-// Amplify(CloudFront) 뒤에서는 x-forwarded-*가 원래 주소를 갖고 있다. 로컬 주소는 개발에서만
-function requestOrigin(h: Headers): string {
-  const forwardedProto = h.get("x-forwarded-proto")?.split(",")[0].trim();
-  const hosts = [h.get("x-forwarded-host")?.split(",")[0].trim(), h.get("host")];
-  for (const host of hosts) {
-    if (!host) continue;
-    const isLocal = /^(localhost|127\.0\.0\.1)(:|$)/.test(host);
-    const proto =
-      forwardedProto === "http" || forwardedProto === "https"
-        ? forwardedProto
-        : isLocal
-          ? "http"
-          : "https";
-    const origin = `${proto}://${host}`;
-    if (PROD_ORIGINS.has(origin)) return origin;
-    if (process.env.NODE_ENV !== "production" && LOCAL_ORIGIN.test(origin)) return origin;
-  }
-  return SITE_ORIGIN;
 }

@@ -1,8 +1,6 @@
 import type { EventContent } from "@/events";
-import { formatKoreanMonthDay } from "@/lib/eventDate";
+import { formatKoreanMonthDay, kstDateLabel } from "@/lib/eventDate";
 import type { EventCopy, EventDetail } from "@/types";
-
-import { kstDateLabel } from "./strip/compose";
 
 /** 안내 화면의 네 상태 — 레코드 phase에 발표 시각을 더한 것(`copy` 키와 같다). */
 export type InfoPhase = keyof EventCopy;
@@ -50,12 +48,12 @@ export function infoView(
     end: formatKoreanMonthDay(event.endAt),
     announce: event.announceAt !== undefined ? formatKoreanMonthDay(event.announceAt) : null,
   };
-  const start = kstDateLabel(new Date(event.startAt));
+  const start = kstDateLabel(event.startAt);
   const stamp = {
     upcoming: `${start} open`,
-    live: `${start} – ${kstDateLabel(new Date(event.endAt))}`,
+    live: `${start} – ${kstDateLabel(event.endAt)}`,
     ended: "closed",
-    announced: event.announceAt !== undefined ? kstDateLabel(new Date(event.announceAt)) : "",
+    announced: event.announceAt !== undefined ? kstDateLabel(event.announceAt) : "",
   }[phase];
   const recordCopy = event.copy[phase]?.trim();
   return {

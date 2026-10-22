@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 
 import DashedPill from "../parts/DashedPill";
@@ -40,11 +40,25 @@ export default function AlbumScreen({ slug, onDone, initialFrames }: AlbumScreen
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const targetRef = useRef(0);
+  const shownRef = useRef(slots);
+
+  // 바뀌어 빠진 사진의 캔버스(1280×960) 메모리를 돌려준다
+  useEffect(() => {
+    for (const old of shownRef.current) {
+      if (old && !slots.includes(old)) {
+        old.frame.width = 0;
+        old.frame.height = 0;
+      }
+    }
+    shownRef.current = slots;
+  }, [slots]);
 
   const filled = slots.filter(Boolean).length;
   const isReady = filled === 4 && busy === null;
 
   function handlePick(index: number) {
+    // 여는 중엔 버튼을 disabled로 바꾸지 않는다 — 포커스가 버튼에 남게
+    if (busy !== null) return;
     targetRef.current = index;
     inputRef.current?.click();
   }
@@ -59,13 +73,8 @@ export default function AlbumScreen({ slug, onDone, initialFrames }: AlbumScreen
     setError(null);
     try {
       const frame = await loadAlbumFrame(file);
-      const previous = slots[index];
-      setSlots(slots.map((slot, i) => (i === index ? { frame, preview: frameUrl(frame) } : slot)));
-      // 바꾼 사진의 캔버스(1280×960) 메모리를 돌려준다
-      if (previous) {
-        previous.frame.width = 0;
-        previous.frame.height = 0;
-      }
+      const slot = { frame, preview: frameUrl(frame) };
+      setSlots((prev) => prev.map((old, i) => (i === index ? slot : old)));
     } catch {
       // HEIC를 못 푸는 브라우저·깨진 파일(AlbumDecodeError) — 칸은 그대로 두고 다른 사진을 고르게 한다
       setError(DECODE_ERROR);
@@ -99,10 +108,10 @@ export default function AlbumScreen({ slug, onDone, initialFrames }: AlbumScreen
               <button
                 type="button"
                 onClick={() => handlePick(i)}
-                disabled={busy !== null}
+                aria-disabled={busy !== null}
                 aria-busy={busy === i}
                 aria-label={`${name} ${slot ? "사진 바꾸기" : "칸에 사진 넣기"}`}
-                className={`relative flex h-[112px] w-full cursor-pointer items-center justify-center overflow-hidden bg-white p-0 disabled:cursor-default ${
+                className={`relative flex h-[112px] w-full cursor-pointer items-center justify-center overflow-hidden bg-white p-0 outline-offset-2 focus-visible:outline-[3px] focus-visible:outline-(--tf-ink) aria-disabled:cursor-default ${
                   slot ? "border-0" : "border-2 border-dashed border-(color:--tf-ink)"
                 }`}
               >

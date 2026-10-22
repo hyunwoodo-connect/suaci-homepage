@@ -8,10 +8,12 @@ import EventSubPage from "./page";
 
 vi.mock("@/lib/api", () => ({ eventsApi: { get: vi.fn(), list: vi.fn() } }));
 const cookieJar = new Map<string, string>();
+const headerJar = new Map<string, string>();
 vi.mock("next/headers", () => ({
   cookies: async () => ({
     get: (n: string) => (cookieJar.has(n) ? { value: cookieJar.get(n) } : undefined),
   }),
+  headers: async () => ({ get: (n: string) => headerJar.get(n) ?? null }),
 }));
 vi.mock("next/navigation", () => ({
   notFound: () => {
@@ -47,6 +49,7 @@ describe("EventSubPage", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     cookieJar.clear();
+    headerJar.clear();
   });
 
   it("booth → 놀이 모듈이 그린 화면", async () => {
@@ -77,5 +80,22 @@ describe("EventSubPage", () => {
     await open(["info"], "bad");
     expect(eventsApi.get).toHaveBeenNthCalledWith(1, "take-four", undefined);
     expect(eventsApi.get).toHaveBeenNthCalledWith(2, "take-four", "cookie-token-1234567");
+  });
+
+  it("no-camera + 인스타 UA → 서버에서 인앱 문구, 쿠키로만 온 토큰도 intent 주소에", async () => {
+    cookieJar.set("suaci_evt_take-four", "cookie-token-1234567");
+    headerJar.set("host", "takesuaci.com");
+    headerJar.set(
+      "user-agent",
+      "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/129.0 Mobile Safari/537.36 Instagram 350.0",
+    );
+    vi.mocked(eventsApi.get).mockImplementation(async (_s, p) =>
+      p === "cookie-token-1234567" ? detail("take-four") : null,
+    );
+    const html = renderToStaticMarkup(await open(["no-camera"]));
+    expect(html).toContain("여기선 카메라가 안 열려요");
+    expect(html).toContain(
+      "intent://takesuaci.com/events/take-four?preview=cookie-token-1234567#Intent;scheme=https;package=com.android.chrome;end",
+    );
   });
 });

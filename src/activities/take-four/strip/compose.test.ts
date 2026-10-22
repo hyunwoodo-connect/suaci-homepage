@@ -1,13 +1,6 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 
-import {
-  FONT_TIMEOUT_MS,
-  captionText,
-  composeStrip,
-  kstDateLabel,
-  stripCaption,
-  stripFilename,
-} from "./compose";
+import { FONT_TIMEOUT_MS, captionText, composeStrip, stripCaption, stripFilename } from "./compose";
 import { STRIP, stripLayout } from "./layout";
 
 // 2026-10-22 23:30 UTC = 10-23 08:30 KST
@@ -95,16 +88,6 @@ afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
   document.documentElement.style.removeProperty("--font-fraunces");
-});
-
-describe("kstDateLabel", () => {
-  it("UTC로 전날 밤이어도 → 한국 날짜", () => {
-    expect(kstDateLabel(LATE_UTC)).toBe("10.23");
-  });
-
-  it("한 자리 달·날 → 0을 채운다", () => {
-    expect(kstDateLabel(new Date("2027-01-05T03:00:00Z"))).toBe("01.05");
-  });
 });
 
 describe("stripCaption · captionText", () => {
