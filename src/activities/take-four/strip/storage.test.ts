@@ -76,7 +76,7 @@ describe("saveLast · loadLast", () => {
     expect(await last?.blob.text()).toBe("strip-bytes");
     expect(last?.blob.type).toBe("image/jpeg");
     expect(await last?.photos.text()).toBe("photo-bytes");
-    expect(last?.caption).toEqual({ serial: null, eventLabel: "No.01", date: TAKEN });
+    expect(last?.caption).toEqual({ eventLabel: "No.01", date: TAKEN });
   });
 
   it("모양이 다른 기록(takenAt이 글자) → null", async () => {

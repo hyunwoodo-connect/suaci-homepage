@@ -5,9 +5,8 @@ import { TAKE_FOUR_COLORS } from "../theme";
 import { STRIP, stripLayout } from "./layout";
 import type { Rect } from "./layout";
 
-/** 띠 아래 글자. 1단계 serial은 서버 발급 전이라 null(→ `no.----`). */
+/** 띠 아래 글자. 폰에서 만든 띠엔 번호가 없어 `no.----`로 찍는다. */
 export interface StripCaption {
-  serial: string | null;
   /** 진행 중·시작 전이면 회차 이름(`No.01`). 이벤트가 끝났거나 이벤트 내용이 없으면 null — 도장도 같이 빠진다 */
   eventLabel: string | null;
   date: Date;
@@ -28,14 +27,14 @@ export const FONT_TIMEOUT_MS = 12_000;
  * label: 이벤트 내용(`@/events`)의 회차 이름. 없으면 null.
  */
 export function stripCaption(phase: EventPhase, date: Date, label: string | null): StripCaption {
-  return { serial: null, eventLabel: phase === "ended" ? null : label, date };
+  return { eventLabel: phase === "ended" ? null : label, date };
 }
 
 /** 캡션 왼쪽 번호와 오른쪽 회차·날짜. 화면 띠(Strip)와 합성 띠가 같은 글자를 쓴다. */
 export function captionText(caption: StripCaption): { number: string; meta: string } {
   const date = kstDateLabel(caption.date);
   return {
-    number: caption.serial ?? "no.----",
+    number: "no.----",
     meta: caption.eventLabel ? `${caption.eventLabel} · ${date}` : date,
   };
 }

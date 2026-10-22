@@ -100,7 +100,7 @@ describe("BoothFlow", () => {
     await shoot();
     const [frames, caption] = strip.composeStrip.mock.calls[0];
     expect(frames).toBe(FRAMES);
-    expect(caption).toMatchObject({ serial: null, eventLabel: "No.01" });
+    expect(caption).toMatchObject({ eventLabel: "No.01" });
     expect(strip.composePhotos).toHaveBeenCalledWith(FRAMES);
     expect(strip.saveLast).toHaveBeenCalledWith(STRIP_BLOB, PHOTOS_BLOB, caption);
   });
