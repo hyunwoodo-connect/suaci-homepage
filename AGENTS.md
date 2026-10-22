@@ -23,6 +23,11 @@ Node version is pinned in `.nvmrc`. Env vars: copy `.env.example` to `.env.local
 
 Next.js (App Router) · React · TypeScript strict · Tailwind CSS v4 · next-intl · Vitest · pnpm. Path alias `@/*` → `./src/*`.
 
+## Structure
+
+- `src/activities/` — the activity registry (`index.ts`, `getActivity`) plus one module per activity (`take-four/`). An event record's `activityId` picks the module. Modules never import each other; shared code goes up to `src/lib/` or `src/components/`.
+- `src/events/` — per-event content (`getEventContent(eventId)`): the parts of an event not yet on the backend record (round label, reward, fallback copy). Activities read event-specific text from here, never hard-code it.
+
 ## Boundaries
 
 - All data access goes through `@/lib/api`. Pages and components never call `fetch` for app data directly.
@@ -57,7 +62,7 @@ Type-only imports use `import type { ... }`.
 - Server Components by default. `"use client"` only for state, effects, event handlers, or browser APIs.
 - Links and routers come from `@/i18n/navigation`, never `next/link`.
 - No hardcoded user-facing copy in JSX — it goes in `src/messages/*.json`.
-- **Exception — event pages `src/app/events/[slug]/` (`/events/{slug}`).** They live outside `[locale]` on purpose (no locale prefix; one URL for QR codes and preview links). There, use `next/link` instead of `@/i18n/navigation`, and Korean copy may be inline or come straight from the event record (`card`, `copy`) instead of `src/messages/*.json`. Preview tokens go through `validPreviewToken()` (`src/lib/event-access.ts`) before reaching the API, the same check the middleware uses. The list `/[locale]/events` follows the normal rules.
+- **Exception — event pages `src/app/events/[slug]/` (`/events/{slug}`), and the code they render: `src/activities/**` and `src/events/**`.** They live outside `[locale]` on purpose (no locale prefix; one URL for QR codes and preview links). There, use `next/link` instead of `@/i18n/navigation`, and Korean copy may be inline, come from `src/events/`, or come straight from the event record (`card`, `copy`) instead of `src/messages/*.json`. Preview tokens go through `validPreviewToken()` (`src/lib/event-access.ts`) before reaching the API, the same check the middleware uses. The list `/[locale]/events` follows the normal rules.
 
 ## Naming
 
@@ -81,6 +86,7 @@ Type-only imports use `import type { ... }`.
 ## Styling
 
 - Tailwind utility classes. Design tokens live in `src/app/globals.css` (`@theme inline`) — use tokens, not raw hex values.
+- **Exception — take four. theme.** `src/activities/take-four/theme.ts` and the `--tf-*` variables it sets are scoped to that activity's `Screen` root, not the site. Raw hex values from the design are allowed in `theme.ts`; components inside the activity use `--tf-*` for palette colors (one-off shadow `rgba()` values from the design are fine).
 - Mobile first: base classes for mobile, then `sm:` / `md:` / `lg:`.
 - Conditional classes with template literals.
 
@@ -125,7 +131,6 @@ Code says **what**. Comments say **why**.
 - Isolation: `src/test/setup.ts` clears `localStorage` before each test. Stub globals with `vi.stubGlobal` and restore with `vi.restoreAllMocks()`.
 - No snapshot tests. No real network.
 - Fixing a bug → add a failing test first, then fix.
-- Component tests are not set up yet. Add `@testing-library/react` the first time one is needed.
 
 ## Commits
 
