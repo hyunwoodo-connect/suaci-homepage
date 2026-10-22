@@ -22,7 +22,10 @@ const CONSTRAINTS: MediaStreamConstraints = {
   video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 960 } },
 };
 
-/** 비디오가 아직 크기를 모를 때 찍히는 빈 장의 크기 */
+/** 재생 뒤 영상 크기를 기다리는 한도 */
+const SIZE_TIMEOUT_MS = 3000;
+
+/** 비디오가 크기를 모를 때 찍히는 빈 장(start가 막으니 안전망일 뿐) */
 const FALLBACK_SIZE = { width: 640, height: 480 } as const;
 
 /** 전면 카메라. 언마운트·탭 숨김에서 트랙을 끈다. */
@@ -69,19 +72,35 @@ export function useCamera(): Camera {
     }
 
     streamRef.current = stream;
+    // 다른 앱이 카메라를 가져가거나 iOS가 끊으면 트랙이 스스로 끝난다
+    stream.getTracks().forEach((track) =>
+      track.addEventListener("ended", () => {
+        if (streamRef.current === stream) stop();
+      }),
+    );
+
     const video = videoRef.current;
+    let hasSize = false;
     if (video) {
+      video.muted = true;
       video.srcObject = stream;
       try {
         await video.play();
+        hasSize = await waitForSize(video, SIZE_TIMEOUT_MS);
       } catch {
-        // muted·playsInline이라 막히지 않는다. 막혀도 autoPlay가 다시 튼다
+        // 재생이 막히면 찍을 수 없다 — 아래에서 못 씀으로 끝낸다
       }
     }
     if (attempt !== attemptRef.current) return false;
+    // 크기를 모르는 영상으로는 찍을 수 없다(빈 장이 된다)
+    if (!hasSize) {
+      release();
+      setStatus("unavailable");
+      return false;
+    }
     setStatus("on");
     return true;
-  }, []);
+  }, [release, stop]);
 
   const capture = useCallback(() => {
     const canvas = document.createElement("canvas");
@@ -135,6 +154,20 @@ export function centerCrop43(videoWidth: number, videoHeight: number): CropRect 
     width,
     height,
   };
+}
+
+/** 영상 크기가 정해질 때까지(loadedmetadata) 기다린다. 한도를 넘기면 false */
+function waitForSize(video: HTMLVideoElement, timeoutMs: number): Promise<boolean> {
+  if (video.videoWidth > 0) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    function finish() {
+      clearTimeout(timer);
+      video.removeEventListener("loadedmetadata", finish);
+      resolve(video.videoWidth > 0);
+    }
+    const timer = setTimeout(finish, timeoutMs);
+    video.addEventListener("loadedmetadata", finish);
+  });
 }
 
 function errorStatus(err: unknown): CameraStatus {

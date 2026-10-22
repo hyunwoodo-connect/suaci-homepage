@@ -35,6 +35,13 @@ export default function BoothScreen({ slug, onDone }: BoothScreenProps) {
   const isDone = step === "done";
   const idx = Math.min(shot, 3);
 
+  // 찍는 중 카메라가 끊기면(트랙 끝남·탭 숨김) 처음으로 — 셔터가 다시 찍기가 된다.
+  // 4번째 찰칵 뒤 끄는 stop은 done과 같은 렌더에 반영돼 여기 걸리지 않는다
+  if (isShooting && status !== "on") {
+    dispatch({ type: "reset" });
+    setFrames([]);
+  }
+
   useEffect(() => {
     const delay = tickDelay(state);
     if (delay === null) return;

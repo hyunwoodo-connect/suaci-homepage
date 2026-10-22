@@ -19,6 +19,7 @@ export default function StepBar({ filled, active, size = "md" }: StepBarProps) {
         return (
           <span
             key={color}
+            data-active={isActive || undefined}
             style={{
               background: isFilled ? color : "var(--tf-empty)",
               outline: isActive ? "2px solid var(--tf-ink)" : "none",

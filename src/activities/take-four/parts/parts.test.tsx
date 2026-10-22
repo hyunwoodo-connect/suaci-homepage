@@ -75,6 +75,8 @@ describe("StepBar", () => {
     const { container } = render(<StepBar filled={1} active={0} size="sm" />);
     const s = segments(container);
     expect(s[0].style.outline).toBe("2px solid var(--tf-ink)");
+    expect(s[0]).toHaveAttribute("data-active", "true");
+    expect(s.slice(1).some((e) => e.hasAttribute("data-active"))).toBe(false);
     expect(s.slice(1).every((e) => e.style.outline === "none")).toBe(true);
   });
 
@@ -161,7 +163,7 @@ describe("ScallopFrame", () => {
       </ScallopFrame>,
     );
     expect(screen.getByRole("img", { name: "카메라 화면" })).toBeInTheDocument();
-    expect(screen.getByText("3")).toHaveAttribute("aria-live", "polite");
+    expect(screen.getByText("3")).toHaveAttribute("aria-live", "assertive");
   });
 });
 

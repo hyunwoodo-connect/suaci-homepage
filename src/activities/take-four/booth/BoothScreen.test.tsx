@@ -39,11 +39,10 @@ function prompt() {
   return [...PROMPTS, "take suaci."].find((text) => screen.queryByText(text));
 }
 
+/** 단계 바에서 링이 둘린 칸(없으면 -1) */
 function activeStep() {
-  const cells = Array.from(
-    document.querySelectorAll<HTMLElement>("[aria-hidden=true] > span"),
-  ).filter((el) => el.className.includes("w-[30px]"));
-  return cells.findIndex((el) => el.style.outline.includes("solid"));
+  const cell = document.querySelector("[data-active]");
+  return cell?.parentElement ? Array.from(cell.parentElement.children).indexOf(cell) : -1;
 }
 
 beforeEach(() => {
@@ -51,7 +50,14 @@ beforeEach(() => {
   // jsdom엔 canvas가 없다(마지막 장 미리보기)
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
   camera.status = "idle";
-  camera.start.mockResolvedValue(true);
+  // 실제 훅처럼 start는 켜고(on) stop은 끈다(idle). 다음 렌더가 읽는다
+  camera.start.mockImplementation(async () => {
+    camera.status = "on";
+    return true;
+  });
+  camera.stop.mockImplementation(() => {
+    camera.status = "idle";
+  });
   camera.capture.mockImplementation(() => document.createElement("canvas"));
 });
 
@@ -113,8 +119,34 @@ describe("BoothScreen", () => {
     expect(prompt()).toBe("take suaci.");
   });
 
+  it("4번째 찰칵 뒤 카메라를 끄는 건 처음으로 되돌리지 않는다", async () => {
+    render(<BoothScreen slug="take-four" onDone={vi.fn()} />);
+    await pressShutter();
+    elapse(SHOT_MS * 4);
+    expect(camera.stop).toHaveBeenCalled();
+    expect(camera.status).toBe("idle");
+    expect(screen.getByRole("button", { name: "다 찍었어요. 인화하기" })).toBeInTheDocument();
+  });
+
+  it("찍는 중 카메라가 끊김 → 처음(ready)으로, 더 찍지 않는다", async () => {
+    const { rerender } = render(<BoothScreen slug="take-four" onDone={vi.fn()} />);
+    await pressShutter();
+    elapse(SHOT_MS + COUNT_MS);
+    expect(camera.capture).toHaveBeenCalledTimes(1);
+
+    camera.status = "idle";
+    act(() => rerender(<BoothScreen slug="take-four" onDone={vi.fn()} />));
+    expect(screen.getByText("0 / 4")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /찍기 시작/ })).toBeEnabled();
+    elapse(SHOT_MS * 2);
+    expect(camera.capture).toHaveBeenCalledTimes(1);
+  });
+
   it("카메라가 안 켜짐 → 촬영을 시작하지 않는다", async () => {
-    camera.start.mockResolvedValue(false);
+    camera.start.mockImplementation(async () => {
+      camera.status = "denied";
+      return false;
+    });
     render(<BoothScreen slug="take-four" onDone={vi.fn()} />);
     await pressShutter();
     elapse(SHOT_MS);
