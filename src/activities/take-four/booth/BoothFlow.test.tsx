@@ -58,6 +58,8 @@ vi.mock("../stage", async (importOriginal) => {
   };
 });
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+
 function event(phase: EventDetail["phase"] = "live", switches = {}, eventId = "no01") {
   return {
     eventId,
@@ -148,6 +150,38 @@ describe("BoothFlow", () => {
       await shoot();
       await act(async () => fireEvent.click(screen.getByRole("button", { name: "받기" })));
       expect(screen.getByRole("button", { name: "응모하기" })).toBeInTheDocument();
+    } finally {
+      stage.shipped = { wall: false, entry: false };
+    }
+  });
+
+  it("2단계가 나왔고 switches.wall → 완성 화면에 벽에 붙이기", async () => {
+    stage.shipped = { wall: true, entry: false };
+    try {
+      render(<BoothFlow event={event("live", { wall: true })} />);
+      await shoot();
+      await act(async () => fireEvent.click(screen.getByRole("button", { name: "받기" })));
+      expect(screen.getByRole("button", { name: "벽에 붙이기" })).toBeInTheDocument();
+    } finally {
+      stage.shipped = { wall: false, entry: false };
+    }
+  });
+
+  it("switches.wall이 켜져도 2단계 전(STAGE.wall false) → 벽에 붙이기 없음", async () => {
+    render(<BoothFlow event={event("live", { wall: true })} />);
+    await shoot();
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "받기" })));
+    expect(screen.queryByRole("button", { name: "벽에 붙이기" })).toBeNull();
+  });
+
+  it("응모가 켜짐(wall·entry 둘 다) → 응모하기만, 벽에 붙이기 없음", async () => {
+    stage.shipped = { wall: true, entry: true };
+    try {
+      render(<BoothFlow event={event("live", { wall: true, entry: true })} />);
+      await shoot();
+      await act(async () => fireEvent.click(screen.getByRole("button", { name: "받기" })));
+      expect(screen.getByRole("button", { name: "응모하기" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "벽에 붙이기" })).toBeNull();
     } finally {
       stage.shipped = { wall: false, entry: false };
     }

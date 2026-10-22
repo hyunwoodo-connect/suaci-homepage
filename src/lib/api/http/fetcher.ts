@@ -3,8 +3,10 @@ import { ApiClientError } from "../errors";
 import { tokenStore } from "@/lib/auth/token-store";
 
 export interface RequestOpts {
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
+  /** 기본 Content-Type에 더해 보낼 헤더(예: `X-Device-Token`) */
+  headers?: Record<string, string>;
   auth?: boolean;
   query?: Record<string, string | number | undefined>;
 }
@@ -53,7 +55,10 @@ export function createFetcher(baseUrl: string) {
     opts: RequestOpts = {},
     tokenOverride?: string,
   ): Promise<T> {
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...opts.headers,
+    };
     if (opts.auth) {
       const token = tokenOverride ?? tokenStore.getAccessToken();
       if (token) headers.Authorization = `Bearer ${token}`;

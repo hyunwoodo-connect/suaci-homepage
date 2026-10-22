@@ -38,7 +38,9 @@ export default function LastResult({ event }: LastResultProps) {
         strip={last.blob}
         photos={last.photos}
         caption={last.caption}
+        slug={event.slug}
         canEnter={isStageOn(event, "entry")}
+        canPost={isStageOn(event, "wall") && !isStageOn(event, "entry")}
         storyLink={storyLink(event.slug)}
         retakeHref={`${base}/booth`}
       />

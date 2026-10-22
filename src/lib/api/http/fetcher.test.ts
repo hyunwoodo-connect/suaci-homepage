@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createFetcher } from "./fetcher";
 import { createHttpClient } from "./index";
 import { tokenStore } from "@/lib/auth/token-store";
 
@@ -116,5 +117,31 @@ describe("http client", () => {
     expect(tokenStore.getAccessToken()).toBeNull();
     // 재시도는 정확히 1회 — fetch 총 3회 (요청 → refresh → 재요청)
     expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("createFetcher", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("headers → 기본 Content-Type에 더해 보낸다", async () => {
+    const fetchMock = mockFetchOnce(200, { data: 1 });
+    vi.stubGlobal("fetch", fetchMock);
+    await createFetcher("https://api.test").request("/x", {
+      method: "POST",
+      headers: { "X-Device-Token": "tok" },
+    });
+    expect(fetchMock.mock.calls[0][1].headers).toEqual({
+      "Content-Type": "application/json",
+      "X-Device-Token": "tok",
+    });
+  });
+
+  it("PUT → 그 메서드로 보낸다", async () => {
+    const fetchMock = mockFetchOnce(200, { data: { ribbons: 1 } });
+    vi.stubGlobal("fetch", fetchMock);
+    await createFetcher("https://api.test").request("/x", { method: "PUT" });
+    expect(fetchMock.mock.calls[0][1].method).toBe("PUT");
   });
 });

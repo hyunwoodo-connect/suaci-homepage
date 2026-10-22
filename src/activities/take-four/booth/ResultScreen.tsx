@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { useRouter } from "next/navigation";
+
+import BottomSheet from "../parts/BottomSheet";
 import PillButton from "../parts/PillButton";
 import SaveIcon from "../parts/SaveIcon";
 import Screen from "../parts/Screen";
@@ -15,6 +18,7 @@ import { captionText, photosDataUrl, stripFilename } from "../strip/compose";
 import type { StripCaption } from "../strip/compose";
 import { downloadBlob, shareOrDownload, shareStoryOrDownload } from "../strip/share";
 import { composeStory, storyFilename } from "../story/composeStory";
+import { postStrip } from "../wall/postStrip";
 import { SHOT_NAMES } from "./machine";
 
 interface ResultScreenProps {
@@ -23,8 +27,12 @@ interface ResultScreenProps {
   /** 같은 네 장의 사진 기둥(띠 안에 보이는 것) */
   photos: Blob;
   caption: StripCaption;
+  /** 벽 주소(`/events/{slug}/wall`)에 쓴다 */
+  slug: string;
   /** 3단계 응모가 나왔고 이벤트 스위치 `entry`도 켜졌는지(`isStageOn`) */
   canEnter: boolean;
+  /** 2단계 벽이 나왔고 `wall` 스위치가 켜졌고 응모가 아직 없는지 — 응모하기와 같은 자리를 쓴다 */
+  canPost: boolean;
   /** 스토리 이미지 왼쪽 아래 주소 */
   storyLink: string;
   /** 부스 안에서 이어질 때 — 촬영 준비 상태로 */
@@ -45,7 +53,9 @@ export default function ResultScreen({
   strip,
   photos,
   caption,
+  slug,
   canEnter,
+  canPost,
   storyLink,
   onRetake,
   retakeHref,
@@ -154,6 +164,7 @@ export default function ResultScreen({
 
       <div className="flex flex-col gap-[10px]">
         {canEnter ? <PillButton>응모하기</PillButton> : null}
+        {canPost && !canEnter ? <WallPost photos={photos} slug={slug} /> : null}
         <div className="grid grid-cols-2 gap-[8px]">
           <PillButton
             variant="outline"
@@ -174,5 +185,61 @@ export default function ResultScreen({
         </TextLink>
       </div>
     </Screen>
+  );
+}
+
+/* ─── 하위 컴포넌트 ─────────────────────────── */
+
+interface WallPostProps {
+  photos: Blob;
+  slug: string;
+}
+
+/** `벽에 붙이기` → 시트에서 확인 → 올리고 벽으로. 실패하면 시트에 남아 `다시 보내기`. */
+function WallPost({ photos, slug }: WallPostProps) {
+  const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
+  const [status, setStatus] = useState<"idle" | "posting" | "failed">("idle");
+  // 같은 렌더 안의 연타는 state가 아직 안 바뀌어 ref로 막는다
+  const postingRef = useRef(false);
+
+  async function handlePost() {
+    if (postingRef.current) return;
+    postingRef.current = true;
+    setStatus("posting");
+    try {
+      const { id } = await postStrip(photos);
+      router.push(`/events/${slug}/wall?posted=${encodeURIComponent(id)}`);
+    } catch {
+      postingRef.current = false;
+      setStatus("failed");
+    }
+  }
+
+  function handleClose() {
+    // 보내는 중엔 닫지 않는다 — 닫아도 업로드는 이어져 벽으로 넘어가 버린다
+    if (postingRef.current) return;
+    setIsOpen(false);
+  }
+
+  return (
+    <>
+      <PillButton onClick={() => setIsOpen(true)}>벽에 붙이기</PillButton>
+      <BottomSheet isOpen={isOpen} onClose={handleClose} label="벽에 붙이기" tone="paper">
+        <h2 className="m-0 text-[22px] font-bold">벽에 붙일까요?</h2>
+        <p className="m-0 text-[15px] leading-[1.5]">누구나 봐요. 언제든 뗄 수 있어요.</p>
+        {status === "failed" ? (
+          <p role="alert" className="m-0 text-[14px] font-bold text-(color:--tf-error)">
+            연결이 끊겼어요. 네컷은 폰에 그대로 있어요.
+          </p>
+        ) : null}
+        <PillButton size="sheet" onClick={handlePost} disabled={status === "posting"}>
+          {status === "posting" ? "보내는 중…" : status === "failed" ? "다시 보내기" : "붙이기"}
+        </PillButton>
+        <TextLink onClick={handleClose} isUnderlined={false} disabled={status === "posting"}>
+          아니요
+        </TextLink>
+      </BottomSheet>
+    </>
   );
 }

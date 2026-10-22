@@ -16,8 +16,13 @@ vi.mock("../story/composeStory", async (importOriginal) => ({
   composeStory: story.composeStory,
 }));
 const STORY_BLOB = new Blob(["story"], { type: "image/jpeg" });
+const wall = vi.hoisted(() => ({ postStrip: vi.fn() }));
+vi.mock("../wall/postStrip", () => wall);
+const router = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 const STRIP_BLOB = new Blob(["strip"], { type: "image/jpeg" });
+const PHOTOS_BLOB = new Blob(["photos"], { type: "image/jpeg" });
 const TAKEN = new Date("2026-10-22T05:00:00Z");
 
 async function renderResult(props: Partial<Parameters<typeof ResultScreen>[0]> = {}) {
@@ -25,9 +30,11 @@ async function renderResult(props: Partial<Parameters<typeof ResultScreen>[0]> =
     render(
       <ResultScreen
         strip={STRIP_BLOB}
-        photos={new Blob(["photos"], { type: "image/jpeg" })}
+        photos={PHOTOS_BLOB}
+        slug="take-four"
         caption={stripCaption("live", TAKEN, "No.01")}
         canEnter={false}
+        canPost={false}
         storyLink="takesuaci.com/events/take-four"
         onRetake={vi.fn()}
         {...props}
@@ -43,6 +50,8 @@ beforeEach(() => {
   share.shareStoryOrDownload.mockReset().mockResolvedValue("shared");
   story.composeStory.mockReset().mockResolvedValue(STORY_BLOB);
   share.downloadBlob.mockReset();
+  wall.postStrip.mockReset().mockResolvedValue({ id: "01J" });
+  router.push.mockReset();
 });
 
 afterEach(() => {
@@ -169,5 +178,58 @@ describe("ResultScreen", () => {
       "href",
       "/events/take-four/booth",
     );
+  });
+
+  it("canPost 아님 → 벽에 붙이기 없음", async () => {
+    await renderResult({ canPost: false });
+    expect(screen.queryByRole("button", { name: "벽에 붙이기" })).toBeNull();
+  });
+
+  it("canPost → 벽에 붙이기 → 시트(제목·안내·붙이기·아니요)", async () => {
+    await renderResult({ canPost: true });
+    fireEvent.click(screen.getByRole("button", { name: "벽에 붙이기" }));
+    const sheet = screen.getByRole("dialog", { name: "벽에 붙이기" });
+    expect(sheet).toHaveTextContent("벽에 붙일까요?");
+    expect(sheet).toHaveTextContent("누구나 봐요. 언제든 뗄 수 있어요.");
+    expect(screen.getByRole("button", { name: "붙이기" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "아니요" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("붙이기 연타 → 한 번만 보내고, 보내는 중엔 잠근다", async () => {
+    let finish: (value: unknown) => void = () => {};
+    wall.postStrip.mockImplementation(() => new Promise((resolve) => (finish = resolve)));
+    await renderResult({ canPost: true });
+    fireEvent.click(screen.getByRole("button", { name: "벽에 붙이기" }));
+    const button = screen.getByRole("button", { name: "붙이기" });
+    await act(async () => {
+      fireEvent.click(button);
+      fireEvent.click(button);
+    });
+    expect(wall.postStrip).toHaveBeenCalledTimes(1);
+    expect(wall.postStrip).toHaveBeenCalledWith(PHOTOS_BLOB);
+    expect(screen.getByRole("button", { name: "보내는 중…" })).toBeDisabled();
+    await act(async () => finish({ id: "01J" }));
+  });
+
+  it("실패 → 알림 + 다시 보내기, 다시 보내면 또 보낸다", async () => {
+    wall.postStrip.mockRejectedValueOnce(new Error("끊김"));
+    await renderResult({ canPost: true });
+    fireEvent.click(screen.getByRole("button", { name: "벽에 붙이기" }));
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "붙이기" })));
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "연결이 끊겼어요. 네컷은 폰에 그대로 있어요.",
+    );
+    expect(router.push).not.toHaveBeenCalled();
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "다시 보내기" })));
+    expect(wall.postStrip).toHaveBeenCalledTimes(2);
+    expect(router.push).toHaveBeenCalledWith("/events/take-four/wall?posted=01J");
+  });
+
+  it("성공 → 벽으로(posted=id)", async () => {
+    await renderResult({ canPost: true });
+    fireEvent.click(screen.getByRole("button", { name: "벽에 붙이기" }));
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "붙이기" })));
+    expect(router.push).toHaveBeenCalledWith("/events/take-four/wall?posted=01J");
   });
 });
