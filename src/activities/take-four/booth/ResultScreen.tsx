@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
+import { ApiClientError } from "@/lib/api/errors";
+
 import BottomSheet from "../parts/BottomSheet";
 import PillButton from "../parts/PillButton";
 import SaveIcon from "../parts/SaveIcon";
@@ -199,7 +201,7 @@ interface WallPostProps {
 function WallPost({ photos, slug }: WallPostProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
-  const [status, setStatus] = useState<"idle" | "posting" | "failed">("idle");
+  const [status, setStatus] = useState<"idle" | "posting" | "failed" | "limited">("idle");
   // 같은 렌더 안의 연타는 state가 아직 안 바뀌어 ref로 막는다
   const postingRef = useRef(false);
 
@@ -210,9 +212,12 @@ function WallPost({ photos, slug }: WallPostProps) {
     try {
       const { id } = await postStrip(photos);
       router.push(`/events/${slug}/wall?posted=${encodeURIComponent(id)}`);
-    } catch {
+    } catch (err) {
       postingRef.current = false;
-      setStatus("failed");
+      // 하루 한도(기기당 10장)는 다시 보내도 안 되니 버튼 없이 알리기만
+      const isLimited =
+        err instanceof ApiClientError && (err.code === "RATE_LIMITED" || err.status === 429);
+      setStatus(isLimited ? "limited" : "failed");
     }
   }
 
@@ -227,15 +232,21 @@ function WallPost({ photos, slug }: WallPostProps) {
       <PillButton onClick={() => setIsOpen(true)}>벽에 붙이기</PillButton>
       <BottomSheet isOpen={isOpen} onClose={handleClose} label="벽에 붙이기" tone="paper">
         <h2 className="m-0 text-[22px] font-bold">벽에 붙일까요?</h2>
-        <p className="m-0 text-[15px] leading-[1.5]">누구나 봐요. 언제든 뗄 수 있어요.</p>
+        <p className="m-0 text-[15px] leading-[1.5]">누구나 볼 수 있어요. 언제든 뗄 수 있어요.</p>
         {status === "failed" ? (
           <p role="alert" className="m-0 text-[14px] font-bold text-(color:--tf-error)">
             연결이 끊겼어요. 네컷은 폰에 그대로 있어요.
           </p>
         ) : null}
-        <PillButton size="sheet" onClick={handlePost} disabled={status === "posting"}>
-          {status === "posting" ? "보내는 중…" : status === "failed" ? "다시 보내기" : "붙이기"}
-        </PillButton>
+        {status === "limited" ? (
+          <p role="alert" className="m-0 text-[14px] font-bold text-(color:--tf-error)">
+            오늘은 여기까지 붙일 수 있어요. 내일 또 붙여 주세요.
+          </p>
+        ) : (
+          <PillButton size="sheet" onClick={handlePost} disabled={status === "posting"}>
+            {status === "posting" ? "보내는 중…" : status === "failed" ? "다시 보내기" : "붙이기"}
+          </PillButton>
+        )}
         <TextLink onClick={handleClose} isUnderlined={false} disabled={status === "posting"}>
           아니요
         </TextLink>
