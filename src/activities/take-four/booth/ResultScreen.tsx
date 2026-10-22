@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
+import FitStage from "../parts/FitStage";
 import PillButton from "../parts/PillButton";
 import SaveIcon from "../parts/SaveIcon";
 import Screen from "../parts/Screen";
@@ -70,23 +71,19 @@ export default function ResultScreen({
     <Screen tone="cream">
       <TopBar start={<Wordmark />} label={number} />
 
-      {/* 띠 자리는 남은 높이만 차지하고(띠가 화면을 늘리지 않게 absolute), 작은 폰에선 띠를 줄여
-          버튼이 화면 안에 남게 한다(시안은 390×844) */}
-      <div className="relative min-h-[200px] flex-1">
-        <div className="absolute inset-0 flex items-center justify-center [@media(max-height:660px)]:scale-[0.66] [@media(min-height:661px)_and_(max-height:700px)]:scale-[0.74] [@media(min-height:701px)_and_(max-height:780px)]:scale-[0.86]">
-          {photoUrl ? (
-            <Strip
-              src={photoUrl}
-              alt={`네컷: ${SHOT_NAMES.join(", ")}`}
-              number={number}
-              meta={meta}
-              stamp={caption.eventLabel ?? undefined}
-            />
-          ) : (
-            <div role="status" aria-label="네컷 여는 중" className="h-[506px] w-[176px]" />
-          )}
-        </div>
-      </div>
+      <FitStage>
+        {photoUrl ? (
+          <Strip
+            src={photoUrl}
+            alt={`네컷: ${SHOT_NAMES.join(", ")}`}
+            number={number}
+            meta={meta}
+            stamp={caption.eventLabel ?? undefined}
+          />
+        ) : (
+          <div role="status" aria-label="네컷 여는 중" className="h-[506px] w-[176px]" />
+        )}
+      </FitStage>
 
       <div className="h-[18px] shrink-0" />
 

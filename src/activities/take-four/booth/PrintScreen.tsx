@@ -84,7 +84,7 @@ export default function PrintScreen({
       {/* 띠가 화면을 늘리지 않게 absolute, 작은 폰에선 줄인다(시안은 390×844) */}
       <div className="relative min-h-[200px] flex-1">
         <div className="absolute inset-0 flex items-center justify-center [@media(max-height:660px)]:scale-[0.76] [@media(min-height:661px)_and_(max-height:740px)]:scale-[0.86]">
-          <figure className="relative m-0 box-border w-[150px] rotate-[-2deg] border-4 border-solid border-(--tf-red) bg-(--tf-cream) px-[8px] pt-[8px] pb-[30px] shadow-[0_12px_20px_rgba(43,36,32,0.22)]">
+          <figure className="relative m-0 box-border w-[150px] rotate-[-2deg] border-4 border-solid border-(color:--tf-red) bg-(--tf-cream) px-[8px] pt-[8px] pb-[30px] shadow-[0_12px_20px_rgba(43,36,32,0.22)]">
             <div className="relative">
               <Photos frames={frames} />
               {SHOT_INDEXES.map((i) => (
@@ -121,7 +121,7 @@ export default function PrintScreen({
             <span
               key={i}
               aria-hidden="true"
-              className={`box-content size-[12px] rounded-full border-2 border-solid border-(--tf-ink) ${
+              className={`box-content size-[12px] rounded-full border-2 border-solid border-(color:--tf-ink) ${
                 i < shown ? "bg-(--tf-ink)" : "bg-transparent"
               }`}
             />

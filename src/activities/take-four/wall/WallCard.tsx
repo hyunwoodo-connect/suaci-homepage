@@ -50,7 +50,7 @@ export default function WallCard({
           alt={isMine ? "내 네컷" : "네컷"}
           number={number}
           meta={isMine ? "내 거" : meta}
-          frame={isMine ? "ink" : "red"}
+          tone={isMine ? "ink" : "red"}
           hasPin
         />
       </Link>

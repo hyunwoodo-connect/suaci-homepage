@@ -22,7 +22,7 @@ export default function RibbonButton({ count, isOn, onClick, size = "sm" }: Ribb
               isOn ? "bg-(--tf-cream)" : "bg-transparent"
             }`
           : `h-[36px] gap-[6px] border-0 px-[12px] text-[14px] ${
-              isOn ? "bg-(--tf-cream)" : "bg-[rgba(239,227,207,0.55)]"
+              isOn ? "bg-(--tf-cream)" : "bg-(--tf-cream)/55"
             }`
       }`}
     >

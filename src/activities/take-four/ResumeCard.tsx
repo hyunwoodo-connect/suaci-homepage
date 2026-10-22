@@ -47,7 +47,7 @@ export default function ResumeCard({ href }: ResumeCardProps) {
             <img
               src={thumb}
               alt=""
-              className="box-content block w-[26px] border-2 border-solid border-(--tf-red)"
+              className="box-content block w-[26px] border-2 border-solid border-(color:--tf-red)"
             />
             <span className="flex-1 text-[15px] leading-[1.4]">
               <b>아까 찍은 네컷</b>이 있어요

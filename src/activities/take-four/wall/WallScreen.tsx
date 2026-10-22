@@ -177,7 +177,7 @@ export default function WallScreen({ event, now }: WallScreenProps) {
             {SKELETON_TILTS.map((tilt) => (
               <div key={tilt} className={`flex flex-col items-center gap-[6px] ${tilt}`}>
                 <Strip size="sm" alt="" number="" meta="" />
-                <div className="h-[36px] w-[70px] rounded-full bg-[rgba(239,227,207,0.4)]" />
+                <div className="h-[36px] w-[70px] rounded-full bg-(--tf-cream)/40" />
               </div>
             ))}
           </div>
@@ -223,7 +223,7 @@ export default function WallScreen({ event, now }: WallScreenProps) {
         ) : null}
         {load === "moreFailed" && cursor ? (
           <div className="mt-[18px]">
-            <TextLink size={14} onClick={() => void loadPage(cursor)}>
+            <TextLink size="md" onClick={() => void loadPage(cursor)}>
               더 불러오기
             </TextLink>
           </div>

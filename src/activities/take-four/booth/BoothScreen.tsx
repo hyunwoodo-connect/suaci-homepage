@@ -193,7 +193,7 @@ function SaveGuide({ videoWidth, videoHeight }: SaveGuideProps) {
       aria-hidden="true"
       data-testid="save-guide"
       style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height }}
-      className="pointer-events-none absolute box-border rounded-[10px] border-[1.5px] border-dashed border-(--tf-cream)/70 shadow-[0_0_0_400px_var(--tf-shade)]"
+      className="pointer-events-none absolute box-border rounded-[10px] border-[1.5px] border-dashed border-(color:--tf-cream)/70 shadow-[0_0_0_400px_var(--tf-shade)]"
     />
   );
 }

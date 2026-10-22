@@ -36,7 +36,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("입구 아까 찍은 네컷 카드", () => {
+describe("ResumeCard", () => {
   it("폰에 남은 띠 있음 → 작은 띠 + 보기 →, 마지막 띠 화면으로", async () => {
     storage.loadLast.mockResolvedValue({
       blob: new Blob(["x"]),

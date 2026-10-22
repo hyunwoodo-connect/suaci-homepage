@@ -9,7 +9,7 @@ export default function Stamp({ label }: StampProps) {
     <span
       aria-hidden="true"
       data-stamp
-      className="absolute top-[20px] -right-[18px] z-[1] box-border flex size-[52px] rotate-[-12deg] items-center justify-center rounded-full border-2 border-solid border-(color:--tf-red) bg-[rgba(239,227,207,0.92)] font-(family-name:--tf-latin) text-[13px] font-semibold text-(color:--tf-red) italic"
+      className="absolute top-[20px] -right-[18px] z-[1] box-border flex size-[52px] rotate-[-12deg] items-center justify-center rounded-full border-2 border-solid border-(color:--tf-red) bg-(--tf-cream)/92 font-(family-name:--tf-latin) text-[13px] font-semibold text-(color:--tf-red) italic"
     >
       {label}
     </span>

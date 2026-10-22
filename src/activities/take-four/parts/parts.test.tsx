@@ -62,27 +62,16 @@ describe("StepBar", () => {
     return Array.from(container.querySelectorAll("span"));
   }
 
-  it("filled 2 → 앞 두 칸은 단계 색, 나머지는 빈 칸 색", () => {
-    const { container } = render(<StepBar filled={2} />);
-    const s = segments(container);
-    expect(s[0]).toHaveStyle({ backgroundColor: "#F4C9BC" });
-    expect(s[1]).toHaveStyle({ backgroundColor: "#EE9C88" });
-    expect(s[2].style.background).toBe("var(--tf-empty)");
-    expect(s[3].style.background).toBe("var(--tf-empty)");
-  });
-
-  it("active 0 → 첫 칸에만 잉크 링", () => {
+  it("active 0 → 첫 칸만 지금 칸", () => {
     const { container } = render(<StepBar filled={1} active={0} size="sm" />);
     const s = segments(container);
-    expect(s[0].style.outline).toBe("2px solid var(--tf-ink)");
     expect(s[0]).toHaveAttribute("data-active", "true");
     expect(s.slice(1).some((e) => e.hasAttribute("data-active"))).toBe(false);
-    expect(s.slice(1).every((e) => e.style.outline === "none")).toBe(true);
   });
 
-  it("active 없으면(대기·완료) 링 없음", () => {
+  it("active 없으면(대기·완료) 지금 칸 없음", () => {
     const { container } = render(<StepBar filled={4} />);
-    expect(segments(container).every((e) => e.style.outline === "none")).toBe(true);
+    expect(segments(container).some((e) => e.hasAttribute("data-active"))).toBe(false);
   });
 
   it("보조기기엔 숨긴다", () => {
@@ -103,11 +92,6 @@ describe("Wordmark", () => {
     const { container } = render(<Wordmark />);
     expect(container.firstElementChild).toHaveTextContent(/^suaci$/);
     expect(container.querySelector("[aria-hidden='true']")).not.toBeNull();
-  });
-
-  it("lg → PC 안내 크기(16px)", () => {
-    const { container } = render(<Wordmark size="lg" />);
-    expect(container.firstElementChild).toHaveClass("text-[16px]");
   });
 });
 

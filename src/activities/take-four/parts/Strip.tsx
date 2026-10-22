@@ -14,7 +14,7 @@ interface StripProps {
   stamp?: string;
   hasPin?: boolean;
   /** red: 기본 / ink: 벽의 내 네컷 */
-  frame?: "red" | "ink";
+  tone?: "red" | "ink";
   /** sm: 벽 카드 128×380(기울기는 카드가) / md: 완성 176×506 / lg: 크게 보기 192×552 */
   size?: "sm" | "md" | "lg";
 }
@@ -52,7 +52,7 @@ export default function Strip({
   meta,
   stamp,
   hasPin = false,
-  frame = "red",
+  tone = "red",
   size = "md",
 }: StripProps) {
   const s = STRIP_SIZE[size];
@@ -69,7 +69,7 @@ export default function Strip({
         <path
           d={STRIP_WAVY.d}
           fill="var(--tf-cream)"
-          stroke={frame === "ink" ? "var(--tf-ink)" : "var(--tf-red)"}
+          stroke={tone === "ink" ? "var(--tf-ink)" : "var(--tf-red)"}
           strokeWidth="5"
           strokeLinejoin="round"
         />

@@ -6,6 +6,7 @@ import { isNotFound, isRateLimited } from "@/lib/api";
 import type { EventDetail } from "@/types";
 
 import BottomSheet from "../parts/BottomSheet";
+import FitStage from "../parts/FitStage";
 import PillButton from "../parts/PillButton";
 import RibbonButton from "../parts/RibbonButton";
 import Screen from "../parts/Screen";
@@ -67,20 +68,17 @@ export default function DetailScreen({ event, stripId }: DetailScreenProps) {
     <Screen tone="lime">
       <TopBar nav={{ icon: "close", label: "닫기", href: wallHref }} label={caption?.number} />
 
-      {/* 띠는 남은 높이만 차지하고 작은 폰에선 줄인다(완성 화면과 같은 방식, 시안은 390×844) */}
-      <div className="relative min-h-[200px] flex-1">
-        <div className="absolute inset-0 flex items-center justify-center [@media(max-height:660px)]:scale-[0.66] [@media(min-height:661px)_and_(max-height:700px)]:scale-[0.74] [@media(min-height:701px)_and_(max-height:780px)]:scale-[0.86]">
-          <Strip
-            size="lg"
-            src={strip?.photoUrl}
-            alt="다른 사람들의 네컷"
-            number={caption?.number ?? ""}
-            meta={caption?.meta ?? ""}
-            stamp={caption?.stamp}
-            hasPin
-          />
-        </div>
-      </div>
+      <FitStage>
+        <Strip
+          size="lg"
+          src={strip?.photoUrl}
+          alt="다른 사람들의 네컷"
+          number={caption?.number ?? ""}
+          meta={caption?.meta ?? ""}
+          stamp={caption?.stamp}
+          hasPin
+        />
+      </FitStage>
 
       <div className="flex min-h-[122px] flex-col items-center gap-[6px] pt-[16px]">
         {strip ? <Actions strip={strip} wallHref={wallHref} /> : null}
@@ -131,7 +129,7 @@ function Actions({ strip, wallHref }: ActionsProps) {
   return (
     <>
       <RibbonButton size="lg" count={ribbon.count} isOn={ribbon.isOn} onClick={ribbon.give} />
-      <TextLink size={13} onClick={() => setReport("ask")}>
+      <TextLink size="sm" onClick={() => setReport("ask")}>
         신고
       </TextLink>
 
