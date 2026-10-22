@@ -102,6 +102,11 @@ describe("Wordmark", () => {
     expect(container.firstElementChild).toHaveTextContent(/^suaci$/);
     expect(container.querySelector("[aria-hidden='true']")).not.toBeNull();
   });
+
+  it("lg → PC 안내 크기(16px)", () => {
+    const { container } = render(<Wordmark size="lg" />);
+    expect(container.firstElementChild).toHaveClass("text-[16px]");
+  });
 });
 
 describe("GirlsIllustration", () => {

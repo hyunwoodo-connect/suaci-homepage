@@ -1,27 +1,26 @@
-import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
+import { headers } from "next/headers";
+
+import { getActivity } from "@/activities";
 import EventWaiting from "@/components/events/EventWaiting";
-import { eventsApi } from "@/lib/api";
-import { validPreviewToken } from "@/lib/event-access";
+
+import { loadEvent } from "./loadEvent";
 
 interface EventPageProps {
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ preview?: string }>;
 }
 
-/** 이벤트 페이지 — 문구는 이벤트 레코드(card, copy)에서 온다. 한국어 단독. */
+/** 이벤트 페이지 — 놀이 모듈이 있으면 그 입구, 없으면 이벤트 레코드(card, copy) 문구로 그린 기본 화면. */
 export default async function EventPage({ params, searchParams }: EventPageProps) {
   const { slug } = await params;
   const { preview } = await searchParams;
-  // 미들웨어와 같은 모양 검사를 거친 토큰만 API에 넘긴다.
-  // 쿼리 토큰이 없거나 낡았으면 미들웨어가 심은 쿠키로 대신한다
-  const queryToken = validPreviewToken(preview);
-  let event = await eventsApi.get(slug, queryToken);
-  if (!event) {
-    const saved = validPreviewToken((await cookies()).get(`suaci_evt_${slug}`)?.value);
-    if (saved && saved !== queryToken) event = await eventsApi.get(slug, saved);
+  const event = await loadEvent(slug, preview);
+
+  const activity = getActivity(event.activityId);
+  if (activity) {
+    const userAgent = (await headers()).get("user-agent") ?? "";
+    return <activity.Entrance event={event} userAgent={userAgent} />;
   }
-  if (!event) notFound();
 
   const { phase, card, copy } = event;
 

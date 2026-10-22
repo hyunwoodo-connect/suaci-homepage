@@ -6,10 +6,12 @@ import type { EventDetail, EventPhase } from "@/types";
 
 vi.mock("@/lib/api", () => ({ eventsApi: { get: vi.fn(), list: vi.fn() } }));
 const cookieJar = new Map<string, string>();
+const headerJar = new Map<string, string>();
 vi.mock("next/headers", () => ({
   cookies: async () => ({
     get: (n: string) => (cookieJar.has(n) ? { value: cookieJar.get(n) } : undefined),
   }),
+  headers: async () => ({ get: (n: string) => headerJar.get(n) ?? null }),
 }));
 vi.mock("next/navigation", () => ({
   notFound: () => {
@@ -17,11 +19,16 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-function detail(phase: EventPhase): EventDetail {
+const IPHONE_UA =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
+const MAC_UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36";
+
+function detail(phase: EventPhase, activityId = "a1"): EventDetail {
   return {
     eventId: "e1",
     slug: "take-four",
-    activityId: "a1",
+    activityId,
     phase,
     startAt: Date.parse("2027-01-26T00:00:00+09:00"),
     startDtm: "",
@@ -47,6 +54,29 @@ describe("EventPage", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     cookieJar.clear();
+    headerJar.clear();
+  });
+
+  it("놀이가 등록된 activityId(take-four) + 폰 UA → 놀이 입구(커튼 열기)", async () => {
+    headerJar.set("user-agent", IPHONE_UA);
+    vi.mocked(eventsApi.get).mockResolvedValue(detail("live", "take-four"));
+    const ui = await EventPage({
+      params: Promise.resolve({ slug: "take-four" }),
+      searchParams: Promise.resolve({}),
+    });
+    const html = renderToStaticMarkup(ui);
+    expect(html).toContain("커튼 열기");
+    expect(html).not.toContain("곧 이 자리에서");
+  });
+
+  it("놀이가 등록된 activityId + PC UA → PC 안내", async () => {
+    headerJar.set("user-agent", MAC_UA);
+    vi.mocked(eventsApi.get).mockResolvedValue(detail("live", "take-four"));
+    const ui = await EventPage({
+      params: Promise.resolve({ slug: "take-four" }),
+      searchParams: Promise.resolve({}),
+    });
+    expect(renderToStaticMarkup(ui)).toContain("폰에서만 열려요.");
   });
 
   it("upcoming → 여는 날짜(M월 D일)와 copy.upcoming", async () => {
