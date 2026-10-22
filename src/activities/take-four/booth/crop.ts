@@ -5,7 +5,7 @@ interface CropRect {
   height: number;
 }
 
-/** 영상 가운데에서 가장 큰 가로 4:3 사각형(띠 칸 480×360과 같은 비율) */
+/** 영상 가운데에서 가장 큰 가로 4:3 사각형(띠 칸(4:3)과 같은 비율) */
 export function centerCrop43(videoWidth: number, videoHeight: number): CropRect {
   const isWide = videoWidth * 3 > videoHeight * 4;
   const width = isWide ? Math.round((videoHeight * 4) / 3) : videoWidth;

@@ -39,7 +39,7 @@ export default function BoothScreen({ slug, onDone }: BoothScreenProps) {
   const isDone = step === "done";
   const idx = Math.min(shot, 3);
 
-  // 찍는 중 카메라가 끊기면(트랙 끝남·탭 숨김) 처음으로 — 셔터가 다시 찍기가 된다.
+  // 찍는 중 카메라가 끊기면(트랙 끝남·탭 숨김 — useCamera가 끈다) 처음으로 — 셔터가 다시 찍기가 된다.
   // 4번째 찰칵 뒤 끄는 stop은 done과 같은 렌더에 반영돼 여기 걸리지 않는다
   if (isShooting && status !== "on") {
     dispatch({ type: "reset" });
@@ -61,18 +61,6 @@ export default function BoothScreen({ slug, onDone }: BoothScreenProps) {
     }, delay);
     return () => clearTimeout(timer);
   }, [state, capture, stop]);
-
-  // 찍는 중에 탭을 떠나면(카메라는 useCamera가 끈다) 돌아왔을 때 처음부터
-  useEffect(() => {
-    if (!isShooting) return;
-    function handleVisibility() {
-      if (document.visibilityState !== "hidden") return;
-      dispatch({ type: "reset" });
-      setFrames([]);
-    }
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [isShooting]);
 
   async function handlePress() {
     const isOn = await start();

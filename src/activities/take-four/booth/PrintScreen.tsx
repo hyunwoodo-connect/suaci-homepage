@@ -63,7 +63,7 @@ export default function PrintScreen({
   const { number } = captionText(caption);
 
   return (
-    // 시안 Print.dc.html은 라임 바탕이다(계획서의 "현상은 크림"은 잘못 — 시안이 정답)
+    // 시안 Print 화면이 라임 바탕이다
     <Screen tone="lime">
       <TopBar start={<Wordmark />} label="4 / 4" />
 
@@ -75,7 +75,7 @@ export default function PrintScreen({
           {isFailed ? "oops." : isReady ? "here." : "printing…"}
         </div>
         <p className="m-0 mt-[12px] text-[16px] leading-[1.5]">
-          {isFailed ? "인화가 안 됐어요." : isReady ? "" : left > 0 ? `${left}초` : ""}
+          {isFailed ? "인화가 안 됐어요." : isReady ? "" : left > 0 ? `${secondsLeft(left)}초` : ""}
         </p>
       </div>
 
@@ -131,6 +131,11 @@ export default function PrintScreen({
 }
 
 /* ─── 하위 컴포넌트 ─────────────────────────── */
+
+/** 남은 칸이 다 드러나기까지 몇 초(칸마다 0.9초, 올림) */
+function secondsLeft(cells: number): number {
+  return Math.ceil((cells * PRINT_STEP_MS) / 1000);
+}
 
 interface PhotosProps {
   frames: StripFrame[];

@@ -155,12 +155,17 @@ describe("BoothScreen", () => {
   });
 
   it("찍는 중 탭 숨김 → 처음(ready)으로", async () => {
-    render(<BoothScreen slug="take-four" onDone={vi.fn()} />);
+    const { rerender } = render(<BoothScreen slug="take-four" onDone={vi.fn()} />);
     await pressShutter();
     elapse(SHOT_MS + COUNT_MS);
     expect(prompt()).toBe(PROMPTS[1]);
 
-    act(() => setVisibility("hidden"));
+    // 실제 useCamera는 탭이 숨으면 카메라를 끄고(status idle) 다시 그린다(useCamera.test)
+    act(() => {
+      setVisibility("hidden");
+      camera.status = "idle";
+    });
+    act(() => rerender(<BoothScreen slug="take-four" onDone={vi.fn()} />));
     expect(prompt()).toBe(PROMPTS[0]);
     expect(screen.getByText("0 / 4")).toBeInTheDocument();
     elapse(SHOT_MS);
