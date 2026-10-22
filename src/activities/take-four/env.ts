@@ -34,8 +34,9 @@ export function isDesktopUa(ua: string): boolean {
 
 /** 안드로이드 인앱에서 같은 주소를 크롬으로 연다. 미리보기 토큰이 따라가도록 쿼리를 남긴다. */
 export function androidIntentUrl(url: string): string {
-  const { host, pathname, search } = new URL(url);
-  return `intent://${host}${pathname}${search}#Intent;scheme=https;package=com.android.chrome;end`;
+  const { protocol, host, pathname, search } = new URL(url);
+  const scheme = protocol.slice(0, -1);
+  return `intent://${host}${pathname}${search}#Intent;scheme=${scheme};package=com.android.chrome;end`;
 }
 
 /** 카카오톡 인앱에서 같은 주소를 기본 브라우저로 연다. */

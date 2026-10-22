@@ -93,6 +93,13 @@ describe("middleware: 이벤트 경로", () => {
     expect(res.headers.get("set-cookie")).toBeNull();
   });
 
+  it("놀이 하위 경로(/events/x/booth)도 이벤트 경로로 판단해 그 이벤트를 묻는다", async () => {
+    get.mockResolvedValue(detail);
+    const res = await middleware(new NextRequest(url("/events/booth-evt/booth")));
+    expect(get).toHaveBeenCalledWith("booth-evt", undefined);
+    expect(res.headers.get("x-middleware-next")).toBe("1");
+  });
+
   it("숨김 이벤트는 잠금 화면", async () => {
     get.mockResolvedValue(null);
     expect((await middleware(new NextRequest(url("/events/hid-evt")))).status).toBe(401);

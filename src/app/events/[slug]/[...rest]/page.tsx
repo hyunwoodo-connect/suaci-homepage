@@ -13,7 +13,7 @@ interface EventSubPageProps {
 export default async function EventSubPage({ params, searchParams }: EventSubPageProps) {
   const { slug, rest } = await params;
   const { preview } = await searchParams;
-  const event = await loadEvent(slug, preview);
+  const { event } = await loadEvent(slug, preview);
 
   const screen = getActivity(event.activityId)?.route(rest, event);
   if (!screen) notFound();

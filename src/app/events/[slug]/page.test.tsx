@@ -21,6 +21,8 @@ vi.mock("next/navigation", () => ({
 
 const IPHONE_UA =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
+const ANDROID_INSTAGRAM_UA =
+  "Mozilla/5.0 (Linux; Android 14; SM-S921N; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/129.0 Mobile Safari/537.36 Instagram 350.0.0.42.86 Android";
 const MAC_UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36";
 
@@ -67,6 +69,36 @@ describe("EventPage", () => {
     const html = renderToStaticMarkup(ui);
     expect(html).toContain("커튼 열기");
     expect(html).not.toContain("곧 이 자리에서");
+  });
+
+  it("인앱 → 밖으로 넘길 주소는 요청 호스트 + 쿠키로만 들어온 미리보기 토큰까지", async () => {
+    headerJar.set("user-agent", ANDROID_INSTAGRAM_UA);
+    headerJar.set("host", "takesuaci.com");
+    headerJar.set("x-forwarded-proto", "https");
+    cookieJar.set("suaci_evt_take-four", "cookie-token-1234567");
+    vi.mocked(eventsApi.get).mockImplementation(async (_s, p) =>
+      p === "cookie-token-1234567" ? detail("live", "take-four") : null,
+    );
+    const ui = await EventPage({
+      params: Promise.resolve({ slug: "take-four" }),
+      searchParams: Promise.resolve({}),
+    });
+    expect(renderToStaticMarkup(ui)).toContain(
+      'href="intent://takesuaci.com/events/take-four?preview=cookie-token-1234567#Intent;scheme=https;package=com.android.chrome;end"',
+    );
+  });
+
+  it("로컬(localhost, 프록시 헤더 없음) → http 주소", async () => {
+    headerJar.set("user-agent", ANDROID_INSTAGRAM_UA);
+    headerJar.set("host", "localhost:3000");
+    vi.mocked(eventsApi.get).mockResolvedValue(detail("live", "take-four"));
+    const ui = await EventPage({
+      params: Promise.resolve({ slug: "take-four" }),
+      searchParams: Promise.resolve({}),
+    });
+    expect(renderToStaticMarkup(ui)).toContain(
+      'href="intent://localhost:3000/events/take-four#Intent;scheme=http;',
+    );
   });
 
   it("놀이가 등록된 activityId + PC UA → PC 안내", async () => {

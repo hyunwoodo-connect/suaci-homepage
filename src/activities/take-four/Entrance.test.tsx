@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 import type { EventDetail, EventPhase } from "@/types";
@@ -17,6 +18,8 @@ const UA = {
   macChrome:
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
 } as const;
+
+const PAGE_URL = "https://takesuaci.com/events/take-four?preview=tok-1234567890abcd";
 
 function event(phase: EventPhase = "live", switches: Record<string, boolean> = {}): EventDetail {
   return {
@@ -44,7 +47,7 @@ afterEach(() => {
 
 describe("Entrance", () => {
   it("폰 브라우저·진행 중 → No.01 쪽지(안내로)와 커튼 열기(부스로)", () => {
-    render(<Entrance event={event("live")} userAgent={UA.iosSafari} />);
+    render(<Entrance event={event("live")} userAgent={UA.iosSafari} url={PAGE_URL} />);
     expect(screen.getByRole("link", { name: /No\.01\s*인화해서 보내 드려요/ })).toHaveAttribute(
       "href",
       "/events/take-four/info",
@@ -57,23 +60,27 @@ describe("Entrance", () => {
   });
 
   it("열기 전 → 쪽지가 있다", () => {
-    render(<Entrance event={event("upcoming")} userAgent={UA.iosSafari} />);
+    render(<Entrance event={event("upcoming")} userAgent={UA.iosSafari} url={PAGE_URL} />);
     expect(screen.getByText("인화해서 보내 드려요")).toBeInTheDocument();
   });
 
   it("마감 → 쪽지는 떼고 커튼 열기는 그대로", () => {
-    render(<Entrance event={event("ended")} userAgent={UA.iosSafari} />);
+    render(<Entrance event={event("ended")} userAgent={UA.iosSafari} url={PAGE_URL} />);
     expect(screen.queryByText("인화해서 보내 드려요")).toBeNull();
     expect(screen.getByRole("link", { name: "커튼 열기" })).toBeInTheDocument();
   });
 
   it("switches.wall이 아니면 → 다른 사람들 네컷 보기 없음", () => {
-    render(<Entrance event={event("live", { wall: false })} userAgent={UA.iosSafari} />);
+    render(
+      <Entrance event={event("live", { wall: false })} userAgent={UA.iosSafari} url={PAGE_URL} />,
+    );
     expect(screen.queryByText("다른 사람들 네컷 보기")).toBeNull();
   });
 
   it("switches.wall이 true → 다른 사람들 네컷 보기 링크", () => {
-    render(<Entrance event={event("live", { wall: true })} userAgent={UA.iosSafari} />);
+    render(
+      <Entrance event={event("live", { wall: true })} userAgent={UA.iosSafari} url={PAGE_URL} />,
+    );
     expect(screen.getByRole("link", { name: "다른 사람들 네컷 보기" })).toHaveAttribute(
       "href",
       "/events/take-four/wall",
@@ -81,40 +88,73 @@ describe("Entrance", () => {
   });
 
   it("안드로이드 인앱 → 안내 + 지금 주소를 크롬 intent로 여는 브라우저로 열기, 커튼 열기 없음", () => {
-    render(<Entrance event={event()} userAgent={UA.androidInstagram} />);
+    render(<Entrance event={event()} userAgent={UA.androidInstagram} url={PAGE_URL} />);
     expect(screen.getByText(/여기선 카메라가 안 열려요/)).toBeInTheDocument();
-    const { host, pathname } = window.location;
     expect(screen.getByRole("link", { name: "브라우저로 열기" })).toHaveAttribute(
       "href",
-      `intent://${host}${pathname}#Intent;scheme=https;package=com.android.chrome;end`,
+      "intent://takesuaci.com/events/take-four?preview=tok-1234567890abcd#Intent;scheme=https;package=com.android.chrome;end",
     );
     expect(screen.queryByText("커튼 열기")).toBeNull();
   });
 
   it("iOS 카카오톡 → 카카오톡 외부 열기 스킴", () => {
-    render(<Entrance event={event()} userAgent={UA.iosKakao} />);
+    render(<Entrance event={event()} userAgent={UA.iosKakao} url={PAGE_URL} />);
     expect(screen.getByRole("link", { name: "브라우저로 열기" })).toHaveAttribute(
       "href",
-      `kakaotalk://web/openExternal?url=${encodeURIComponent(window.location.href)}`,
+      `kakaotalk://web/openExternal?url=${encodeURIComponent(PAGE_URL)}`,
     );
   });
 
   it("iOS 인스타 → 안내 + 주소 복사하기, 누르면 복사하고 토스트", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
-    render(<Entrance event={event()} userAgent={UA.iosInstagram} />);
+    render(<Entrance event={event()} userAgent={UA.iosInstagram} url={PAGE_URL} />);
     expect(screen.getByText(/오른쪽 위 ··· → 다른 브라우저로 열기/)).toBeInTheDocument();
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "주소 복사하기" }));
     });
-    expect(writeText).toHaveBeenCalledWith(window.location.href);
+    expect(writeText).toHaveBeenCalledWith(PAGE_URL);
     expect(screen.getByRole("status")).toHaveTextContent("주소를 복사했어요");
+  });
+
+  it("복사가 둘 다 실패 → 길게 눌러 복사하라는 토스트", async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error("denied"));
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    // jsdom엔 execCommand가 없어 이 테스트에서만 단다
+    const execCommand = vi.fn().mockReturnValue(false);
+    Object.defineProperty(document, "execCommand", { value: execCommand, configurable: true });
+    try {
+      render(<Entrance event={event()} userAgent={UA.iosInstagram} url={PAGE_URL} />);
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "주소 복사하기" }));
+      });
+      expect(execCommand).toHaveBeenCalledWith("copy");
+      expect(screen.getByRole("status")).toHaveTextContent("주소창을 길게 눌러 복사해 주세요");
+    } finally {
+      Reflect.deleteProperty(document, "execCommand");
+    }
+  });
+
+  it("서버 그림(하이드레이션 전) → 안드로이드 intent 링크는 이미 href가 있다", () => {
+    const html = renderToStaticMarkup(
+      <Entrance event={event()} userAgent={UA.androidInstagram} url={PAGE_URL} />,
+    );
+    expect(html).toContain(
+      'href="intent://takesuaci.com/events/take-four?preview=tok-1234567890abcd#Intent;scheme=https;package=com.android.chrome;end"',
+    );
+  });
+
+  it("서버 그림(하이드레이션 전) → 복사 버튼은 비활성", () => {
+    const html = renderToStaticMarkup(
+      <Entrance event={event()} userAgent={UA.iosInstagram} url={PAGE_URL} />,
+    );
+    expect(html).toMatch(/<button[^>]*disabled[^>]*>주소 복사하기<\/button>/);
   });
 
   it("복사 토스트는 2초 뒤 사라진다", async () => {
     vi.useFakeTimers();
     vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText: vi.fn() } });
-    render(<Entrance event={event()} userAgent={UA.iosInstagram} />);
+    render(<Entrance event={event()} userAgent={UA.iosInstagram} url={PAGE_URL} />);
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "주소 복사하기" }));
     });
@@ -125,7 +165,7 @@ describe("Entrance", () => {
   });
 
   it("PC UA → 폰에서만 열려요 안내와 주소, 커튼 열기 없음", () => {
-    render(<Entrance event={event()} userAgent={UA.macChrome} />);
+    render(<Entrance event={event()} userAgent={UA.macChrome} url={PAGE_URL} />);
     expect(screen.getByText("폰에서만 열려요.")).toBeInTheDocument();
     expect(screen.getByText("takesuaci.com/events/take-four")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "QR 코드 자리" })).toBeInTheDocument();

@@ -78,6 +78,14 @@ describe("androidIntentUrl", () => {
   });
 });
 
+describe("androidIntentUrl · 포트", () => {
+  it("주소의 프로토콜·포트를 그대로 쓴다", () => {
+    expect(androidIntentUrl("http://192.168.0.5:3000/events/take-four")).toBe(
+      "intent://192.168.0.5:3000/events/take-four#Intent;scheme=http;package=com.android.chrome;end",
+    );
+  });
+});
+
 describe("kakaoExternalUrl", () => {
   it("주소를 인코딩해 카카오톡 외부 열기 스킴으로", () => {
     expect(kakaoExternalUrl("https://takesuaci.com/events/take-four?preview=a&b=1")).toBe(

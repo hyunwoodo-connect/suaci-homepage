@@ -17,7 +17,7 @@ import { detectEnv, isDesktopUa } from "./env";
  * 입구. 설명 없이 제목·두 소녀·`커튼 열기` 하나.
  * 놀이는 상설이라 이벤트가 끝나도 그대로 열고, No.01 쪽지만 마감 뒤엔 뗀다(인화해 보내 주는 건 이벤트 기간 약속).
  */
-export default function Entrance({ event, userAgent }: EntranceProps) {
+export default function Entrance({ event, userAgent, url }: EntranceProps) {
   const base = `/events/${event.slug}`;
   if (isDesktopUa(userAgent)) return <Desktop slug={event.slug} />;
 
@@ -53,7 +53,7 @@ export default function Entrance({ event, userAgent }: EntranceProps) {
       <div className="flex flex-col gap-[12px]">
         {/* TODO(Task 3): `아까 찍은 네컷` 이어 보기 카드가 이 자리 맨 위에 온다 */}
         {inApp ? (
-          <InAppNotice inApp={inApp} os={os} />
+          <InAppNotice inApp={inApp} os={os} url={url} />
         ) : (
           <PillButton href={`${base}/booth`}>커튼 열기</PillButton>
         )}

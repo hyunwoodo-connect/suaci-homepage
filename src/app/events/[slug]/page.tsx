@@ -14,12 +14,15 @@ interface EventPageProps {
 export default async function EventPage({ params, searchParams }: EventPageProps) {
   const { slug } = await params;
   const { preview } = await searchParams;
-  const event = await loadEvent(slug, preview);
+  const { event, previewToken } = await loadEvent(slug, preview);
 
   const activity = getActivity(event.activityId);
   if (activity) {
-    const userAgent = (await headers()).get("user-agent") ?? "";
-    return <activity.Entrance event={event} userAgent={userAgent} />;
+    const h = await headers();
+    // 쿠키로만 들어온 미리보기도 밖의 브라우저(쿠키 없음)에서 열리도록 토큰을 주소에 다시 붙인다
+    const query = previewToken ? `?preview=${encodeURIComponent(previewToken)}` : "";
+    const url = `${requestOrigin(h)}/events/${encodeURIComponent(slug)}${query}`;
+    return <activity.Entrance event={event} userAgent={h.get("user-agent") ?? ""} url={url} />;
   }
 
   const { phase, card, copy } = event;
@@ -45,4 +48,15 @@ export default async function EventPage({ params, searchParams }: EventPageProps
       )}
     </main>
   );
+}
+
+/* ─── 하위 함수 ─────────────────────────── */
+
+// Amplify(CloudFront) 뒤에서는 x-forwarded-*가 원래 주소를 갖고 있다
+function requestOrigin(h: Headers): string {
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "takesuaci.com";
+  const proto =
+    h.get("x-forwarded-proto")?.split(",")[0].trim() ??
+    (/^(localhost|127\.0\.0\.1)(:|$)/.test(host) ? "http" : "https");
+  return `${proto}://${host}`;
 }
