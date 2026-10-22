@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { act, cleanup, renderHook } from "@testing-library/react";
 
-import { centerCrop43, useCamera } from "./useCamera";
+import { useCamera } from "./useCamera";
 
 function fakeStream() {
   const track = Object.assign(new EventTarget(), { stop: vi.fn() });
@@ -224,19 +224,5 @@ describe("useCamera", () => {
     resolve(stream);
     expect(await pending).toBe(false);
     expect(track.stop).toHaveBeenCalled();
-  });
-});
-
-describe("centerCrop43", () => {
-  it("가로 16:9 → 양옆을 자른다", () => {
-    expect(centerCrop43(1280, 720)).toEqual({ x: 160, y: 0, width: 960, height: 720 });
-  });
-
-  it("세로 3:4 → 위아래를 자른다", () => {
-    expect(centerCrop43(720, 960)).toEqual({ x: 0, y: 210, width: 720, height: 540 });
-  });
-
-  it("이미 4:3 → 그대로", () => {
-    expect(centerCrop43(640, 480)).toEqual({ x: 0, y: 0, width: 640, height: 480 });
   });
 });

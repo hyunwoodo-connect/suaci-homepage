@@ -196,4 +196,27 @@ describe("BoothScreen", () => {
     expect(screen.getByRole("status")).toHaveTextContent("카메라 켜는 중");
     expect(screen.getByRole("button", { name: "카메라 켜는 중" })).toBeDisabled();
   });
+
+  it("카메라 켜짐 + 세로 영상 720×960 → 저장 영역 안내선이 창 폭 240×180, 위 67", () => {
+    camera.status = "on";
+    const { container } = render(<BoothScreen slug="take-four" onDone={vi.fn()} />);
+    const video = container.querySelector("video")!;
+    Object.defineProperty(video, "videoWidth", { value: 720 });
+    Object.defineProperty(video, "videoHeight", { value: 960 });
+    fireEvent.loadedMetadata(video);
+    const guide = screen.getByTestId("save-guide");
+    expect(guide.style.left).toBe("0px");
+    expect(guide.style.top).toBe("67px");
+    expect(guide.style.width).toBe("240px");
+    expect(guide.style.height).toBe("180px");
+  });
+
+  it("카메라 꺼짐 → 안내선 없음", () => {
+    const { container } = render(<BoothScreen slug="take-four" onDone={vi.fn()} />);
+    const video = container.querySelector("video")!;
+    Object.defineProperty(video, "videoWidth", { value: 720 });
+    Object.defineProperty(video, "videoHeight", { value: 960 });
+    fireEvent.loadedMetadata(video);
+    expect(screen.queryByTestId("save-guide")).toBeNull();
+  });
 });

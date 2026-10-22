@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useReducer, useRef, useState } from "react";
+import type { SyntheticEvent } from "react";
 
 import Countdown from "../parts/Countdown";
 import Flash from "../parts/Flash";
 import PillButton from "../parts/PillButton";
-import ScallopFrame from "../parts/ScallopFrame";
+import ScallopFrame, { FRAME_WINDOW } from "../parts/ScallopFrame";
 import Screen from "../parts/Screen";
 import Shutter from "../parts/Shutter";
 import StepBar from "../parts/StepBar";
 import TopBar from "../parts/TopBar";
+import { coverGuideRect } from "./crop";
 import { BOOTH_INITIAL, PROMPTS, SHOT_NAMES, boothReducer, tickDelay } from "./machine";
 import { useCamera } from "./useCamera";
 
@@ -28,6 +30,8 @@ const BEATS = ["3", "2", "1", "찰칵"] as const;
 export default function BoothScreen({ slug, onDone }: BoothScreenProps) {
   const [state, dispatch] = useReducer(boothReducer, BOOTH_INITIAL);
   const [frames, setFrames] = useState<HTMLCanvasElement[]>([]);
+  // 안내선이 따라갈 영상 크기(폰을 돌리면 resize로 바뀐다)
+  const [videoSize, setVideoSize] = useState<{ width: number; height: number } | null>(null);
   const { status, videoRef, start, stop, capture } = useCamera();
 
   const { step, shot, count } = state;
@@ -77,6 +81,11 @@ export default function BoothScreen({ slug, onDone }: BoothScreenProps) {
     dispatch({ type: "start" });
   }
 
+  function handleVideoSize(event: SyntheticEvent<HTMLVideoElement>) {
+    const { videoWidth, videoHeight } = event.currentTarget;
+    setVideoSize(videoWidth && videoHeight ? { width: videoWidth, height: videoHeight } : null);
+  }
+
   function handleStop() {
     dispatch({ type: "reset" });
     setFrames([]);
@@ -116,10 +125,15 @@ export default function BoothScreen({ slug, onDone }: BoothScreenProps) {
               playsInline
               muted
               aria-hidden="true"
+              onLoadedMetadata={handleVideoSize}
+              onResize={handleVideoSize}
               className={`absolute inset-0 h-full w-full -scale-x-100 object-cover ${
                 status === "on" && !isDone ? "" : "invisible"
               }`}
             />
+            {status === "on" && !isDone && step !== "flash" && videoSize ? (
+              <SaveGuide videoWidth={videoSize.width} videoHeight={videoSize.height} />
+            ) : null}
             {isDone && frames[3] ? <FramePreview frame={frames[3]} /> : null}
             {status === "starting" ? <Starting /> : null}
             <Countdown value={step === "count" ? count : null} />
@@ -166,6 +180,27 @@ function Starting() {
       <span className="text-[17px] font-bold">카메라 켜는 중</span>
       <span className="text-[14px] leading-[1.5]">&apos;허용&apos;을 눌러 주세요</span>
     </div>
+  );
+}
+
+interface SaveGuideProps {
+  videoWidth: number;
+  videoHeight: number;
+}
+
+/**
+ * 저장되는 가로 4:3 자리를 창 위에 점선으로, 밖은 살짝 어둡게. capture()와 같은 자르기 계산.
+ * 가로 영상이면 자리가 창보다 넓어 선이 창 밖에 있다(보이는 곳이 다 저장된다).
+ */
+function SaveGuide({ videoWidth, videoHeight }: SaveGuideProps) {
+  const rect = coverGuideRect(videoWidth, videoHeight, FRAME_WINDOW.width, FRAME_WINDOW.height);
+  return (
+    <div
+      aria-hidden="true"
+      data-testid="save-guide"
+      style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height }}
+      className="pointer-events-none absolute box-border rounded-[10px] border-[1.5px] border-dashed border-(--tf-cream)/70 shadow-[0_0_0_400px_var(--tf-shade)]"
+    />
   );
 }
 

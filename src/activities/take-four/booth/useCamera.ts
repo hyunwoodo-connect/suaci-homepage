@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 
+import { centerCrop43 } from "./crop";
+
 /** idle: 꺼짐 / starting: 권한 묻는 중 / on: 켜짐 / denied: 거절 / unavailable: 장치·API 없음 */
 export type CameraStatus = "idle" | "starting" | "on" | "denied" | "unavailable";
 
@@ -134,26 +136,6 @@ export function useCamera(): Camera {
   }, [stop, release]);
 
   return { status, videoRef, start, stop, capture };
-}
-
-interface CropRect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-/** 영상 가운데에서 가장 큰 가로 4:3 사각형(띠 칸 480×360과 같은 비율) */
-export function centerCrop43(videoWidth: number, videoHeight: number): CropRect {
-  const isWide = videoWidth * 3 > videoHeight * 4;
-  const width = isWide ? Math.round((videoHeight * 4) / 3) : videoWidth;
-  const height = isWide ? videoHeight : Math.round((videoWidth * 3) / 4);
-  return {
-    x: Math.round((videoWidth - width) / 2),
-    y: Math.round((videoHeight - height) / 2),
-    width,
-    height,
-  };
 }
 
 /** 영상 크기가 정해질 때까지(loadedmetadata) 기다린다. 한도를 넘기면 false */

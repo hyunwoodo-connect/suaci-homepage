@@ -2,6 +2,9 @@ import type { ReactNode } from "react";
 
 import { FRAME_SCALLOP } from "../paths";
 
+/** 타원 창 크기(촬영 안내선이 이 상자에 맞춰 자리를 잡는다) */
+export const FRAME_WINDOW = { width: 240, height: 314 } as const;
+
 interface ScallopFrameProps {
   /** 시안 aria-label(`카메라 화면`, `카메라 화면: 무표정`) */
   label: string;
