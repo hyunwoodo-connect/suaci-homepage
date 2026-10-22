@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 
-import { getEventContent } from "@/events";
 import type { EventDetail } from "@/types";
 
+import { getTakeFourContent } from "./eventContent";
 import { infoPhase, infoView } from "./info";
 
 // KST 2026-12-01 00:00 ~ 2027-01-10 23:59:59, 발표 2027-01-15 10:00
@@ -29,7 +29,7 @@ function event(phase: EventDetail["phase"], extra: Partial<EventDetail> = {}): E
   };
 }
 
-const NO01 = getEventContent("no01");
+const NO01 = getTakeFourContent("no01");
 
 describe("infoPhase", () => {
   it("upcoming·live는 레코드 그대로", () => {
@@ -91,7 +91,7 @@ describe("infoView", () => {
   });
 
   it("이벤트 내용이 없는 이벤트 → 받는 것 없음, 제목은 카드 제목, 문구는 레코드만", () => {
-    const view = infoView(event("live", { eventId: "x" }), getEventContent("x"), START);
+    const view = infoView(event("live", { eventId: "x" }), getTakeFourContent("x"), START);
     expect(view).toMatchObject({ reward: null, title: "take four", headline: "" });
   });
 

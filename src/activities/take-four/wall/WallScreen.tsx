@@ -15,6 +15,7 @@ import Strip from "../parts/Strip";
 import TextLink from "../parts/TextLink";
 import TopBar from "../parts/TopBar";
 import Wordmark from "../parts/Wordmark";
+import { getTakeFourContent } from "../eventContent";
 import { wallApi } from "./api";
 import type { StripView } from "./api";
 import { forgetMine, isHidden, isMine, rememberHidden } from "./local";
@@ -58,6 +59,7 @@ function appendUnique(prev: StripView[], next: StripView[]): StripView[] {
 export default function WallScreen({ event, now }: WallScreenProps) {
   const base = `/events/${event.slug}`;
   const notice = wallNotice(event, now);
+  const removeNote = getTakeFourContent(event.eventId)?.removeNote;
   const [posted, setPosted] = useState<StripView | null>(null);
   const [items, setItems] = useState<StripView[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -229,7 +231,12 @@ export default function WallScreen({ event, now }: WallScreenProps) {
         <PillButton href={`${base}/booth`}>나도 찍기</PillButton>
       </div>
 
-      <RemoveSheet strip={removing} onClose={() => setRemoving(null)} onRemoved={handleRemoved} />
+      <RemoveSheet
+        strip={removing}
+        note={removeNote}
+        onClose={() => setRemoving(null)}
+        onRemoved={handleRemoved}
+      />
     </Screen>
   );
 }
@@ -241,12 +248,14 @@ const GRID = "grid grid-cols-2 gap-x-[14px] gap-y-[22px]";
 interface RemoveSheetProps {
   /** 뗄 네컷. null이면 닫힘 */
   strip: StripView | null;
+  /** 이벤트 내용의 보조 문구(`벽에서만 내려요.` 뒤) */
+  note: string | undefined;
   onClose: () => void;
   onRemoved: (id: string) => void;
 }
 
 /** `뗄까요?` 시트. 이미 없는 네컷(404)이면 뗀 것으로 친다. */
-function RemoveSheet({ strip, onClose, onRemoved }: RemoveSheetProps) {
+function RemoveSheet({ strip, note, onClose, onRemoved }: RemoveSheetProps) {
   const [status, setStatus] = useState<"idle" | "removing" | "failed">("idle");
   const removingRef = useRef(false);
 
@@ -280,7 +289,7 @@ function RemoveSheet({ strip, onClose, onRemoved }: RemoveSheetProps) {
     <BottomSheet isOpen={strip !== null} onClose={handleClose} label="내 네컷 떼기">
       <h2 className="m-0 text-[22px] font-bold">뗄까요?</h2>
       <p className="m-0 text-[15px] leading-[1.6]">
-        벽에서만 내려요. 응모했다면 응모는 그대로 남고 우리만 봐요.
+        {note ? `벽에서만 내려요. ${note}` : "벽에서만 내려요."}
       </p>
       {status === "failed" ? (
         <p role="alert" className="m-0 text-[14px] font-bold text-(color:--tf-error)">

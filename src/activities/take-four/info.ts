@@ -1,6 +1,8 @@
-import type { EventContent } from "@/events";
 import { formatKoreanMonthDay, kstDateLabel } from "@/lib/eventDate";
 import type { EventCopy, EventDetail } from "@/types";
+
+import { eventDates } from "./eventContent";
+import type { TakeFourEventContent } from "./eventContent";
 
 /** 안내 화면의 네 상태 — 레코드 phase에 발표 시각을 더한 것(`copy` 키와 같다). */
 export type InfoPhase = keyof EventCopy;
@@ -39,15 +41,11 @@ export function infoPhase(event: EventDetail, now: number): InfoPhase {
  */
 export function infoView(
   event: EventDetail,
-  content: EventContent | undefined,
+  content: TakeFourEventContent | undefined,
   now: number,
 ): InfoView {
   const phase = infoPhase(event, now);
-  const dates = {
-    start: formatKoreanMonthDay(event.startAt),
-    end: formatKoreanMonthDay(event.endAt),
-    announce: event.announceAt !== undefined ? formatKoreanMonthDay(event.announceAt) : null,
-  };
+  const dates = eventDates(event, formatKoreanMonthDay);
   const start = kstDateLabel(event.startAt);
   const stamp = {
     upcoming: `${start} open`,

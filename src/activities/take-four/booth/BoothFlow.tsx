@@ -2,8 +2,8 @@
 
 import { useRef, useState } from "react";
 
-import type { EventDetail } from "@/types";
 import { getEventContent } from "@/events";
+import type { EventDetail } from "@/types";
 
 import { composePhotos, composeStrip, stripCaption } from "../strip/compose";
 import type { StripCaption, StripFrame } from "../strip/compose";

@@ -1,7 +1,8 @@
 import { getEventContent } from "@/events";
-import { formatKoreanMonthDay, kstDateLabel } from "@/lib/eventDate";
+import { kstDateLabel } from "@/lib/eventDate";
 import type { EventDetail } from "@/types";
 
+import { eventDates, getTakeFourContent } from "../eventContent";
 import { infoPhase } from "../info";
 import type { StripView } from "./api";
 
@@ -27,12 +28,8 @@ export function wallCaption(strip: StripView): WallCaption {
 
 /** 벽 위 이벤트 안내 띠 두 줄. 이벤트 내용이 없으면 null(띠 없음). */
 export function wallNotice(event: EventDetail, now: number): { head: string; body: string } | null {
-  const content = getEventContent(event.eventId);
+  const content = getTakeFourContent(event.eventId);
   if (!content) return null;
-  const [head, body] = content.wallNotice[infoPhase(event, now)]({
-    start: kstDateLabel(event.startAt),
-    end: kstDateLabel(event.endAt),
-    announce: event.announceAt !== undefined ? formatKoreanMonthDay(event.announceAt) : null,
-  });
-  return { head, body };
+  const [head, body] = content.wallNotice[infoPhase(event, now)](eventDates(event, kstDateLabel));
+  return { head: `${content.label} · ${head}`, body };
 }

@@ -176,6 +176,9 @@ describe("WallScreen", () => {
     fireEvent.click(screen.getByRole("button", { name: "떼기" }));
     const sheet = screen.getByRole("dialog", { name: "내 네컷 떼기" });
     expect(within(sheet).getByText("뗄까요?")).toBeInTheDocument();
+    expect(
+      within(sheet).getByText("벽에서만 내려요. 응모했다면 응모는 그대로 남고 우리만 봐요."),
+    ).toBeInTheDocument();
     await act(async () => {
       fireEvent.click(within(sheet).getByRole("button", { name: "떼기" }));
     });

@@ -26,7 +26,7 @@ Next.js (App Router) · React · TypeScript strict · Tailwind CSS v4 · next-in
 ## Structure
 
 - `src/activities/` — the activity registry (`index.ts`, `getActivity`) plus one module per activity (`take-four/`). An event record's `activityId` picks the module. Modules never import each other; shared code goes up to `src/lib/` or `src/components/`.
-- `src/events/` — per-event content (`getEventContent(eventId)`): the parts of an event not yet on the backend record (round label, reward, fallback copy). Activities read event-specific text from here, never hard-code it.
+- `src/events/` — per-event content (`getEventContent(eventId)`): the parts of an event not yet on the backend record. The shared type (`EventContent`) holds only what every event has (`activityId`, `label`); each activity defines the extra content it reads (e.g. `TakeFourEventContent` in `take-four/eventContent.ts`) and the event module `satisfies` it — events depend on activities, not the reverse. Activities read event-specific text from here, never hard-code it.
 
 ## Boundaries
 

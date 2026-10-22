@@ -1,10 +1,10 @@
 import type { EventDetail } from "@/types";
-import { getEventContent } from "@/events";
 
 import PillButton from "./parts/PillButton";
 import Screen from "./parts/Screen";
 import TopBar from "./parts/TopBar";
 import Wordmark from "./parts/Wordmark";
+import { getTakeFourContent } from "./eventContent";
 import { infoView } from "./info";
 import { isStageOn } from "./stage";
 
@@ -20,7 +20,7 @@ interface InfoScreenProps {
  */
 export default function InfoScreen({ event, now }: InfoScreenProps) {
   const base = `/events/${event.slug}`;
-  const view = infoView(event, getEventContent(event.eventId), now);
+  const view = infoView(event, getTakeFourContent(event.eventId), now);
 
   return (
     <Screen tone="lime">
