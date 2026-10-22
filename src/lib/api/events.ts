@@ -37,9 +37,9 @@ const DAY = 24 * 60 * 60 * 1000;
 function buildMockDetail(): EventDetail {
   const now = Date.now();
   return {
-    eventId: "evt_take_four",
+    eventId: "no01",
     slug: "take-four",
-    activityId: "act_take_four",
+    activityId: "take-four",
     phase: "live",
     startAt: now - DAY,
     startDtm: new Date(now - DAY + 9 * 60 * 60 * 1000).toISOString().replace("Z", "+09:00"),

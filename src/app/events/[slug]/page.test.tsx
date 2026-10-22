@@ -75,13 +75,26 @@ describe("EventPage", () => {
     ).rejects.toThrow("NEXT_NOT_FOUND");
   });
 
-  it("preview 토큰을 get에 넘긴다", async () => {
+  it("모양이 맞는 preview 토큰을 get에 넘긴다", async () => {
     vi.mocked(eventsApi.get).mockResolvedValue(detail("live"));
     await EventPage({
       params: Promise.resolve({ slug: "take-four" }),
-      searchParams: Promise.resolve({ preview: "tok" }),
+      searchParams: Promise.resolve({ preview: "query-token-1234567" }),
     });
-    expect(eventsApi.get).toHaveBeenCalledWith("take-four", "tok");
+    expect(eventsApi.get).toHaveBeenCalledWith("take-four", "query-token-1234567");
+  });
+
+  it("모양이 틀린 쿼리·쿠키 토큰은 API에 넘기지 않는다(미들웨어와 같은 검사)", async () => {
+    cookieJar.set("suaci_evt_take-four", "bad token!");
+    vi.mocked(eventsApi.get).mockResolvedValue(null);
+    await expect(
+      EventPage({
+        params: Promise.resolve({ slug: "take-four" }),
+        searchParams: Promise.resolve({ preview: "tok" }),
+      }),
+    ).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(eventsApi.get).toHaveBeenCalledTimes(1);
+    expect(eventsApi.get).toHaveBeenCalledWith("take-four", undefined);
   });
 
   it("쿼리 없이 쿠키만 있으면 쿠키 토큰으로 이벤트를 연다", async () => {

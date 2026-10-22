@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import EventWaiting from "@/components/events/EventWaiting";
 import { eventsApi } from "@/lib/api";
+import { validPreviewToken } from "@/lib/event-access";
 
 interface EventPageProps {
   params: Promise<{ slug: string }>;
@@ -12,11 +13,13 @@ interface EventPageProps {
 export default async function EventPage({ params, searchParams }: EventPageProps) {
   const { slug } = await params;
   const { preview } = await searchParams;
+  // 미들웨어와 같은 모양 검사를 거친 토큰만 API에 넘긴다.
   // 쿼리 토큰이 없거나 낡았으면 미들웨어가 심은 쿠키로 대신한다
-  let event = await eventsApi.get(slug, preview);
+  const queryToken = validPreviewToken(preview);
+  let event = await eventsApi.get(slug, queryToken);
   if (!event) {
-    const saved = (await cookies()).get(`suaci_evt_${slug}`)?.value;
-    if (saved && saved !== preview) event = await eventsApi.get(slug, saved);
+    const saved = validPreviewToken((await cookies()).get(`suaci_evt_${slug}`)?.value);
+    if (saved && saved !== queryToken) event = await eventsApi.get(slug, saved);
   }
   if (!event) notFound();
 
