@@ -5,12 +5,12 @@ interface ShutterProps {
 }
 
 const SHUTTER = {
-  ready: { text: "찰칵", label: "찍기 시작" },
+  ready: { text: "찰칵", label: "찰칵 — 찍기 시작" },
   starting: { text: "…", label: "카메라 켜는 중" },
-  running: { text: "자동", label: "다음 장 (자동으로 넘어가요)" },
+  running: { text: "자동", label: "자동 — 다음 장으로 넘어가요" },
 } as const;
 
-/** 84px 셔터. 누를 수 있는 건 ready뿐이다. */
+/** 84px 셔터. 누를 수 있는 건 ready뿐이다. 이름은 보이는 글자로 시작한다(…는 글자가 아니라 뺐다). */
 export default function Shutter({ state, onPress }: ShutterProps) {
   const { text, label } = SHUTTER[state];
   const isWarming = state === "starting";

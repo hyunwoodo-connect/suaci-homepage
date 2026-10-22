@@ -11,6 +11,7 @@ export const TAKE_FOUR_COLORS = {
   camera: "#C9D6C0", // 카메라 화면이 비었을 때
   warming: "#C9A24A", // 셔터 — 카메라 켜는 중 테두리
   muted: "#8A7F76", // 셔터 — 카메라 켜는 중 바탕
+  busy: "#6B625B", // 비활성 잉크 버튼(보내는 중)
 } as const;
 
 /** 단계 바 네 칸(연한 → 진한). */
@@ -30,6 +31,7 @@ export const TAKE_FOUR_VARS = {
   "--tf-camera": TAKE_FOUR_COLORS.camera,
   "--tf-warming": TAKE_FOUR_COLORS.warming,
   "--tf-muted": TAKE_FOUR_COLORS.muted,
+  "--tf-busy": TAKE_FOUR_COLORS.busy,
   "--tf-dim": "rgba(43, 36, 32, 0.45)", // 시트 뒤 어둡게
   "--tf-empty": "rgba(43, 36, 32, 0.15)", // 단계 바 빈 칸
   "--tf-latin": "var(--font-fraunces), serif",

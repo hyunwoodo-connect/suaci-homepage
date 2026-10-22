@@ -19,12 +19,12 @@ export default function StepBar({ filled, active, size = "md" }: StepBarProps) {
         return (
           <span
             key={color}
-            data-filled={isFilled}
-            data-active={isActive}
-            style={{ background: isFilled ? color : "var(--tf-empty)" }}
-            className={`rounded-[4px] ${size === "md" ? "h-[8px] w-[34px]" : "h-[7px] w-[30px]"} ${
-              isActive ? "outline-2 outline-offset-2 outline-(--tf-ink) outline-solid" : ""
-            }`}
+            style={{
+              background: isFilled ? color : "var(--tf-empty)",
+              outline: isActive ? "2px solid var(--tf-ink)" : "none",
+              outlineOffset: isActive ? 2 : undefined,
+            }}
+            className={`rounded-[4px] ${size === "md" ? "h-[8px] w-[34px]" : "h-[7px] w-[30px]"}`}
           />
         );
       })}
