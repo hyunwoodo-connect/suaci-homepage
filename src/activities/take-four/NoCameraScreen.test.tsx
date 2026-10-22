@@ -2,6 +2,8 @@ import { describe, it, expect, afterEach } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { cleanup, render, screen } from "@testing-library/react";
 
+import type { EventDetail } from "@/types";
+
 import NoCameraScreen from "./NoCameraScreen";
 
 const IPHONE_SAFARI =
@@ -10,10 +12,11 @@ const ANDROID_INSTAGRAM =
   "Mozilla/5.0 (Linux; Android 14; SM-S918N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36 Instagram 350.0.0.0";
 const IPHONE_INSTAGRAM =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 350.0.0.0";
+const EVENT = { slug: "take-four" } as EventDetail;
 const URL_WITH_TOKEN = "https://takesuaci.com/events/take-four?preview=cookie-token-1234567";
 
 function open(userAgent: string) {
-  render(<NoCameraScreen slug="take-four" userAgent={userAgent} url={URL_WITH_TOKEN} />);
+  render(<NoCameraScreen event={EVENT} userAgent={userAgent} url={URL_WITH_TOKEN} />);
 }
 
 afterEach(() => {
@@ -36,7 +39,7 @@ describe("NoCameraScreen", () => {
 
   it("인스타 UA → 서버 HTML부터 인앱 문구(깜빡임 없음)", () => {
     const html = renderToStaticMarkup(
-      <NoCameraScreen slug="take-four" userAgent={ANDROID_INSTAGRAM} url={URL_WITH_TOKEN} />,
+      <NoCameraScreen event={EVENT} userAgent={ANDROID_INSTAGRAM} url={URL_WITH_TOKEN} />,
     );
     expect(html).toContain("여기선 카메라가 안 열려요");
     expect(html).not.toContain("카메라가 막혀 있어요");

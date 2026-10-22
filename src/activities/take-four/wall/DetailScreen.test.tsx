@@ -1,14 +1,18 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 
+import type { EventDetail } from "@/types";
+
 import type { StripView } from "./api";
 import DetailScreen from "./DetailScreen";
-import { isHidden } from "./local";
+import { isHidden } from "./deviceMarks";
 
 const api = vi.hoisted(() => ({
   wallApi: { get: vi.fn(), ribbon: vi.fn(), report: vi.fn() },
 }));
 vi.mock("./api", () => api);
+
+const EVENT = { slug: "take-four" } as EventDetail;
 
 const STRIP: StripView = {
   stripId: "s298",
@@ -23,7 +27,7 @@ const STRIP: StripView = {
 
 async function open() {
   await act(async () => {
-    render(<DetailScreen slug="take-four" stripId="s298" />);
+    render(<DetailScreen event={EVENT} stripId="s298" />);
   });
 }
 

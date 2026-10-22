@@ -15,7 +15,7 @@ import { blobToDataUrl } from "../canvas";
 import { captionText, stripFilename } from "../strip/caption";
 import type { StripCaption } from "../strip/caption";
 import { useShareActions } from "../strip/useShareActions";
-import { SHOT_NAMES } from "./machine";
+import { SHOT_NAMES } from "../shots";
 
 interface ResultScreenProps {
   /** 합성된 띠(900×2659 JPEG) — 저장·공유하는 파일 */

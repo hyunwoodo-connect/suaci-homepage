@@ -1,3 +1,5 @@
+import type { EventDetail } from "@/types";
+
 import PillButton from "./parts/PillButton";
 import Screen from "./parts/Screen";
 import TextLink from "./parts/TextLink";
@@ -6,7 +8,7 @@ import Wordmark from "./parts/Wordmark";
 import { detectEnv, handOffUrl } from "./env";
 
 interface NoCameraScreenProps {
-  slug: string;
+  event: EventDetail;
   /** 요청 UA — 인앱인지 서버에서 가린다 */
   userAgent: string;
   /** 입구의 절대 주소(미리보기 토큰 포함). 밖의 브라우저가 여기서 다시 시작한다 */
@@ -18,8 +20,8 @@ interface NoCameraScreenProps {
  * 막다른 길이 되지 않게 주 행동은 늘 `앨범에서 넉 장 고르기`. 보조 행동은 거절이면 부스로 다시,
  * 인앱이면 밖의 브라우저로 넘기기(넘길 방법이 없는 iOS 인앱은 본문 안내만).
  */
-export default function NoCameraScreen({ slug, userAgent, url }: NoCameraScreenProps) {
-  const base = `/events/${slug}`;
+export default function NoCameraScreen({ event, userAgent, url }: NoCameraScreenProps) {
+  const base = `/events/${event.slug}`;
   const env = detectEnv(userAgent);
   const { inApp } = env;
   const handOff = handOffUrl(env, url);

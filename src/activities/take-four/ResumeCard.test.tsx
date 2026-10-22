@@ -3,7 +3,7 @@ import { act, cleanup, render, screen } from "@testing-library/react";
 
 import type { EventDetail } from "@/types";
 
-import Entrance from "./Entrance";
+import EntranceScreen from "./EntranceScreen";
 import { stripCaption } from "./strip/caption";
 
 const storage = vi.hoisted(() => ({ loadLast: vi.fn() }));
@@ -22,7 +22,7 @@ const EVENT = {
 async function renderEntrance() {
   await act(async () => {
     render(
-      <Entrance
+      <EntranceScreen
         event={EVENT}
         userAgent={IOS_SAFARI}
         url="https://takesuaci.com/events/take-four"

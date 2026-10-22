@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { isNotFound, isRateLimited } from "@/lib/api";
+import type { EventDetail } from "@/types";
 
 import BottomSheet from "../parts/BottomSheet";
 import PillButton from "../parts/PillButton";
@@ -14,12 +15,12 @@ import TopBar from "../parts/TopBar";
 import { useGuardedAction } from "../useGuardedAction";
 import { wallApi } from "./api";
 import type { StripView } from "./api";
-import { rememberHidden } from "./local";
-import { wallCaption } from "./text";
+import { rememberHidden } from "./deviceMarks";
+import { wallCaption } from "./caption";
 import { useRibbon } from "./useRibbon";
 
 interface DetailScreenProps {
-  slug: string;
+  event: EventDetail;
   /** 경로 `/events/{slug}/wall/{stripId}`의 네컷 id */
   stripId: string;
 }
@@ -28,8 +29,8 @@ interface DetailScreenProps {
  * `/events/{slug}/wall/{stripId}`. 시안 Detail — 원본 사진으로 큰 띠, 리본, 신고.
  * 없거나 가려졌으면(신고·관리자) 벽에 없다고만 알린다.
  */
-export default function DetailScreen({ slug, stripId }: DetailScreenProps) {
-  const wallHref = `/events/${slug}/wall`;
+export default function DetailScreen({ event, stripId }: DetailScreenProps) {
+  const wallHref = `/events/${event.slug}/wall`;
   /** 받는 중 undefined, 벽에 없으면 null */
   const [strip, setStrip] = useState<StripView | null | undefined>(undefined);
 

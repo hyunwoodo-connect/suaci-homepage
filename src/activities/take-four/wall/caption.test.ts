@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 import type { EventDetail } from "@/types";
 
 import type { StripView } from "./api";
-import { wallCaption, wallNotice } from "./text";
+import { wallCaption, wallNotice } from "./caption";
 
 // KST 2026-12-01 00:00 ~ 2027-01-10 23:59:59, 발표 2027-01-15 10:00
 const START = Date.parse("2026-11-30T15:00:00Z");

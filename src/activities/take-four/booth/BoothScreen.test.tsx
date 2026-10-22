@@ -3,7 +3,8 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 
 import type { CameraStatus } from "./useCamera";
 import BoothScreen from "./BoothScreen";
-import { COUNT_MS, FLASH_MS, PROMPTS } from "./machine";
+import { PROMPTS } from "../shots";
+import { COUNT_MS, FLASH_MS } from "./boothMachine";
 
 const camera = vi.hoisted(() => ({
   status: "idle" as CameraStatus,

@@ -12,7 +12,8 @@ import Shutter from "../parts/Shutter";
 import StepBar from "../parts/StepBar";
 import TopBar from "../parts/TopBar";
 import { coverGuideRect } from "./crop";
-import { BOOTH_INITIAL, PROMPTS, SHOT_NAMES, boothReducer, tickDelay } from "./machine";
+import { PROMPTS, SHOT_NAMES } from "../shots";
+import { BOOTH_INITIAL, boothReducer, tickDelay } from "./boothMachine";
 import { useCamera } from "./useCamera";
 
 interface BoothScreenProps {

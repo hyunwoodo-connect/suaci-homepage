@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 
-import type { BoothAction, BoothState } from "./machine";
-import { BOOTH_INITIAL, boothReducer, tickDelay } from "./machine";
+import type { BoothAction, BoothState } from "./boothMachine";
+import { BOOTH_INITIAL, boothReducer, tickDelay } from "./boothMachine";
 
 const TICK: BoothAction = { type: "tick" };
 

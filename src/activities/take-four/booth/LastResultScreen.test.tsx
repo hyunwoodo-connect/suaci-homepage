@@ -4,7 +4,7 @@ import { act, cleanup, render, screen } from "@testing-library/react";
 import type { EventDetail } from "@/types";
 
 import { stripCaption } from "../strip/caption";
-import LastResult from "./LastResult";
+import LastResultScreen from "./LastResultScreen";
 
 const storage = vi.hoisted(() => ({ loadLast: vi.fn() }));
 vi.mock("../strip/storage", () => storage);
@@ -25,7 +25,7 @@ const EVENT = { slug: "take-four", phase: "ended", switches: {} } as unknown as 
 
 async function renderLast(event: EventDetail = EVENT) {
   await act(async () => {
-    render(<LastResult event={event} />);
+    render(<LastResultScreen event={event} />);
   });
 }
 
@@ -34,7 +34,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("LastResult", () => {
+describe("LastResultScreen", () => {
   it("남은 띠 → 찍던 때 캡션 그대로 완성 화면, 다시 찍기는 부스로", async () => {
     storage.loadLast.mockResolvedValue({
       blob: new Blob(["x"]),

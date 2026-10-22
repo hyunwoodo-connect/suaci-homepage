@@ -16,9 +16,9 @@ import Wordmark from "../parts/Wordmark";
 import { getTakeFourContent } from "../eventContent";
 import { wallApi } from "./api";
 import type { StripView } from "./api";
-import { forgetMine, isHidden, isMine, rememberHidden } from "./local";
+import { forgetMine, isHidden, isMine, rememberHidden } from "./deviceMarks";
 import RemoveSheet from "./RemoveSheet";
-import { wallNotice } from "./text";
+import { wallNotice } from "./caption";
 import WallCard from "./WallCard";
 
 interface WallScreenProps {

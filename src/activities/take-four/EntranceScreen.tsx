@@ -1,6 +1,6 @@
-import type { EntranceProps } from "..";
+import type { EntranceProps } from "../types";
 
-import Desktop from "./Desktop";
+import DesktopScreen from "./DesktopScreen";
 import InAppNotice from "./InAppNotice";
 import GirlsIllustration from "./parts/GirlsIllustration";
 import NoteSticker from "./parts/NoteSticker";
@@ -21,12 +21,12 @@ import { isStageOn } from "./stage";
  * 놀이는 상설이라 이벤트가 끝나도 그대로 열고, 회차 쪽지만 마감 뒤엔 뗀다(인화해 보내 주는 건 이벤트 기간 약속).
  * 회차 이름·쪽지 문구는 이벤트 내용(`getTakeFourContent`)에서 — 없으면 회차 표시·쪽지 없이 연다.
  */
-export default function Entrance({ event, userAgent, url }: EntranceProps) {
+export default function EntranceScreen({ event, userAgent, url }: EntranceProps) {
   const base = `/events/${event.slug}`;
   const content = getTakeFourContent(event.eventId);
   // 시안 머리 라벨은 소문자(`no.01`)
   const barLabel = content?.label.toLowerCase();
-  if (isDesktopUa(userAgent)) return <Desktop slug={event.slug} url={url} label={barLabel} />;
+  if (isDesktopUa(userAgent)) return <DesktopScreen slug={event.slug} url={url} label={barLabel} />;
 
   const env = detectEnv(userAgent);
 

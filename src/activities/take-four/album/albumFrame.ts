@@ -1,4 +1,5 @@
 import { centerCrop43 } from "../booth/crop";
+import type { Rect } from "../strip/layout";
 
 /** 앨범 사진 한 장을 자른 크기 — 띠 칸(4:3)보다 넉넉하게. */
 export const ALBUM_FRAME = { width: 1280, height: 960 } as const;
@@ -11,10 +12,7 @@ export class AlbumDecodeError extends Error {
   }
 }
 
-interface Sized {
-  width: number;
-  height: number;
-}
+type Sized = Pick<Rect, "width" | "height">;
 
 type Decoded = Sized & { source: CanvasImageSource; release: () => void };
 

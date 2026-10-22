@@ -8,13 +8,13 @@ import {
   rememberHidden,
   rememberMine,
   rememberRibbon,
-} from "./local";
+} from "./deviceMarks";
 
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("wall/local", () => {
+describe("deviceMarks", () => {
   it("rememberMine → isMine, forgetMine → 아님", () => {
     rememberMine("a");
     expect(isMine("a")).toBe(true);

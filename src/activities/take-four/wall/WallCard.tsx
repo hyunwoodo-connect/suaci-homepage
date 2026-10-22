@@ -5,7 +5,7 @@ import Link from "next/link";
 import RibbonButton from "../parts/RibbonButton";
 import Strip from "../parts/Strip";
 import type { StripView } from "./api";
-import { wallCaption } from "./text";
+import { wallCaption } from "./caption";
 import { useRibbon } from "./useRibbon";
 
 interface WallCardProps {

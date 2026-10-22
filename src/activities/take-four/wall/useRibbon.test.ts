@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 
-import { hasRibbon, rememberRibbon } from "./local";
+import { hasRibbon, rememberRibbon } from "./deviceMarks";
 import { useRibbon } from "./useRibbon";
 
 const api = vi.hoisted(() => ({ wallApi: { ribbon: vi.fn() } }));

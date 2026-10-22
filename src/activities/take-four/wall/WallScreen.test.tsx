@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import type { EventDetail } from "@/types";
 
 import type { StripView } from "./api";
-import { isHidden, isMine, rememberHidden, rememberMine } from "./local";
+import { isHidden, isMine, rememberHidden, rememberMine } from "./deviceMarks";
 import WallScreen from "./WallScreen";
 
 const api = vi.hoisted(() => ({

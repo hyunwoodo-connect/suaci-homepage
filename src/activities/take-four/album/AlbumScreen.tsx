@@ -7,7 +7,7 @@ import DashedPill from "../parts/DashedPill";
 import PillButton from "../parts/PillButton";
 import Screen from "../parts/Screen";
 import TopBar from "../parts/TopBar";
-import { SHOT_NAMES } from "../booth/machine";
+import { SHOT_INDEXES, SHOT_NAMES } from "../shots";
 import { loadAlbumFrame } from "./albumFrame";
 
 interface AlbumScreenProps {
@@ -31,7 +31,7 @@ const DECODE_ERROR = "이 사진은 열 수 없어요. 다른 사진을 골라 �
  */
 export default function AlbumScreen({ slug, onDone, initialFrames }: AlbumScreenProps) {
   const [slots, setSlots] = useState<(Slot | null)[]>(() =>
-    [0, 1, 2, 3].map((i) => {
+    SHOT_INDEXES.map((i) => {
       const frame = initialFrames?.[i];
       return frame ? { frame, preview: frameUrl(frame) } : null;
     }),

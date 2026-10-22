@@ -1,6 +1,6 @@
 import { wallApi } from "./api";
 import type { StripView, WallApi } from "./api";
-import { rememberMine } from "./local";
+import { rememberMine } from "./deviceMarks";
 import { makeThumb } from "./thumb";
 
 /**

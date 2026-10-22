@@ -14,12 +14,12 @@ import type { LastStrip } from "../strip/storage";
 import PostSheet from "../wall/PostSheet";
 import ResultScreen from "./ResultScreen";
 
-interface LastResultProps {
+interface LastResultScreenProps {
   event: EventDetail;
 }
 
 /** `/events/{slug}/result`. 입구 `아까 찍은 네컷` 카드가 여는 마지막 띠의 완성 화면. */
-export default function LastResult({ event }: LastResultProps) {
+export default function LastResultScreen({ event }: LastResultScreenProps) {
   const [last, setLast] = useState<LastStrip | null | undefined>(undefined);
   const base = `/events/${event.slug}`;
 

@@ -1,4 +1,5 @@
 import { STRIP_WAVY } from "../paths";
+import { SHOT_INDEXES } from "../shots";
 
 export interface Rect {
   x: number;
@@ -55,7 +56,7 @@ export interface StripLayout {
 
 /** 합성 띠의 자리 계산(순수 숫자). */
 export function stripLayout(): StripLayout {
-  const frames = [0, 1, 2, 3].map((i) => ({
+  const frames = SHOT_INDEXES.map((i) => ({
     x: PHOTO_X,
     y: PHOTO_X + i * (CELL_HEIGHT + CELL_GAP),
     width: PHOTO_WIDTH,

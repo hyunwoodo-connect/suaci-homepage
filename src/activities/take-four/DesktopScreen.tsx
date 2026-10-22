@@ -6,7 +6,7 @@ import TitleMark from "./parts/TitleMark";
 import TopBar from "./parts/TopBar";
 import Wordmark from "./parts/Wordmark";
 
-interface DesktopProps {
+interface DesktopScreenProps {
   slug: string;
   /** 이 이벤트의 절대 주소(허용된 출처 + 미리보기 토큰). QR에 담는다 */
   url: string;
@@ -15,7 +15,7 @@ interface DesktopProps {
 }
 
 /** PC 안내. 부스는 폰 전용이라 QR이나 주소로 폰으로 옮겨 가게 한다. */
-export default function Desktop({ slug, url, label }: DesktopProps) {
+export default function DesktopScreen({ slug, url, label }: DesktopScreenProps) {
   return (
     <Screen tone="lime">
       {/* 시안 PC 칸(420)은 실제 주소가 한 줄에 안 들어가 480으로 넓힌다. Screen 여백(20·24·28)에 더해 시안 PC 여백 28·40·40을 맞춘다 */}

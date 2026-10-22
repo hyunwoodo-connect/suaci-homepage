@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import type { StripView, UploadTarget, WallApi } from "./api";
-import { isMine } from "./local";
+import { isMine } from "./deviceMarks";
 import { postStrip } from "./postStrip";
 
 const thumb = vi.hoisted(() => ({ makeThumb: vi.fn() }));

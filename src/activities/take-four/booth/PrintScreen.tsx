@@ -10,6 +10,7 @@ import Wordmark from "../parts/Wordmark";
 import { captionText } from "../strip/caption";
 import type { StripCaption } from "../strip/caption";
 import { drawPhotos } from "../strip/compose";
+import { SHOT_INDEXES } from "../shots";
 import { stripLayout } from "../strip/layout";
 import type { StripFrame } from "../strip/compose";
 
@@ -27,7 +28,6 @@ interface PrintScreenProps {
 
 /** 시안 Print: 0.9초마다 칸이 한 장씩 드러난다(4장 ≈ 3.6초) */
 export const PRINT_STEP_MS = 900;
-const CELLS = [0, 1, 2, 3] as const;
 /** 시안 Print의 사진 폭(px) */
 const PHOTO_WIDTH = 126;
 /** 칸 덮개 자리: 합성 띠의 칸을 126px 폭으로 줄인 것(시안 top i×99.75, 높이 ≈95) */
@@ -51,7 +51,7 @@ export default function PrintScreen({
   retakeLabel = "다시 찍기",
 }: PrintScreenProps) {
   // 현상은 촬영 뒤에만 그려져(서버 렌더 없음) 첫 렌더에서 설정을 바로 읽는다
-  const [left, setLeft] = useState(() => (prefersReducedMotion() ? 0 : CELLS.length));
+  const [left, setLeft] = useState(() => (prefersReducedMotion() ? 0 : SHOT_INDEXES.length));
 
   useEffect(() => {
     if (left === 0) return;
@@ -61,7 +61,7 @@ export default function PrintScreen({
 
   const isFailed = status === "failed";
   const isReady = !isFailed && left === 0 && status === "ready";
-  const shown = CELLS.length - left;
+  const shown = SHOT_INDEXES.length - left;
   const { number } = captionText(caption);
 
   return (
@@ -87,7 +87,7 @@ export default function PrintScreen({
           <figure className="relative m-0 box-border w-[150px] rotate-[-2deg] border-4 border-solid border-(--tf-red) bg-(--tf-cream) px-[8px] pt-[8px] pb-[30px] shadow-[0_12px_20px_rgba(43,36,32,0.22)]">
             <div className="relative">
               <Photos frames={frames} />
-              {CELLS.map((i) => (
+              {SHOT_INDEXES.map((i) => (
                 <div
                   key={i}
                   aria-hidden="true"
@@ -117,7 +117,7 @@ export default function PrintScreen({
       ) : (
         <div role="status" className="flex h-[58px] items-center justify-center gap-[10px]">
           <span className="sr-only">인화 중</span>
-          {CELLS.map((i) => (
+          {SHOT_INDEXES.map((i) => (
             <span
               key={i}
               aria-hidden="true"

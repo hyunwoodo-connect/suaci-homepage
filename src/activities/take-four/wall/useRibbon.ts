@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useGuardedAction } from "../useGuardedAction";
 import { wallApi } from "./api";
 import type { StripView } from "./api";
-import { hasRibbon, rememberRibbon } from "./local";
+import { hasRibbon, rememberRibbon } from "./deviceMarks";
 
 /**
  * 네컷 리본. 누르면 바로 +1로 보이고(낙관적), 실패하면 되돌린다.

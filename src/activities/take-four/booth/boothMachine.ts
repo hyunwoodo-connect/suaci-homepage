@@ -17,17 +17,6 @@ export const COUNT_MS = 800;
 /** 찰칵 흰 빛이 머무는 시간 */
 export const FLASH_MS = 260;
 
-/** 장마다 지시 문구(그대로). 다 찍으면 `take suaci.` */
-export const PROMPTS = [
-  "정색해 주세요~",
-  "살짝 웃어 주세요",
-  "방긋 웃어 주세요",
-  "빵 터져 주세요~",
-] as const;
-
-/** 시안 Shot1~4의 카메라 화면 이름 */
-export const SHOT_NAMES = ["무표정", "살짝 미소", "방긋", "박장대소"] as const;
-
 /** 시안 Booth.dc.html의 tick 규칙 그대로. */
 export function boothReducer(state: BoothState, action: BoothAction): BoothState {
   switch (action.type) {

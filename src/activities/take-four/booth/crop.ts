@@ -1,12 +1,7 @@
-interface CropRect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+import type { Rect } from "../strip/layout";
 
 /** 영상 가운데에서 가장 큰 가로 4:3 사각형(띠 칸(4:3)과 같은 비율) */
-export function centerCrop43(videoWidth: number, videoHeight: number): CropRect {
+export function centerCrop43(videoWidth: number, videoHeight: number): Rect {
   const isWide = videoWidth * 3 > videoHeight * 4;
   const width = isWide ? Math.round((videoHeight * 4) / 3) : videoWidth;
   const height = isWide ? videoHeight : Math.round((videoWidth * 3) / 4);
@@ -27,7 +22,7 @@ export function coverGuideRect(
   videoHeight: number,
   boxWidth: number,
   boxHeight: number,
-): CropRect {
+): Rect {
   const scale = Math.max(boxWidth / videoWidth, boxHeight / videoHeight);
   const offsetX = (boxWidth - videoWidth * scale) / 2;
   const offsetY = (boxHeight - videoHeight * scale) / 2;
