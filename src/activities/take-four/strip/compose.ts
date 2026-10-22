@@ -8,7 +8,7 @@ import type { Rect } from "./layout";
 /** 띠 아래 글자. 1단계 serial은 서버 발급 전이라 null(→ `no.----`). */
 export interface StripCaption {
   serial: string | null;
-  /** 진행 중·시작 전이면 `No.01`. 이벤트가 끝났으면 null — 도장도 같이 빠진다 */
+  /** 진행 중·시작 전이면 회차 이름(`No.01`). 이벤트가 끝났거나 이벤트 내용이 없으면 null — 도장도 같이 빠진다 */
   eventLabel: string | null;
   date: Date;
 }
@@ -16,7 +16,6 @@ export interface StripCaption {
 /** 찍은 장(카메라 캡처·앨범 사진을 4:3으로 자른 것) */
 export type StripFrame = HTMLCanvasElement | ImageBitmap;
 
-const EVENT_LABEL = "No.01";
 const JPEG_QUALITY = 0.86;
 /**
  * 글꼴을 이만큼까지 기다린다. 현상 화면이 도는 동안이라 넉넉히 둔다.
@@ -24,9 +23,12 @@ const JPEG_QUALITY = 0.86;
  */
 export const FONT_TIMEOUT_MS = 12_000;
 
-/** 지금 이벤트 상태로 캡션을 정한다. 놀이는 상설이라 마감 뒤엔 이벤트 표시만 뺀다. */
-export function stripCaption(phase: EventPhase, date: Date): StripCaption {
-  return { serial: null, eventLabel: phase === "ended" ? null : EVENT_LABEL, date };
+/**
+ * 지금 이벤트 상태로 캡션을 정한다. 놀이는 상설이라 마감 뒤엔 이벤트 표시만 뺀다.
+ * label: 이벤트 내용(`@/events`)의 회차 이름. 없으면 null.
+ */
+export function stripCaption(phase: EventPhase, date: Date, label: string | null): StripCaption {
+  return { serial: null, eventLabel: phase === "ended" ? null : label, date };
 }
 
 /** 캡션 왼쪽 번호와 오른쪽 회차·날짜. 화면 띠(Strip)와 합성 띠가 같은 글자를 쓴다. */

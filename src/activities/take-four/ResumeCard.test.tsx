@@ -41,7 +41,7 @@ describe("입구 아까 찍은 네컷 카드", () => {
     storage.loadLast.mockResolvedValue({
       blob: new Blob(["x"]),
       photos: new Blob(["p"], { type: "image/jpeg" }),
-      caption: stripCaption("live", new Date()),
+      caption: stripCaption("live", new Date(), "No.01"),
     });
     await renderEntrance();
     const card = await screen.findByRole("link", { name: /아까 찍은 네컷.*보기/ });

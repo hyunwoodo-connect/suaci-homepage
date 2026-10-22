@@ -1,9 +1,19 @@
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
 
 import type { EventDetail } from "@/types";
 
 import InfoScreen from "./InfoScreen";
+
+const stage = vi.hoisted(() => ({ shipped: { wall: false, entry: false } }));
+vi.mock("./stage", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./stage")>();
+  return {
+    ...actual,
+    isStageOn: (...[event, name]: Parameters<typeof actual.isStageOn>) =>
+      actual.isStageOn(event, name, stage.shipped),
+  };
+});
 
 const START = Date.parse("2026-11-30T15:00:00Z");
 
@@ -25,6 +35,8 @@ function event(switches: Record<string, boolean> = {}): EventDetail {
   };
 }
 
+afterEach(cleanup);
+
 describe("InfoScreen", () => {
   it("진행 중 → No.01·문구·기간·받는 것·발표, 부스로 `찍으러 가기`", () => {
     render(<InfoScreen event={event()} now={START + 1} />);
@@ -43,11 +55,23 @@ describe("InfoScreen", () => {
     );
   });
 
-  it("응모 스위치 꺼짐(1단계) → 응모 줄 없음, 켜짐 → 있음", () => {
-    const { unmount } = render(<InfoScreen event={event()} now={START} />);
+  it("응모 스위치 꺼짐 → 응모 줄 없음", () => {
+    render(<InfoScreen event={event()} now={START} />);
     expect(screen.queryByText("응모")).toBeNull();
-    unmount();
+  });
+
+  it("응모 스위치가 켜져도 3단계 전 → 응모 줄 없음", () => {
     render(<InfoScreen event={event({ entry: true })} now={START} />);
-    expect(screen.getByText("다 찍고 '응모하기'")).toBeInTheDocument();
+    expect(screen.queryByText("응모")).toBeNull();
+  });
+
+  it("3단계가 나왔고 응모 스위치 켜짐 → 응모 줄", () => {
+    stage.shipped = { wall: false, entry: true };
+    try {
+      render(<InfoScreen event={event({ entry: true })} now={START} />);
+      expect(screen.getByText("다 찍고 '응모하기'")).toBeInTheDocument();
+    } finally {
+      stage.shipped = { wall: false, entry: false };
+    }
   });
 });

@@ -3,7 +3,7 @@ import Screen from "./parts/Screen";
 import TextLink from "./parts/TextLink";
 import TopBar from "./parts/TopBar";
 import Wordmark from "./parts/Wordmark";
-import { androidIntentUrl, detectEnv, kakaoExternalUrl } from "./env";
+import { detectEnv, handOffUrl } from "./env";
 
 interface NoCameraScreenProps {
   slug: string;
@@ -20,15 +20,9 @@ interface NoCameraScreenProps {
  */
 export default function NoCameraScreen({ slug, userAgent, url }: NoCameraScreenProps) {
   const base = `/events/${slug}`;
-  const { inApp, os } = detectEnv(userAgent);
-  // 입구 인앱 안내와 같은 넘기기: 안드로이드는 크롬 intent, iOS 카카오톡은 외부 열기 스킴
-  const handOff = !inApp
-    ? null
-    : os === "android"
-      ? androidIntentUrl(url)
-      : os === "ios" && inApp === "kakao"
-        ? kakaoExternalUrl(url)
-        : null;
+  const env = detectEnv(userAgent);
+  const { inApp } = env;
+  const handOff = handOffUrl(env, url);
 
   return (
     <Screen tone="lime">

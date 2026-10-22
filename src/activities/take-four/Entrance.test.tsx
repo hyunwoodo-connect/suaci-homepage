@@ -13,17 +13,33 @@ const UA = {
     "Mozilla/5.0 (Linux; Android 14; SM-S921N; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/129.0 Mobile Safari/537.36 Instagram 350.0.0.42.86 Android",
   iosInstagram:
     "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 350.0.0.31.94",
+  androidLine:
+    "Mozilla/5.0 (Linux; Android 14; SM-S921N; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/129.0 Mobile Safari/537.36 Line/14.17.1",
   iosKakao:
     "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 KAKAOTALK 10.9.5",
   macChrome:
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
 } as const;
 
+const stage = vi.hoisted(() => ({ shipped: { wall: false, entry: false } }));
+vi.mock("./stage", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./stage")>();
+  return {
+    ...actual,
+    isStageOn: (...[event, name]: Parameters<typeof actual.isStageOn>) =>
+      actual.isStageOn(event, name, stage.shipped),
+  };
+});
+
 const PAGE_URL = "https://takesuaci.com/events/take-four?preview=tok-1234567890abcd";
 
-function event(phase: EventPhase = "live", switches: Record<string, boolean> = {}): EventDetail {
+function event(
+  phase: EventPhase = "live",
+  switches: Record<string, boolean> = {},
+  eventId = "no01",
+): EventDetail {
   return {
-    eventId: "no01",
+    eventId,
     slug: "take-four",
     activityId: "take-four",
     phase,
@@ -40,6 +56,7 @@ function event(phase: EventPhase = "live", switches: Record<string, boolean> = {
 
 afterEach(() => {
   cleanup();
+  stage.shipped = { wall: false, entry: false };
   vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
@@ -57,6 +74,20 @@ describe("Entrance", () => {
       "/events/take-four/booth",
     );
     expect(screen.queryByText(/카메라가 안 열려요/)).toBeNull();
+  });
+
+  it("머리 라벨 → 이벤트 내용의 회차 이름(소문자)", () => {
+    render(<Entrance event={event("live")} userAgent={UA.iosSafari} url={PAGE_URL} />);
+    expect(screen.getByText("no.01")).toBeInTheDocument();
+  });
+
+  it("이벤트 내용이 없는 이벤트 → 회차 라벨·쪽지 없이 커튼 열기만", () => {
+    render(
+      <Entrance event={event("live", {}, "unknown")} userAgent={UA.iosSafari} url={PAGE_URL} />,
+    );
+    expect(screen.queryByText(/no\.01/i)).toBeNull();
+    expect(screen.queryByText("인화해서 보내 드려요")).toBeNull();
+    expect(screen.getByRole("link", { name: "커튼 열기" })).toBeInTheDocument();
   });
 
   it("열기 전 → 쪽지가 있다", () => {
@@ -77,7 +108,15 @@ describe("Entrance", () => {
     expect(screen.queryByText("다른 사람들 네컷 보기")).toBeNull();
   });
 
-  it("switches.wall이 true → 다른 사람들 네컷 보기 링크", () => {
+  it("switches.wall이 true여도 2단계 전(STAGE.wall false) → 다른 사람들 네컷 보기 없음", () => {
+    render(
+      <Entrance event={event("live", { wall: true })} userAgent={UA.iosSafari} url={PAGE_URL} />,
+    );
+    expect(screen.queryByText("다른 사람들 네컷 보기")).toBeNull();
+  });
+
+  it("2단계가 나왔고 switches.wall이 true → 다른 사람들 네컷 보기 링크", () => {
+    stage.shipped = { wall: true, entry: false };
     render(
       <Entrance event={event("live", { wall: true })} userAgent={UA.iosSafari} url={PAGE_URL} />,
     );
@@ -95,6 +134,27 @@ describe("Entrance", () => {
       "intent://takesuaci.com/events/take-four?preview=tok-1234567890abcd#Intent;scheme=https;package=com.android.chrome;end",
     );
     expect(screen.queryByText("커튼 열기")).toBeNull();
+  });
+
+  it("라인 → 같은 주소(미리보기 토큰 그대로)에 openExternalBrowser=1", () => {
+    render(<Entrance event={event()} userAgent={UA.androidLine} url={PAGE_URL} />);
+    expect(screen.getByRole("link", { name: "브라우저로 열기" })).toHaveAttribute(
+      "href",
+      `${PAGE_URL}&openExternalBrowser=1`,
+    );
+  });
+
+  it("인앱 → 브라우저를 못 바꿔도 앨범에서 넉 장 고르기로 지나간다", () => {
+    render(<Entrance event={event()} userAgent={UA.iosInstagram} url={PAGE_URL} />);
+    expect(screen.getByRole("link", { name: "앨범에서 넉 장 고르기" })).toHaveAttribute(
+      "href",
+      "/events/take-four/album",
+    );
+  });
+
+  it("폰 브라우저 → 앨범 링크 없음(커튼 열기만)", () => {
+    render(<Entrance event={event()} userAgent={UA.iosSafari} url={PAGE_URL} />);
+    expect(screen.queryByText("앨범에서 넉 장 고르기")).toBeNull();
   });
 
   it("iOS 카카오톡 → 카카오톡 외부 열기 스킴", () => {

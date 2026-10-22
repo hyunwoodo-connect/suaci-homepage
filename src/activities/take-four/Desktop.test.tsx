@@ -17,6 +17,14 @@ afterEach(() => {
 });
 
 describe("Desktop", () => {
+  it("label → 머리 오른쪽 회차 라벨, 없으면 라벨 없음", () => {
+    const { unmount } = render(<Desktop slug="take-four" url={URL_WITH_PREVIEW} label="no.01" />);
+    expect(screen.getByText("no.01")).toBeInTheDocument();
+    unmount();
+    render(<Desktop slug="take-four" url={URL_WITH_PREVIEW} />);
+    expect(screen.queryByText("no.01")).toBeNull();
+  });
+
   it("QR → 넘겨받은 절대 주소(미리보기 토큰 포함)를 담는다", () => {
     render(<Desktop slug="take-four" url={URL_WITH_PREVIEW} />);
     expect(create).toHaveBeenCalledWith(URL_WITH_PREVIEW, expect.anything());

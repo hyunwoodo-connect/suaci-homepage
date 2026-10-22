@@ -92,19 +92,25 @@ afterEach(() => {
 
 describe("stripCaption · captionText", () => {
   it.each(["upcoming", "live"] as const)("%s → No.01 표시, 번호는 no.----", (phase) => {
-    const caption = stripCaption(phase, LATE_UTC);
+    const caption = stripCaption(phase, LATE_UTC, "No.01");
     expect(caption.eventLabel).toBe("No.01");
     expect(captionText(caption)).toEqual({ number: "no.----", meta: "No.01 · 10.23" });
   });
 
   it("ended → 이벤트 표시 없이 날짜만", () => {
-    const caption = stripCaption("ended", LATE_UTC);
+    const caption = stripCaption("ended", LATE_UTC, "No.01");
     expect(caption.eventLabel).toBeNull();
     expect(captionText(caption)).toEqual({ number: "no.----", meta: "10.23" });
   });
 
+  it("이벤트 내용이 없음(label null) → 진행 중이어도 이벤트 표시 없음", () => {
+    const caption = stripCaption("live", LATE_UTC, null);
+    expect(caption.eventLabel).toBeNull();
+    expect(captionText(caption).meta).toBe("10.23");
+  });
+
   it("파일 이름 → 한국 날짜", () => {
-    expect(stripFilename(stripCaption("live", LATE_UTC))).toBe("take-four-1023.jpg");
+    expect(stripFilename(stripCaption("live", LATE_UTC, "No.01"))).toBe("take-four-1023.jpg");
   });
 });
 
@@ -112,7 +118,7 @@ describe("composeStrip", () => {
   it("900×2659 캔버스에 네 장을 칸마다 그리고 JPEG 0.86으로, 다 쓰면 캔버스를 비운다", async () => {
     const blob = await composeStrip(
       [frame(), frame(), frame(), frame()],
-      stripCaption("live", LATE_UTC),
+      stripCaption("live", LATE_UTC, "No.01"),
     );
     expect(blob).toBe(blobResult);
     const [canvas] = canvases;
@@ -134,7 +140,10 @@ describe("composeStrip", () => {
       areFontsReady = true;
       return [];
     });
-    await composeStrip([frame(), frame(), frame(), frame()], stripCaption("live", LATE_UTC));
+    await composeStrip(
+      [frame(), frame(), frame(), frame()],
+      stripCaption("live", LATE_UTC, "No.01"),
+    );
     const ctx = canvases[0].ctx as unknown as {
       texts: { text: string; font: string; areFontsReady: boolean }[];
     };
@@ -158,7 +167,10 @@ describe("composeStrip", () => {
       return [];
     });
     fonts.check.mockImplementation((font: string) => !font.includes("Fallback"));
-    await composeStrip([frame(), frame(), frame(), frame()], stripCaption("live", LATE_UTC));
+    await composeStrip(
+      [frame(), frame(), frame(), frame()],
+      stripCaption("live", LATE_UTC, "No.01"),
+    );
     for (const [font] of fonts.load.mock.calls) expect(font).toMatch(/'Fraunces'$/);
     const ctx = canvases[0].ctx as unknown as { texts: { font: string }[] };
     for (const { font } of ctx.texts)
@@ -166,7 +178,10 @@ describe("composeStrip", () => {
   });
 
   it("이벤트 끝남 → 도장 없이 날짜만", async () => {
-    await composeStrip([frame(), frame(), frame(), frame()], stripCaption("ended", LATE_UTC));
+    await composeStrip(
+      [frame(), frame(), frame(), frame()],
+      stripCaption("ended", LATE_UTC, "No.01"),
+    );
     const ctx = canvases[0].ctx as unknown as { texts: { text: string }[]; calls: string[] };
     expect(ctx.texts.map((t) => t.text)).toEqual(["no.----", "10.23"]);
     expect(ctx.calls).not.toContain("arc");
@@ -175,7 +190,10 @@ describe("composeStrip", () => {
   it("글꼴이 끝내 안 옴 → 12초 뒤 실패, 기본 글꼴로 그리지 않는다", async () => {
     vi.useFakeTimers();
     fonts.load.mockReturnValue(new Promise(() => {}));
-    const done = composeStrip([frame(), frame(), frame(), frame()], stripCaption("live", LATE_UTC));
+    const done = composeStrip(
+      [frame(), frame(), frame(), frame()],
+      stripCaption("live", LATE_UTC, "No.01"),
+    );
     const outcome = expect(done).rejects.toThrow(/글꼴/);
     expect(FONT_TIMEOUT_MS).toBe(12_000);
     await vi.advanceTimersByTimeAsync(FONT_TIMEOUT_MS);
@@ -186,7 +204,7 @@ describe("composeStrip", () => {
   it("글꼴 받기는 끝났지만 check가 false → 실패", async () => {
     fonts.check.mockReturnValue(false);
     await expect(
-      composeStrip([frame(), frame(), frame(), frame()], stripCaption("live", LATE_UTC)),
+      composeStrip([frame(), frame(), frame(), frame()], stripCaption("live", LATE_UTC, "No.01")),
     ).rejects.toThrow(/글꼴/);
     expect(canvases).toHaveLength(0);
   });
@@ -194,7 +212,7 @@ describe("composeStrip", () => {
   it("toBlob이 null → 실패로 던진다", async () => {
     blobResult = null;
     await expect(
-      composeStrip([frame(), frame(), frame(), frame()], stripCaption("live", LATE_UTC)),
+      composeStrip([frame(), frame(), frame(), frame()], stripCaption("live", LATE_UTC, "No.01")),
     ).rejects.toThrow();
   });
 });

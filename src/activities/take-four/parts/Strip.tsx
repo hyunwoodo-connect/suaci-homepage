@@ -10,7 +10,8 @@ interface StripProps {
   number: string;
   /** 오른쪽 회차·날짜(`No.01 · 12.04`) */
   meta: string;
-  hasStamp?: boolean;
+  /** 도장 글자(`No.01`). 없으면 도장 없음 */
+  stamp?: string;
   hasPin?: boolean;
   /** md: 완성 176×506 / lg: 크게 보기 192×552 */
   size?: "md" | "lg";
@@ -35,14 +36,14 @@ export default function Strip({
   alt,
   number,
   meta,
-  hasStamp = false,
+  stamp,
   hasPin = false,
   size = "md",
 }: StripProps) {
   const s = STRIP_SIZE[size];
   return (
     <figure className={`relative m-0 shrink-0 ${s.box}`}>
-      {hasStamp ? <Stamp /> : null}
+      {stamp ? <Stamp label={stamp} /> : null}
       <svg
         viewBox={STRIP_WAVY.viewBox}
         preserveAspectRatio="none"

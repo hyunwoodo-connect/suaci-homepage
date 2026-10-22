@@ -22,7 +22,7 @@ interface ResultScreenProps {
   /** 같은 네 장의 사진 기둥(띠 안에 보이는 것) */
   photos: Blob;
   caption: StripCaption;
-  /** 이벤트 스위치 `entry`(3단계 응모) */
+  /** 3단계 응모가 나왔고 이벤트 스위치 `entry`도 켜졌는지(`isStageOn`) */
   canEnter: boolean;
   /** 스토리 이미지 왼쪽 아래 주소 */
   storyLink: string;
@@ -127,7 +127,7 @@ export default function ResultScreen({
               alt={`네컷: ${SHOT_NAMES.join(", ")}`}
               number={number}
               meta={meta}
-              hasStamp={caption.eventLabel !== null}
+              stamp={caption.eventLabel ?? undefined}
             />
           ) : (
             <div role="status" aria-label="네컷 여는 중" className="h-[506px] w-[176px]" />

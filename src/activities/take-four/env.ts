@@ -32,6 +32,25 @@ export function isDesktopUa(ua: string): boolean {
   return ua !== "" && !PHONE_OR_TABLET.test(ua);
 }
 
+/**
+ * 인앱에서 같은 주소(미리보기 토큰 포함)를 밖의 브라우저로 여는 주소. 넘길 방법이 없으면 null(→ 주소 복사).
+ * 라인은 OS와 상관없이 쿼리 `openExternalBrowser=1`, 안드로이드는 크롬 intent, iOS 카카오톡은 외부 열기 스킴.
+ */
+export function handOffUrl({ inApp, os }: DeviceEnv, url: string): string | null {
+  if (!inApp) return null;
+  if (inApp === "line") return lineExternalUrl(url);
+  if (os === "android") return androidIntentUrl(url);
+  if (os === "ios" && inApp === "kakao") return kakaoExternalUrl(url);
+  return null;
+}
+
+/** 라인 인앱에서 같은 주소를 기본 브라우저로 연다. 기존 쿼리(미리보기 토큰)는 그대로 둔다. */
+export function lineExternalUrl(url: string): string {
+  const next = new URL(url);
+  next.searchParams.set("openExternalBrowser", "1");
+  return next.toString();
+}
+
 /** 안드로이드 인앱에서 같은 주소를 크롬으로 연다. 미리보기 토큰이 따라가도록 쿼리를 남긴다. */
 export function androidIntentUrl(url: string): string {
   const { protocol, host, pathname, search } = new URL(url);

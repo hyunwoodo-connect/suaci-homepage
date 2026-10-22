@@ -14,8 +14,10 @@ export interface EventContentDates {
  * 백엔드 레코드에 같은 필드가 생기면 그쪽으로 옮긴다.
  */
 export interface EventContent {
-  /** 회차 이름(안내 화면 큰 제목) */
+  /** 회차 이름(`No.01`). 안내 화면 큰 제목, 입구 쪽지 머리, 띠 캡션·도장 */
   label: string;
+  /** 입구 쪽지 문구(이벤트 기간에 주는 것) */
+  note: string;
   /** 안내 화면 `받는 것` */
   reward: string;
   /** 레코드 `copy`가 비었을 때 phase별 문구 */

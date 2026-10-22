@@ -6,6 +6,7 @@ import Screen from "./parts/Screen";
 import TopBar from "./parts/TopBar";
 import Wordmark from "./parts/Wordmark";
 import { infoView } from "./info";
+import { isStageOn } from "./stage";
 
 interface InfoScreenProps {
   event: EventDetail;
@@ -48,7 +49,7 @@ export default function InfoScreen({ event, now }: InfoScreenProps) {
             <dd className="m-0">{view.reward}</dd>
           </>
         ) : null}
-        {event.switches.entry === true ? (
+        {isStageOn(event, "entry") ? (
           <>
             <dt className="font-bold">응모</dt>
             <dd className="m-0">다 찍고 &apos;응모하기&apos;</dd>

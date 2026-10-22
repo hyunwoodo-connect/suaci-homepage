@@ -10,15 +10,17 @@ interface DesktopProps {
   slug: string;
   /** 이 이벤트의 절대 주소(허용된 출처 + 미리보기 토큰). QR에 담는다 */
   url: string;
+  /** 머리 오른쪽 회차 라벨(`no.01`). 이벤트 내용이 없으면 없음 */
+  label?: string;
 }
 
 /** PC 안내. 부스는 폰 전용이라 QR이나 주소로 폰으로 옮겨 가게 한다. */
-export default function Desktop({ slug, url }: DesktopProps) {
+export default function Desktop({ slug, url, label }: DesktopProps) {
   return (
     <Screen tone="lime">
       {/* 시안 PC 칸(420)은 실제 주소가 한 줄에 안 들어가 480으로 넓힌다. Screen 여백(20·24·28)에 더해 시안 PC 여백 28·40·40을 맞춘다 */}
       <div className="flex flex-1 flex-col px-[16px] pt-[8px] pb-[12px]">
-        <TopBar start={<Wordmark size="lg" />} label="no.01" />
+        <TopBar start={<Wordmark size="lg" />} label={label} />
         <div className="mx-auto flex w-full max-w-[1040px] flex-1 flex-wrap items-center justify-center gap-x-[80px] gap-y-[48px] py-[32px]">
           <GirlsIllustration className="h-[520px] max-h-[60vh]" />
           <div className="flex max-w-[480px] flex-col gap-[22px]">

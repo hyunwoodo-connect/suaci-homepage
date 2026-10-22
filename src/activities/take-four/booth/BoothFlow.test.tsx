@@ -48,8 +48,24 @@ vi.mock("../strip/compose", async (importOriginal) => ({
 }));
 vi.mock("../strip/storage", () => ({ saveLast: strip.saveLast }));
 
-function event(phase: EventDetail["phase"] = "live", switches = {}) {
-  return { slug: "take-four", activityId: "take-four", phase, switches } as unknown as EventDetail;
+const stage = vi.hoisted(() => ({ shipped: { wall: false, entry: false } }));
+vi.mock("../stage", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../stage")>();
+  return {
+    ...actual,
+    isStageOn: (...[event, name]: Parameters<typeof actual.isStageOn>) =>
+      actual.isStageOn(event, name, stage.shipped),
+  };
+});
+
+function event(phase: EventDetail["phase"] = "live", switches = {}, eventId = "no01") {
+  return {
+    eventId,
+    slug: "take-four",
+    activityId: "take-four",
+    phase,
+    switches,
+  } as unknown as EventDetail;
 }
 
 async function shoot() {
@@ -91,6 +107,12 @@ describe("BoothFlow", () => {
     expect(strip.composeStrip.mock.calls[0][1]).toMatchObject({ eventLabel: null });
   });
 
+  it("이벤트 내용이 없는 이벤트 → 진행 중이어도 캡션에 회차 없음", async () => {
+    render(<BoothFlow event={event("live", {}, "unknown")} />);
+    await shoot();
+    expect(strip.composeStrip.mock.calls[0][1]).toMatchObject({ eventLabel: null });
+  });
+
   it("현상 → 받기 → 완성, 다시 찍기 → 촬영 준비로", async () => {
     render(<BoothFlow event={event("live")} />);
     await shoot();
@@ -112,11 +134,23 @@ describe("BoothFlow", () => {
     expect(screen.getByRole("button", { name: "받기" })).toBeInTheDocument();
   });
 
-  it("switches.entry → 완성 화면에 응모하기", async () => {
+  it("switches.entry가 켜져도 3단계 전(STAGE.entry false) → 응모하기 없음", async () => {
     render(<BoothFlow event={event("live", { entry: true })} />);
     await shoot();
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "받기" })));
-    expect(screen.getByRole("button", { name: "응모하기" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "응모하기" })).toBeNull();
+  });
+
+  it("3단계가 나왔고 switches.entry → 완성 화면에 응모하기", async () => {
+    stage.shipped = { wall: false, entry: true };
+    try {
+      render(<BoothFlow event={event("live", { entry: true })} />);
+      await shoot();
+      await act(async () => fireEvent.click(screen.getByRole("button", { name: "받기" })));
+      expect(screen.getByRole("button", { name: "응모하기" })).toBeInTheDocument();
+    } finally {
+      stage.shipped = { wall: false, entry: false };
+    }
   });
 
   it("앨범 → 고른 네 장을 같은 현상·완성으로, 다시 고르기 → 고른 네 장을 든 앨범", async () => {

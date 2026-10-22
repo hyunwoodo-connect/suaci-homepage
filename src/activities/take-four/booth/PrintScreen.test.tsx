@@ -23,7 +23,7 @@ function renderPrint(props: Partial<Parameters<typeof PrintScreen>[0]> = {}) {
   const view = render(
     <PrintScreen
       frames={FRAMES}
-      caption={stripCaption("live", TAKEN)}
+      caption={stripCaption("live", TAKEN, "No.01")}
       status="ready"
       {...handlers}
       {...props}
@@ -97,7 +97,7 @@ describe("PrintScreen", () => {
   });
 
   it("이벤트 끝남 → 띠 아래 No.01 없음", () => {
-    renderPrint({ caption: stripCaption("ended", TAKEN) });
+    renderPrint({ caption: stripCaption("ended", TAKEN, "No.01") });
     expect(screen.queryByText("No.01")).toBeNull();
     expect(screen.getByText("no.----")).toBeInTheDocument();
   });

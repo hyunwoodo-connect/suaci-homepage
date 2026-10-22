@@ -27,7 +27,7 @@ describe("LastResult", () => {
     storage.loadLast.mockResolvedValue({
       blob: new Blob(["x"]),
       photos: new Blob(["p"], { type: "image/jpeg" }),
-      caption: stripCaption("live", new Date("2026-10-22T05:00:00Z")),
+      caption: stripCaption("live", new Date("2026-10-22T05:00:00Z"), "No.01"),
     });
     await renderLast();
     expect(await screen.findByText("No.01 · 10.22")).toBeInTheDocument();

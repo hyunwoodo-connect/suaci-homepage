@@ -26,7 +26,7 @@ async function renderResult(props: Partial<Parameters<typeof ResultScreen>[0]> =
       <ResultScreen
         strip={STRIP_BLOB}
         photos={new Blob(["photos"], { type: "image/jpeg" })}
-        caption={stripCaption("live", TAKEN)}
+        caption={stripCaption("live", TAKEN, "No.01")}
         canEnter={false}
         storyLink="takesuaci.com/events/take-four"
         onRetake={vi.fn()}
@@ -65,7 +65,7 @@ describe("ResultScreen", () => {
   });
 
   it("이벤트 끝남 → 도장·No.01 없이 날짜만", async () => {
-    await renderResult({ caption: stripCaption("ended", TAKEN) });
+    await renderResult({ caption: stripCaption("ended", TAKEN, "No.01") });
     expect(screen.getByText("10.22")).toBeInTheDocument();
     expect(screen.queryByText(/No\.01/)).toBeNull();
     expect(document.querySelector("[data-stamp]")).toBeNull();

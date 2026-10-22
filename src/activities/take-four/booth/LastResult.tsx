@@ -8,6 +8,7 @@ import PillButton from "../parts/PillButton";
 import Screen from "../parts/Screen";
 import TopBar from "../parts/TopBar";
 import { loadLast } from "../strip/storage";
+import { isStageOn } from "../stage";
 import { storyLink } from "../story/composeStory";
 import type { LastStrip } from "../strip/storage";
 import ResultScreen from "./ResultScreen";
@@ -37,7 +38,7 @@ export default function LastResult({ event }: LastResultProps) {
         strip={last.blob}
         photos={last.photos}
         caption={last.caption}
-        canEnter={event.switches.entry === true}
+        canEnter={isStageOn(event, "entry")}
         storyLink={storyLink(event.slug)}
         retakeHref={`${base}/booth`}
       />

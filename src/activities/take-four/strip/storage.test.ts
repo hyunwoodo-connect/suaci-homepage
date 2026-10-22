@@ -69,7 +69,7 @@ describe("saveLast · loadLast", () => {
     await saveLast(
       new Blob(["strip-bytes"], { type: "image/jpeg" }),
       new Blob(["photo-bytes"], { type: "image/jpeg" }),
-      stripCaption("live", TAKEN),
+      stripCaption("live", TAKEN, "No.01"),
     );
     const last = await loadLast();
     expect(last).not.toBeNull();
@@ -119,7 +119,7 @@ describe("saveLast · loadLast", () => {
     };
     vi.stubGlobal("indexedDB", { open: () => fakeRequest(() => db) });
     await expect(
-      saveLast(new Blob(["x"]), new Blob(["p"]), stripCaption("live", TAKEN)),
+      saveLast(new Blob(["x"]), new Blob(["p"]), stripCaption("live", TAKEN, "No.01")),
     ).resolves.toBeUndefined();
     expect(db.close).toHaveBeenCalled();
     await expect(loadLast()).resolves.toBeNull();
@@ -128,7 +128,7 @@ describe("saveLast · loadLast", () => {
   it("IndexedDB 없음 → 저장은 조용히, 읽기는 null", async () => {
     vi.stubGlobal("indexedDB", undefined);
     await expect(
-      saveLast(new Blob(["x"]), new Blob(["p"]), stripCaption("live", TAKEN)),
+      saveLast(new Blob(["x"]), new Blob(["p"]), stripCaption("live", TAKEN, "No.01")),
     ).resolves.toBeUndefined();
     await expect(loadLast()).resolves.toBeNull();
   });
@@ -140,7 +140,7 @@ describe("saveLast · loadLast", () => {
       },
     });
     await expect(
-      saveLast(new Blob(["x"]), new Blob(["p"]), stripCaption("live", TAKEN)),
+      saveLast(new Blob(["x"]), new Blob(["p"]), stripCaption("live", TAKEN, "No.01")),
     ).resolves.toBeUndefined();
     await expect(loadLast()).resolves.toBeNull();
   });

@@ -3,11 +3,13 @@
 import { useRef, useState } from "react";
 
 import type { EventDetail } from "@/types";
+import { getEventContent } from "@/events";
 
 import { composePhotos, composeStrip, stripCaption } from "../strip/compose";
 import type { StripCaption, StripFrame } from "../strip/compose";
 import { saveLast } from "../strip/storage";
 import { storyLink } from "../story/composeStory";
+import { isStageOn } from "../stage";
 import AlbumScreen from "../album/AlbumScreen";
 import BoothScreen from "./BoothScreen";
 import PrintScreen from "./PrintScreen";
@@ -58,7 +60,8 @@ export default function BoothFlow({ event, source = "camera" }: BoothFlowProps) 
     setPrint(null);
   }
 
-  const startCaption = () => stripCaption(event.phase, new Date());
+  const label = getEventContent(event.eventId)?.label ?? null;
+  const startCaption = () => stripCaption(event.phase, new Date(), label);
   const retakeLabel = source === "album" ? "다시 고르기" : undefined;
 
   if (!print && source === "album") {
@@ -84,7 +87,7 @@ export default function BoothFlow({ event, source = "camera" }: BoothFlowProps) 
         strip={print.done.strip}
         photos={print.done.photos}
         caption={print.caption}
-        canEnter={event.switches.entry === true}
+        canEnter={isStageOn(event, "entry")}
         storyLink={storyLink(event.slug)}
         onRetake={retake}
         retakeLabel={retakeLabel}

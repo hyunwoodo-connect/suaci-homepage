@@ -6,10 +6,12 @@ import type { EventContent } from ".";
  * - `fallbackCopy`는 시안(Event.dc.html) 기본 문구. 운영 레코드 `copy`의 그 phase가 비었을 때만 쓰고,
  *   레코드에 문구가 있으면 레코드가 이긴다.
  * - `label`은 시안 기본 회차 이름. 레코드엔 회차 이름 필드가 없고 `card.title`은 놀이 이름(take four)이라,
- *   안내 화면은 이 값을 쓰고 이벤트 내용이 없을 때만 `card.title`로 물러난다.
+ *   안내 화면은 이 값을 쓰고 이벤트 내용이 없을 때만 `card.title`로 물러난다. 입구·띠의 회차 표시도 이 값이다.
+ * - `note`는 입구 쪽지 문구(시안 Main).
  */
 export const NO01: EventContent = {
   label: "No.01",
+  note: "인화해서 보내 드려요",
   reward: "suaci 첫 병과 인화한 내 네컷",
   fallbackCopy: {
     upcoming: ({ start }) => `${start}에 시작해요.\n부스는 지금도 열려 있어요.`,

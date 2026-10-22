@@ -1,9 +1,10 @@
 interface StampProps {
-  label?: string;
+  /** 회차 이름(`No.01`) */
+  label: string;
 }
 
-/** `No.01` 기운 빨간 원 도장. 띠 오른쪽 위에 찍힌다(부모 relative). */
-export default function Stamp({ label = "No.01" }: StampProps) {
+/** 회차 이름 기운 빨간 원 도장. 띠 오른쪽 위에 찍힌다(부모 relative). */
+export default function Stamp({ label }: StampProps) {
   return (
     <span
       aria-hidden="true"

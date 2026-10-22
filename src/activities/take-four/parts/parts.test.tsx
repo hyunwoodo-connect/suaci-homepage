@@ -323,13 +323,13 @@ describe("Strip", () => {
     expect(screen.getByRole("figure")).toHaveTextContent("No.01 · 12.04");
   });
 
-  it("hasStamp 없으면 도장 없음", () => {
+  it("stamp 없으면 도장 없음", () => {
     const { container } = render(<Strip {...props} />);
     expect(container.querySelector("[data-stamp]")).toBeNull();
   });
 
-  it("hasStamp → `No.01` 도장", () => {
-    const { container } = render(<Strip {...props} hasStamp />);
+  it("stamp → 그 글자 도장", () => {
+    const { container } = render(<Strip {...props} stamp="No.01" />);
     expect(container.querySelector("[data-stamp]")).toHaveTextContent("No.01");
   });
 });

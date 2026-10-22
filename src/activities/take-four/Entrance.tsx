@@ -1,3 +1,5 @@
+import { getEventContent } from "@/events";
+
 import type { EntranceProps } from "..";
 
 import Desktop from "./Desktop";
@@ -13,20 +15,25 @@ import TitleMark from "./parts/TitleMark";
 import TopBar from "./parts/TopBar";
 import Wordmark from "./parts/Wordmark";
 import { detectEnv, isDesktopUa } from "./env";
+import { isStageOn } from "./stage";
 
 /**
  * 입구. 설명 없이 제목·두 소녀·`커튼 열기` 하나.
- * 놀이는 상설이라 이벤트가 끝나도 그대로 열고, No.01 쪽지만 마감 뒤엔 뗀다(인화해 보내 주는 건 이벤트 기간 약속).
+ * 놀이는 상설이라 이벤트가 끝나도 그대로 열고, 회차 쪽지만 마감 뒤엔 뗀다(인화해 보내 주는 건 이벤트 기간 약속).
+ * 회차 이름·쪽지 문구는 이벤트 내용(`@/events`)에서 — 없으면 회차 표시·쪽지 없이 연다.
  */
 export default function Entrance({ event, userAgent, url }: EntranceProps) {
   const base = `/events/${event.slug}`;
-  if (isDesktopUa(userAgent)) return <Desktop slug={event.slug} url={url} />;
+  const content = getEventContent(event.eventId);
+  // 시안 머리 라벨은 소문자(`no.01`)
+  const barLabel = content?.label.toLowerCase();
+  if (isDesktopUa(userAgent)) return <Desktop slug={event.slug} url={url} label={barLabel} />;
 
-  const { inApp, os } = detectEnv(userAgent);
+  const env = detectEnv(userAgent);
 
   return (
     <Screen tone="lime">
-      <TopBar start={<Wordmark />} label="no.01" />
+      <TopBar start={<Wordmark />} label={barLabel} />
 
       <div className="pt-[18px] text-center">
         <TitleMark />
@@ -37,13 +44,13 @@ export default function Entrance({ event, userAgent, url }: EntranceProps) {
 
       {/* 그림은 남은 높이에 맞춰 줄어든다(작은 폰에서도 버튼이 화면 안에) */}
       <div className="relative min-h-[160px] flex-1">
-        {event.phase !== "ended" ? (
+        {content && event.phase !== "ended" ? (
           <NoteSticker
             href={`${base}/info`}
-            title="No.01"
+            title={content.label}
             className="absolute top-[26px] -right-[6px]"
           >
-            인화해서 보내 드려요
+            {content.note}
           </NoteSticker>
         ) : null}
         <div className="absolute inset-x-0 top-[8px] bottom-[18px] flex items-end justify-center">
@@ -53,12 +60,12 @@ export default function Entrance({ event, userAgent, url }: EntranceProps) {
 
       <div className="flex flex-col gap-[12px]">
         <ResumeCard href={`${base}/result`} />
-        {inApp ? (
-          <InAppNotice inApp={inApp} os={os} url={url} />
+        {env.inApp ? (
+          <InAppNotice env={env} url={url} albumHref={`${base}/album`} />
         ) : (
           <PillButton href={`${base}/booth`}>커튼 열기</PillButton>
         )}
-        {event.switches.wall === true ? (
+        {isStageOn(event, "wall") ? (
           <TextLink href={`${base}/wall`}>다른 사람들 네컷 보기</TextLink>
         ) : null}
       </div>
