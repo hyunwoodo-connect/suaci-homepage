@@ -13,6 +13,10 @@ describe("TAKE_FOUR.route", () => {
     expect(renderToStaticMarkup(<>{screen}</>)).toContain("찰칵");
   });
 
+  it("result → 마지막 띠 화면", () => {
+    expect(TAKE_FOUR.route(["result"], EVENT)).not.toBeNull();
+  });
+
   it.each(["album", "no-camera", "info"])("%s → 화면을 그린다", (path) => {
     const screen = TAKE_FOUR.route([path], EVENT);
     expect(screen).not.toBeNull();

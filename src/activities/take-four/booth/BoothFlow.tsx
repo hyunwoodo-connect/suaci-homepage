@@ -1,41 +1,84 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
-import Screen from "../parts/Screen";
-import TextLink from "../parts/TextLink";
-import TopBar from "../parts/TopBar";
+import type { EventDetail } from "@/types";
+
+import { composePhotos, composeStrip, stripCaption } from "../strip/compose";
+import type { StripCaption, StripFrame } from "../strip/compose";
+import { saveLast } from "../strip/storage";
 import BoothScreen from "./BoothScreen";
+import PrintScreen from "./PrintScreen";
+import ResultScreen from "./ResultScreen";
 
 interface BoothFlowProps {
-  slug: string;
+  event: EventDetail;
 }
 
-/** `/events/{slug}/booth`. 찍은 네 장을 들고 촬영 → 현상으로 넘긴다. */
-export default function BoothFlow({ slug }: BoothFlowProps) {
-  const [frames, setFrames] = useState<HTMLCanvasElement[] | null>(null);
-  if (!frames) return <BoothScreen slug={slug} onDone={setFrames} />;
-  return <PrintPending slug={slug} onRetake={() => setFrames(null)} />;
+interface Print {
+  frames: StripFrame[];
+  caption: StripCaption;
+  /** 합성 띠와 사진 기둥(완성 화면용). 둘 다 끝나야 받을 수 있다 */
+  done: { strip: Blob; photos: Blob } | null;
+  isFailed: boolean;
+  isReceived: boolean;
 }
 
-/* ─── 하위 컴포넌트 ─────────────────────────── */
+/** `/events/{slug}/booth`. 촬영 → 현상(합성) → 완성. 다시 찍기는 촬영 준비 상태로. */
+export default function BoothFlow({ event }: BoothFlowProps) {
+  const [print, setPrint] = useState<Print | null>(null);
+  // 다시 찍은 뒤 늦게 끝난 이전 합성이 덮어쓰지 않게 차례를 센다
+  const runRef = useRef(0);
 
-interface PrintPendingProps {
-  slug: string;
-  onRetake: () => void;
-}
+  function develop(frames: StripFrame[], caption: StripCaption) {
+    const run = ++runRef.current;
+    setPrint({ frames, caption, done: null, isFailed: false, isReceived: false });
+    Promise.all([composeStrip(frames, caption), composePhotos(frames)])
+      .then(([strip, photos]) => {
+        if (run !== runRef.current) return;
+        setPrint((prev) => (prev ? { ...prev, done: { strip, photos } } : prev));
+        void saveLast(strip, photos, caption);
+      })
+      .catch(() => {
+        if (run !== runRef.current) return;
+        setPrint((prev) => (prev ? { ...prev, isFailed: true } : prev));
+      });
+  }
 
-// TODO(Task 3): 현상(Print) → 완성(Result) 화면으로 바꾼다
-function PrintPending({ slug, onRetake }: PrintPendingProps) {
-  const entrance = `/events/${slug}`;
+  function retake() {
+    runRef.current += 1;
+    setPrint(null);
+  }
+
+  if (!print) {
+    return (
+      <BoothScreen
+        slug={event.slug}
+        onDone={(frames) => develop(frames, stripCaption(event.phase, new Date()))}
+      />
+    );
+  }
+
+  if (print.isReceived && print.done) {
+    return (
+      <ResultScreen
+        strip={print.done.strip}
+        photos={print.done.photos}
+        caption={print.caption}
+        canEnter={event.switches.entry === true}
+        onRetake={retake}
+      />
+    );
+  }
+
   return (
-    <Screen tone="cream">
-      <TopBar nav={{ icon: "back", label: "입구로", href: entrance }} label="4 / 4" />
-      <div className="flex flex-1 flex-col items-center justify-center gap-[8px] text-center">
-        <p className="m-0 text-[20px] leading-[1.6]">인화는 준비 중이에요.</p>
-        <TextLink onClick={onRetake}>다시 찍기</TextLink>
-        <TextLink href={entrance}>입구로 돌아가기</TextLink>
-      </div>
-    </Screen>
+    <PrintScreen
+      frames={print.frames}
+      caption={print.caption}
+      status={print.isFailed ? "failed" : print.done ? "ready" : "composing"}
+      onReceive={() => setPrint((prev) => (prev ? { ...prev, isReceived: true } : prev))}
+      onRetry={() => develop(print.frames, print.caption)}
+      onRetake={retake}
+    />
   );
 }

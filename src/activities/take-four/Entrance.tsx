@@ -5,6 +5,7 @@ import InAppNotice from "./InAppNotice";
 import GirlsIllustration from "./parts/GirlsIllustration";
 import NoteSticker from "./parts/NoteSticker";
 import PillButton from "./parts/PillButton";
+import ResumeCard from "./ResumeCard";
 import Screen from "./parts/Screen";
 import StepBar from "./parts/StepBar";
 import TextLink from "./parts/TextLink";
@@ -51,7 +52,7 @@ export default function Entrance({ event, userAgent, url }: EntranceProps) {
       </div>
 
       <div className="flex flex-col gap-[12px]">
-        {/* TODO(Task 3): `아까 찍은 네컷` 이어 보기 카드가 이 자리 맨 위에 온다 */}
+        <ResumeCard href={`${base}/result`} />
         {inApp ? (
           <InAppNotice inApp={inApp} os={os} url={url} />
         ) : (

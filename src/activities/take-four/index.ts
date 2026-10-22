@@ -3,18 +3,20 @@ import { createElement } from "react";
 import type { ActivityModule } from "..";
 
 import BoothFlow from "./booth/BoothFlow";
+import LastResult from "./booth/LastResult";
 import Entrance from "./Entrance";
 import PreparingScreen from "./PreparingScreen";
 
-const SUB_ROUTES = new Set(["booth", "album", "no-camera", "info"]);
+const SUB_ROUTES = new Set(["booth", "result", "album", "no-camera", "info"]);
 
-/** take four. 부스. 하위 화면은 부스·앨범·카메라 없을 때·No.01 안내. */
+/** take four. 부스. 하위 화면은 부스·마지막 띠·앨범·카메라 없을 때·No.01 안내. */
 export const TAKE_FOUR: ActivityModule = {
   id: "take-four",
   Entrance,
   route(rest, event) {
     if (rest.length !== 1 || !SUB_ROUTES.has(rest[0])) return null;
-    if (rest[0] === "booth") return createElement(BoothFlow, { slug: event.slug });
+    if (rest[0] === "booth") return createElement(BoothFlow, { event });
+    if (rest[0] === "result") return createElement(LastResult, { event });
     return createElement(PreparingScreen, { slug: event.slug });
   },
 };
