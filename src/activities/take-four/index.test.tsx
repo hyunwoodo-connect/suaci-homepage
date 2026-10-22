@@ -38,7 +38,26 @@ describe("TAKE_FOUR.route", () => {
   });
 
   it("모르는 경로 → null", () => {
+    expect(TAKE_FOUR.route(["nope"], EVENT, CTX)).toBeNull();
+  });
+
+  it("wall 스위치가 꺼졌으면 wall·wall/{id} → null(404)", () => {
     expect(TAKE_FOUR.route(["wall"], EVENT, CTX)).toBeNull();
+    expect(TAKE_FOUR.route(["wall", "01J"], EVENT, CTX)).toBeNull();
+  });
+
+  it("wall 스위치가 켜졌으면 wall → 벽, wall/{id} → 크게 보기", () => {
+    const on = { ...EVENT, switches: { wall: true } };
+    expect(renderToStaticMarkup(<>{TAKE_FOUR.route(["wall"], on, CTX)}</>)).toContain("the wall");
+    expect(renderToStaticMarkup(<>{TAKE_FOUR.route(["wall", "01J"], on, CTX)}</>)).toContain(
+      "불러오는 중…",
+    );
+  });
+
+  it("wall 아래 더 깊은 경로 → null", () => {
+    const on = { ...EVENT, switches: { wall: true } };
+    expect(TAKE_FOUR.route(["wall", "01J", "x"], on, CTX)).toBeNull();
+    expect(TAKE_FOUR.route(["booth", "01J"], on, CTX)).toBeNull();
   });
 
   it("더 깊은 경로 → null", () => {

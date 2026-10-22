@@ -13,6 +13,7 @@ export const TAKE_FOUR_COLORS = {
   muted: "#8A7F76", // 셔터 — 카메라 켜는 중 바탕
   busy: "#6B625B", // 비활성 잉크 버튼(보내는 중)
   error: "#B0332B", // 시트 안 실패 알림
+  skeleton: "#D9CDB8", // 벽·크게 보기 불러오는 중 사진 칸
 } as const;
 
 /** 단계 바 네 칸(연한 → 진한). */
@@ -34,6 +35,7 @@ export const TAKE_FOUR_VARS = {
   "--tf-muted": TAKE_FOUR_COLORS.muted,
   "--tf-busy": TAKE_FOUR_COLORS.busy,
   "--tf-error": TAKE_FOUR_COLORS.error,
+  "--tf-skeleton": TAKE_FOUR_COLORS.skeleton,
   "--tf-dim": "rgba(43, 36, 32, 0.45)", // 시트 뒤 어둡게
   "--tf-shade": "rgba(43, 36, 32, 0.25)", // 촬영 창에서 저장 안 되는 곳
   "--tf-empty": "rgba(43, 36, 32, 0.15)", // 단계 바 빈 칸

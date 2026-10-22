@@ -9,6 +9,13 @@ export interface EventContentDates {
   announce: string | null;
 }
 
+/** 벽 안내 띠 날짜. 기간은 KST `MM.DD`, 발표일은 `M월 D일`(없으면 null). */
+export interface WallNoticeDates {
+  start: string;
+  end: string;
+  announce: string | null;
+}
+
 /**
  * 이벤트마다 다른 내용(놀이 모듈이 아니라 이벤트 쪽). 레코드에 아직 없는 것만 여기 둔다.
  * 백엔드 레코드에 같은 필드가 생기면 그쪽으로 옮긴다.
@@ -22,6 +29,8 @@ export interface EventContent {
   reward: string;
   /** 레코드 `copy`가 비었을 때 phase별 문구 */
   fallbackCopy: Record<keyof EventCopy, (dates: EventContentDates) => string>;
+  /** 벽 안내 띠 두 줄(머리·본문) phase별 */
+  wallNotice: Record<keyof EventCopy, (dates: WallNoticeDates) => readonly [string, string]>;
 }
 
 const CONTENTS: Record<string, EventContent> = { no01: NO01 };

@@ -1,10 +1,11 @@
 /**
- * 벽의 `내 거`·`리본 달았어요` 표시. 서버가 아니라 이 폰에 둔다 — 캐시된 목록이 기기마다 같게.
+ * 벽의 `내 거`·`리본 달았어요` 표시와 이 폰에서 가린 네컷. 서버가 아니라 이 폰에 둔다 — 캐시된 목록이 기기마다 같게.
  * 저장이 막혀도(사생활 보호 모드) 표시만 빠지고 화면은 그대로.
  */
 
 const MINE = "tf_mine";
 const RIBBONS = "tf_ribbons";
+const HIDDEN = "tf_hidden";
 /** 오래된 것부터 버린다 — localStorage가 끝없이 늘지 않게 */
 const MAX_IDS = 200;
 
@@ -48,4 +49,16 @@ export function rememberRibbon(id: string): void {
 
 export function hasRibbon(id: string): boolean {
   return readIds(RIBBONS).includes(id);
+}
+
+/**
+ * 이 폰에서 신고했거나 뗀 네컷. 서버에선 바로 내려가지만 목록 응답이 15초 캐시라
+ * 벽으로 돌아왔을 때 캐시된 목록에서도 빼려고 둔다.
+ */
+export function rememberHidden(id: string): void {
+  addId(HIDDEN, id);
+}
+
+export function isHidden(id: string): boolean {
+  return readIds(HIDDEN).includes(id);
 }

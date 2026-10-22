@@ -5,9 +5,9 @@ import { STAGE, isStageOn } from "./stage";
 const ON = { wall: true, entry: true };
 
 describe("isStageOn", () => {
-  it("아직 안 나온 단계 → 레코드 스위치가 켜져도 false", () => {
-    expect(STAGE).toEqual({ wall: false, entry: false });
-    expect(isStageOn({ switches: { wall: true, entry: true } }, "wall")).toBe(false);
+  it("2단계(벽)까지 나왔다 → wall만 true, entry는 레코드 스위치가 켜져도 false", () => {
+    expect(STAGE).toEqual({ wall: true, entry: false });
+    expect(isStageOn({ switches: { wall: true, entry: true } }, "wall")).toBe(true);
     expect(isStageOn({ switches: { wall: true, entry: true } }, "entry")).toBe(false);
   });
 

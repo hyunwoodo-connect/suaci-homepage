@@ -8,6 +8,7 @@ import type { EventContent } from ".";
  * - `label`은 시안 기본 회차 이름. 레코드엔 회차 이름 필드가 없고 `card.title`은 놀이 이름(take four)이라,
  *   안내 화면은 이 값을 쓰고 이벤트 내용이 없을 때만 `card.title`로 물러난다. 입구·띠의 회차 표시도 이 값이다.
  * - `note`는 입구 쪽지 문구(시안 Main).
+ * - `wallNotice`는 벽 안내 띠(시안 Wall). 날짜는 레코드 기간·발표일로 채운다.
  */
 export const NO01: EventContent = {
   label: "No.01",
@@ -19,5 +20,14 @@ export const NO01: EventContent = {
     ended: ({ announce }) =>
       announce ? `응모는 끝났어요.\n${announce}에 연락드려요.` : "응모는 끝났어요.",
     announced: () => "100명에게 연락드렸어요.\n함께해 줘서 고마워요.",
+  },
+  wallNotice: {
+    upcoming: ({ start }) => [`No.01 · ${start} 시작`, "100장을 골라요"],
+    live: ({ start, end }) => [`No.01 · ${start} – ${end}`, "100장에 suaci 첫 병을 보내요"],
+    ended: ({ announce }) => [
+      "No.01 · 응모 끝",
+      announce ? `${announce}에 연락드려요` : "응모는 끝났어요",
+    ],
+    announced: () => ["No.01 · 발표 끝", "함께해 줘서 고마워요"],
   },
 };

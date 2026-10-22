@@ -1,6 +1,14 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 
-import { forgetMine, hasRibbon, isMine, rememberMine, rememberRibbon } from "./local";
+import {
+  forgetMine,
+  hasRibbon,
+  isHidden,
+  isMine,
+  rememberHidden,
+  rememberMine,
+  rememberRibbon,
+} from "./local";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -51,5 +59,12 @@ describe("wall/local", () => {
     expect(() => rememberMine("a")).not.toThrow();
     expect(isMine("a")).toBe(false);
     expect(() => forgetMine("a")).not.toThrow();
+  });
+
+  it("가린 네컷(신고·떼기) → isHidden", () => {
+    expect(isHidden("a")).toBe(false);
+    rememberHidden("a");
+    expect(isHidden("a")).toBe(true);
+    expect(isHidden("b")).toBe(false);
   });
 });
