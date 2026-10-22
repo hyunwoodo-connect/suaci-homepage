@@ -2,6 +2,7 @@ import { createElement } from "react";
 
 import type { ActivityModule } from "..";
 
+import BoothFlow from "./booth/BoothFlow";
 import Entrance from "./Entrance";
 import PreparingScreen from "./PreparingScreen";
 
@@ -13,6 +14,7 @@ export const TAKE_FOUR: ActivityModule = {
   Entrance,
   route(rest, event) {
     if (rest.length !== 1 || !SUB_ROUTES.has(rest[0])) return null;
+    if (rest[0] === "booth") return createElement(BoothFlow, { slug: event.slug });
     return createElement(PreparingScreen, { slug: event.slug });
   },
 };

@@ -6,7 +6,7 @@ interface PreparingScreenProps {
   slug: string;
 }
 
-/** 아직 안 만든 하위 화면(부스·앨범·카메라 없을 때·안내). 막다른 길이 되지 않게 입구로 돌려보낸다. */
+/** 아직 안 만든 하위 화면(앨범·카메라 없을 때·안내). 막다른 길이 되지 않게 입구로 돌려보낸다. */
 export default function PreparingScreen({ slug }: PreparingScreenProps) {
   const entrance = `/events/${slug}`;
   return (

@@ -8,7 +8,12 @@ import { TAKE_FOUR } from ".";
 const EVENT = { slug: "take-four", activityId: "take-four" } as EventDetail;
 
 describe("TAKE_FOUR.route", () => {
-  it.each(["booth", "album", "no-camera", "info"])("%s → 화면을 그린다", (path) => {
+  it("booth → 부스(찰칵)", () => {
+    const screen = TAKE_FOUR.route(["booth"], EVENT);
+    expect(renderToStaticMarkup(<>{screen}</>)).toContain("찰칵");
+  });
+
+  it.each(["album", "no-camera", "info"])("%s → 화면을 그린다", (path) => {
     const screen = TAKE_FOUR.route([path], EVENT);
     expect(screen).not.toBeNull();
     expect(renderToStaticMarkup(<>{screen}</>)).toContain("준비 중이에요");
