@@ -5,3 +5,4 @@ export * from "./cart";
 export * from "./address";
 export * from "./order";
 export * from "./claim";
+export * from "./event";

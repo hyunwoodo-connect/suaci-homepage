@@ -6,3 +6,5 @@ const MODE = process.env.NEXT_PUBLIC_API_MODE ?? "mock";
 export const api: ApiClient = MODE === "http" ? createHttpClient() : createMockClient();
 export type { ApiClient } from "./client";
 export { ApiClientError } from "./errors";
+export { eventsApi } from "./events";
+export type { EventsApi } from "./events";
