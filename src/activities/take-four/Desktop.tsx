@@ -1,3 +1,5 @@
+import { create } from "qrcode";
+
 import GirlsIllustration from "./parts/GirlsIllustration";
 import Screen from "./parts/Screen";
 import TitleMark from "./parts/TitleMark";
@@ -6,13 +8,12 @@ import Wordmark from "./parts/Wordmark";
 
 interface DesktopProps {
   slug: string;
+  /** 이 이벤트의 절대 주소(허용된 출처 + 미리보기 토큰). QR에 담는다 */
+  url: string;
 }
 
-/**
- * PC 안내. 부스는 폰 전용이라 폰으로 옮겨 가게 한다.
- * QR은 시안의 자리 상자 그대로 두고 주소를 같이 적는다 — QR 하나 그리려고 의존성을 들이지 않는다.
- */
-export default function Desktop({ slug }: DesktopProps) {
+/** PC 안내. 부스는 폰 전용이라 QR이나 주소로 폰으로 옮겨 가게 한다. */
+export default function Desktop({ slug, url }: DesktopProps) {
   return (
     <Screen tone="lime">
       {/* 시안 PC 칸(420)은 실제 주소가 한 줄에 안 들어가 480으로 넓힌다. Screen 여백(20·24·28)에 더해 시안 PC 여백 28·40·40을 맞춘다 */}
@@ -24,12 +25,8 @@ export default function Desktop({ slug }: DesktopProps) {
             <TitleMark size="lg" />
             <p className="m-0 text-[20px] leading-[1.6]">폰에서만 열려요.</p>
             <div className="flex items-center gap-[20px]">
-              <div
-                role="img"
-                aria-label="QR 코드 자리"
-                className="box-border flex size-[148px] shrink-0 items-center justify-center border-[3px] border-solid border-(color:--tf-red) bg-(--tf-cream) font-(family-name:--tf-latin) text-[13px]"
-              >
-                [QR]
+              <div className="box-border flex size-[148px] shrink-0 items-center justify-center border-[3px] border-solid border-(color:--tf-red) bg-(--tf-cream)">
+                <QrCode value={url} />
               </div>
               <div className="flex flex-col gap-[6px] text-[15px]">
                 <span>또는 폰에서 직접</span>
@@ -42,5 +39,34 @@ export default function Desktop({ slug }: DesktopProps) {
         </div>
       </div>
     </Screen>
+  );
+}
+
+/* ─── 하위 컴포넌트 ─────────────────────────── */
+
+interface QrCodeProps {
+  value: string;
+}
+
+/** 서버에서 칸을 계산해 SVG로 그린다(클라이언트 JS 없음). 테두리 상자 안쪽 여백이 조용한 구역이다 */
+function QrCode({ value }: QrCodeProps) {
+  const { size, data } = create(value, { errorCorrectionLevel: "M" }).modules;
+  let d = "";
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      if (data[y * size + x]) d += `M${x} ${y}h1v1h-1z`;
+    }
+  }
+  return (
+    <svg
+      role="img"
+      aria-label="폰 카메라로 찍으면 열리는 QR 코드"
+      viewBox={`0 0 ${size} ${size}`}
+      width="118"
+      height="118"
+      shapeRendering="crispEdges"
+    >
+      <path d={d} fill="var(--tf-ink)" />
+    </svg>
   );
 }

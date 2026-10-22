@@ -168,7 +168,7 @@ describe("Entrance", () => {
     render(<Entrance event={event()} userAgent={UA.macChrome} url={PAGE_URL} />);
     expect(screen.getByText("폰에서만 열려요.")).toBeInTheDocument();
     expect(screen.getByText("takesuaci.com/events/take-four")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "QR 코드 자리" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /QR 코드/ })).toBeInTheDocument();
     expect(screen.queryByText("커튼 열기")).toBeNull();
   });
 });

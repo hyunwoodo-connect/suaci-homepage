@@ -19,7 +19,7 @@ import { detectEnv, isDesktopUa } from "./env";
  */
 export default function Entrance({ event, userAgent, url }: EntranceProps) {
   const base = `/events/${event.slug}`;
-  if (isDesktopUa(userAgent)) return <Desktop slug={event.slug} />;
+  if (isDesktopUa(userAgent)) return <Desktop slug={event.slug} url={url} />;
 
   const { inApp, os } = detectEnv(userAgent);
 
