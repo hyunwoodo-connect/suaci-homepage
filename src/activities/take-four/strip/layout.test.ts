@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { CARD, cardLayout } from "./layout";
+import { CARD, CELL_ASPECT, cardLayout } from "./layout";
 import type { Rect } from "./layout";
 
 function overlaps(a: Rect, b: Rect) {
@@ -16,7 +16,10 @@ describe("cardLayout", () => {
 
   it("칸 → 4개, 모두 정사각 420", () => {
     expect(layout.cells).toHaveLength(4);
-    for (const cell of layout.cells) expect([cell.width, cell.height]).toEqual([420, 420]);
+    for (const cell of layout.cells) {
+      expect([cell.width, cell.height]).toEqual([420, 420]);
+      expect(cell.width / cell.height).toBe(CELL_ASPECT);
+    }
   });
 
   it("칸 → 찍은 순서대로 왼쪽 위·오른쪽 위·왼쪽 아래·오른쪽 아래, 시안 자리", () => {

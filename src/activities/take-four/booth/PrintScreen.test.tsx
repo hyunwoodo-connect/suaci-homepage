@@ -106,4 +106,16 @@ describe("PrintScreen", () => {
     );
     expect(draw).toHaveBeenLastCalledWith(expect.any(HTMLCanvasElement), FRAMES, TAKEN, true);
   });
+
+  it("떠나면 → 카드 캔버스 메모리를 돌려준다(크기 0)", () => {
+    vi.spyOn(compose, "drawCard").mockImplementation((canvas) => {
+      canvas.width = 1080;
+      canvas.height = 1350;
+    });
+    const { view } = renderPrint({ status: "composing" });
+    const canvas = view.container.querySelector("canvas")!;
+    expect(canvas.width).toBe(1080);
+    view.unmount();
+    expect([canvas.width, canvas.height]).toEqual([0, 0]);
+  });
 });

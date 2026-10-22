@@ -16,6 +16,8 @@ export const CARD = { width: 1080, height: 1350 } as const;
  * 왼쪽엔 `▲ 번호`(위에서 44, ▲는 도형). 글자는 시계 방향으로 90° 눕혀 위에서 아래로 읽는다.
  */
 const CELL = 420;
+/** 칸(사진) 비율 폭/높이. 촬영·앨범 자르기도 이 값을 쓴다 */
+export const CELL_ASPECT = 1;
 const LEFT = 63;
 const TOP = 190;
 const COLUMN_GAP = 80;
@@ -52,7 +54,7 @@ export function cardLayout(): CardLayout {
     x: LEFT + (i % 2) * (CELL + COLUMN_GAP),
     y: TOP + Math.floor(i / 2) * (CELL + ROW_GAP),
     width: CELL,
-    height: CELL,
+    height: CELL / CELL_ASPECT,
   }));
   return {
     cells,

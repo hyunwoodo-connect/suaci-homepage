@@ -1,20 +1,25 @@
 import { describe, it, expect } from "vitest";
 
-import { centerSquare, coverGuideRect } from "./crop";
+import { centerCrop, coverGuideRect } from "./crop";
 
 const WINDOW = { width: 240, height: 314 };
 
-describe("centerSquare", () => {
+describe("centerCrop", () => {
   it("가로 16:9 → 양옆을 자른다", () => {
-    expect(centerSquare(1280, 720)).toEqual({ x: 280, y: 0, width: 720, height: 720 });
+    expect(centerCrop(1280, 720)).toEqual({ x: 280, y: 0, width: 720, height: 720 });
   });
 
   it("세로 3:4 → 위아래를 자른다", () => {
-    expect(centerSquare(720, 960)).toEqual({ x: 0, y: 120, width: 720, height: 720 });
+    expect(centerCrop(720, 960)).toEqual({ x: 0, y: 120, width: 720, height: 720 });
   });
 
   it("이미 정사각 → 그대로", () => {
-    expect(centerSquare(640, 640)).toEqual({ x: 0, y: 0, width: 640, height: 640 });
+    expect(centerCrop(640, 640)).toEqual({ x: 0, y: 0, width: 640, height: 640 });
+  });
+
+  it("다른 비율(가로 4:3) → 그 비율로 가운데", () => {
+    expect(centerCrop(720, 960, 4 / 3)).toEqual({ x: 0, y: 210, width: 720, height: 540 });
+    expect(centerCrop(1280, 720, 4 / 3)).toEqual({ x: 160, y: 0, width: 960, height: 720 });
   });
 });
 
@@ -26,7 +31,7 @@ describe("coverGuideRect", () => {
     [1280, 720],
   ])("%ix%i → 정사각이고, 창 가운데에 있고, 저장 영역을 같은 배율로 옮긴 크기", (vw, vh) => {
     const rect = coverGuideRect(vw, vh, WINDOW.width, WINDOW.height);
-    const crop = centerSquare(vw, vh);
+    const crop = centerCrop(vw, vh);
     const scale = Math.max(WINDOW.width / vw, WINDOW.height / vh);
     expect(rect.width).toBeCloseTo(rect.height, 6);
     expect(rect.width).toBeCloseTo(crop.width * scale, 6);

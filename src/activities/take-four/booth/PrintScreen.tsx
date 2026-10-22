@@ -133,6 +133,15 @@ function CardCanvas({ frames, takenAt, withText }: CardCanvasProps) {
       drawCard(ref.current, frames, takenAt, withText);
     } catch {}
   }, [frames, takenAt, withText]);
+  // 떠날 때 1080×1350 캔버스 메모리를 돌려준다 — 폰 사파리는 캔버스 총량 한도가 빠듯하다
+  useEffect(() => {
+    const canvas = ref.current;
+    return () => {
+      if (!canvas) return;
+      canvas.width = 0;
+      canvas.height = 0;
+    };
+  }, []);
   return (
     <canvas
       ref={ref}

@@ -21,7 +21,7 @@ export function applyFilmTone(pixels: Uint8ClampedArray): void {
     const r = pixels[i];
     const g = pixels[i + 1];
     const bl = pixels[i + 2];
-    // Uint8ClampedArray가 0~255로 자르고 반올림한다
+    // CSS는 단계마다 자르지만 여기선 끝에 한 번(Uint8ClampedArray) — saturate ≤ 1이면 중간값이 0~255라 같다
     pixels[i] = tone(m[0][0] * r + m[0][1] * g + m[0][2] * bl);
     pixels[i + 1] = tone(m[1][0] * r + m[1][1] * g + m[1][2] * bl);
     pixels[i + 2] = tone(m[2][0] * r + m[2][1] * g + m[2][2] * bl);

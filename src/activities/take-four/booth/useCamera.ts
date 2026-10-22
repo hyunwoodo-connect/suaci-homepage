@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 
-import { centerSquare } from "./crop";
+import { centerCrop } from "./crop";
 
 /** idle: 꺼짐 / starting: 권한 묻는 중 / on: 켜짐 / denied: 거절 / unavailable: 장치·API 없음 */
 export type CameraStatus = "idle" | "starting" | "on" | "denied" | "unavailable";
@@ -15,7 +15,7 @@ interface Camera {
   /** 켜지면 true. 이미 켜져 있으면 바로 true */
   start(): Promise<boolean>;
   stop(): void;
-  /** 지금 화면을 가운데 정사각으로 잘라, 미리보기처럼 좌우 반전한 그대로 그린다 */
+  /** 지금 화면을 가운데 칸 비율로 잘라, 미리보기처럼 좌우 반전한 그대로 그린다 */
   capture(): HTMLCanvasElement;
 }
 
@@ -112,7 +112,7 @@ export function useCamera(): Camera {
       canvas.height = FALLBACK_SIZE.height;
       return canvas;
     }
-    const crop = centerSquare(video.videoWidth, video.videoHeight);
+    const crop = centerCrop(video.videoWidth, video.videoHeight);
     canvas.width = crop.width;
     canvas.height = crop.height;
     const ctx = canvas.getContext("2d");
