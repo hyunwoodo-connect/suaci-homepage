@@ -7,12 +7,16 @@ import type { EventDetail } from "@/types";
 import { composePhotos, composeStrip, stripCaption } from "../strip/compose";
 import type { StripCaption, StripFrame } from "../strip/compose";
 import { saveLast } from "../strip/storage";
+import { storyLink } from "../story/composeStory";
+import AlbumScreen from "../album/AlbumScreen";
 import BoothScreen from "./BoothScreen";
 import PrintScreen from "./PrintScreen";
 import ResultScreen from "./ResultScreen";
 
 interface BoothFlowProps {
   event: EventDetail;
+  /** 네 장을 어디서 받나 — 카메라 촬영(부스) 또는 앨범에서 고르기 */
+  source?: "camera" | "album";
 }
 
 interface Print {
@@ -24,9 +28,13 @@ interface Print {
   isReceived: boolean;
 }
 
-/** `/events/{slug}/booth`. 촬영 → 현상(합성) → 완성. 다시 찍기는 촬영 준비 상태로. */
-export default function BoothFlow({ event }: BoothFlowProps) {
+/**
+ * `/events/{slug}/booth`·`/album`. 촬영(또는 앨범 넉 장) → 현상(합성) → 완성.
+ * 다시 찍기는 촬영 준비 상태로, 앨범이면 고른 네 장을 든 채 앨범으로(한 장만 바꿀 수 있게).
+ */
+export default function BoothFlow({ event, source = "camera" }: BoothFlowProps) {
   const [print, setPrint] = useState<Print | null>(null);
+  const [albumFrames, setAlbumFrames] = useState<HTMLCanvasElement[] | undefined>(undefined);
   // 다시 찍은 뒤 늦게 끝난 이전 합성이 덮어쓰지 않게 차례를 센다
   const runRef = useRef(0);
 
@@ -50,13 +58,24 @@ export default function BoothFlow({ event }: BoothFlowProps) {
     setPrint(null);
   }
 
-  if (!print) {
+  const startCaption = () => stripCaption(event.phase, new Date());
+  const retakeLabel = source === "album" ? "다시 고르기" : undefined;
+
+  if (!print && source === "album") {
     return (
-      <BoothScreen
+      <AlbumScreen
         slug={event.slug}
-        onDone={(frames) => develop(frames, stripCaption(event.phase, new Date()))}
+        initialFrames={albumFrames}
+        onDone={(frames) => {
+          setAlbumFrames(frames);
+          develop(frames, startCaption());
+        }}
       />
     );
+  }
+
+  if (!print) {
+    return <BoothScreen slug={event.slug} onDone={(frames) => develop(frames, startCaption())} />;
   }
 
   if (print.isReceived && print.done) {
@@ -66,7 +85,9 @@ export default function BoothFlow({ event }: BoothFlowProps) {
         photos={print.done.photos}
         caption={print.caption}
         canEnter={event.switches.entry === true}
+        storyLink={storyLink(event.slug)}
         onRetake={retake}
+        retakeLabel={retakeLabel}
       />
     );
   }
@@ -79,6 +100,7 @@ export default function BoothFlow({ event }: BoothFlowProps) {
       onReceive={() => setPrint((prev) => (prev ? { ...prev, isReceived: true } : prev))}
       onRetry={() => develop(print.frames, print.caption)}
       onRetake={retake}
+      retakeLabel={retakeLabel}
     />
   );
 }

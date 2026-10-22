@@ -4,8 +4,18 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { stripCaption } from "../strip/compose";
 import ResultScreen from "./ResultScreen";
 
-const share = vi.hoisted(() => ({ shareOrDownload: vi.fn(), downloadBlob: vi.fn() }));
+const share = vi.hoisted(() => ({
+  shareOrDownload: vi.fn(),
+  shareStoryOrDownload: vi.fn(),
+  downloadBlob: vi.fn(),
+}));
 vi.mock("../strip/share", () => share);
+const story = vi.hoisted(() => ({ composeStory: vi.fn() }));
+vi.mock("../story/composeStory", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../story/composeStory")>()),
+  composeStory: story.composeStory,
+}));
+const STORY_BLOB = new Blob(["story"], { type: "image/jpeg" });
 
 const STRIP_BLOB = new Blob(["strip"], { type: "image/jpeg" });
 const TAKEN = new Date("2026-10-22T05:00:00Z");
@@ -18,6 +28,7 @@ async function renderResult(props: Partial<Parameters<typeof ResultScreen>[0]> =
         photos={new Blob(["photos"], { type: "image/jpeg" })}
         caption={stripCaption("live", TAKEN)}
         canEnter={false}
+        storyLink="takesuaci.com/events/take-four"
         onRetake={vi.fn()}
         {...props}
       />,
@@ -29,6 +40,8 @@ async function renderResult(props: Partial<Parameters<typeof ResultScreen>[0]> =
 
 beforeEach(() => {
   share.shareOrDownload.mockReset().mockResolvedValue("shared");
+  share.shareStoryOrDownload.mockReset().mockResolvedValue("shared");
+  story.composeStory.mockReset().mockResolvedValue(STORY_BLOB);
   share.downloadBlob.mockReset();
 });
 
@@ -68,17 +81,40 @@ describe("ResultScreen", () => {
     expect(screen.getByRole("button", { name: "응모하기" })).toBeInTheDocument();
   });
 
-  it("공유하기 → 띠 파일을 한국 날짜 이름으로 공유", async () => {
+  it("공유하기 → 띠로 만든 스토리와 띠를 한국 날짜 이름으로", async () => {
+    await renderResult();
+    expect(story.composeStory).toHaveBeenCalledWith(STRIP_BLOB, "takesuaci.com/events/take-four");
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "공유하기" })));
+    expect(share.shareStoryOrDownload).toHaveBeenCalledWith(
+      { blob: STORY_BLOB, filename: "take-four-1022-story.jpg" },
+      { blob: STRIP_BLOB, filename: "take-four-1022.jpg" },
+    );
+  });
+
+  it("스토리를 못 만듦(글꼴) → 공유하기는 띠만", async () => {
+    story.composeStory.mockRejectedValue(new Error("글꼴"));
     await renderResult();
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "공유하기" })));
     expect(share.shareOrDownload).toHaveBeenCalledWith(STRIP_BLOB, "take-four-1022.jpg");
+    expect(share.shareStoryOrDownload).not.toHaveBeenCalled();
+  });
+
+  it("스토리 만드는 중 → 공유하기 비활성", async () => {
+    story.composeStory.mockReturnValue(new Promise(() => {}));
+    await renderResult();
+    expect(screen.getByRole("button", { name: "공유하기" })).toBeDisabled();
+  });
+
+  it("앨범에서 옴(retakeLabel) → 다시 고르기", async () => {
+    await renderResult({ retakeLabel: "다시 고르기" });
+    expect(screen.getByRole("button", { name: "다시 고르기" })).toBeInTheDocument();
   });
 
   it.each([
     ["취소", () => Promise.resolve("cancelled")],
     ["실패", () => Promise.reject(new Error("막힘"))],
   ])("공유 %s → 완성 화면이 그대로", async (_, outcome) => {
-    share.shareOrDownload.mockImplementation(outcome);
+    share.shareStoryOrDownload.mockImplementation(outcome);
     await renderResult();
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "공유하기" })));
     expect(screen.getByRole("img", { name: /네컷/ })).toBeInTheDocument();
@@ -87,14 +123,16 @@ describe("ResultScreen", () => {
 
   it("공유 시트가 떠 있는 동안 → 공유하기 비활성, 연타해도 한 번만", async () => {
     let finish: (value: string) => void = () => {};
-    share.shareOrDownload.mockImplementation(() => new Promise((resolve) => (finish = resolve)));
+    share.shareStoryOrDownload.mockImplementation(
+      () => new Promise((resolve) => (finish = resolve)),
+    );
     await renderResult();
     const button = screen.getByRole("button", { name: "공유하기" });
     await act(async () => {
       fireEvent.click(button);
       fireEvent.click(button);
     });
-    expect(share.shareOrDownload).toHaveBeenCalledTimes(1);
+    expect(share.shareStoryOrDownload).toHaveBeenCalledTimes(1);
     expect(button).toBeDisabled();
     await act(async () => finish("shared"));
     expect(button).toBeEnabled();

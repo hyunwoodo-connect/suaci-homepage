@@ -5,7 +5,17 @@ import type { EventDetail } from "@/types";
 
 import { TAKE_FOUR } from ".";
 
-const EVENT = { slug: "take-four", activityId: "take-four" } as EventDetail;
+const EVENT = {
+  eventId: "no01",
+  slug: "take-four",
+  activityId: "take-four",
+  phase: "live",
+  startAt: 0,
+  endAt: 0,
+  card: { title: "take four", summary: "", order: 1 },
+  copy: {},
+  switches: {},
+} as unknown as EventDetail;
 
 describe("TAKE_FOUR.route", () => {
   it("booth → 부스(찰칵)", () => {
@@ -17,10 +27,13 @@ describe("TAKE_FOUR.route", () => {
     expect(TAKE_FOUR.route(["result"], EVENT)).not.toBeNull();
   });
 
-  it.each(["album", "no-camera", "info"])("%s → 화면을 그린다", (path) => {
+  it.each([
+    ["album", "넉 장 골라 주세요"],
+    ["no-camera", "앨범에서 넉 장 고르기"],
+    ["info", "No.01"],
+  ])("%s → 그 화면(%s)", (path, text) => {
     const screen = TAKE_FOUR.route([path], EVENT);
-    expect(screen).not.toBeNull();
-    expect(renderToStaticMarkup(<>{screen}</>)).toContain("준비 중이에요");
+    expect(renderToStaticMarkup(<>{screen}</>)).toContain(text);
   });
 
   it("모르는 경로 → null", () => {

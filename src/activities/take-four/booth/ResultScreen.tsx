@@ -12,7 +12,8 @@ import TopBar from "../parts/TopBar";
 import Wordmark from "../parts/Wordmark";
 import { captionText, photosDataUrl, stripFilename } from "../strip/compose";
 import type { StripCaption } from "../strip/compose";
-import { downloadBlob, shareOrDownload } from "../strip/share";
+import { downloadBlob, shareOrDownload, shareStoryOrDownload } from "../strip/share";
+import { composeStory, storyFilename } from "../story/composeStory";
 import { SHOT_NAMES } from "./machine";
 
 interface ResultScreenProps {
@@ -23,25 +24,35 @@ interface ResultScreenProps {
   caption: StripCaption;
   /** 이벤트 스위치 `entry`(3단계 응모) */
   canEnter: boolean;
+  /** 스토리 이미지 왼쪽 아래 주소 */
+  storyLink: string;
   /** 부스 안에서 이어질 때 — 촬영 준비 상태로 */
   onRetake?: () => void;
   /** 입구 카드로 열었을 때 — 부스로 가는 링크 */
   retakeHref?: string;
+  /** 앨범에서 왔으면 `다시 고르기` */
+  retakeLabel?: string;
 }
 
 /**
  * 완성. 시안 Result 그대로 띠 + 공유·저장 + 다시 찍기.
  * 띠 안 사진은 합성 띠와 같은 칸 배치로 그린 것이라 저장되는 사진과 같다.
+ * 공유는 9:16 스토리(+ 되면 띠), 저장은 띠. 스토리는 화면이 열리자마자 미리 만든다 —
+ * 누른 뒤에 만들면 사파리가 사용자 탭이 아니라며 공유 시트를 막는다.
  */
 export default function ResultScreen({
   strip,
   photos,
   caption,
   canEnter,
+  storyLink,
   onRetake,
   retakeHref,
+  retakeLabel = "다시 찍기",
 }: ResultScreenProps) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  /** 만드는 중 undefined, 못 만들면 null(→ 띠만 공유) */
+  const [story, setStory] = useState<Blob | null | undefined>(undefined);
   const [isSharing, setIsSharing] = useState(false);
   // 같은 렌더 안의 연타는 state가 아직 안 바뀌어 ref로 막는다
   const sharingRef = useRef(false);
@@ -60,6 +71,20 @@ export default function ResultScreen({
     };
   }, [photos]);
 
+  useEffect(() => {
+    let isCancelled = false;
+    composeStory(strip, storyLink)
+      .then((blob) => {
+        if (!isCancelled) setStory(blob);
+      })
+      .catch(() => {
+        if (!isCancelled) setStory(null);
+      });
+    return () => {
+      isCancelled = true;
+    };
+  }, [strip, storyLink]);
+
   async function handleShare() {
     // 공유 시트가 떠 있는 동안 두 번 누르면 두 번째 share()가 InvalidStateError — 한 번만
     if (sharingRef.current) return;
@@ -67,8 +92,14 @@ export default function ResultScreen({
     setIsSharing(true);
     // 취소·실패해도 화면은 그대로 — 띠는 이 화면이 들고 있다
     try {
-      // TODO(Task 4): 띠 대신 9:16 스토리 이미지를 공유한다
-      await shareOrDownload(strip, filename);
+      if (story) {
+        await shareStoryOrDownload(
+          { blob: story, filename: storyFilename(filename) },
+          { blob: strip, filename },
+        );
+      } else {
+        await shareOrDownload(strip, filename);
+      }
     } catch {
     } finally {
       sharingRef.current = false;
@@ -109,7 +140,12 @@ export default function ResultScreen({
       <div className="flex flex-col gap-[10px]">
         {canEnter ? <PillButton>응모하기</PillButton> : null}
         <div className="grid grid-cols-2 gap-[8px]">
-          <PillButton variant="outline" size="md" onClick={handleShare} disabled={isSharing}>
+          <PillButton
+            variant="outline"
+            size="md"
+            onClick={handleShare}
+            disabled={isSharing || story === undefined}
+          >
             <ShareIcon />
             공유하기
           </PillButton>
@@ -119,7 +155,7 @@ export default function ResultScreen({
           </PillButton>
         </div>
         <TextLink href={retakeHref} onClick={onRetake}>
-          다시 찍기
+          {retakeLabel}
         </TextLink>
       </div>
     </Screen>

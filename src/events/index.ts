@@ -1,0 +1,30 @@
+import type { EventCopy } from "@/types";
+
+import { NO01 } from "./no01";
+
+/** 안내 화면 문구가 쓰는 날짜(KST `M월 D일`). 발표일이 없는 이벤트면 null. */
+export interface EventContentDates {
+  start: string;
+  end: string;
+  announce: string | null;
+}
+
+/**
+ * 이벤트마다 다른 내용(놀이 모듈이 아니라 이벤트 쪽). 레코드에 아직 없는 것만 여기 둔다.
+ * 백엔드 레코드에 같은 필드가 생기면 그쪽으로 옮긴다.
+ */
+export interface EventContent {
+  /** 회차 이름(안내 화면 큰 제목) */
+  label: string;
+  /** 안내 화면 `받는 것` */
+  reward: string;
+  /** 레코드 `copy`가 비었을 때 phase별 문구 */
+  fallbackCopy: Record<keyof EventCopy, (dates: EventContentDates) => string>;
+}
+
+const CONTENTS: Record<string, EventContent> = { no01: NO01 };
+
+/** 레코드 eventId로 이벤트 내용을 찾는다. */
+export function getEventContent(eventId: string): EventContent | undefined {
+  return Object.hasOwn(CONTENTS, eventId) ? CONTENTS[eventId] : undefined;
+}

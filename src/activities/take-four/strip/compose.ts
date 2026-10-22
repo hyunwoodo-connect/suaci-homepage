@@ -57,7 +57,7 @@ export function stripFilename(caption: StripCaption): string {
  */
 export async function composeStrip(frames: StripFrame[], caption: StripCaption): Promise<Blob> {
   const layout = stripLayout();
-  const family = latinFamily();
+  const family = fontFamily("--font-fraunces", "Fraunces");
   const fonts = {
     number: `700 ${layout.font.number}px ${family}`,
     meta: `500 ${layout.font.meta}px ${family}`,
@@ -163,9 +163,12 @@ export function photosDataUrl(photos: Blob): Promise<string> {
   });
 }
 
-/* ─── 내부 ─────────────────────────── */
-
-function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob> {
+/** 캔버스를 이미지로 굽고 캔버스 메모리를 바로 돌려준다. 스토리 합성도 쓴다. */
+export function canvasToBlob(
+  canvas: HTMLCanvasElement,
+  type: string,
+  quality: number,
+): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
@@ -180,6 +183,38 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number):
     );
   });
 }
+
+/**
+ * next/font가 단 글꼴 이름(`'Fraunces', 'Fraunces Fallback'` 꼴). canvas는 CSS 변수를 못 읽어 직접 꺼낸다.
+ * 레이아웃이 <html>에 변수를 단다.
+ */
+export function fontFamily(cssVar: string, fallback: string): string {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
+  return `${value || fallback}, serif`;
+}
+
+/**
+ * 쓰는 글꼴을 다 받았으면 true. 시간 안에 못 받으면 false.
+ * text는 unicode-range 조각으로 오는 글꼴(Gowun Batang 한글)에서 그 글자가 든 조각을 받게 한다.
+ */
+export async function loadFonts(fonts: string[], text?: string): Promise<boolean> {
+  if (!("fonts" in document)) return false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<false>((resolve) => {
+    timer = setTimeout(() => resolve(false), FONT_TIMEOUT_MS);
+  });
+  const args = (font: string): [string, string?] => (text === undefined ? [font] : [font, text]);
+  const loaded = Promise.all(fonts.map((font) => document.fonts.load(...args(font))))
+    .then(() => fonts.every((font) => document.fonts.check(...args(font))))
+    .catch(() => false);
+  try {
+    return await Promise.race([loaded, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/* ─── 내부 ─────────────────────────── */
 
 /** 칸을 꽉 채우게(가운데 자르기). 찍은 장은 이미 4:3이라 보통 그대로 들어간다. */
 function drawCover(ctx: CanvasRenderingContext2D, source: StripFrame, cell: Rect) {
@@ -199,32 +234,4 @@ function drawCover(ctx: CanvasRenderingContext2D, source: StripFrame, cell: Rect
     cell.width,
     cell.height,
   );
-}
-
-/**
- * next/font가 단 Fraunces 이름(`'Fraunces', 'Fraunces Fallback'` 꼴). canvas는 CSS 변수를 못 읽어 직접 꺼낸다.
- * 레이아웃이 <html>에 변수를 단다.
- */
-function latinFamily(): string {
-  const value = getComputedStyle(document.documentElement)
-    .getPropertyValue("--font-fraunces")
-    .trim();
-  return value ? `${value}, serif` : "Fraunces, serif";
-}
-
-/** 쓰는 글꼴을 다 받았으면 true. 시간 안에 못 받으면 false. */
-async function loadFonts(fonts: string[]): Promise<boolean> {
-  if (!("fonts" in document)) return false;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<false>((resolve) => {
-    timer = setTimeout(() => resolve(false), FONT_TIMEOUT_MS);
-  });
-  const loaded = Promise.all(fonts.map((font) => document.fonts.load(font)))
-    .then(() => fonts.every((font) => document.fonts.check(font)))
-    .catch(() => false);
-  try {
-    return await Promise.race([loaded, timeout]);
-  } finally {
-    clearTimeout(timer);
-  }
 }

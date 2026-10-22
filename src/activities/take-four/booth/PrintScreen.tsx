@@ -19,6 +19,8 @@ interface PrintScreenProps {
   onReceive: () => void;
   onRetry: () => void;
   onRetake: () => void;
+  /** 앨범에서 왔으면 `다시 고르기` */
+  retakeLabel?: string;
 }
 
 /** 시안 Print: 0.9초마다 칸이 한 장씩 드러난다(4장 ≈ 3.6초) */
@@ -44,6 +46,7 @@ export default function PrintScreen({
   onReceive,
   onRetry,
   onRetake,
+  retakeLabel = "다시 찍기",
 }: PrintScreenProps) {
   // 현상은 촬영 뒤에만 그려져(서버 렌더 없음) 첫 렌더에서 설정을 바로 읽는다
   const [left, setLeft] = useState(() => (prefersReducedMotion() ? 0 : CELLS.length));
@@ -105,7 +108,7 @@ export default function PrintScreen({
       {isFailed ? (
         <div className="flex flex-col gap-[4px]">
           <PillButton onClick={onRetry}>다시 인화하기</PillButton>
-          <TextLink onClick={onRetake}>다시 찍기</TextLink>
+          <TextLink onClick={onRetake}>{retakeLabel}</TextLink>
         </div>
       ) : isReady ? (
         <PillButton onClick={onReceive}>받기</PillButton>

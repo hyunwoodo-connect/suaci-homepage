@@ -8,6 +8,7 @@ import PillButton from "../parts/PillButton";
 import Screen from "../parts/Screen";
 import TopBar from "../parts/TopBar";
 import { loadLast } from "../strip/storage";
+import { storyLink } from "../story/composeStory";
 import type { LastStrip } from "../strip/storage";
 import ResultScreen from "./ResultScreen";
 
@@ -37,6 +38,7 @@ export default function LastResult({ event }: LastResultProps) {
         photos={last.photos}
         caption={last.caption}
         canEnter={event.switches.entry === true}
+        storyLink={storyLink(event.slug)}
         retakeHref={`${base}/booth`}
       />
     );

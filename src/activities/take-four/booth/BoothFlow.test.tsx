@@ -17,6 +17,25 @@ vi.mock("./BoothScreen", () => ({
   ),
 }));
 
+const ALBUM_FRAMES = [0, 1, 2, 3].map(() => document.createElement("canvas"));
+const albumProps = vi.hoisted(() => ({ initialFrames: [] as (HTMLCanvasElement[] | undefined)[] }));
+vi.mock("../album/AlbumScreen", () => ({
+  default: ({
+    onDone,
+    initialFrames,
+  }: {
+    onDone: (frames: HTMLCanvasElement[]) => void;
+    initialFrames?: HTMLCanvasElement[];
+  }) => {
+    albumProps.initialFrames.push(initialFrames);
+    return (
+      <button type="button" onClick={() => onDone(ALBUM_FRAMES)}>
+        앨범 인화하기
+      </button>
+    );
+  },
+}));
+
 const strip = vi.hoisted(() => ({
   composeStrip: vi.fn(),
   composePhotos: vi.fn(),
@@ -98,5 +117,18 @@ describe("BoothFlow", () => {
     await shoot();
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "받기" })));
     expect(screen.getByRole("button", { name: "응모하기" })).toBeInTheDocument();
+  });
+
+  it("앨범 → 고른 네 장을 같은 현상·완성으로, 다시 고르기 → 고른 네 장을 든 앨범", async () => {
+    albumProps.initialFrames = [];
+    render(<BoothFlow event={event("live")} source="album" />);
+    expect(albumProps.initialFrames.at(-1)).toBeUndefined();
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "앨범 인화하기" })));
+    expect(strip.composeStrip.mock.calls[0][0]).toBe(ALBUM_FRAMES);
+    expect(strip.composePhotos).toHaveBeenCalledWith(ALBUM_FRAMES);
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "받기" })));
+    fireEvent.click(screen.getByRole("button", { name: "다시 고르기" }));
+    expect(screen.getByRole("button", { name: "앨범 인화하기" })).toBeInTheDocument();
+    expect(albumProps.initialFrames.at(-1)).toBe(ALBUM_FRAMES);
   });
 });
