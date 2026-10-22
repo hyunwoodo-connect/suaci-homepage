@@ -18,6 +18,7 @@ interface StoredStrip {
   takenAt: number;
 }
 
+// 운영 폰에 이미 있는 이름 — 바꾸면 마지막 띠를 잃는다
 const DB_NAME = "take-four";
 const STORE = "strips";
 const KEY = "last";

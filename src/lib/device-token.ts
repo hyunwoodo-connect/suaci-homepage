@@ -1,4 +1,4 @@
-const KEY = "suaci_device";
+const KEY = "suaci.device";
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 /** localStorage가 막힌 브라우저(사생활 보호 모드 등)에서 이 탭이 쓰는 값 */

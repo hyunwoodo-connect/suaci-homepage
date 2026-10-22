@@ -3,9 +3,9 @@
  * 저장이 막혀도(사생활 보호 모드) 표시만 빠지고 화면은 그대로.
  */
 
-const MINE = "tf_mine";
-const RIBBONS = "tf_ribbons";
-const HIDDEN = "tf_hidden";
+const MINE = "suaci.take-four.mine";
+const RIBBONS = "suaci.take-four.ribbons";
+const HIDDEN = "suaci.take-four.hidden";
 /** 오래된 것부터 버린다 — localStorage가 끝없이 늘지 않게 */
 const MAX_IDS = 200;
 

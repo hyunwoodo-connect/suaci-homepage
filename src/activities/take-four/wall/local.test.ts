@@ -23,27 +23,27 @@ describe("wall/local", () => {
     expect(isMine("a")).toBe(false);
   });
 
-  it("rememberRibbon → hasRibbon, tf_ribbons에 남는다", () => {
+  it("rememberRibbon → hasRibbon, suaci.take-four.ribbons에 남는다", () => {
     rememberRibbon("a");
     expect(hasRibbon("a")).toBe(true);
-    expect(JSON.parse(localStorage.getItem("tf_ribbons") ?? "[]")).toEqual(["a"]);
+    expect(JSON.parse(localStorage.getItem("suaci.take-four.ribbons") ?? "[]")).toEqual(["a"]);
   });
 
   it("같은 id 두 번 → 한 번만", () => {
     rememberMine("a");
     rememberMine("a");
-    expect(JSON.parse(localStorage.getItem("tf_mine") ?? "[]")).toEqual(["a"]);
+    expect(JSON.parse(localStorage.getItem("suaci.take-four.mine") ?? "[]")).toEqual(["a"]);
   });
 
   it("200개 넘으면 오래된 것부터 뺀다", () => {
     for (let i = 0; i < 201; i++) rememberRibbon(`id${i}`);
     expect(hasRibbon("id0")).toBe(false);
     expect(hasRibbon("id200")).toBe(true);
-    expect(JSON.parse(localStorage.getItem("tf_ribbons") ?? "[]")).toHaveLength(200);
+    expect(JSON.parse(localStorage.getItem("suaci.take-four.ribbons") ?? "[]")).toHaveLength(200);
   });
 
   it("값이 깨짐 → 빈 목록으로", () => {
-    localStorage.setItem("tf_mine", "{nope");
+    localStorage.setItem("suaci.take-four.mine", "{nope");
     expect(isMine("a")).toBe(false);
     rememberMine("a");
     expect(isMine("a")).toBe(true);

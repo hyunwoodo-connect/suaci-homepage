@@ -78,6 +78,9 @@ Type-only imports use `import type { ... }`.
 | Exported constants | UPPER_SNAKE_CASE + `as const` | `PRODUCT`, `HOME_MEDIA`  |
 | Interfaces / types | PascalCase, no `I` prefix     | `Order`, `Locale`        |
 | Booleans           | `is` / `has` / `can` prefix   | `isOpen`, `hasAddress`   |
+| localStorage keys  | dot-separated, `suaci.` first | `suaci.take-four.mine`   |
+
+Activity-owned storage keys carry the activity id after `suaci.` (`suaci.take-four.*`) so activities never collide. Keys already on users' devices in production (the take four. IndexedDB `take-four`/`strips`/`last`) are never renamed.
 
 ## Types
 

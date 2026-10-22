@@ -17,11 +17,11 @@ afterEach(() => {
 });
 
 describe("getDeviceToken", () => {
-  it("처음 → UUID v4를 만들어 suaci_device에 둔다", async () => {
+  it("처음 → UUID v4를 만들어 suaci.device에 둔다", async () => {
     const { getDeviceToken } = await load();
     const token = getDeviceToken();
     expect(token).toMatch(UUID_V4);
-    expect(localStorage.getItem("suaci_device")).toBe(token);
+    expect(localStorage.getItem("suaci.device")).toBe(token);
   });
 
   it("두 번 불러도 같은 값", async () => {
@@ -36,7 +36,7 @@ describe("getDeviceToken", () => {
   });
 
   it("저장된 값이 UUID v4가 아님 → 새로 만든다", async () => {
-    localStorage.setItem("suaci_device", "junk");
+    localStorage.setItem("suaci.device", "junk");
     const { getDeviceToken } = await load();
     expect(getDeviceToken()).toMatch(UUID_V4);
   });
