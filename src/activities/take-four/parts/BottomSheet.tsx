@@ -8,9 +8,9 @@ import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 interface BottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  /** 대화상자 이름(시안 aria-label: 응모하기·응모 취소·신고·내 네컷 떼기) */
+  /** 대화상자 이름(`벽에 붙이기`·`신고`·`내 네컷 떼기`) */
   label: string;
-  /** cream: 기본 / paper: 응모 시트(입력칸이 있어 더 밝게) */
+  /** cream: 기본 / paper: 더 밝은 종이(벽에 붙이기 시트) */
   tone?: "cream" | "paper";
   children: ReactNode;
 }

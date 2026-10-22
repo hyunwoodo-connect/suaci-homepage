@@ -6,8 +6,6 @@ interface TextLinkProps {
   /** 있으면 링크, 없으면 버튼. disabled면 링크 대신 비활성 버튼 */
   href?: string;
   onClick?: () => void;
-  /** 버튼일 때 종류 */
-  type?: "button" | "submit";
   disabled?: boolean;
   /** 밑줄(시트의 `아니요`·`취소`는 밑줄 없음) */
   isUnderlined?: boolean;
@@ -20,7 +18,6 @@ export default function TextLink({
   children,
   href,
   onClick,
-  type = "button",
   disabled = false,
   isUnderlined = true,
   size = 15,
@@ -36,7 +33,7 @@ export default function TextLink({
     );
   }
   return (
-    <button type={type} onClick={onClick} disabled={disabled} className={className}>
+    <button type="button" onClick={onClick} disabled={disabled} className={className}>
       {children}
     </button>
   );

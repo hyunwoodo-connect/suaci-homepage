@@ -9,7 +9,7 @@ import { composePhotos, composeStrip, stripCaption } from "../strip/compose";
 import type { StripCaption, StripFrame } from "../strip/compose";
 import { saveLast } from "../strip/storage";
 import { storyLink } from "../story/composeStory";
-import { isStageOn } from "../stage";
+import { canPostToWall } from "../stage";
 import AlbumScreen from "../album/AlbumScreen";
 import BoothScreen from "./BoothScreen";
 import PrintScreen from "./PrintScreen";
@@ -88,8 +88,7 @@ export default function BoothFlow({ event, source = "camera" }: BoothFlowProps) 
         photos={print.done.photos}
         caption={print.caption}
         slug={event.slug}
-        canEnter={isStageOn(event, "entry")}
-        canPost={isStageOn(event, "wall") && !isStageOn(event, "entry")}
+        canPost={canPostToWall(event)}
         storyLink={storyLink(event.slug)}
         onRetake={retake}
         retakeLabel={retakeLabel}

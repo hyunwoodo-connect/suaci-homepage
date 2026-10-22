@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 export const TAKE_FOUR_COLORS = {
   lime: "#A8B45B", // 입구·이벤트·PC·벽 바탕
   cream: "#EFE3CF", // 촬영·앨범·현상·완성 바탕
-  paper: "#FFFDF8", // 응모 시트
+  paper: "#FFFDF8", // 벽에 붙이기 시트
   red: "#E2453C", // 포인트 — 액자·띠 테두리·핀·도장
   ink: "#2B2420",
   dot: "#738136", // 워드마크 점

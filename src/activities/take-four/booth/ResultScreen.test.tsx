@@ -35,7 +35,6 @@ async function renderResult(props: Partial<Parameters<typeof ResultScreen>[0]> =
         photos={PHOTOS_BLOB}
         slug="take-four"
         caption={stripCaption("live", TAKEN, "No.01")}
-        canEnter={false}
         canPost={false}
         storyLink="takesuaci.com/events/take-four"
         onRetake={vi.fn()}
@@ -80,16 +79,6 @@ describe("ResultScreen", () => {
     expect(screen.getByText("10.22")).toBeInTheDocument();
     expect(screen.queryByText(/No\.01/)).toBeNull();
     expect(document.querySelector("[data-stamp]")).toBeNull();
-  });
-
-  it("switches.entry 꺼짐 → 응모하기 없음", async () => {
-    await renderResult({ canEnter: false });
-    expect(screen.queryByRole("button", { name: "응모하기" })).toBeNull();
-  });
-
-  it("switches.entry 켜짐 → 응모하기", async () => {
-    await renderResult({ canEnter: true });
-    expect(screen.getByRole("button", { name: "응모하기" })).toBeInTheDocument();
   });
 
   it("공유하기 → 띠로 만든 스토리와 띠를 한국 날짜 이름으로", async () => {

@@ -6,7 +6,6 @@ import TopBar from "./parts/TopBar";
 import Wordmark from "./parts/Wordmark";
 import { getTakeFourContent } from "./eventContent";
 import { infoView } from "./info";
-import { isStageOn } from "./stage";
 
 interface InfoScreenProps {
   event: EventDetail;
@@ -47,12 +46,6 @@ export default function InfoScreen({ event, now }: InfoScreenProps) {
           <>
             <dt className="font-bold">받는 것</dt>
             <dd className="m-0">{view.reward}</dd>
-          </>
-        ) : null}
-        {isStageOn(event, "entry") ? (
-          <>
-            <dt className="font-bold">응모</dt>
-            <dd className="m-0">다 찍고 &apos;응모하기&apos;</dd>
           </>
         ) : null}
         {view.announce ? (

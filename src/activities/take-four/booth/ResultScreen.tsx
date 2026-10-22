@@ -31,9 +31,7 @@ interface ResultScreenProps {
   caption: StripCaption;
   /** 벽 주소(`/events/{slug}/wall`)에 쓴다 */
   slug: string;
-  /** 3단계 응모가 나왔고 이벤트 스위치 `entry`도 켜졌는지(`isStageOn`) */
-  canEnter: boolean;
-  /** 2단계 벽이 나왔고 `wall` 스위치가 켜졌고 응모가 아직 없는지 — 응모하기와 같은 자리를 쓴다 */
+  /** 주 행동 자리에 `벽에 붙이기`를 둘지(`canPostToWall`) */
   canPost: boolean;
   /** 스토리 이미지 왼쪽 아래 주소 */
   storyLink: string;
@@ -56,7 +54,6 @@ export default function ResultScreen({
   photos,
   caption,
   slug,
-  canEnter,
   canPost,
   storyLink,
   onRetake,
@@ -165,8 +162,7 @@ export default function ResultScreen({
       <div className="h-[18px] shrink-0" />
 
       <div className="flex flex-col gap-[10px]">
-        {canEnter ? <PillButton>응모하기</PillButton> : null}
-        {canPost && !canEnter ? <WallPost photos={photos} slug={slug} /> : null}
+        {canPost ? <WallPost photos={photos} slug={slug} /> : null}
         <div className="grid grid-cols-2 gap-[8px]">
           <PillButton
             variant="outline"

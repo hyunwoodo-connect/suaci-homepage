@@ -7,8 +7,6 @@ interface PillButtonProps {
   /** 있으면 링크, 없으면 버튼. disabled면 링크 대신 비활성 버튼 */
   href?: string;
   onClick?: () => void;
-  /** 버튼일 때 종류. 응모 폼 제출은 submit */
-  type?: "button" | "submit";
   disabled?: boolean;
   /** ink: 잉크 바탕 / outline: 잉크 테두리(공유·저장) */
   variant?: "ink" | "outline";
@@ -27,7 +25,6 @@ export default function PillButton({
   children,
   href,
   onClick,
-  type = "button",
   disabled = false,
   variant = "ink",
   size = "lg",
@@ -46,7 +43,7 @@ export default function PillButton({
     );
   }
   return (
-    <button type={type} onClick={onClick} disabled={disabled} className={className}>
+    <button type="button" onClick={onClick} disabled={disabled} className={className}>
       {children}
     </button>
   );

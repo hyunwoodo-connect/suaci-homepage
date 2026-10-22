@@ -221,17 +221,6 @@ describe("PillButton", () => {
 });
 
 describe("PillButton 상태", () => {
-  it("type submit → 폼을 제출한다", () => {
-    const onSubmit = vi.fn((e: { preventDefault: () => void }) => e.preventDefault());
-    render(
-      <form onSubmit={onSubmit}>
-        <PillButton type="submit">응모하기</PillButton>
-      </form>,
-    );
-    fireEvent.click(screen.getByRole("button", { name: "응모하기" }));
-    expect(onSubmit).toHaveBeenCalledOnce();
-  });
-
   it("disabled → 비활성 버튼, 눌러도 안 불린다", () => {
     const onClick = vi.fn();
     render(
@@ -265,7 +254,7 @@ describe("TextLink", () => {
     );
   });
 
-  it("기본 type은 button(폼 안에서 제출하지 않는다)", () => {
+  it("버튼 → 폼 안에서도 제출하지 않는다", () => {
     const onSubmit = vi.fn((e: { preventDefault: () => void }) => e.preventDefault());
     render(
       <form onSubmit={onSubmit}>
@@ -276,25 +265,14 @@ describe("TextLink", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it("type submit → 제출", () => {
-    const onSubmit = vi.fn((e: { preventDefault: () => void }) => e.preventDefault());
-    render(
-      <form onSubmit={onSubmit}>
-        <TextLink type="submit">보내기</TextLink>
-      </form>,
-    );
-    fireEvent.click(screen.getByRole("button", { name: "보내기" }));
-    expect(onSubmit).toHaveBeenCalledOnce();
-  });
-
   it("disabled → 비활성 버튼, 눌러도 안 불린다", () => {
     const onClick = vi.fn();
     render(
       <TextLink href="/x" disabled onClick={onClick}>
-        응모 취소
+        그냥 둘게요
       </TextLink>,
     );
-    const btn = screen.getByRole("button", { name: "응모 취소" });
+    const btn = screen.getByRole("button", { name: "그냥 둘게요" });
     expect(btn).toBeDisabled();
     fireEvent.click(btn);
     expect(onClick).not.toHaveBeenCalled();
@@ -337,7 +315,7 @@ describe("Strip", () => {
 describe("BottomSheet", () => {
   it("닫힘 → 대화상자 없음", () => {
     render(
-      <BottomSheet isOpen={false} onClose={() => {}} label="응모하기">
+      <BottomSheet isOpen={false} onClose={() => {}} label="벽에 붙이기">
         내용
       </BottomSheet>,
     );
@@ -346,11 +324,11 @@ describe("BottomSheet", () => {
 
   it("열림 → 이름 붙은 대화상자, 포커스가 안으로", () => {
     render(
-      <BottomSheet isOpen onClose={() => {}} label="응모하기">
+      <BottomSheet isOpen onClose={() => {}} label="벽에 붙이기">
         내용
       </BottomSheet>,
     );
-    const dialog = screen.getByRole("dialog", { name: "응모하기" });
+    const dialog = screen.getByRole("dialog", { name: "벽에 붙이기" });
     expect(dialog).toHaveAttribute("aria-modal", "true");
     expect(dialog).toHaveFocus();
   });
@@ -358,7 +336,7 @@ describe("BottomSheet", () => {
   it("Esc → onClose", () => {
     const onClose = vi.fn();
     render(
-      <BottomSheet isOpen onClose={onClose} label="응모 취소">
+      <BottomSheet isOpen onClose={onClose} label="그냥 둘게요">
         내용
       </BottomSheet>,
     );
@@ -396,12 +374,12 @@ describe("BottomSheet", () => {
 
   it("Tab은 시트 안에서 돈다(끝 → 처음, 처음 ← 끝)", () => {
     render(
-      <BottomSheet isOpen onClose={() => {}} label="응모하기">
-        <button type="button">응모하기</button>
+      <BottomSheet isOpen onClose={() => {}} label="벽에 붙이기">
+        <button type="button">벽에 붙이기</button>
         <button type="button">아니요</button>
       </BottomSheet>,
     );
-    const first = screen.getByRole("button", { name: "응모하기" });
+    const first = screen.getByRole("button", { name: "벽에 붙이기" });
     const last = screen.getByRole("button", { name: "아니요" });
     last.focus();
     fireEvent.keyDown(document, { key: "Tab" });
@@ -412,8 +390,8 @@ describe("BottomSheet", () => {
 
   it("열 때 시트 자체에서 Shift+Tab → 마지막으로", () => {
     render(
-      <BottomSheet isOpen onClose={() => {}} label="응모하기">
-        <button type="button">응모하기</button>
+      <BottomSheet isOpen onClose={() => {}} label="벽에 붙이기">
+        <button type="button">벽에 붙이기</button>
         <button type="button">아니요</button>
       </BottomSheet>,
     );

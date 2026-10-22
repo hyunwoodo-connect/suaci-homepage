@@ -55,6 +55,8 @@ vi.mock("../stage", async (importOriginal) => {
     ...actual,
     isStageOn: (...[event, name]: Parameters<typeof actual.isStageOn>) =>
       actual.isStageOn(event, name, stage.shipped),
+    canPostToWall: (event: Parameters<typeof actual.canPostToWall>[0]) =>
+      actual.canPostToWall(event, stage.shipped),
   };
 });
 
@@ -136,25 +138,6 @@ describe("BoothFlow", () => {
     expect(screen.getByRole("button", { name: "받기" })).toBeInTheDocument();
   });
 
-  it("switches.entry가 켜져도 3단계 전(STAGE.entry false) → 응모하기 없음", async () => {
-    render(<BoothFlow event={event("live", { entry: true })} />);
-    await shoot();
-    await act(async () => fireEvent.click(screen.getByRole("button", { name: "받기" })));
-    expect(screen.queryByRole("button", { name: "응모하기" })).toBeNull();
-  });
-
-  it("3단계가 나왔고 switches.entry → 완성 화면에 응모하기", async () => {
-    stage.shipped = { wall: false, entry: true };
-    try {
-      render(<BoothFlow event={event("live", { entry: true })} />);
-      await shoot();
-      await act(async () => fireEvent.click(screen.getByRole("button", { name: "받기" })));
-      expect(screen.getByRole("button", { name: "응모하기" })).toBeInTheDocument();
-    } finally {
-      stage.shipped = { wall: false, entry: false };
-    }
-  });
-
   it("2단계가 나왔고 switches.wall → 완성 화면에 벽에 붙이기", async () => {
     stage.shipped = { wall: true, entry: false };
     try {
@@ -174,13 +157,12 @@ describe("BoothFlow", () => {
     expect(screen.queryByRole("button", { name: "벽에 붙이기" })).toBeNull();
   });
 
-  it("응모가 켜짐(wall·entry 둘 다) → 응모하기만, 벽에 붙이기 없음", async () => {
+  it("응모도 켜짐(wall·entry 둘 다) → 벽에 붙이기 없음(그 자리는 응모)", async () => {
     stage.shipped = { wall: true, entry: true };
     try {
       render(<BoothFlow event={event("live", { wall: true, entry: true })} />);
       await shoot();
       await act(async () => fireEvent.click(screen.getByRole("button", { name: "받기" })));
-      expect(screen.getByRole("button", { name: "응모하기" })).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "벽에 붙이기" })).toBeNull();
     } finally {
       stage.shipped = { wall: false, entry: false };

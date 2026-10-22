@@ -15,6 +15,8 @@ vi.mock("../stage", async (importOriginal) => {
     ...actual,
     isStageOn: (...[event, name]: Parameters<typeof actual.isStageOn>) =>
       actual.isStageOn(event, name, stage.shipped),
+    canPostToWall: (event: Parameters<typeof actual.canPostToWall>[0]) =>
+      actual.canPostToWall(event, stage.shipped),
   };
 });
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
