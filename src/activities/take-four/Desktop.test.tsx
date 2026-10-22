@@ -26,9 +26,22 @@ describe("Desktop", () => {
     const { container } = render(<Desktop slug="take-four" url={URL_WITH_PREVIEW} />);
     const svg = screen.getByRole("img", { name: /QR 코드/ });
     const { size, data } = vi.mocked(create).mock.results[0].value.modules;
-    expect(svg).toHaveAttribute("viewBox", `0 0 ${size} ${size}`);
+    expect(svg).toHaveAttribute("viewBox", `-4 -4 ${size + 8} ${size + 8}`);
     const d = container.querySelector("svg path")?.getAttribute("d") ?? "";
     expect(d.match(/M/g)?.length).toBe(data.filter(Boolean).length);
+  });
+
+  it("QR → 토큰이 길어 칸이 늘어도 여백은 4칸, 크림 바탕이 viewBox 전체", () => {
+    const longUrl = `${URL_WITH_PREVIEW}${"x".repeat(120)}`;
+    const { container } = render(<Desktop slug="take-four" url={longUrl} />);
+    const { size } = vi.mocked(create).mock.results[0].value.modules;
+    const [minX, minY, w, h] = (container.querySelector("svg")?.getAttribute("viewBox") ?? "")
+      .split(" ")
+      .map(Number);
+    expect([minX, minY, w - size, h - size]).toEqual([-4, -4, 8, 8]);
+    const bg = container.querySelector("svg rect");
+    expect(bg).toHaveAttribute("x", "-4");
+    expect(bg).toHaveAttribute("width", String(size + 8));
   });
 
   it("주소 글자는 토큰 없이 짧게", () => {

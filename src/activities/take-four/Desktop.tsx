@@ -48,7 +48,10 @@ interface QrCodeProps {
   value: string;
 }
 
-/** 서버에서 칸을 계산해 SVG로 그린다(클라이언트 JS 없음). 테두리 상자 안쪽 여백이 조용한 구역이다 */
+/** QR 규격의 조용한 구역(칸 수). 주소 길이로 칸이 작아져도 여백은 늘 4칸 */
+const QR_QUIET = 4;
+
+/** 서버에서 칸을 계산해 SVG로 그린다(클라이언트 JS 없음). 테두리 안 142px을 꽉 채운다 */
 function QrCode({ value }: QrCodeProps) {
   const { size, data } = create(value, { errorCorrectionLevel: "M" }).modules;
   let d = "";
@@ -61,11 +64,18 @@ function QrCode({ value }: QrCodeProps) {
     <svg
       role="img"
       aria-label="폰 카메라로 찍으면 열리는 QR 코드"
-      viewBox={`0 0 ${size} ${size}`}
-      width="118"
-      height="118"
+      viewBox={`${-QR_QUIET} ${-QR_QUIET} ${size + QR_QUIET * 2} ${size + QR_QUIET * 2}`}
+      width="142"
+      height="142"
       shapeRendering="crispEdges"
     >
+      <rect
+        x={-QR_QUIET}
+        y={-QR_QUIET}
+        width={size + QR_QUIET * 2}
+        height={size + QR_QUIET * 2}
+        fill="var(--tf-cream)"
+      />
       <path d={d} fill="var(--tf-ink)" />
     </svg>
   );
