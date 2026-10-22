@@ -79,18 +79,34 @@ describe("saveLast · loadLast", () => {
     expect(last?.caption).toEqual({ serial: null, eventLabel: "No.01", date: TAKEN });
   });
 
-  it("모양이 다른 기록(serial이 숫자) → null", async () => {
+  it("모양이 다른 기록(takenAt이 글자) → null", async () => {
     const fake = fakeIndexedDb();
     fake.rows.set("last", {
       bytes: new ArrayBuffer(1),
       photoBytes: new ArrayBuffer(1),
       type: "image/jpeg",
-      serial: 347,
       eventLabel: null,
-      takenAt: 0,
+      takenAt: "0",
     });
     vi.stubGlobal("indexedDB", fake);
     await expect(loadLast()).resolves.toBeNull();
+  });
+
+  it.each([
+    ["serial 없는 기록", {}],
+    ["예전 기록(serial: null)", { serial: null }],
+  ])("%s → 연다", async (_, extra) => {
+    const fake = fakeIndexedDb();
+    fake.rows.set("last", {
+      bytes: new ArrayBuffer(1),
+      photoBytes: new ArrayBuffer(1),
+      type: "image/jpeg",
+      eventLabel: "No.01",
+      takenAt: 0,
+      ...extra,
+    });
+    vi.stubGlobal("indexedDB", fake);
+    expect((await loadLast())?.caption.eventLabel).toBe("No.01");
   });
 
   it("남긴 게 없음 → null", async () => {

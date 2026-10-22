@@ -13,7 +13,8 @@ interface StoredStrip {
   bytes: ArrayBuffer;
   photoBytes: ArrayBuffer;
   type: string;
-  serial: string | null;
+  /** 예전 기록에만 있다(늘 null). 읽을 땐 보지 않는다 */
+  serial?: string | null;
   eventLabel: string | null;
   takenAt: number;
 }
@@ -62,7 +63,7 @@ export async function loadLast(): Promise<LastStrip | null> {
       blob: new Blob([record.bytes], { type: record.type }),
       photos: new Blob([record.photoBytes], { type: record.type }),
       caption: {
-        serial: record.serial,
+        serial: null,
         eventLabel: record.eventLabel,
         date: new Date(record.takenAt),
       },
@@ -124,7 +125,6 @@ function isStoredStrip(value: unknown): value is StoredStrip {
     Object.prototype.toString.call(v.bytes) === "[object ArrayBuffer]" &&
     Object.prototype.toString.call(v.photoBytes) === "[object ArrayBuffer]" &&
     typeof v.type === "string" &&
-    (v.serial === null || typeof v.serial === "string") &&
     (v.eventLabel === null || typeof v.eventLabel === "string") &&
     typeof v.takenAt === "number"
   );
