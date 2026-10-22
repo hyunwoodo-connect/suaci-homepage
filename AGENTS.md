@@ -64,7 +64,7 @@ Type-only imports use `import type { ... }`.
 - Server Components by default. `"use client"` only for state, effects, event handlers, or browser APIs.
 - Links and routers come from `@/i18n/navigation`, never `next/link`.
 - No hardcoded user-facing copy in JSX — it goes in `src/messages/*.json`.
-- **Exception — event pages `src/app/events/[slug]/` (`/events/{slug}`), and the code they render: `src/activities/**` and `src/events/**`.** They live outside `[locale]` on purpose (no locale prefix; one URL for QR codes and preview links). There, use `next/link` instead of `@/i18n/navigation`, and Korean copy may be inline, come from `src/events/`, or come straight from the event record (`card`, `copy`) instead of `src/messages/*.json`. Preview tokens go through `validPreviewToken()` (`src/lib/event-access.ts`) before reaching the API, the same check the middleware uses. The list `/[locale]/events` follows the normal rules.
+- **Exception — event pages `src/app/events/[slug]/` (`/events/{slug}`), and the code they render: `src/activities/**` and `src/events/**`.** They live outside `[locale]` on purpose (no locale prefix; one URL for QR codes and preview links). There, use `next/link` instead of `@/i18n/navigation`, and Korean copy may be inline, come from `src/events/`, or come straight from the event record (`card`, `copy`) instead of `src/messages/*.json`. Preview tokens go through `validPreviewToken()` (`src/lib/event-access.ts`) before reaching the API, the same check the middleware uses. The list `/[locale]/events` follows the normal rules, except that its event cards link with `next/link` too (event URLs have no locale prefix).
 
 ## Naming
 
@@ -72,6 +72,7 @@ Type-only imports use `import type { ... }`.
 | ------------------ | ----------------------------- | ------------------------ |
 | Component files    | PascalCase `.tsx`             | `BuyBar.tsx`             |
 | Other files        | camelCase `.ts`               | `format.ts`              |
+| `src/lib/` files   | kebab-case `.ts`              | `event-access.ts`        |
 | Directories        | lowercase                     | `home/`, `lib/`          |
 | Functions          | camelCase, verb first         | `formatKRW`, `handleBuy` |
 | Hooks              | `use` prefix                  | `useBodyScrollLock`      |

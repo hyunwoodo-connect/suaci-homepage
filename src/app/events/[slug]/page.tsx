@@ -1,8 +1,8 @@
 import { headers } from "next/headers";
 
 import { getActivity } from "@/activities";
-import EventWaiting from "@/components/events/EventWaiting";
 
+import EventWaiting from "./EventWaiting";
 import { entranceUrl } from "./eventUrl";
 import { loadEvent } from "./loadEvent";
 

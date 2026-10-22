@@ -2,7 +2,12 @@ import createMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { routing } from "./i18n/routing";
-import { checkEventAccess, eventSlugFromPath, validPreviewToken } from "./lib/event-access";
+import {
+  checkEventAccess,
+  eventSlugFromPath,
+  previewCookieName,
+  validPreviewToken,
+} from "./lib/event-access";
 import { SITE_LOCK_COOKIE, gateResponse, isUnlocked } from "./lib/site-lock";
 
 const intl = createMiddleware(routing);
@@ -14,7 +19,7 @@ export default async function middleware(req: NextRequest) {
   // [locale] 밖이라 next-intl을 태우지 않는다(언어 접두사가 붙으면 안 된다).
   const slug = eventSlugFromPath(req.nextUrl.pathname);
   if (slug) {
-    const cookieName = `suaci_evt_${slug}`;
+    const cookieName = previewCookieName(slug);
     const queryToken = validPreviewToken(req.nextUrl.searchParams.get("preview"));
     const cookieToken = validPreviewToken(req.cookies.get(cookieName)?.value);
 

@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { eventsApi } from "@/lib/api";
-import { validPreviewToken } from "@/lib/event-access";
+import { previewCookieName, validPreviewToken } from "@/lib/event-access";
 import type { EventDetail } from "@/types";
 
 interface LoadedEvent {
@@ -20,7 +20,7 @@ export async function loadEvent(slug: string, preview: string | undefined): Prom
   const queryToken = validPreviewToken(preview);
   const event = await eventsApi.get(slug, queryToken);
   if (event) return { event, previewToken: queryToken };
-  const saved = validPreviewToken((await cookies()).get(`suaci_evt_${slug}`)?.value);
+  const saved = validPreviewToken((await cookies()).get(previewCookieName(slug))?.value);
   if (saved && saved !== queryToken) {
     const viaCookie = await eventsApi.get(slug, saved);
     if (viaCookie) return { event: viaCookie, previewToken: saved };

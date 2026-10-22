@@ -1,4 +1,4 @@
-import { formatKoreanMonthDay, kstDateLabel } from "@/lib/eventDate";
+import { formatKstMonthDay, formatKstDotDate } from "@/lib/event-date";
 import type { EventCopy, EventDetail } from "@/types";
 
 import { eventDates } from "./eventContent";
@@ -45,13 +45,13 @@ export function infoView(
   now: number,
 ): InfoView {
   const phase = infoPhase(event, now);
-  const dates = eventDates(event, formatKoreanMonthDay);
-  const start = kstDateLabel(event.startAt);
+  const dates = eventDates(event, formatKstMonthDay);
+  const start = formatKstDotDate(event.startAt);
   const stamp = {
     upcoming: `${start} open`,
-    live: `${start} – ${kstDateLabel(event.endAt)}`,
+    live: `${start} – ${formatKstDotDate(event.endAt)}`,
     ended: "closed",
-    announced: event.announceAt !== undefined ? kstDateLabel(event.announceAt) : "",
+    announced: event.announceAt !== undefined ? formatKstDotDate(event.announceAt) : "",
   }[phase];
   const recordCopy = event.copy[phase]?.trim();
   return {

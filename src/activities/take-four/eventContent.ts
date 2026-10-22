@@ -1,6 +1,6 @@
 import { getEventContent } from "@/events";
 import type { EventContent } from "@/events";
-import { formatKoreanMonthDay } from "@/lib/eventDate";
+import { formatKstMonthDay } from "@/lib/event-date";
 import type { EventCopy, EventDetail } from "@/types";
 
 /** 이벤트 문구에 채우는 날짜. 기간 형식은 쓰는 곳이 정하고, 발표일은 늘 KST `M월 D일`(없으면 null). */
@@ -42,6 +42,6 @@ export function eventDates(
   return {
     start: formatPeriod(event.startAt),
     end: formatPeriod(event.endAt),
-    announce: event.announceAt !== undefined ? formatKoreanMonthDay(event.announceAt) : null,
+    announce: event.announceAt !== undefined ? formatKstMonthDay(event.announceAt) : null,
   };
 }

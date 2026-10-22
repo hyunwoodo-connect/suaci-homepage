@@ -1,4 +1,4 @@
-import { kstDateLabel } from "@/lib/eventDate";
+import { formatKstDotDate } from "@/lib/event-date";
 import type { EventPhase } from "@/types";
 
 /** 띠 아래 글자. 폰에서 만든 띠엔 번호가 없어 `no.----`로 찍는다. */
@@ -18,7 +18,7 @@ export function stripCaption(phase: EventPhase, date: Date, label: string | null
 
 /** 캡션 왼쪽 번호와 오른쪽 회차·날짜. 화면 띠(Strip)와 합성 띠가 같은 글자를 쓴다. */
 export function captionText(caption: StripCaption): { number: string; meta: string } {
-  const date = kstDateLabel(caption.date);
+  const date = formatKstDotDate(caption.date);
   return {
     number: "no.----",
     meta: caption.eventLabel ? `${caption.eventLabel} · ${date}` : date,
@@ -27,5 +27,5 @@ export function captionText(caption: StripCaption): { number: string; meta: stri
 
 /** 저장 파일 이름 */
 export function stripFilename(caption: StripCaption): string {
-  return `take-four-${kstDateLabel(caption.date).replace(".", "")}.jpg`;
+  return `take-four-${formatKstDotDate(caption.date).replace(".", "")}.jpg`;
 }

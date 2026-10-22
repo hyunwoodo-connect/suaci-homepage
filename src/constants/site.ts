@@ -9,3 +9,6 @@ export const SITE = {
   copyright: "© 2026 suaci",
   tagline: "take suaci.",
 } as const;
+
+/** 이벤트 페이지가 서는 운영 주소의 호스트. QR 옆 안내·스토리 주소·밖으로 넘기는 링크의 기준 */
+export const SITE_HOST = "takesuaci.com";

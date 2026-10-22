@@ -1,5 +1,5 @@
 import { getEventContent } from "@/events";
-import { kstDateLabel } from "@/lib/eventDate";
+import { formatKstDotDate } from "@/lib/event-date";
 import type { EventDetail } from "@/types";
 
 import { eventDates, getTakeFourContent } from "../eventContent";
@@ -21,7 +21,7 @@ export function wallCaption(strip: StripView): WallCaption {
   const label = strip.eventId ? getEventContent(strip.eventId)?.label : undefined;
   return {
     number: `no.${String(strip.serial).padStart(4, "0")}`,
-    meta: label ? `${label} · ${kstDateLabel(strip.postedAt)}` : "",
+    meta: label ? `${label} · ${formatKstDotDate(strip.postedAt)}` : "",
     stamp: label,
   };
 }
@@ -30,6 +30,8 @@ export function wallCaption(strip: StripView): WallCaption {
 export function wallNotice(event: EventDetail, now: number): { head: string; body: string } | null {
   const content = getTakeFourContent(event.eventId);
   if (!content) return null;
-  const [head, body] = content.wallNotice[infoPhase(event, now)](eventDates(event, kstDateLabel));
+  const [head, body] = content.wallNotice[infoPhase(event, now)](
+    eventDates(event, formatKstDotDate),
+  );
   return { head: `${content.label} · ${head}`, body };
 }

@@ -1,3 +1,5 @@
+import { SITE_HOST } from "@/constants/site";
+
 /**
  * 이 이벤트 입구의 절대 주소. 인앱 브라우저에서 밖의 브라우저로 넘길 때 쓴다.
  * 쿠키로만 들어온 미리보기도 밖의 브라우저(쿠키 없음)에서 열리도록 토큰을 주소에 다시 붙인다.
@@ -16,8 +18,8 @@ export function entranceUrl(
 /** next/headers의 읽기 전용 헤더도 받는다 */
 type RequestHeaders = Pick<Headers, "get">;
 
-const SITE_ORIGIN = "https://takesuaci.com";
-const PROD_ORIGINS = new Set([SITE_ORIGIN, "https://www.takesuaci.com"]);
+const SITE_ORIGIN = `https://${SITE_HOST}`;
+const PROD_ORIGINS = new Set([SITE_ORIGIN, `https://www.${SITE_HOST}`]);
 const LOCAL_ORIGIN = /^http:\/\/(localhost|127\.0\.0\.1)(:\d{1,5})?$/;
 
 // 이 주소는 앱 밖으로 넘기는 링크가 되므로 요청 헤더를 그대로 믿지 않고 허용 목록만 쓴다.

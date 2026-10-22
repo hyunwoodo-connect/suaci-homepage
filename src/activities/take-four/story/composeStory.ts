@@ -1,3 +1,5 @@
+import { SITE_HOST } from "@/constants/site";
+
 import { TAKE_FOUR_COLORS } from "../theme";
 import { canvasFont, canvasToBlob, fontFamily, loadFonts } from "../canvas";
 import { STRIP } from "../strip/layout";
@@ -57,7 +59,7 @@ export function storyLayout(): StoryLayout {
 
 /** 스토리 왼쪽 아래 주소(시안 `[suaci.com/four]` 자리) — 이 이벤트 페이지. */
 export function storyLink(slug: string): string {
-  return `takesuaci.com/events/${slug}`;
+  return `${SITE_HOST}/events/${slug}`;
 }
 
 /** 스토리 파일 이름 — 띠 파일 이름에 `-story`. */

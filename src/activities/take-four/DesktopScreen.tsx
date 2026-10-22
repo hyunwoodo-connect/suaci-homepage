@@ -1,5 +1,7 @@
 import { create } from "qrcode";
 
+import { SITE_HOST } from "@/constants/site";
+
 import GirlsIllustration from "./parts/GirlsIllustration";
 import Screen from "./parts/Screen";
 import TitleMark from "./parts/TitleMark";
@@ -33,7 +35,7 @@ export default function DesktopScreen({ slug, url, label }: DesktopScreenProps) 
               <div className="flex flex-col gap-[6px] text-[15px]">
                 <span>또는 폰에서 직접</span>
                 <span className="font-(family-name:--tf-latin) text-[20px] font-bold whitespace-nowrap">
-                  takesuaci.com/events/{slug}
+                  {SITE_HOST}/events/{slug}
                 </span>
               </div>
             </div>

@@ -10,6 +10,11 @@ const CACHE_MAX = 500;
 
 const cache = new Map<string, { ok: boolean; until: number }>();
 
+/** 미리보기 토큰을 담는 쿠키 이름. 미들웨어가 심고 이벤트 페이지가 읽는다 — 둘이 같은 이름을 써야 한다. */
+export function previewCookieName(slug: string): string {
+  return `suaci_evt_${slug}`;
+}
+
 /** `/events/{slug}` 또는 그 아래 경로면 slug. `/events`(목록)나 언어 접두사가 붙은 경로는 null. */
 export function eventSlugFromPath(pathname: string): string | null {
   return SLUG_PATH.exec(pathname)?.[1] ?? null;
