@@ -182,7 +182,7 @@ function PlusIcon() {
   );
 }
 
-/* ─── 하위 함수 ─────────────────────────── */
+/* ─── 내부 ─────────────────────────── */
 
 function frameUrl(frame: HTMLCanvasElement): string {
   return frame.toDataURL("image/jpeg", 0.85);

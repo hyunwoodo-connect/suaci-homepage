@@ -1,6 +1,9 @@
 import { centerCrop43 } from "../booth/crop";
 import type { Rect } from "../strip/layout";
 
+/** 먼저 이 폭으로 줄여 푼다 — 48MP 원본을 통째로 풀면 폰에서 200MB 가까이 잡는다 */
+export const DECODE_WIDTH = 1920;
+
 /** 앨범 사진 한 장을 자른 크기 — 띠 칸(4:3)보다 넉넉하게. */
 export const ALBUM_FRAME = { width: 1280, height: 960 } as const;
 
@@ -53,9 +56,6 @@ export function cropToFrame(source: CanvasImageSource, size: Sized): HTMLCanvasE
 }
 
 /* ─── 내부 ─────────────────────────── */
-
-/** 먼저 이 폭으로 줄여 푼다 — 48MP 원본을 통째로 풀면 폰에서 200MB 가까이 잡는다 */
-export const DECODE_WIDTH = 1920;
 
 /**
  * createImageBitmap(EXIF 회전 반영)으로 먼저 열고, 안 되면 <img>로 한 번 더(옵션을 모르는 옛 사파리).

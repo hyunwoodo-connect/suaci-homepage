@@ -60,6 +60,7 @@ Type-only imports use `import type { ... }`.
   ```ts
   /* ─── 하위 컴포넌트 ─────────────────────────── */
   ```
+  File-local non-component helpers (any file) go last, after `/* ─── 내부 ─────────────────────────── */`. Constants and exports stay above both markers.
 - Props: `interface ComponentNameProps` above the component.
 - Server Components by default. `"use client"` only for state, effects, event handlers, or browser APIs.
 - Links and routers come from `@/i18n/navigation`, never `next/link`.

@@ -49,7 +49,7 @@ export default async function middleware(req: NextRequest) {
     // 못 열면 아래 기존 잠금으로 떨어진다
   }
 
-  // 출시 전 잠금 — 출시 때 이 블록을 지운다
+  // TODO(출시): 출시 전 잠금 — 출시 때 이 블록을 지운다
   if (!(await isUnlocked(req.cookies.get(SITE_LOCK_COOKIE)?.value, process.env.SITE_LOCK_PIN))) {
     return gateResponse(req.nextUrl.pathname + req.nextUrl.search, false);
   }
@@ -57,8 +57,6 @@ export default async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // Match all pathnames except for
-  // - … if they start with `/api`, `/_next` or `/_vercel`
-  // - … the ones containing a dot (e.g. `favicon.ico`)
+  // `/api`·`/_next`·`/_vercel`로 시작하는 경로와 점이 든 경로(`favicon.ico` 같은 파일)는 빼고 모두
   matcher: ["/((?!api|_next|_vercel|.*\\..*).*)"],
 };

@@ -61,7 +61,6 @@ export default function BoothScreen({ slug, onDone }: BoothScreenProps) {
         const frame = capture();
         setFrames((prev) => [...prev.slice(0, state.shot), frame]);
       }
-      // 다 찍었으면 카메라 불을 끈다
       if (state.step === "flash" && state.shot === 3) stop();
       dispatch({ type: "tick" });
     }, delay);

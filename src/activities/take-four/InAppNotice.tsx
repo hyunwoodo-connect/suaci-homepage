@@ -65,7 +65,7 @@ export default function InAppNotice({ env, url, albumHref }: InAppNoticeProps) {
   );
 }
 
-/* ─── 하위 함수 ─────────────────────────── */
+/* ─── 내부 ─────────────────────────── */
 
 function subscribeNever() {
   return () => {};

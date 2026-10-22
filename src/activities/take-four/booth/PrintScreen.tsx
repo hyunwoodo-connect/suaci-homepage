@@ -65,7 +65,6 @@ export default function PrintScreen({
   const { number } = captionText(caption);
 
   return (
-    // 시안 Print 화면이 라임 바탕이다
     <Screen tone="lime">
       <TopBar start={<Wordmark />} label="4 / 4" />
 
@@ -134,11 +133,6 @@ export default function PrintScreen({
 
 /* ─── 하위 컴포넌트 ─────────────────────────── */
 
-/** 남은 칸이 다 드러나기까지 몇 초(칸마다 0.9초, 올림) */
-function secondsLeft(cells: number): number {
-  return Math.ceil((cells * PRINT_STEP_MS) / 1000);
-}
-
 interface PhotosProps {
   frames: StripFrame[];
 }
@@ -157,6 +151,13 @@ function Photos({ frames }: PhotosProps) {
       className="block aspect-[144/450] w-[126px]"
     />
   );
+}
+
+/* ─── 내부 ─────────────────────────── */
+
+/** 남은 칸이 다 드러나기까지 몇 초(칸마다 0.9초, 올림) */
+function secondsLeft(cells: number): number {
+  return Math.ceil((cells * PRINT_STEP_MS) / 1000);
 }
 
 function prefersReducedMotion(): boolean {
