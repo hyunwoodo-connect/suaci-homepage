@@ -1,5 +1,5 @@
 import { TAKE_FOUR_COLORS } from "../theme";
-import { canvasToBlob, fontFamily, loadFonts } from "../strip/compose";
+import { canvasFont, canvasToBlob, fontFamily, loadFonts } from "../strip/compose";
 import { STRIP } from "../strip/layout";
 
 /** 9:16 스토리 이미지. 시안 Story(360×640)의 3배. */
@@ -75,9 +75,9 @@ export async function composeStory(strip: Blob, link: string): Promise<Blob> {
   const latin = fontFamily("--font-fraunces", "Fraunces");
   const korean = fontFamily("--font-gowun-batang", "Gowun Batang");
   const fonts = {
-    title: `italic 600 ${layout.title.size}px ${latin}`,
-    wordmark: `700 ${layout.wordmark.size}px ${latin}`,
-    hashtag: `400 ${layout.hashtag.size}px ${korean}`,
+    title: canvasFont(`italic 600 ${layout.title.size}px`, latin),
+    wordmark: canvasFont(`700 ${layout.wordmark.size}px`, latin),
+    hashtag: canvasFont(`400 ${layout.hashtag.size}px`, korean),
   };
   const [isLatinLoaded, isKoreanLoaded] = await Promise.all([
     loadFonts([fonts.title, fonts.wordmark]),
@@ -99,7 +99,7 @@ export async function composeStory(strip: Blob, link: string): Promise<Blob> {
     // ---- take four. ----
     ctx.fillStyle = TAKE_FOUR_COLORS.ink;
     ctx.textBaseline = "alphabetic";
-    ctx.font = fonts.title;
+    ctx.font = fonts.title.draw;
     ctx.textAlign = "center";
     setLetterSpacing(ctx, layout.title.letterSpacing);
     ctx.fillText("take four.", layout.title.x, layout.title.baseline);
@@ -120,7 +120,7 @@ export async function composeStory(strip: Blob, link: string): Promise<Blob> {
     const { wordmark, hashtag } = layout;
     ctx.textAlign = "left";
     ctx.fillStyle = TAKE_FOUR_COLORS.ink;
-    ctx.font = fonts.wordmark;
+    ctx.font = fonts.wordmark.draw;
     ctx.fillText("suaci", wordmark.x, wordmark.baseline);
     const dotX = wordmark.x + ctx.measureText("suaci").width + wordmark.dot.gap + wordmark.dot.r;
     ctx.beginPath();
@@ -128,7 +128,7 @@ export async function composeStory(strip: Blob, link: string): Promise<Blob> {
     ctx.fillStyle = TAKE_FOUR_COLORS.dot;
     ctx.fill();
     ctx.fillStyle = TAKE_FOUR_COLORS.ink;
-    ctx.font = fonts.hashtag;
+    ctx.font = fonts.hashtag.draw;
     ctx.fillText(STORY_HASHTAG, hashtag.x, hashtag.baseline);
     ctx.fillText(link, layout.link.x, layout.link.baseline);
 

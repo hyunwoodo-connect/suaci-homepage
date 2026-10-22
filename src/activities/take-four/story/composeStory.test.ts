@@ -157,6 +157,31 @@ describe("composeStory", () => {
     );
   });
 
+  it("대체 글꼴이 없는 폰(안드로이드) → 받기·확인엔 웹 글꼴만, 그리기엔 전체 목록", async () => {
+    const root = document.documentElement.style;
+    root.setProperty("--font-fraunces", "'Fraunces', 'Fraunces Fallback'");
+    root.setProperty("--font-gowun-batang", "'Gowun Batang', 'Gowun Batang Fallback'");
+    fonts.load.mockImplementation(async (font: string) => {
+      if (font.includes("Fallback")) throw new Error("NetworkError");
+      return [];
+    });
+    fonts.check.mockImplementation((font: string) => !font.includes("Fallback"));
+    try {
+      await composeStory(STRIP_BLOB, "x");
+      const loaded = fonts.load.mock.calls.map(([font]) => font as string);
+      expect(loaded.every((font) => /'(Fraunces|Gowun Batang)'$/.test(font))).toBe(true);
+      expect(ctx.texts.map((t) => t.font)).toEqual([
+        expect.stringContaining("'Fraunces', 'Fraunces Fallback', serif"),
+        expect.stringContaining("'Fraunces', 'Fraunces Fallback', serif"),
+        expect.stringContaining("'Gowun Batang', 'Gowun Batang Fallback', serif"),
+        expect.stringContaining("'Gowun Batang', 'Gowun Batang Fallback', serif"),
+      ]);
+    } finally {
+      root.removeProperty("--font-fraunces");
+      root.removeProperty("--font-gowun-batang");
+    }
+  });
+
   it("글꼴을 못 받음 → 기본 글꼴로 그리지 않고 던진다", async () => {
     fonts.check.mockImplementation((font: string) => !font.includes("Gowun"));
     await expect(composeStory(STRIP_BLOB, "x")).rejects.toThrow(/글꼴/);

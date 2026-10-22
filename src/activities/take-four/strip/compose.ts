@@ -51,9 +51,9 @@ export async function composeStrip(frames: StripFrame[], caption: StripCaption):
   const layout = stripLayout();
   const family = fontFamily("--font-fraunces", "Fraunces");
   const fonts = {
-    number: `700 ${layout.font.number}px ${family}`,
-    meta: `500 ${layout.font.meta}px ${family}`,
-    stamp: `italic 600 ${layout.font.stamp}px ${family}`,
+    number: canvasFont(`700 ${layout.font.number}px`, family),
+    meta: canvasFont(`500 ${layout.font.meta}px`, family),
+    stamp: canvasFont(`italic 600 ${layout.font.stamp}px`, family),
   };
   const isLoaded = await loadFonts(
     caption.eventLabel ? Object.values(fonts) : [fonts.number, fonts.meta],
@@ -85,10 +85,10 @@ export async function composeStrip(frames: StripFrame[], caption: StripCaption):
   const baseline = layout.caption.y + layout.caption.height;
   ctx.fillStyle = TAKE_FOUR_COLORS.ink;
   ctx.textBaseline = "alphabetic";
-  ctx.font = fonts.number;
+  ctx.font = fonts.number.draw;
   ctx.textAlign = "left";
   ctx.fillText(number, layout.caption.x, baseline);
-  ctx.font = fonts.meta;
+  ctx.font = fonts.meta.draw;
   ctx.textAlign = "right";
   ctx.fillText(meta, layout.caption.x + layout.caption.width, baseline);
 
@@ -106,7 +106,7 @@ export async function composeStrip(frames: StripFrame[], caption: StripCaption):
     ctx.strokeStyle = TAKE_FOUR_COLORS.red;
     ctx.stroke();
     ctx.fillStyle = TAKE_FOUR_COLORS.red;
-    ctx.font = fonts.stamp;
+    ctx.font = fonts.stamp.draw;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(caption.eventLabel, 0, 0);
@@ -176,26 +176,49 @@ export function canvasToBlob(
   });
 }
 
+/** canvas가 쓸 글꼴 이름 둘. */
+export interface FontFamily {
+  /** `ctx.font`용 전체 목록(`'Fraunces', 'Fraunces Fallback', serif`) */
+  stack: string;
+  /** `document.fonts.load`·`check`용 진짜 웹 글꼴 하나(`'Fraunces'`) */
+  face: string;
+}
+
+/** 굵기·크기 + 글꼴. draw는 `ctx.font`에, load는 `loadFonts`에 넘긴다. */
+export interface CanvasFont {
+  draw: string;
+  load: string;
+}
+
 /**
  * next/font가 단 글꼴 이름(`'Fraunces', 'Fraunces Fallback'` 꼴). canvas는 CSS 변수를 못 읽어 직접 꺼낸다.
  * 레이아웃이 <html>에 변수를 단다.
+ * 받기·확인은 첫 이름(웹 글꼴)만 — 대체 글꼴은 `src: local(Times New Roman)`이라 그 글꼴이 없는
+ * 안드로이드에선 목록째 넘긴 `load()`가 거절되고 합성이 통째로 실패한다.
  */
-export function fontFamily(cssVar: string, fallback: string): string {
+export function fontFamily(cssVar: string, fallback: string): FontFamily {
   const value = getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
-  return `${value || fallback}, serif`;
+  const face = value ? value.split(",")[0].trim() : `'${fallback}'`;
+  return { stack: `${value || face}, serif`, face };
+}
+
+/** 굵기·크기(`italic 600 46px`)와 글꼴로 CanvasFont를 만든다. */
+export function canvasFont(style: string, family: FontFamily): CanvasFont {
+  return { draw: `${style} ${family.stack}`, load: `${style} ${family.face}` };
 }
 
 /**
  * 쓰는 글꼴을 다 받았으면 true. 시간 안에 못 받으면 false.
  * text는 unicode-range 조각으로 오는 글꼴(Gowun Batang 한글)에서 그 글자가 든 조각을 받게 한다.
  */
-export async function loadFonts(fonts: string[], text?: string): Promise<boolean> {
+export async function loadFonts(fonts: CanvasFont[], text?: string): Promise<boolean> {
   if (!("fonts" in document)) return false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<false>((resolve) => {
     timer = setTimeout(() => resolve(false), FONT_TIMEOUT_MS);
   });
-  const args = (font: string): [string, string?] => (text === undefined ? [font] : [font, text]);
+  const args = ({ load }: CanvasFont): [string, string?] =>
+    text === undefined ? [load] : [load, text];
   const loaded = Promise.all(fonts.map((font) => document.fonts.load(...args(font))))
     .then(() => fonts.every((font) => document.fonts.check(...args(font))))
     .catch(() => false);

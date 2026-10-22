@@ -151,6 +151,20 @@ describe("composeStrip", () => {
     for (const { font } of ctx.texts) expect(font).toContain("'Fraunces'");
   });
 
+  it("대체 글꼴이 없는 폰(안드로이드) → 받기·확인엔 웹 글꼴만, 그리기엔 전체 목록", async () => {
+    // 'Fraunces Fallback'은 local(Times New Roman)이라 그 글꼴이 없으면 목록째 load()가 거절된다
+    fonts.load.mockImplementation(async (font: string) => {
+      if (font.includes("Fallback")) throw new Error("NetworkError");
+      return [];
+    });
+    fonts.check.mockImplementation((font: string) => !font.includes("Fallback"));
+    await composeStrip([frame(), frame(), frame(), frame()], stripCaption("live", LATE_UTC));
+    for (const [font] of fonts.load.mock.calls) expect(font).toMatch(/'Fraunces'$/);
+    const ctx = canvases[0].ctx as unknown as { texts: { font: string }[] };
+    for (const { font } of ctx.texts)
+      expect(font).toContain("'Fraunces', 'Fraunces Fallback', serif");
+  });
+
   it("이벤트 끝남 → 도장 없이 날짜만", async () => {
     await composeStrip([frame(), frame(), frame(), frame()], stripCaption("ended", LATE_UTC));
     const ctx = canvases[0].ctx as unknown as { texts: { text: string }[]; calls: string[] };
