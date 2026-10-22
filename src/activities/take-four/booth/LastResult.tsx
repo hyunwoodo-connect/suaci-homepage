@@ -11,6 +11,7 @@ import { loadLast } from "../strip/storage";
 import { canPostToWall } from "../stage";
 import { storyLink } from "../story/composeStory";
 import type { LastStrip } from "../strip/storage";
+import PostSheet from "../wall/PostSheet";
 import ResultScreen from "./ResultScreen";
 
 interface LastResultProps {
@@ -38,8 +39,7 @@ export default function LastResult({ event }: LastResultProps) {
         strip={last.blob}
         photos={last.photos}
         caption={last.caption}
-        slug={event.slug}
-        canPost={canPostToWall(event)}
+        action={canPostToWall(event) ? <PostSheet photos={last.photos} slug={event.slug} /> : null}
         storyLink={storyLink(event.slug)}
         retakeHref={`${base}/booth`}
       />

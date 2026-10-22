@@ -1,13 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 
-import { ApiClientError } from "@/lib/api/errors";
 import type { EventDetail } from "@/types";
 
-import BottomSheet from "../parts/BottomSheet";
 import PillButton from "../parts/PillButton";
 import Pin from "../parts/Pin";
 import Screen from "../parts/Screen";
@@ -19,6 +17,7 @@ import { getTakeFourContent } from "../eventContent";
 import { wallApi } from "./api";
 import type { StripView } from "./api";
 import { forgetMine, isHidden, isMine, rememberHidden } from "./local";
+import RemoveSheet from "./RemoveSheet";
 import { wallNotice } from "./text";
 import WallCard from "./WallCard";
 
@@ -41,6 +40,7 @@ const TILTS = [
   "rotate-[3deg]",
 ] as const;
 const SKELETON_TILTS = ["rotate-[-2deg]", "rotate-[2deg]", "rotate-[1deg]", "rotate-[-1.5deg]"];
+const GRID = "grid grid-cols-2 gap-x-[14px] gap-y-[22px]";
 
 /**
  * 이미 받은 id는 건너뛴다 — 목록 캐시(15초) 사이에 새로 붙은 게 끼면 페이지 경계에서 겹친다.
@@ -67,43 +67,33 @@ export default function WallScreen({ event, now }: WallScreenProps) {
   const [removing, setRemoving] = useState<StripView | null>(null);
   // 같은 렌더 안에서 끝 표시가 두 번 닿아도 한 페이지만 부른다
   const loadingRef = useRef(true);
+  // 마지막으로 부른 요청 번호. 화면을 떠났거나 새로 부른 뒤 늦게 온 응답은 버린다
+  const requestRef = useRef(0);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const loadPage = useCallback(async (next?: string) => {
+    const request = ++requestRef.current;
     loadingRef.current = true;
     setLoad(next ? "more" : "first");
     try {
       const page = await wallApi.list(next);
+      if (request !== requestRef.current) return;
       setItems((prev) => appendUnique(next ? prev : [], page.items));
       setCursor(page.cursor);
       setLoad("ready");
     } catch {
-      setLoad(next ? "moreFailed" : "failed");
+      if (request === requestRef.current) setLoad(next ? "moreFailed" : "failed");
     } finally {
-      loadingRef.current = false;
+      if (request === requestRef.current) loadingRef.current = false;
     }
   }, []);
 
   useEffect(() => {
-    let isCancelled = false;
-    wallApi
-      .list()
-      .then((page) => {
-        if (isCancelled) return;
-        setItems(appendUnique([], page.items));
-        setCursor(page.cursor);
-        setLoad("ready");
-      })
-      .catch(() => {
-        if (!isCancelled) setLoad("failed");
-      })
-      .finally(() => {
-        loadingRef.current = false;
-      });
+    void loadPage();
     return () => {
-      isCancelled = true;
+      requestRef.current += 1;
     };
-  }, []);
+  }, [loadPage]);
 
   useEffect(() => {
     // 서버 라우터는 쿼리를 받지 않아(놀이 모듈 route) 열린 주소에서 읽는다
@@ -144,6 +134,12 @@ export default function WallScreen({ event, now }: WallScreenProps) {
   }
 
   const strips = posted ? [posted, ...items.filter((s) => s.id !== posted.id)] : items;
+  // 카드마다 렌더마다 저장소를 읽지 않게 목록이 바뀔 때만 한 번
+  const mineIds = useMemo(
+    () =>
+      new Set([...items, ...(posted ? [posted] : [])].filter((s) => isMine(s.id)).map((s) => s.id)),
+    [items, posted],
+  );
   const isFirstLoad = load === "first";
   const isEmpty = !isFirstLoad && load !== "failed" && strips.length === 0;
 
@@ -203,7 +199,7 @@ export default function WallScreen({ event, now }: WallScreenProps) {
                 key={strip.id}
                 strip={strip}
                 href={`${base}/wall/${encodeURIComponent(strip.id)}`}
-                isMine={isMine(strip.id)}
+                isMine={mineIds.has(strip.id)}
                 isPosted={strip.id === posted?.id}
                 tilt={TILTS[i % TILTS.length]}
                 onAskRemove={() => setRemoving(strip)}
@@ -238,70 +234,5 @@ export default function WallScreen({ event, now }: WallScreenProps) {
         onRemoved={handleRemoved}
       />
     </Screen>
-  );
-}
-
-const GRID = "grid grid-cols-2 gap-x-[14px] gap-y-[22px]";
-
-/* ─── 하위 컴포넌트 ─────────────────────────── */
-
-interface RemoveSheetProps {
-  /** 뗄 네컷. null이면 닫힘 */
-  strip: StripView | null;
-  /** 이벤트 내용의 보조 문구(`벽에서만 내려요.` 뒤) */
-  note: string | undefined;
-  onClose: () => void;
-  onRemoved: (id: string) => void;
-}
-
-/** `뗄까요?` 시트. 이미 없는 네컷(404)이면 뗀 것으로 친다. */
-function RemoveSheet({ strip, note, onClose, onRemoved }: RemoveSheetProps) {
-  const [status, setStatus] = useState<"idle" | "removing" | "failed">("idle");
-  const removingRef = useRef(false);
-
-  async function handleRemove() {
-    if (!strip || removingRef.current) return;
-    removingRef.current = true;
-    setStatus("removing");
-    try {
-      await wallApi.remove(strip.id);
-      setStatus("idle");
-      onRemoved(strip.id);
-    } catch (err) {
-      if (err instanceof ApiClientError && err.status === 404) {
-        setStatus("idle");
-        onRemoved(strip.id);
-      } else {
-        setStatus("failed");
-      }
-    } finally {
-      removingRef.current = false;
-    }
-  }
-
-  function handleClose() {
-    if (removingRef.current) return;
-    setStatus("idle");
-    onClose();
-  }
-
-  return (
-    <BottomSheet isOpen={strip !== null} onClose={handleClose} label="내 네컷 떼기">
-      <h2 className="m-0 text-[22px] font-bold">뗄까요?</h2>
-      <p className="m-0 text-[15px] leading-[1.6]">
-        {note ? `벽에서만 내려요. ${note}` : "벽에서만 내려요."}
-      </p>
-      {status === "failed" ? (
-        <p role="alert" className="m-0 text-[14px] font-bold text-(color:--tf-error)">
-          연결이 끊겼어요. 다시 눌러 주세요.
-        </p>
-      ) : null}
-      <PillButton size="sheet" onClick={handleRemove} disabled={status === "removing"}>
-        {status === "removing" ? "떼는 중…" : "떼기"}
-      </PillButton>
-      <TextLink onClick={handleClose} isUnderlined={false} disabled={status === "removing"}>
-        그냥 둘게요
-      </TextLink>
-    </BottomSheet>
   );
 }

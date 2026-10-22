@@ -1,12 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 
-import { useRouter } from "next/navigation";
-
-import { ApiClientError } from "@/lib/api/errors";
-
-import BottomSheet from "../parts/BottomSheet";
 import PillButton from "../parts/PillButton";
 import SaveIcon from "../parts/SaveIcon";
 import Screen from "../parts/Screen";
@@ -15,12 +11,9 @@ import Strip from "../parts/Strip";
 import TextLink from "../parts/TextLink";
 import TopBar from "../parts/TopBar";
 import Wordmark from "../parts/Wordmark";
-import { detectEnv } from "../env";
 import { captionText, photosDataUrl, stripFilename } from "../strip/compose";
 import type { StripCaption } from "../strip/compose";
-import { downloadBlob, shareOrDownload, shareStoryOrDownload } from "../strip/share";
-import { composeStory, storyFilename } from "../story/composeStory";
-import { postStrip } from "../wall/postStrip";
+import { useShareActions } from "../strip/useShareActions";
 import { SHOT_NAMES } from "./machine";
 
 interface ResultScreenProps {
@@ -29,10 +22,8 @@ interface ResultScreenProps {
   /** 같은 네 장의 사진 기둥(띠 안에 보이는 것) */
   photos: Blob;
   caption: StripCaption;
-  /** 벽 주소(`/events/{slug}/wall`)에 쓴다 */
-  slug: string;
-  /** 주 행동 자리에 `벽에 붙이기`를 둘지(`canPostToWall`) */
-  canPost: boolean;
+  /** 공유·저장 위 주 행동 자리(벽에 붙이기 `PostSheet`). 없으면 비운다 */
+  action?: ReactNode;
   /** 스토리 이미지 왼쪽 아래 주소 */
   storyLink: string;
   /** 부스 안에서 이어질 때 — 촬영 준비 상태로 */
@@ -44,30 +35,23 @@ interface ResultScreenProps {
 }
 
 /**
- * 완성. 시안 Result 그대로 띠 + 공유·저장 + 다시 찍기.
- * 띠 안 사진은 합성 띠와 같은 칸 배치로 그린 것이라 저장되는 사진과 같다.
- * 공유는 9:16 스토리(+ 되면 띠), 저장은 띠. 스토리는 화면이 열리자마자 미리 만든다 —
- * 누른 뒤에 만들면 사파리가 사용자 탭이 아니라며 공유 시트를 막는다.
+ * 완성. 시안 Result 그대로 띠 + (벽에 붙이기) + 공유·저장 + 다시 찍기.
+ * 띠 안 사진은 합성 띠와 같은 칸 배치로 그린 것이라 저장되는 사진과 같다. 공유·저장은 `useShareActions`.
  */
 export default function ResultScreen({
   strip,
   photos,
   caption,
-  slug,
-  canPost,
+  action,
   storyLink,
   onRetake,
   retakeHref,
   retakeLabel = "다시 찍기",
 }: ResultScreenProps) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  /** 만드는 중 undefined, 못 만들면 null(→ 띠만 공유) */
-  const [story, setStory] = useState<Blob | null | undefined>(undefined);
-  const [isSharing, setIsSharing] = useState(false);
-  // 같은 렌더 안의 연타는 state가 아직 안 바뀌어 ref로 막는다
-  const sharingRef = useRef(false);
   const { number, meta } = captionText(caption);
   const filename = stripFilename(caption);
+  const { share, save, isBusy, isStoryReady } = useShareActions(strip, filename, storyLink);
 
   useEffect(() => {
     let isCancelled = false;
@@ -80,62 +64,6 @@ export default function ResultScreen({
       isCancelled = true;
     };
   }, [photos]);
-
-  useEffect(() => {
-    let isCancelled = false;
-    composeStory(strip, storyLink)
-      .then((blob) => {
-        if (!isCancelled) setStory(blob);
-      })
-      .catch(() => {
-        if (!isCancelled) setStory(null);
-      });
-    return () => {
-      isCancelled = true;
-    };
-  }, [strip, storyLink]);
-
-  async function handleShare() {
-    // 공유 시트가 떠 있는 동안 두 번 누르면 두 번째 share()가 InvalidStateError — 한 번만
-    if (sharingRef.current) return;
-    sharingRef.current = true;
-    setIsSharing(true);
-    // 취소·실패해도 화면은 그대로 — 띠는 이 화면이 들고 있다
-    try {
-      if (story) {
-        await shareStoryOrDownload(
-          { blob: story, filename: storyFilename(filename) },
-          { blob: strip, filename },
-        );
-      } else {
-        await shareOrDownload(strip, filename);
-      }
-    } catch {
-    } finally {
-      sharingRef.current = false;
-      setIsSharing(false);
-    }
-  }
-
-  async function handleSave() {
-    // 아이폰 사파리는 <a download>를 새 탭으로 연다 — 공유 시트의 '이미지 저장'이 사진 앱에 바로 넣는다
-    if (detectEnv(navigator.userAgent).os !== "ios") {
-      try {
-        downloadBlob(strip, filename);
-      } catch {}
-      return;
-    }
-    if (sharingRef.current) return;
-    sharingRef.current = true;
-    setIsSharing(true);
-    try {
-      await shareOrDownload(strip, filename);
-    } catch {
-    } finally {
-      sharingRef.current = false;
-      setIsSharing(false);
-    }
-  }
 
   return (
     <Screen tone="cream">
@@ -162,18 +90,18 @@ export default function ResultScreen({
       <div className="h-[18px] shrink-0" />
 
       <div className="flex flex-col gap-[10px]">
-        {canPost ? <WallPost photos={photos} slug={slug} /> : null}
+        {action}
         <div className="grid grid-cols-2 gap-[8px]">
           <PillButton
             variant="outline"
             size="md"
-            onClick={handleShare}
-            disabled={isSharing || story === undefined}
+            onClick={share}
+            disabled={isBusy || !isStoryReady}
           >
             <ShareIcon />
             공유하기
           </PillButton>
-          <PillButton variant="outline" size="md" onClick={handleSave} disabled={isSharing}>
+          <PillButton variant="outline" size="md" onClick={save} disabled={isBusy}>
             <SaveIcon />
             저장
           </PillButton>
@@ -183,70 +111,5 @@ export default function ResultScreen({
         </TextLink>
       </div>
     </Screen>
-  );
-}
-
-/* ─── 하위 컴포넌트 ─────────────────────────── */
-
-interface WallPostProps {
-  photos: Blob;
-  slug: string;
-}
-
-/** `벽에 붙이기` → 시트에서 확인 → 올리고 벽으로. 실패하면 시트에 남아 `다시 보내기`. */
-function WallPost({ photos, slug }: WallPostProps) {
-  const router = useRouter();
-  const [isOpen, setIsOpen] = useState(false);
-  const [status, setStatus] = useState<"idle" | "posting" | "failed" | "limited">("idle");
-  // 같은 렌더 안의 연타는 state가 아직 안 바뀌어 ref로 막는다
-  const postingRef = useRef(false);
-
-  async function handlePost() {
-    if (postingRef.current) return;
-    postingRef.current = true;
-    setStatus("posting");
-    try {
-      const { id } = await postStrip(photos);
-      router.push(`/events/${slug}/wall?posted=${encodeURIComponent(id)}`);
-    } catch (err) {
-      postingRef.current = false;
-      // 하루 한도(기기당 10장)는 다시 보내도 안 되니 버튼 없이 알리기만
-      const isLimited =
-        err instanceof ApiClientError && (err.code === "RATE_LIMITED" || err.status === 429);
-      setStatus(isLimited ? "limited" : "failed");
-    }
-  }
-
-  function handleClose() {
-    // 보내는 중엔 닫지 않는다 — 닫아도 업로드는 이어져 벽으로 넘어가 버린다
-    if (postingRef.current) return;
-    setIsOpen(false);
-  }
-
-  return (
-    <>
-      <PillButton onClick={() => setIsOpen(true)}>벽에 붙이기</PillButton>
-      <BottomSheet isOpen={isOpen} onClose={handleClose} label="벽에 붙이기" tone="paper">
-        <h2 className="m-0 text-[22px] font-bold">벽에 붙일까요?</h2>
-        <p className="m-0 text-[15px] leading-[1.5]">누구나 볼 수 있어요. 언제든 뗄 수 있어요.</p>
-        {status === "failed" ? (
-          <p role="alert" className="m-0 text-[14px] font-bold text-(color:--tf-error)">
-            연결이 끊겼어요. 네컷은 폰에 그대로 있어요.
-          </p>
-        ) : null}
-        {status === "limited" ? (
-          <p role="alert" className="m-0 text-[14px] font-bold text-(color:--tf-error)">
-            오늘은 여기까지 붙일 수 있어요. 내일 또 붙여 주세요.
-          </p>
-        ) : (
-          <PillButton size="sheet" onClick={handlePost} disabled={status === "posting"}>
-            {status === "posting" ? "보내는 중…" : status === "failed" ? "다시 보내기" : "붙이기"}
-          </PillButton>
-        )}
-        <TextLink onClick={handleClose} isUnderlined={false} disabled={status === "posting"}>
-          아니요
-        </TextLink>
-      </BottomSheet>
-    </>
   );
 }

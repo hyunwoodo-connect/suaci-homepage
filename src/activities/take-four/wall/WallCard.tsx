@@ -30,7 +30,6 @@ export default function WallCard({
   tilt,
   onAskRemove,
 }: WallCardProps) {
-  const ribbon = useRibbon(strip);
   const { number, meta } = wallCaption(strip);
 
   return (
@@ -64,8 +63,20 @@ export default function WallCard({
           떼기
         </button>
       ) : (
-        <RibbonButton count={ribbon.count} isOn={ribbon.isOn} onClick={ribbon.give} />
+        <CardRibbon strip={strip} />
       )}
     </div>
   );
+}
+
+/* ─── 하위 컴포넌트 ─────────────────────────── */
+
+interface CardRibbonProps {
+  strip: StripView;
+}
+
+/** 카드 아래 작은 리본. 내 네컷이 아닐 때만 마운트한다. */
+function CardRibbon({ strip }: CardRibbonProps) {
+  const ribbon = useRibbon(strip);
+  return <RibbonButton count={ribbon.count} isOn={ribbon.isOn} onClick={ribbon.give} />;
 }

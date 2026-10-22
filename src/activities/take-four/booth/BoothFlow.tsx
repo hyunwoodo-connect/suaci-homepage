@@ -13,6 +13,7 @@ import { canPostToWall } from "../stage";
 import AlbumScreen from "../album/AlbumScreen";
 import BoothScreen from "./BoothScreen";
 import PrintScreen from "./PrintScreen";
+import PostSheet from "../wall/PostSheet";
 import ResultScreen from "./ResultScreen";
 
 interface BoothFlowProps {
@@ -87,8 +88,9 @@ export default function BoothFlow({ event, source = "camera" }: BoothFlowProps) 
         strip={print.done.strip}
         photos={print.done.photos}
         caption={print.caption}
-        slug={event.slug}
-        canPost={canPostToWall(event)}
+        action={
+          canPostToWall(event) ? <PostSheet photos={print.done.photos} slug={event.slug} /> : null
+        }
         storyLink={storyLink(event.slug)}
         onRetake={retake}
         retakeLabel={retakeLabel}

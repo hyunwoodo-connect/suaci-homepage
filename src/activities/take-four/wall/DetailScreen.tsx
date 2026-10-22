@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
-import { ApiClientError } from "@/lib/api/errors";
+import { isNotFound, isRateLimited } from "@/lib/api";
 
 import BottomSheet from "../parts/BottomSheet";
 import PillButton from "../parts/PillButton";
@@ -11,6 +11,7 @@ import Screen from "../parts/Screen";
 import Strip from "../parts/Strip";
 import TextLink from "../parts/TextLink";
 import TopBar from "../parts/TopBar";
+import { useGuardedAction } from "../useGuardedAction";
 import { wallApi } from "./api";
 import type { StripView } from "./api";
 import { rememberHidden } from "./local";
@@ -100,30 +101,29 @@ type ReportStatus = "closed" | "ask" | "sending" | "failed" | "limited" | "sent"
 function Actions({ strip, wallHref }: ActionsProps) {
   const ribbon = useRibbon(strip);
   const [report, setReport] = useState<ReportStatus>("closed");
-  const sendingRef = useRef(false);
+  const { run, isRunning } = useGuardedAction();
 
-  async function handleReport() {
-    if (sendingRef.current) return;
-    sendingRef.current = true;
-    setReport("sending");
-    try {
-      await wallApi.report(strip.id);
-      rememberHidden(strip.id);
-      setReport("sent");
-    } catch (err) {
-      if (err instanceof ApiClientError && err.status === 404) {
+  function handleReport() {
+    return run(async () => {
+      setReport("sending");
+      try {
+        await wallApi.report(strip.id);
         rememberHidden(strip.id);
         setReport("sent");
-      } else if (err instanceof ApiClientError && err.status === 429) setReport("limited");
-      else setReport("failed");
-    } finally {
-      sendingRef.current = false;
-    }
+      } catch (err) {
+        if (isNotFound(err)) {
+          rememberHidden(strip.id);
+          setReport("sent");
+        } else {
+          setReport(isRateLimited(err) ? "limited" : "failed");
+        }
+      }
+    });
   }
 
   function handleClose() {
     // 보내는 중엔 닫지 않고, 보낸 뒤엔 이 네컷이 벽에서 내려가 `벽으로`로만 나간다
-    if (sendingRef.current || report === "sent") return;
+    if (isRunning() || report === "sent") return;
     setReport("closed");
   }
 
