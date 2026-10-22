@@ -1,4 +1,4 @@
-/** 캔버스·이미지 도구. 띠·스토리·벽 썸네일 합성이 같이 쓴다. */
+/** 캔버스·이미지 도구. 카드·스토리·벽 썸네일 합성이 같이 쓴다. */
 
 /**
  * 글꼴을 이만큼까지 기다린다. 현상 화면이 도는 동안이라 넉넉히 둔다.
@@ -15,7 +15,7 @@ export function canvasToBlob(
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
-        // 큰 캔버스(900×2659) 메모리를 바로 돌려준다 — 폰 사파리는 캔버스 총량 한도가 빠듯하다
+        // 큰 캔버스(카드 1080×1350·스토리 1080×1920) 메모리를 바로 돌려준다 — 폰 사파리는 캔버스 총량 한도가 빠듯하다
         canvas.width = 0;
         canvas.height = 0;
         if (blob) resolve(blob);
@@ -82,7 +82,7 @@ export async function loadFonts(fonts: CanvasFont[], text?: string): Promise<boo
 
 /**
  * 이미지를 <img>에 쓸 data: URL로. blob: URL은 개발 모드(StrictMode)의 effect 두 번 실행에서
- * 지운 URL을 다시 쓰게 되기 쉬워, 지울 필요 없는 data: URL을 쓴다(사진 기둥은 수백 KB).
+ * 지운 URL을 다시 쓰게 되기 쉬워, 지울 필요 없는 data: URL을 쓴다(카드는 수백 KB).
  */
 export function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {

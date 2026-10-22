@@ -8,8 +8,8 @@ afterEach(() => {
 });
 
 describe("makeThumb", () => {
-  it("폭 360px·비율 유지, JPEG 0.8로 굽는다", async () => {
-    const bitmap = { width: 720, height: 2250, close: vi.fn() };
+  it("카드 1080×1350 → 폭 480px·비율 유지(480×600), JPEG 0.8로 굽는다", async () => {
+    const bitmap = { width: 1080, height: 1350, close: vi.fn() };
     vi.stubGlobal("createImageBitmap", vi.fn().mockResolvedValue(bitmap));
     const ctx = { drawImage: vi.fn() };
     const out = new Blob(["thumb"], { type: "image/jpeg" });
@@ -31,8 +31,8 @@ describe("makeThumb", () => {
 
     const photos = new Blob(["photos"], { type: "image/jpeg" });
     expect(await makeThumb(photos)).toBe(out);
-    expect(sizeAtBlob).toEqual([360, 1125]);
-    expect(ctx.drawImage).toHaveBeenCalledWith(bitmap, 0, 0, 360, 1125);
+    expect(sizeAtBlob).toEqual([480, 600]);
+    expect(ctx.drawImage).toHaveBeenCalledWith(bitmap, 0, 0, 480, 600);
     expect(canvas.toBlob.mock.calls[0].slice(1)).toEqual(["image/jpeg", 0.8]);
     expect(bitmap.close).toHaveBeenCalled();
   });

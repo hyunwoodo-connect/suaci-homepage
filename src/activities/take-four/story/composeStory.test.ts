@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 
-import { STRIP } from "../strip/layout";
+import { CARD } from "../strip/layout";
 import {
   STORY,
   STORY_HASHTAG,
@@ -22,23 +22,17 @@ describe("storyLayout", () => {
     expect(layout.title).toEqual({ x: 540, baseline: 237, size: 138, letterSpacing: -4.14 });
   });
 
-  it("띠 — 시안 figure 가운데(516, 1014), 폭 480, 합성 띠 비율 그대로, −3°", () => {
-    const { strip } = layout;
-    expect([strip.cx, strip.cy, strip.width, strip.rotate]).toEqual([516, 1014, 480, -3]);
-    expect(strip.width / strip.height).toBeCloseTo(STRIP.width / STRIP.height, 6);
+  it("카드 — 시안 img(왼쪽 30·위 112·폭 300)의 3배, 합성 카드 비율 그대로", () => {
+    const { card } = layout;
+    expect([card.x, card.y, card.width]).toEqual([90, 336, 900]);
+    expect(card.width / card.height).toBeCloseTo(CARD.width / CARD.height, 6);
   });
 
-  it("띠가 기울어도 제목 아래·왼쪽 아래 글자 위에서 화면 안에 든다", () => {
-    const { strip, title, wordmark } = layout;
-    const rad = (Math.abs(strip.rotate) * Math.PI) / 180;
-    const halfW = (strip.width * Math.cos(rad) + strip.height * Math.sin(rad)) / 2;
-    const halfH = (strip.width * Math.sin(rad) + strip.height * Math.cos(rad)) / 2;
-    expect(strip.cx - halfW).toBeGreaterThan(0);
-    expect(strip.cx + halfW).toBeLessThan(STORY.width);
-    expect(strip.cy - halfH).toBeGreaterThan(title.baseline);
-    expect(strip.cy + halfH).toBeLessThan(STORY.height);
-    // 띠 아래 끝은 워드마크 줄보다 위(시안처럼 글자는 띠 왼쪽 아래 빈 곳)
-    expect(strip.cy + halfH).toBeLessThan(wordmark.baseline + 40);
+  it("카드가 제목 아래·왼쪽 아래 글자 위, 화면 가운데에 든다", () => {
+    const { card, title, wordmark } = layout;
+    expect(card.x * 2 + card.width).toBe(STORY.width);
+    expect(card.y).toBeGreaterThan(title.baseline);
+    expect(card.y + card.height).toBeLessThan(wordmark.baseline - wordmark.size);
   });
 
   it("왼쪽 아래 세 줄 — x 66, 기준선 1716·1776·1833, 45·36·36px", () => {
@@ -117,23 +111,15 @@ describe("composeStory", () => {
     vi.restoreAllMocks();
   });
 
-  const STRIP_BLOB = new Blob(["strip"], { type: "image/jpeg" });
+  const STRIP_BLOB = new Blob(["card"], { type: "image/jpeg" });
 
-  it("1080×1920 JPEG 0.9, 띠 비트맵을 레이아웃 자리에 그리고 놓는다", async () => {
+  it("1080×1920 JPEG 0.9, 카드 비트맵을 레이아웃 자리에 그리고 놓는다", async () => {
     const blob = await composeStory(STRIP_BLOB, "takesuaci.com/events/take-four");
     expect(blob.type).toBe("image/jpeg");
     expect(canvas.sizeAtBlob).toEqual([1080, 1920]);
     expect(createImageBitmap).toHaveBeenCalledWith(STRIP_BLOB);
-    const { strip } = storyLayout();
-    expect(ctx.translate).toHaveBeenCalledWith(516, 1014);
-    expect(ctx.rotate).toHaveBeenCalledWith((-3 * Math.PI) / 180);
-    expect(ctx.drawImage).toHaveBeenCalledWith(
-      bitmap,
-      -strip.width / 2,
-      -strip.height / 2,
-      strip.width,
-      strip.height,
-    );
+    const { card } = storyLayout();
+    expect(ctx.drawImage).toHaveBeenCalledWith(bitmap, card.x, card.y, card.width, card.height);
     expect(order.at(-1)).toBe("toBlob image/jpeg 0.9");
     expect(bitmap.close).toHaveBeenCalledTimes(1);
   });

@@ -6,9 +6,7 @@ import { FRAME_SCALLOP } from "../paths";
 export const FRAME_WINDOW = { width: 240, height: 314 } as const;
 
 interface ScallopFrameProps {
-  /** 시안 aria-label(`카메라 화면`, `카메라 화면: 무표정`) */
-  label: string;
-  /** 타원 창 안(비디오·사진·카운트다운·플래시). 창 밖은 잘린다 */
+  /** 타원 창 안(비디오·켜는 중·막힘·플래시). 창 밖은 잘린다 */
   children?: ReactNode;
 }
 
@@ -16,7 +14,7 @@ interface ScallopFrameProps {
  * 촬영 액자 300×400. 빨간 물결 테두리 + 타원 창 + 위 리본.
  * 창: viewBox(0 -10 300 400)의 타원 cx150 cy190 rx120 ry157 → 화면 좌표 left30 top43 240×314.
  */
-export default function ScallopFrame({ label, children }: ScallopFrameProps) {
+export default function ScallopFrame({ children }: ScallopFrameProps) {
   return (
     <div className="relative h-[400px] w-[300px] shrink-0">
       <svg
@@ -24,14 +22,14 @@ export default function ScallopFrame({ label, children }: ScallopFrameProps) {
         height="400"
         viewBox={FRAME_SCALLOP.viewBox}
         role="img"
-        aria-label={label}
+        aria-label="카메라 화면"
         className="absolute inset-0 overflow-visible"
       >
         <path
           d={FRAME_SCALLOP.d}
           fill="var(--tf-cream)"
           stroke="var(--tf-red)"
-          strokeWidth="7"
+          strokeWidth="6"
           strokeLinejoin="round"
         />
       </svg>

@@ -10,10 +10,10 @@ vi.mock("./postStrip", () => wall);
 const router = vi.hoisted(() => ({ push: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
-const PHOTOS_BLOB = new Blob(["photos"], { type: "image/jpeg" });
+const CARD_BLOB = new Blob(["card"], { type: "image/jpeg" });
 
 function renderSheet() {
-  render(<PostSheet photos={PHOTOS_BLOB} slug="take-four" />);
+  render(<PostSheet card={CARD_BLOB} slug="take-four" />);
 }
 
 beforeEach(() => {
@@ -46,7 +46,7 @@ describe("PostSheet", () => {
       fireEvent.click(button);
     });
     expect(wall.postStrip).toHaveBeenCalledTimes(1);
-    expect(wall.postStrip).toHaveBeenCalledWith(PHOTOS_BLOB);
+    expect(wall.postStrip).toHaveBeenCalledWith(CARD_BLOB);
     expect(screen.getByRole("button", { name: "보내는 중…" })).toBeDisabled();
     await act(async () => finish({ stripId: "01J" }));
   });

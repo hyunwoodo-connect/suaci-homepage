@@ -8,7 +8,7 @@ vi.mock("./albumFrame", () => album);
 
 function frame(name: string) {
   const canvas = document.createElement("canvas");
-  canvas.width = 1280;
+  canvas.width = 960;
   canvas.height = 960;
   canvas.dataset.name = name;
   canvas.toDataURL = () => `data:image/jpeg;base64,${name}`;

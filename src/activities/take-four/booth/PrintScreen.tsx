@@ -2,21 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { CARD_ASPECT, CARD_WIDTH } from "../parts/Card";
 import PillButton from "../parts/PillButton";
 import Screen from "../parts/Screen";
 import TextLink from "../parts/TextLink";
 import TopBar from "../parts/TopBar";
 import Wordmark from "../parts/Wordmark";
-import { captionText } from "../strip/caption";
-import type { StripCaption } from "../strip/caption";
-import { drawPhotos } from "../strip/compose";
-import { SHOT_INDEXES } from "../shots";
-import { stripLayout } from "../strip/layout";
+import { drawCard } from "../strip/compose";
 import type { StripFrame } from "../strip/compose";
+import { cellBoxes } from "../strip/layout";
+import { SHOT_INDEXES } from "../shots";
 
 interface PrintScreenProps {
   frames: StripFrame[];
-  caption: StripCaption;
+  takenAt: Date;
   /** 합성 상태. 칸이 다 드러나고 ready여야 `받기`가 나온다 */
   status: "composing" | "ready" | "failed";
   onReceive: () => void;
@@ -28,22 +27,17 @@ interface PrintScreenProps {
 
 /** 시안 Print: 0.9초마다 칸이 한 장씩 드러난다(4장 ≈ 3.6초) */
 export const PRINT_STEP_MS = 900;
-/** 시안 Print의 사진 폭(px) */
-const PHOTO_WIDTH = 126;
-/** 칸 덮개 자리: 합성 띠의 칸을 126px 폭으로 줄인 것(시안 top i×99.75, 높이 ≈95) */
-const COVERS = (() => {
-  const { photo, frames } = stripLayout();
-  const scale = PHOTO_WIDTH / photo.width;
-  return frames.map((f) => ({ top: (f.y - photo.y) * scale, height: f.height * scale }));
-})();
+/** 칸 덮개 자리 */
+const COVERS = cellBoxes();
 
 /**
- * 현상. 크림 덮개가 칸마다 걷히며 `printing…` → `here.` + `받기`.
+ * 현상. 카드 위 연두 덮개가 칸마다 걷히며 `printing…` → `here.` + `받기`.
+ * 카드는 저장 카드와 같은 `drawCard`로 그린다. 가장자리 글자는 합성이 글꼴을 받은 뒤(ready)에 얹는다.
  * 움직임 줄이기 설정이면 칸을 처음부터 다 보여 준다.
  */
 export default function PrintScreen({
   frames,
-  caption,
+  takenAt,
   status,
   onReceive,
   onRetry,
@@ -62,10 +56,9 @@ export default function PrintScreen({
   const isFailed = status === "failed";
   const isReady = !isFailed && left === 0 && status === "ready";
   const shown = SHOT_INDEXES.length - left;
-  const { number } = captionText(caption);
 
   return (
-    <Screen tone="lime">
+    <Screen tone="pale">
       <TopBar start={<Wordmark />} label="4 / 4" />
 
       <div className="pt-[40px] text-center">
@@ -80,29 +73,21 @@ export default function PrintScreen({
         </p>
       </div>
 
-      {/* 띠가 화면을 늘리지 않게 absolute, 작은 폰에선 줄인다(시안은 390×844) */}
+      {/* 카드가 화면을 늘리지 않게 absolute, 작은 폰에선 줄인다(시안은 390×844) */}
       <div className="relative min-h-[200px] flex-1">
         <div className="absolute inset-0 flex items-center justify-center [@media(max-height:660px)]:scale-[0.76] [@media(min-height:661px)_and_(max-height:740px)]:scale-[0.86]">
-          <figure className="relative m-0 box-border w-[150px] rotate-[-2deg] border-4 border-solid border-(color:--tf-red) bg-(--tf-cream) px-[8px] pt-[8px] pb-[30px] shadow-[0_12px_20px_rgba(43,36,32,0.22)]">
-            <div className="relative">
-              <Photos frames={frames} />
-              {SHOT_INDEXES.map((i) => (
-                <div
-                  key={i}
-                  aria-hidden="true"
-                  data-cell-cover={i < shown ? "open" : "closed"}
-                  style={{ top: COVERS[i].top, height: COVERS[i].height, width: PHOTO_WIDTH }}
-                  className={`absolute left-0 bg-(--tf-cream) ${
-                    i < shown ? "opacity-0" : "opacity-[0.92]"
-                  }`}
-                />
-              ))}
-            </div>
-            <figcaption className="absolute right-[10px] bottom-[8px] left-[10px] flex justify-between font-(family-name:--tf-latin) text-[11px]">
-              <span className="font-bold">{number}</span>
-              <span className="font-medium">{caption.eventLabel ?? ""}</span>
-            </figcaption>
-          </figure>
+          <div className="relative">
+            <CardCanvas frames={frames} takenAt={takenAt} withText={status === "ready"} />
+            {SHOT_INDEXES.map((i) => (
+              <div
+                key={i}
+                aria-hidden="true"
+                data-cell-cover={i < shown ? "open" : "closed"}
+                style={COVERS[i]}
+                className={`absolute bg-(--tf-pale) ${i < shown ? "opacity-0" : "opacity-[0.94]"}`}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
@@ -133,22 +118,28 @@ export default function PrintScreen({
 
 /* ─── 하위 컴포넌트 ─────────────────────────── */
 
-interface PhotosProps {
+interface CardCanvasProps {
   frames: StripFrame[];
+  takenAt: Date;
+  withText: boolean;
 }
 
-/** 띠의 사진 기둥(합성과 같은 칸 배치)을 126px 폭으로 */
-function Photos({ frames }: PhotosProps) {
+/** 합성 카드와 같은 그림을 현상 화면 폭으로 */
+function CardCanvas({ frames, takenAt, withText }: CardCanvasProps) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
-    if (ref.current) drawPhotos(ref.current, frames);
-  }, [frames]);
+    if (!ref.current) return;
+    try {
+      drawCard(ref.current, frames, takenAt, withText);
+    } catch {}
+  }, [frames, takenAt, withText]);
   return (
     <canvas
       ref={ref}
       role="img"
       aria-label="현상 중인 내 네컷"
-      className="block aspect-[144/450] w-[126px]"
+      style={CARD_ASPECT}
+      className={`block ${CARD_WIDTH.print}`}
     />
   );
 }

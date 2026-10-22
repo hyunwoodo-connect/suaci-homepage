@@ -6,18 +6,17 @@ import { isNotFound, isRateLimited } from "@/lib/api";
 import type { EventDetail } from "@/types";
 
 import BottomSheet from "../parts/BottomSheet";
+import Card from "../parts/Card";
 import FitStage from "../parts/FitStage";
 import PillButton from "../parts/PillButton";
 import RibbonButton from "../parts/RibbonButton";
 import Screen from "../parts/Screen";
-import Strip from "../parts/Strip";
 import TextLink from "../parts/TextLink";
 import TopBar from "../parts/TopBar";
 import { useGuardedAction } from "../useGuardedAction";
 import { wallApi } from "./api";
 import type { StripView } from "./api";
 import { rememberHidden } from "./deviceMarks";
-import { wallCaption } from "./caption";
 import { useRibbon } from "./useRibbon";
 
 interface DetailScreenProps {
@@ -27,7 +26,7 @@ interface DetailScreenProps {
 }
 
 /**
- * `/events/{slug}/wall/{stripId}`. 시안 Detail — 원본 사진으로 큰 띠, 리본, 신고.
+ * `/events/{slug}/wall/{stripId}`. 시안 Detail — 원본 카드를 크게, 리본, 신고.
  * 없거나 가려졌으면(신고·관리자) 벽에 없다고만 알린다.
  */
 export default function DetailScreen({ event, stripId }: DetailScreenProps) {
@@ -52,7 +51,7 @@ export default function DetailScreen({ event, stripId }: DetailScreenProps) {
 
   if (strip === null) {
     return (
-      <Screen tone="lime">
+      <Screen tone="pale">
         <TopBar nav={{ icon: "close", label: "닫기", href: wallHref }} />
         <div className="flex flex-1 flex-col items-center justify-center gap-[24px] text-center">
           <p className="m-0 text-[20px] font-bold">이 네컷은 벽에 없어요</p>
@@ -62,22 +61,18 @@ export default function DetailScreen({ event, stripId }: DetailScreenProps) {
     );
   }
 
-  const caption = strip ? wallCaption(strip) : null;
-
   return (
-    <Screen tone="lime">
-      <TopBar nav={{ icon: "close", label: "닫기", href: wallHref }} label={caption?.number} />
+    <Screen tone="pale">
+      <TopBar nav={{ icon: "close", label: "닫기", href: wallHref }} />
 
       <FitStage>
-        <Strip
-          size="lg"
-          src={strip?.photoUrl}
-          alt="다른 사람들의 네컷"
-          number={caption?.number ?? ""}
-          meta={caption?.meta ?? ""}
-          stamp={caption?.stamp}
-          hasPin
-        />
+        {strip ? (
+          <Card src={strip.photoUrl} alt="다른 사람들의 네컷" size="detail" />
+        ) : (
+          <div role="status" aria-label="불러오는 중…">
+            <Card alt="" size="detail" />
+          </div>
+        )}
       </FitStage>
 
       <div className="flex min-h-[122px] flex-col items-center gap-[6px] pt-[16px]">

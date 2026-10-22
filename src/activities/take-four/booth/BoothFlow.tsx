@@ -2,12 +2,9 @@
 
 import { useRef, useState } from "react";
 
-import { getEventContent } from "@/events";
 import type { EventDetail } from "@/types";
 
-import { stripCaption } from "../strip/caption";
-import type { StripCaption } from "../strip/caption";
-import { composePhotos, composeStrip } from "../strip/compose";
+import { composeStrip } from "../strip/compose";
 import type { StripFrame } from "../strip/compose";
 import { saveLast } from "../strip/storage";
 import { storyLink } from "../story/composeStory";
@@ -26,9 +23,9 @@ interface BoothFlowProps {
 
 interface Print {
   frames: StripFrame[];
-  caption: StripCaption;
-  /** 합성 띠와 사진 기둥(완성 화면용). 둘 다 끝나야 받을 수 있다 */
-  done: { strip: Blob; photos: Blob } | null;
+  takenAt: Date;
+  /** 합성 카드. 끝나야 받을 수 있다 */
+  done: Blob | null;
   isFailed: boolean;
   isReceived: boolean;
 }
@@ -43,14 +40,14 @@ export default function BoothFlow({ event, source = "camera" }: BoothFlowProps) 
   // 다시 찍은 뒤 늦게 끝난 이전 합성이 덮어쓰지 않게 차례를 센다
   const runRef = useRef(0);
 
-  function develop(frames: StripFrame[], caption: StripCaption) {
+  function develop(frames: StripFrame[], takenAt: Date) {
     const run = ++runRef.current;
-    setPrint({ frames, caption, done: null, isFailed: false, isReceived: false });
-    Promise.all([composeStrip(frames, caption), composePhotos(frames)])
-      .then(([strip, photos]) => {
+    setPrint({ frames, takenAt, done: null, isFailed: false, isReceived: false });
+    composeStrip(frames, takenAt)
+      .then((card) => {
         if (run !== runRef.current) return;
-        setPrint((prev) => (prev ? { ...prev, done: { strip, photos } } : prev));
-        void saveLast(strip, photos, caption);
+        setPrint((prev) => (prev ? { ...prev, done: card } : prev));
+        void saveLast(card, takenAt);
       })
       .catch(() => {
         if (run !== runRef.current) return;
@@ -63,8 +60,6 @@ export default function BoothFlow({ event, source = "camera" }: BoothFlowProps) 
     setPrint(null);
   }
 
-  const label = getEventContent(event.eventId)?.label ?? null;
-  const startCaption = () => stripCaption(event.phase, new Date(), label);
   const retakeLabel = source === "album" ? "다시 고르기" : undefined;
 
   if (!print && source === "album") {
@@ -74,25 +69,22 @@ export default function BoothFlow({ event, source = "camera" }: BoothFlowProps) 
         initialFrames={albumFrames}
         onDone={(frames) => {
           setAlbumFrames(frames);
-          develop(frames, startCaption());
+          develop(frames, new Date());
         }}
       />
     );
   }
 
   if (!print) {
-    return <BoothScreen slug={event.slug} onDone={(frames) => develop(frames, startCaption())} />;
+    return <BoothScreen slug={event.slug} onDone={(frames) => develop(frames, new Date())} />;
   }
 
   if (print.isReceived && print.done) {
     return (
       <ResultScreen
-        strip={print.done.strip}
-        photos={print.done.photos}
-        caption={print.caption}
-        action={
-          canPostToWall(event) ? <PostSheet photos={print.done.photos} slug={event.slug} /> : null
-        }
+        strip={print.done}
+        takenAt={print.takenAt}
+        action={canPostToWall(event) ? <PostSheet card={print.done} slug={event.slug} /> : null}
         storyLink={storyLink(event.slug)}
         onRetake={retake}
         retakeLabel={retakeLabel}
@@ -103,10 +95,10 @@ export default function BoothFlow({ event, source = "camera" }: BoothFlowProps) 
   return (
     <PrintScreen
       frames={print.frames}
-      caption={print.caption}
+      takenAt={print.takenAt}
       status={print.isFailed ? "failed" : print.done ? "ready" : "composing"}
       onReceive={() => setPrint((prev) => (prev ? { ...prev, isReceived: true } : prev))}
-      onRetry={() => develop(print.frames, print.caption)}
+      onRetry={() => develop(print.frames, print.takenAt)}
       onRetake={retake}
       retakeLabel={retakeLabel}
     />

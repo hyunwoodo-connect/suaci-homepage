@@ -10,7 +10,7 @@ import DetailScreen from "./wall/DetailScreen";
 import WallScreen from "./wall/WallScreen";
 
 /**
- * take four. 부스. 하위 화면은 부스·마지막 띠·앨범·카메라 없을 때·회차 안내,
+ * take four. 부스. 하위 화면은 부스·마지막 카드·앨범·카메라 없을 때·회차 안내,
  * 벽·크게 보기(`wall`, `wall/{stripId}` — 코드에 나왔고 레코드 스위치가 켜졌을 때만).
  */
 export const TAKE_FOUR: ActivityModule = {

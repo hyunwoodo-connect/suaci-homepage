@@ -1,38 +1,36 @@
-import type { StripCaption } from "./caption";
-
-/** 입구의 `아까 찍은 네컷`이 다시 여는 마지막 띠 */
+/** 입구의 `아까 찍은 네컷`이 다시 여는 마지막 카드 */
 export interface LastStrip {
+  /** 합성 카드(1080×1350 JPEG) */
   blob: Blob;
-  /** 사진 기둥만(완성 화면 띠·입구 카드) */
-  photos: Blob;
-  caption: StripCaption;
+  takenAt: Date;
 }
 
+/** 지금 기록 모양의 표시. 이게 없는 기록은 카드 전의 띠(사진 기둥·회차 캡션)라 열지 않는다 */
+const FORMAT = "card";
+
 interface StoredStrip {
+  format: typeof FORMAT;
   /** 사파리 구버전이 IndexedDB에 Blob을 못 넣어 바이트로 둔다 */
   bytes: ArrayBuffer;
-  photoBytes: ArrayBuffer;
   type: string;
-  eventLabel: string | null;
   takenAt: number;
 }
 
-// 운영 폰에 이미 있는 이름 — 바꾸면 마지막 띠를 잃는다
+// 운영 폰에 이미 있는 이름 — 바꾸면 마지막 카드를 잃는다
 const DB_NAME = "take-four";
 const STORE = "strips";
 const KEY = "last";
 /** 사생활 보호 모드 등에서 open이 답 없이 멈추는 경우가 있어 기다림에 한도를 둔다 */
 const OPEN_TIMEOUT_MS = 2000;
 
-/** 마지막 띠를 폰에 남긴다. 못 남겨도(사생활 보호 모드·용량) 조용히 넘어간다. */
-export async function saveLast(blob: Blob, photos: Blob, caption: StripCaption): Promise<void> {
+/** 마지막 카드를 폰에 남긴다(같은 키에 덮어쓴다). 못 남겨도(사생활 보호 모드·용량) 조용히 넘어간다. */
+export async function saveLast(blob: Blob, takenAt: Date): Promise<void> {
   try {
     const record: StoredStrip = {
+      format: FORMAT,
       bytes: await blob.arrayBuffer(),
-      photoBytes: await photos.arrayBuffer(),
       type: blob.type || "image/jpeg",
-      eventLabel: caption.eventLabel,
-      takenAt: caption.date.getTime(),
+      takenAt: takenAt.getTime(),
     };
     const db = await openDb();
     try {
@@ -45,7 +43,7 @@ export async function saveLast(blob: Blob, photos: Blob, caption: StripCaption):
   } catch {}
 }
 
-/** 마지막 띠. 없거나 못 읽으면 null. */
+/** 마지막 카드. 없거나, 못 읽거나, 카드 전 띠 기록이면 null. */
 export async function loadLast(): Promise<LastStrip | null> {
   try {
     const db = await openDb();
@@ -58,11 +56,7 @@ export async function loadLast(): Promise<LastStrip | null> {
     if (!isStoredStrip(record)) return null;
     return {
       blob: new Blob([record.bytes], { type: record.type }),
-      photos: new Blob([record.photoBytes], { type: record.type }),
-      caption: {
-        eventLabel: record.eventLabel,
-        date: new Date(record.takenAt),
-      },
+      takenAt: new Date(record.takenAt),
     };
   } catch {
     return null;
@@ -113,16 +107,18 @@ function committed(tx: IDBTransaction): Promise<void> {
   });
 }
 
-/** 예전 기록엔 늘 null인 `serial`이 더 있다 — 보지 않는다 */
+/**
+ * 카드 기록만 연다. 운영 폰엔 카드 전의 띠 기록(`format` 없음, 세로 띠 + 사진 기둥)이 남아 있을 수 있다 —
+ * 지금 화면(카드 비율·스토리·벽)에 맞지 않아 없는 것으로 친다. 다음에 찍으면 같은 키에 덮어쓴다.
+ */
 function isStoredStrip(value: unknown): value is StoredStrip {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
   return (
+    v.format === FORMAT &&
     // 다른 realm(테스트 jsdom)에서도 맞게 instanceof 대신 태그로 본다
     Object.prototype.toString.call(v.bytes) === "[object ArrayBuffer]" &&
-    Object.prototype.toString.call(v.photoBytes) === "[object ArrayBuffer]" &&
     typeof v.type === "string" &&
-    (v.eventLabel === null || typeof v.eventLabel === "string") &&
     typeof v.takenAt === "number"
   );
 }

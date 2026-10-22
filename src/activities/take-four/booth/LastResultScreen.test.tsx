@@ -3,7 +3,6 @@ import { act, cleanup, render, screen } from "@testing-library/react";
 
 import type { EventDetail } from "@/types";
 
-import { stripCaption } from "../strip/caption";
 import LastResultScreen from "./LastResultScreen";
 
 const storage = vi.hoisted(() => ({ loadLast: vi.fn() }));
@@ -35,21 +34,22 @@ afterEach(() => {
 });
 
 describe("LastResultScreen", () => {
-  it("남은 띠 → 찍던 때 캡션 그대로 완성 화면, 다시 찍기는 부스로", async () => {
+  it("남은 카드 → 그 카드로 완성 화면, 다시 찍기는 부스로", async () => {
     storage.loadLast.mockResolvedValue({
-      blob: new Blob(["x"]),
-      photos: new Blob(["p"], { type: "image/jpeg" }),
-      caption: stripCaption("live", new Date("2026-10-22T05:00:00Z"), "No.01"),
+      blob: new Blob(["x"], { type: "image/jpeg" }),
+      takenAt: new Date("2026-10-22T05:00:00Z"),
     });
     await renderLast();
-    expect(await screen.findByText("No.01 · 10.22")).toBeInTheDocument();
+    expect((await screen.findByRole("img", { name: /네컷/ })).getAttribute("src")).toMatch(
+      /^data:image\/jpeg;base64,/,
+    );
     expect(screen.getByRole("link", { name: "다시 찍기" })).toHaveAttribute(
       "href",
       "/events/take-four/booth",
     );
   });
 
-  it("남은 띠 없음(사생활 보호 모드 등) → 안내 + 커튼 열기", async () => {
+  it("남은 카드 없음(사생활 보호 모드·카드 전 띠 기록) → 안내 + 커튼 열기", async () => {
     storage.loadLast.mockResolvedValue(null);
     await renderLast();
     expect(screen.getByText(/아까 찍은 네컷이 없어요/)).toBeInTheDocument();
@@ -59,13 +59,12 @@ describe("LastResultScreen", () => {
     );
   });
 
-  it("2단계가 나왔고 switches.wall → 남은 띠에도 벽에 붙이기", async () => {
+  it("2단계가 나왔고 switches.wall → 남은 카드에도 벽에 붙이기", async () => {
     stage.shipped = { wall: true, entry: false };
     try {
       storage.loadLast.mockResolvedValue({
         blob: new Blob(["x"]),
-        photos: new Blob(["p"], { type: "image/jpeg" }),
-        caption: stripCaption("live", new Date("2026-10-22T05:00:00Z"), "No.01"),
+        takenAt: new Date("2026-10-22T05:00:00Z"),
       });
       await renderLast({ ...EVENT, switches: { wall: true } } as EventDetail);
       expect(await screen.findByRole("button", { name: "벽에 붙이기" })).toBeInTheDocument();

@@ -42,7 +42,7 @@ export default function AlbumScreen({ slug, onDone, initialFrames }: AlbumScreen
   const targetRef = useRef(0);
   const shownRef = useRef(slots);
 
-  // 바뀌어 빠진 사진의 캔버스(1280×960) 메모리를 돌려준다
+  // 바뀌어 빠진 사진의 캔버스(960×960) 메모리를 돌려준다
   useEffect(() => {
     for (const old of shownRef.current) {
       if (old && !slots.includes(old)) {

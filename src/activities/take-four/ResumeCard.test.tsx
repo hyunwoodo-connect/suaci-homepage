@@ -4,7 +4,6 @@ import { act, cleanup, render, screen } from "@testing-library/react";
 import type { EventDetail } from "@/types";
 
 import EntranceScreen from "./EntranceScreen";
-import { stripCaption } from "./strip/caption";
 
 const storage = vi.hoisted(() => ({ loadLast: vi.fn() }));
 vi.mock("./strip/storage", () => storage);
@@ -37,11 +36,10 @@ afterEach(() => {
 });
 
 describe("ResumeCard", () => {
-  it("폰에 남은 띠 있음 → 작은 띠 + 보기 →, 마지막 띠 화면으로", async () => {
+  it("폰에 남은 카드 있음 → 작은 카드 + 보기 →, 마지막 카드 화면으로", async () => {
     storage.loadLast.mockResolvedValue({
-      blob: new Blob(["x"]),
-      photos: new Blob(["p"], { type: "image/jpeg" }),
-      caption: stripCaption("live", new Date(), "No.01"),
+      blob: new Blob(["x"], { type: "image/jpeg" }),
+      takenAt: new Date(),
     });
     await renderEntrance();
     const card = await screen.findByRole("link", { name: /아까 찍은 네컷.*보기/ });
@@ -50,7 +48,7 @@ describe("ResumeCard", () => {
     expect(screen.getByRole("link", { name: "커튼 열기" })).toBeInTheDocument();
   });
 
-  it("남은 띠 없음 → 카드 없음", async () => {
+  it("남은 카드 없음(카드 전 띠 기록 포함) → 카드 없음", async () => {
     storage.loadLast.mockResolvedValue(null);
     await renderEntrance();
     expect(screen.queryByText(/아까 찍은 네컷/)).toBeNull();

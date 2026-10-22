@@ -6,13 +6,12 @@ import type { EventDetail } from "@/types";
 import BoothFlow from "./BoothFlow";
 
 const FRAMES = [0, 1, 2, 3].map(() => document.createElement("canvas"));
-const STRIP_BLOB = new Blob(["strip"], { type: "image/jpeg" });
-const PHOTOS_BLOB = new Blob(["photos"], { type: "image/jpeg" });
+const STRIP_BLOB = new Blob(["card"], { type: "image/jpeg" });
 
 vi.mock("./BoothScreen", () => ({
   default: ({ onDone }: { onDone: (frames: HTMLCanvasElement[]) => void }) => (
     <button type="button" onClick={() => onDone(FRAMES)}>
-      다 찍었어요. 인화하기
+      넉 장 다 찍음
     </button>
   ),
 }));
@@ -38,13 +37,11 @@ vi.mock("../album/AlbumScreen", () => ({
 
 const strip = vi.hoisted(() => ({
   composeStrip: vi.fn(),
-  composePhotos: vi.fn(),
   saveLast: vi.fn(),
 }));
 vi.mock("../strip/compose", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../strip/compose")>()),
   composeStrip: strip.composeStrip,
-  composePhotos: strip.composePhotos,
 }));
 vi.mock("../strip/storage", () => ({ saveLast: strip.saveLast }));
 
@@ -73,7 +70,7 @@ function event(phase: EventDetail["phase"] = "live", switches = {}, eventId = "n
 }
 
 async function shoot() {
-  await act(async () => fireEvent.click(screen.getByRole("button", { name: /인화하기/ })));
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: "넉 장 다 찍음" })));
 }
 
 beforeEach(() => {
@@ -84,7 +81,6 @@ beforeEach(() => {
     vi.fn(() => ({ matches: true })),
   );
   strip.composeStrip.mockReset().mockResolvedValue(STRIP_BLOB);
-  strip.composePhotos.mockReset().mockResolvedValue(PHOTOS_BLOB);
   strip.saveLast.mockReset().mockResolvedValue(undefined);
 });
 
@@ -95,26 +91,13 @@ afterEach(() => {
 });
 
 describe("BoothFlow", () => {
-  it("다 찍음 → 찍은 네 장을 이벤트 상태 캡션으로 합성하고 폰에 남긴다", async () => {
+  it("다 찍음 → 찍은 네 장을 찍은 시각으로 카드 합성하고, 같은 시각으로 폰에 남긴다", async () => {
     render(<BoothFlow event={event("live")} />);
     await shoot();
-    const [frames, caption] = strip.composeStrip.mock.calls[0];
+    const [frames, takenAt] = strip.composeStrip.mock.calls[0];
     expect(frames).toBe(FRAMES);
-    expect(caption).toMatchObject({ eventLabel: "No.01" });
-    expect(strip.composePhotos).toHaveBeenCalledWith(FRAMES);
-    expect(strip.saveLast).toHaveBeenCalledWith(STRIP_BLOB, PHOTOS_BLOB, caption);
-  });
-
-  it("마감된 이벤트 → 캡션에 No.01 없음", async () => {
-    render(<BoothFlow event={event("ended")} />);
-    await shoot();
-    expect(strip.composeStrip.mock.calls[0][1]).toMatchObject({ eventLabel: null });
-  });
-
-  it("이벤트 내용이 없는 이벤트 → 진행 중이어도 캡션에 회차 없음", async () => {
-    render(<BoothFlow event={event("live", {}, "unknown")} />);
-    await shoot();
-    expect(strip.composeStrip.mock.calls[0][1]).toMatchObject({ eventLabel: null });
+    expect(takenAt).toBeInstanceOf(Date);
+    expect(strip.saveLast).toHaveBeenCalledWith(STRIP_BLOB, takenAt);
   });
 
   it("현상 → 받기 → 완성, 다시 찍기 → 촬영 준비로", async () => {
@@ -124,7 +107,7 @@ describe("BoothFlow", () => {
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "받기" })));
     expect(screen.getByRole("button", { name: "저장" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "다시 찍기" }));
-    expect(screen.getByRole("button", { name: /인화하기/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "넉 장 다 찍음" })).toBeInTheDocument();
   });
 
   it("합성 실패 → oops., 다시 인화하기 → 다시 합성", async () => {
@@ -175,7 +158,7 @@ describe("BoothFlow", () => {
     expect(albumProps.initialFrames.at(-1)).toBeUndefined();
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "앨범 인화하기" })));
     expect(strip.composeStrip.mock.calls[0][0]).toBe(ALBUM_FRAMES);
-    expect(strip.composePhotos).toHaveBeenCalledWith(ALBUM_FRAMES);
+    expect(strip.composeStrip.mock.calls[0][0]).toBe(ALBUM_FRAMES);
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "받기" })));
     fireEvent.click(screen.getByRole("button", { name: "다시 고르기" }));
     expect(screen.getByRole("button", { name: "앨범 인화하기" })).toBeInTheDocument();

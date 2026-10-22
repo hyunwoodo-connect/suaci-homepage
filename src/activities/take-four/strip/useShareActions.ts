@@ -8,12 +8,12 @@ import { useGuardedAction } from "../useGuardedAction";
 import { downloadBlob, shareOrDownload, shareStoryOrDownload } from "./share";
 
 /**
- * 완성 화면의 공유·저장. 공유는 9:16 스토리(+ 되면 띠), 저장은 띠.
+ * 완성 화면의 공유·저장. 공유는 9:16 스토리(+ 되면 카드), 저장은 카드.
  * 스토리는 열리자마자 미리 만든다 — 누른 뒤에 만들면 사파리가 사용자 탭이 아니라며 공유 시트를 막는다.
- * 취소·실패해도 화면은 그대로 — 띠는 완성 화면이 들고 있다.
+ * 취소·실패해도 화면은 그대로 — 카드는 완성 화면이 들고 있다.
  */
 export function useShareActions(strip: Blob, filename: string, storyLink: string) {
-  /** 만드는 중 undefined, 못 만들면 null(→ 띠만 공유) */
+  /** 만드는 중 undefined, 못 만들면 null(→ 카드만 공유) */
   const [story, setStory] = useState<Blob | null | undefined>(undefined);
   // 공유 시트가 떠 있는 동안 두 번 누르면 두 번째 share()가 InvalidStateError — 한 번만
   const { run, isBusy } = useGuardedAction();

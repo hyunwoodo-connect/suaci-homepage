@@ -113,23 +113,17 @@ describe("WallScreen", () => {
     expect(screen.getByText("첫 번째로 붙여 주세요.")).toBeInTheDocument();
   });
 
-  it("카드 → 썸네일·캡션·리본 수, 크게 보기 링크", async () => {
+  it("카드 → 썸네일(카드 그대로, 기울기 없음)·리본 수, 크게 보기 링크", async () => {
     api.wallApi.list.mockResolvedValue({ items: [strip("s347")], cursor: null });
     await open();
     const [card] = cards();
     expect(card).toHaveAttribute("href", "/events/take-four/wall/s347");
-    expect(within(card).getByRole("img")).toHaveAttribute("src", "https://cdn/s347/thumb.jpg");
-    expect(within(card).getByText("no.0347")).toBeInTheDocument();
-    expect(within(card).getByText("No.01 · 12.04")).toBeInTheDocument();
+    expect(within(card).getByRole("img", { name: "네컷" })).toHaveAttribute(
+      "src",
+      "https://cdn/s347/thumb.jpg",
+    );
+    expect(card.parentElement?.className).not.toMatch(/rotate/);
     expect(screen.getByRole("button", { name: "리본 달기" })).toHaveTextContent("2");
-  });
-
-  it("이벤트 없는 네컷 → 캡션에 회차·날짜 없음", async () => {
-    api.wallApi.list.mockResolvedValue({ items: [strip("s5", { eventId: null })], cursor: null });
-    await open();
-    const [card] = cards();
-    expect(within(card).getByText("no.0005")).toBeInTheDocument();
-    expect(within(card).queryByText(/No\.01/)).toBeNull();
   });
 
   it("끝에 닿으면 다음 페이지, 같은 id는 한 번만", async () => {
@@ -160,13 +154,16 @@ describe("WallScreen", () => {
     expect(screen.getByText("더 불러오는 중…")).toBeInTheDocument();
   });
 
-  it("내 거만 `내 거`·떼기, 남의 것은 리본", async () => {
+  it("내 거만 잉크 외곽선·떼기, 남의 것은 리본", async () => {
     rememberMine("s1");
     api.wallApi.list.mockResolvedValue({ items: [strip("s1"), strip("s2")], cursor: null });
     await open();
     expect(screen.getAllByRole("button", { name: "떼기" })).toHaveLength(1);
     expect(screen.getAllByRole("button", { name: "리본 달기" })).toHaveLength(1);
-    expect(within(cards()[0]).getByText("내 거")).toBeInTheDocument();
+    expect(within(cards()[0]).getByRole("img", { name: "내 네컷" }).className).toContain("outline");
+    expect(within(cards()[1]).getByRole("img", { name: "네컷" }).className).not.toContain(
+      "outline",
+    );
   });
 
   it("떼기 → 시트에서 확인하면 지우고 벽에서 사라진다", async () => {

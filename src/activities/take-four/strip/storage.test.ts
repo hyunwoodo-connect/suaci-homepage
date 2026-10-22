@@ -1,7 +1,6 @@
 import { Blob as NodeBlob } from "node:buffer";
 import { describe, it, expect, vi, afterEach } from "vitest";
 
-import { stripCaption } from "./caption";
 import { loadLast, saveLast } from "./storage";
 
 const TAKEN = new Date("2026-10-22T05:00:00Z");
@@ -62,30 +61,25 @@ afterEach(() => {
 });
 
 describe("saveLast · loadLast", () => {
-  it("남긴 띠 → 같은 바이트·캡션으로 돌아온다", async () => {
+  it("남긴 카드 → 같은 바이트·찍은 시각으로 돌아오고, 기록엔 카드 표시가 있다", async () => {
     // jsdom Blob엔 arrayBuffer()가 없어 Node Blob으로 바꾼다
     vi.stubGlobal("Blob", NodeBlob);
-    vi.stubGlobal("indexedDB", fakeIndexedDb());
-    await saveLast(
-      new Blob(["strip-bytes"], { type: "image/jpeg" }),
-      new Blob(["photo-bytes"], { type: "image/jpeg" }),
-      stripCaption("live", TAKEN, "No.01"),
-    );
+    const fake = fakeIndexedDb();
+    vi.stubGlobal("indexedDB", fake);
+    await saveLast(new Blob(["card-bytes"], { type: "image/jpeg" }), TAKEN);
+    expect(fake.rows.get("last")).toMatchObject({ format: "card" });
     const last = await loadLast();
-    expect(last).not.toBeNull();
-    expect(await last?.blob.text()).toBe("strip-bytes");
+    expect(await last?.blob.text()).toBe("card-bytes");
     expect(last?.blob.type).toBe("image/jpeg");
-    expect(await last?.photos.text()).toBe("photo-bytes");
-    expect(last?.caption).toEqual({ eventLabel: "No.01", date: TAKEN });
+    expect(last?.takenAt).toEqual(TAKEN);
   });
 
   it("모양이 다른 기록(takenAt이 글자) → null", async () => {
     const fake = fakeIndexedDb();
     fake.rows.set("last", {
+      format: "card",
       bytes: new ArrayBuffer(1),
-      photoBytes: new ArrayBuffer(1),
       type: "image/jpeg",
-      eventLabel: null,
       takenAt: "0",
     });
     vi.stubGlobal("indexedDB", fake);
@@ -93,9 +87,9 @@ describe("saveLast · loadLast", () => {
   });
 
   it.each([
-    ["serial 없는 기록", {}],
-    ["예전 기록(serial: null)", { serial: null }],
-  ])("%s → 연다", async (_, extra) => {
+    ["serial 없는 띠 기록", {}],
+    ["더 예전 띠 기록(serial: null)", { serial: null }],
+  ])("카드 전 %s(운영 폰에 남은 것) → 던지지 않고 null", async (_, extra) => {
     const fake = fakeIndexedDb();
     fake.rows.set("last", {
       bytes: new ArrayBuffer(1),
@@ -106,7 +100,7 @@ describe("saveLast · loadLast", () => {
       ...extra,
     });
     vi.stubGlobal("indexedDB", fake);
-    expect((await loadLast())?.caption.eventLabel).toBe("No.01");
+    await expect(loadLast()).resolves.toBeNull();
   });
 
   it("남긴 게 없음 → null", async () => {
@@ -134,18 +128,14 @@ describe("saveLast · loadLast", () => {
       close: vi.fn(),
     };
     vi.stubGlobal("indexedDB", { open: () => fakeRequest(() => db) });
-    await expect(
-      saveLast(new Blob(["x"]), new Blob(["p"]), stripCaption("live", TAKEN, "No.01")),
-    ).resolves.toBeUndefined();
+    await expect(saveLast(new Blob(["x"]), TAKEN)).resolves.toBeUndefined();
     expect(db.close).toHaveBeenCalled();
     await expect(loadLast()).resolves.toBeNull();
   });
 
   it("IndexedDB 없음 → 저장은 조용히, 읽기는 null", async () => {
     vi.stubGlobal("indexedDB", undefined);
-    await expect(
-      saveLast(new Blob(["x"]), new Blob(["p"]), stripCaption("live", TAKEN, "No.01")),
-    ).resolves.toBeUndefined();
+    await expect(saveLast(new Blob(["x"]), TAKEN)).resolves.toBeUndefined();
     await expect(loadLast()).resolves.toBeNull();
   });
 
@@ -155,9 +145,7 @@ describe("saveLast · loadLast", () => {
         throw new DOMException("막힘", "SecurityError");
       },
     });
-    await expect(
-      saveLast(new Blob(["x"]), new Blob(["p"]), stripCaption("live", TAKEN, "No.01")),
-    ).resolves.toBeUndefined();
+    await expect(saveLast(new Blob(["x"]), TAKEN)).resolves.toBeUndefined();
     await expect(loadLast()).resolves.toBeNull();
   });
 

@@ -43,26 +43,24 @@ afterEach(() => {
 });
 
 describe("DetailScreen", () => {
-  it("큰 띠(원본)·번호·회차·도장, 닫기 → 벽", async () => {
+  it("원본 카드를 크게, 닫기 → 벽", async () => {
     await open();
     expect(api.wallApi.get).toHaveBeenCalledWith("s298");
     expect(screen.getByRole("img", { name: "다른 사람들의 네컷" })).toHaveAttribute(
       "src",
       "https://cdn/s298/original.jpg",
     );
-    expect(screen.getAllByText("no.0298").length).toBeGreaterThan(0);
-    expect(screen.getByText("No.01 · 12.04")).toBeInTheDocument();
-    expect(document.querySelector("[data-stamp]")).toHaveTextContent("No.01");
     expect(screen.getByRole("link", { name: "닫기" })).toHaveAttribute(
       "href",
       "/events/take-four/wall",
     );
   });
 
-  it("불러오는 동안 → 불러오는 중", async () => {
+  it("불러오는 동안 → 카드 뼈대 + 불러오는 중", async () => {
     api.wallApi.get.mockReturnValue(new Promise(() => {}));
     await open();
-    expect(screen.getByRole("status")).toHaveTextContent("불러오는 중…");
+    expect(screen.getByRole("status", { name: "불러오는 중…" })).toBeInTheDocument();
+    expect(document.querySelector("[data-card-skeleton]")).not.toBeNull();
   });
 
   it("없거나 가려졌으면 → 벽에 없어요 + 벽으로", async () => {

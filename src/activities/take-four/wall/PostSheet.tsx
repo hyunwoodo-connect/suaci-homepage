@@ -13,14 +13,14 @@ import { useGuardedAction } from "../useGuardedAction";
 import { postStrip } from "./postStrip";
 
 interface PostSheetProps {
-  /** 완성 화면의 사진 기둥 */
-  photos: Blob;
+  /** 완성 카드(저장 파일 그대로 붙는다) */
+  card: Blob;
   /** 벽 주소(`/events/{slug}/wall`)에 쓴다 */
   slug: string;
 }
 
 /** `벽에 붙이기` → 시트에서 확인 → 올리고 벽으로. 실패하면 시트에 남아 `다시 보내기`. */
-export default function PostSheet({ photos, slug }: PostSheetProps) {
+export default function PostSheet({ card, slug }: PostSheetProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState<"idle" | "posting" | "failed" | "limited">("idle");
@@ -30,7 +30,7 @@ export default function PostSheet({ photos, slug }: PostSheetProps) {
     return run(async () => {
       setStatus("posting");
       try {
-        const { stripId } = await postStrip(photos);
+        const { stripId } = await postStrip(card);
         // 넘어가는 동안에도 `보내는 중…`으로 잠가 둔다
         router.push(`/events/${slug}/wall?posted=${encodeURIComponent(stripId)}`);
       } catch (err) {

@@ -12,7 +12,7 @@ const api = vi.hoisted(() => ({
 vi.mock("./api", () => api);
 
 const THUMB = new Blob(["t"], { type: "image/jpeg" });
-const PHOTOS = new Blob(["p"], { type: "image/jpeg" });
+const CARD = new Blob(["card"], { type: "image/jpeg" });
 const ORIGINAL_TARGET = { url: "u", fields: {}, key: "o" } as UploadTarget;
 const THUMB_TARGET = { url: "u", fields: {}, key: "t" } as UploadTarget;
 const VIEW = { stripId: "01J", serial: 1 } as StripView;
@@ -37,14 +37,14 @@ beforeEach(() => {
 
 describe("postStrip", () => {
   it("만들기 → 원본·썸네일 업로드 → 확정, 내 거로 기억", async () => {
-    expect(await postStrip(PHOTOS)).toBe(VIEW);
+    expect(await postStrip(CARD)).toBe(VIEW);
     expect(calls[0]).toBe("create");
     expect(calls.slice(1, 3).sort()).toEqual(["upload:o", "upload:t"]);
     expect(calls[3]).toBe("confirm");
-    expect(api.wallApi.upload).toHaveBeenCalledWith(ORIGINAL_TARGET, PHOTOS);
+    expect(api.wallApi.upload).toHaveBeenCalledWith(ORIGINAL_TARGET, CARD);
     expect(api.wallApi.upload).toHaveBeenCalledWith(THUMB_TARGET, THUMB);
     expect(api.wallApi.confirm).toHaveBeenCalledWith("01J");
-    expect(thumb.makeThumb).toHaveBeenCalledWith(PHOTOS);
+    expect(thumb.makeThumb).toHaveBeenCalledWith(CARD);
     expect(isMine("01J")).toBe(true);
   });
 
@@ -52,14 +52,14 @@ describe("postStrip", () => {
     api.wallApi.upload.mockImplementation(async (target: UploadTarget) => {
       if (target.key === "t") throw new Error("S3");
     });
-    await expect(postStrip(PHOTOS)).rejects.toThrow("S3");
+    await expect(postStrip(CARD)).rejects.toThrow("S3");
     expect(api.wallApi.confirm).not.toHaveBeenCalled();
     expect(isMine("01J")).toBe(false);
   });
 
   it("확정 실패 → 던지고 내 거로 기억하지 않는다", async () => {
     api.wallApi.confirm.mockRejectedValue(new Error("409"));
-    await expect(postStrip(PHOTOS)).rejects.toThrow("409");
+    await expect(postStrip(CARD)).rejects.toThrow("409");
     expect(isMine("01J")).toBe(false);
   });
 });

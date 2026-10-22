@@ -57,7 +57,7 @@ describe("EventSubPage", () => {
 
   it("booth → 놀이 모듈이 그린 화면", async () => {
     vi.mocked(eventsApi.get).mockResolvedValue(detail("take-four"));
-    expect(renderToStaticMarkup(await open(["booth"]))).toContain("찰칵");
+    expect(renderToStaticMarkup(await open(["booth"]))).toContain("찍기 시작");
   });
 
   it("모르는 하위 경로 → notFound", async () => {

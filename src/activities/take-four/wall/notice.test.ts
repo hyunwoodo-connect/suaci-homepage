@@ -2,8 +2,7 @@ import { describe, it, expect } from "vitest";
 
 import type { EventDetail } from "@/types";
 
-import type { StripView } from "./api";
-import { wallCaption, wallNotice } from "./caption";
+import { wallNotice } from "./notice";
 
 // KST 2026-12-01 00:00 ~ 2027-01-10 23:59:59, 발표 2027-01-15 10:00
 const START = Date.parse("2026-11-30T15:00:00Z");
@@ -28,43 +27,6 @@ function event(phase: EventDetail["phase"], extra: Partial<EventDetail> = {}): E
     ...extra,
   };
 }
-
-function strip(extra: Partial<StripView> = {}): StripView {
-  return {
-    stripId: "01J",
-    serial: 347,
-    eventId: "no01",
-    ribbons: 0,
-    thumbUrl: "https://cdn/thumb.jpg",
-    photoUrl: "https://cdn/original.jpg",
-    // KST 12.04 09:00
-    postedAt: Date.parse("2026-12-04T00:00:00Z"),
-    postedDtm: "",
-    ...extra,
-  };
-}
-
-describe("wallCaption", () => {
-  it("이벤트 네컷 → 4자리 번호, 회차·KST 날짜, 도장", () => {
-    expect(wallCaption(strip())).toEqual({
-      number: "no.0347",
-      meta: "No.01 · 12.04",
-      stamp: "No.01",
-    });
-  });
-
-  it("이벤트 없는 네컷 → 번호만(meta·도장 없음)", () => {
-    expect(wallCaption(strip({ eventId: null }))).toEqual({
-      number: "no.0347",
-      meta: "",
-      stamp: undefined,
-    });
-  });
-
-  it("내용이 없는 이벤트 id → meta·도장 없음", () => {
-    expect(wallCaption(strip({ eventId: "zz" })).meta).toBe("");
-  });
-});
 
 describe("wallNotice", () => {
   it("열기 전 → 시작 날짜", () => {

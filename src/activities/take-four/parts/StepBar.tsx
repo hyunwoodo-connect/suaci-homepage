@@ -3,32 +3,28 @@ import { STEP_COLORS } from "../theme";
 interface StepBarProps {
   /** 앞에서부터 색이 찬 칸 수(0~4) */
   filled: number;
-  /** 링을 두를 지금 칸(0~3). 대기·완료면 없음 */
-  active?: number;
-  /** md: 입구 34×8 / sm: 촬영 30×7 */
+  /** md: 입구 34×8 / sm: 촬영 40×6 */
   size?: "md" | "sm";
 }
 
+const STEP_SIZE = {
+  md: { row: "gap-[4px]", cell: "h-[8px] w-[34px] rounded-[4px]", empty: "var(--tf-empty)" },
+  sm: { row: "gap-[6px]", cell: "h-[6px] w-[40px] rounded-[3px]", empty: "var(--tf-track)" },
+} as const;
+
 /** 단계 바 네 칸. 지시 문구가 단계를 읽어 주므로 보조기기엔 숨긴다. */
-export default function StepBar({ filled, active, size = "md" }: StepBarProps) {
+export default function StepBar({ filled, size = "md" }: StepBarProps) {
+  const s = STEP_SIZE[size];
   return (
-    <div aria-hidden="true" className="flex justify-center gap-[4px]">
-      {STEP_COLORS.map((color, i) => {
-        const isFilled = i < filled;
-        const isActive = i === active;
-        return (
-          <span
-            key={color}
-            data-active={isActive || undefined}
-            style={{
-              background: isFilled ? color : "var(--tf-empty)",
-              outline: isActive ? "2px solid var(--tf-ink)" : "none",
-              outlineOffset: isActive ? 2 : undefined,
-            }}
-            className={`rounded-[4px] ${size === "md" ? "h-[8px] w-[34px]" : "h-[7px] w-[30px]"}`}
-          />
-        );
-      })}
+    <div aria-hidden="true" className={`flex justify-center ${s.row}`}>
+      {STEP_COLORS.map((color, i) => (
+        <span
+          key={color}
+          data-filled={i < filled || undefined}
+          style={{ background: i < filled ? color : s.empty }}
+          className={s.cell}
+        />
+      ))}
     </div>
   );
 }

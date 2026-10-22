@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 import BottomSheet from "./BottomSheet";
+import Card from "./Card";
 import Countdown from "./Countdown";
 import DashedPill from "./DashedPill";
 import GirlsIllustration from "./GirlsIllustration";
@@ -13,7 +14,6 @@ import ScallopFrame from "./ScallopFrame";
 import ShareIcon from "./ShareIcon";
 import Shutter from "./Shutter";
 import StepBar from "./StepBar";
-import Strip from "./Strip";
 import TitleMark from "./TitleMark";
 import TopBar from "./TopBar";
 import TextLink from "./TextLink";
@@ -62,20 +62,18 @@ describe("StepBar", () => {
     return Array.from(container.querySelectorAll("span"));
   }
 
-  it("active 0 → 첫 칸만 지금 칸", () => {
-    const { container } = render(<StepBar filled={1} active={0} size="sm" />);
-    const s = segments(container);
-    expect(s[0]).toHaveAttribute("data-active", "true");
-    expect(s.slice(1).some((e) => e.hasAttribute("data-active"))).toBe(false);
-  });
-
-  it("active 없으면(대기·완료) 지금 칸 없음", () => {
-    const { container } = render(<StepBar filled={4} />);
-    expect(segments(container).some((e) => e.hasAttribute("data-active"))).toBe(false);
+  it("filled 2 → 앞 두 칸만 색", () => {
+    const { container } = render(<StepBar filled={2} size="sm" />);
+    expect(segments(container).map((e) => e.hasAttribute("data-filled"))).toEqual([
+      true,
+      true,
+      false,
+      false,
+    ]);
   });
 
   it("보조기기엔 숨긴다", () => {
-    const { container } = render(<StepBar filled={2} active={1} />);
+    const { container } = render(<StepBar filled={4} />);
     expect(container.firstElementChild).toHaveAttribute("aria-hidden", "true");
   });
 });
@@ -142,29 +140,34 @@ describe("NoteSticker", () => {
 describe("ScallopFrame", () => {
   it("이름 붙은 그림 + 창 안에 자식", () => {
     render(
-      <ScallopFrame label="카메라 화면">
-        <Countdown value={3} />
+      <ScallopFrame>
+        <span>안</span>
       </ScallopFrame>,
     );
     expect(screen.getByRole("img", { name: "카메라 화면" })).toBeInTheDocument();
-    expect(screen.getByText("3")).toHaveAttribute("aria-live", "assertive");
+    expect(screen.getByText("안")).toBeInTheDocument();
   });
 });
 
 describe("Countdown", () => {
-  it("value null → 읽기 영역은 남고 비어 있다", () => {
-    const { container } = render(<Countdown value={null} />);
-    const live = container.querySelector("[aria-live]");
-    expect(live).not.toBeNull();
-    expect(live).toBeEmptyDOMElement();
+  it("2 → 지금 숫자 하나만 읽고, 2가 크게", () => {
+    const { container } = render(<Countdown count={2} />);
+    expect(container.querySelector("[aria-live=assertive] .sr-only")).toHaveTextContent("2");
+    expect(container.querySelector("[data-current]")).toHaveTextContent("2");
+  });
+
+  it("null(찰칵 순간) → 숫자 대신 찰칵", () => {
+    const { container } = render(<Countdown count={null} />);
+    expect(container.querySelector("[data-current]")).toBeNull();
+    expect(container.querySelector(".sr-only")).toHaveTextContent("찰칵");
   });
 });
 
 describe("Shutter", () => {
-  it("ready → `찰칵 — 찍기 시작` 버튼(이름이 보이는 글자로 시작), 누르면 onPress", () => {
+  it("ready → `찍기 시작` 버튼, 누르면 onPress", () => {
     const onPress = vi.fn();
     render(<Shutter state="ready" onPress={onPress} />);
-    fireEvent.click(screen.getByRole("button", { name: "찰칵 — 찍기 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "찍기 시작" }));
     expect(onPress).toHaveBeenCalledOnce();
   });
 
@@ -175,11 +178,6 @@ describe("Shutter", () => {
     expect(btn).toBeDisabled();
     fireEvent.click(btn);
     expect(onPress).not.toHaveBeenCalled();
-  });
-
-  it("running → 자동으로 넘어가는 중 비활성", () => {
-    render(<Shutter state="running" />);
-    expect(screen.getByRole("button", { name: "자동 — 다음 장으로 넘어가요" })).toBeDisabled();
   });
 });
 
@@ -270,29 +268,23 @@ describe("DashedPill", () => {
   });
 });
 
-describe("Strip", () => {
-  const props = {
-    src: "/events/take-four/strip-main-duo.jpg",
-    alt: "네컷: 무표정, 살짝 미소, 방긋, 박장대소",
-    number: "no.0347",
-    meta: "No.01 · 12.04",
-  };
-
-  it("사진 + 캡션(번호·회차 날짜)", () => {
-    render(<Strip {...props} />);
-    expect(screen.getByRole("img", { name: props.alt })).toHaveAttribute("src", props.src);
-    expect(screen.getByRole("figure")).toHaveTextContent("no.0347");
-    expect(screen.getByRole("figure")).toHaveTextContent("No.01 · 12.04");
+describe("Card", () => {
+  it("src → 그 카드 이미지", () => {
+    render(<Card src="data:image/jpeg;base64,AA" alt="네컷" size="result" />);
+    expect(screen.getByRole("img", { name: "네컷" })).toHaveAttribute(
+      "src",
+      "data:image/jpeg;base64,AA",
+    );
   });
 
-  it("stamp 없으면 도장 없음", () => {
-    const { container } = render(<Strip {...props} />);
-    expect(container.querySelector("[data-stamp]")).toBeNull();
-  });
-
-  it("stamp → 그 글자 도장", () => {
-    const { container } = render(<Strip {...props} stamp="No.01" />);
-    expect(container.querySelector("[data-stamp]")).toHaveTextContent("No.01");
+  it("src 없음 → 카드 비율 뼈대에 합성과 같은 칸 넷(숨김)", () => {
+    const { container } = render(<Card alt="" size="detail" />);
+    const skeleton = container.querySelector("[data-card-skeleton]") as HTMLElement;
+    expect(skeleton).toHaveAttribute("aria-hidden", "true");
+    expect(skeleton.style.aspectRatio).toBe("1080 / 1350");
+    const cells = Array.from(skeleton.children) as HTMLElement[];
+    expect(cells).toHaveLength(4);
+    expect(cells[0].style.left).toBe(`${(63 / 1080) * 100}%`);
   });
 });
 

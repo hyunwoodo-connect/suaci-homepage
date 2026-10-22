@@ -3,27 +3,24 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
+import Card from "../parts/Card";
 import FitStage from "../parts/FitStage";
 import PillButton from "../parts/PillButton";
 import SaveIcon from "../parts/SaveIcon";
 import Screen from "../parts/Screen";
 import ShareIcon from "../parts/ShareIcon";
-import Strip from "../parts/Strip";
 import TextLink from "../parts/TextLink";
 import TopBar from "../parts/TopBar";
 import Wordmark from "../parts/Wordmark";
 import { blobToDataUrl } from "../canvas";
-import { captionText, stripFilename } from "../strip/caption";
-import type { StripCaption } from "../strip/caption";
+import { stripFilename } from "../strip/caption";
 import { useShareActions } from "../strip/useShareActions";
 import { SHOT_NAMES } from "../shots";
 
 interface ResultScreenProps {
-  /** 합성된 띠(900×2659 JPEG) — 저장·공유하는 파일 */
+  /** 합성된 카드(1080×1350 JPEG) — 화면에 보이고 저장·공유하는 파일 */
   strip: Blob;
-  /** 같은 네 장의 사진 기둥(띠 안에 보이는 것) */
-  photos: Blob;
-  caption: StripCaption;
+  takenAt: Date;
   /** 공유·저장 위 주 행동 자리(벽에 붙이기 `PostSheet`). 없으면 비운다 */
   action?: ReactNode;
   /** 스토리 이미지 왼쪽 아래 주소 */
@@ -37,51 +34,45 @@ interface ResultScreenProps {
 }
 
 /**
- * 완성. 시안 Result 그대로 띠 + (벽에 붙이기) + 공유·저장 + 다시 찍기.
- * 띠 안 사진은 합성 띠와 같은 칸 배치로 그린 것이라 저장되는 사진과 같다. 공유·저장은 `useShareActions`.
+ * 완성. 시안 Result 그대로 카드 + (벽에 붙이기) + 공유·저장 + 다시 찍기.
+ * 보이는 카드가 저장되는 파일 그대로다. 공유·저장은 `useShareActions`.
  */
 export default function ResultScreen({
   strip,
-  photos,
-  caption,
+  takenAt,
   action,
   storyLink,
   onRetake,
   retakeHref,
   retakeLabel = "다시 찍기",
 }: ResultScreenProps) {
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const { number, meta } = captionText(caption);
-  const filename = stripFilename(caption);
+  const [cardUrl, setCardUrl] = useState<string | null>(null);
+  const filename = stripFilename(takenAt);
   const { share, save, isBusy, isStoryReady } = useShareActions(strip, filename, storyLink);
 
   useEffect(() => {
     let isCancelled = false;
-    blobToDataUrl(photos)
+    blobToDataUrl(strip)
       .then((url) => {
-        if (!isCancelled) setPhotoUrl(url);
+        if (!isCancelled) setCardUrl(url);
       })
       .catch(() => {});
     return () => {
       isCancelled = true;
     };
-  }, [photos]);
+  }, [strip]);
 
   return (
-    <Screen tone="cream">
-      <TopBar start={<Wordmark />} label={number} />
+    <Screen tone="pale">
+      <TopBar start={<Wordmark />} />
 
       <FitStage>
-        {photoUrl ? (
-          <Strip
-            src={photoUrl}
-            alt={`네컷: ${SHOT_NAMES.join(", ")}`}
-            number={number}
-            meta={meta}
-            stamp={caption.eventLabel ?? undefined}
-          />
+        {cardUrl ? (
+          <Card src={cardUrl} alt={`네컷: ${SHOT_NAMES.join(", ")}`} size="result" />
         ) : (
-          <div role="status" aria-label="네컷 여는 중" className="h-[506px] w-[176px]" />
+          <div role="status" aria-label="네컷 여는 중">
+            <Card alt="" size="result" />
+          </div>
         )}
       </FitStage>
 

@@ -18,7 +18,7 @@ interface LastResultScreenProps {
   event: EventDetail;
 }
 
-/** `/events/{slug}/result`. 입구 `아까 찍은 네컷` 카드가 여는 마지막 띠의 완성 화면. */
+/** `/events/{slug}/result`. 입구 `아까 찍은 네컷` 카드가 여는 마지막 카드의 완성 화면. */
 export default function LastResultScreen({ event }: LastResultScreenProps) {
   const [last, setLast] = useState<LastStrip | null | undefined>(undefined);
   const base = `/events/${event.slug}`;
@@ -37,9 +37,8 @@ export default function LastResultScreen({ event }: LastResultScreenProps) {
     return (
       <ResultScreen
         strip={last.blob}
-        photos={last.photos}
-        caption={last.caption}
-        action={canPostToWall(event) ? <PostSheet photos={last.photos} slug={event.slug} /> : null}
+        takenAt={last.takenAt}
+        action={canPostToWall(event) ? <PostSheet card={last.blob} slug={event.slug} /> : null}
         storyLink={storyLink(event.slug)}
         retakeHref={`${base}/booth`}
       />
@@ -47,7 +46,7 @@ export default function LastResultScreen({ event }: LastResultScreenProps) {
   }
 
   return (
-    <Screen tone="cream">
+    <Screen tone="pale">
       <TopBar nav={{ icon: "back", label: "입구로", href: base }} />
       <div className="flex flex-1 items-center justify-center text-center">
         {last === null ? (

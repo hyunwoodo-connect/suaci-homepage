@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 
-import { stripCaption } from "../strip/caption";
 import ResultScreen from "./ResultScreen";
 
 const share = vi.hoisted(() => ({
@@ -17,8 +16,7 @@ vi.mock("../story/composeStory", async (importOriginal) => ({
 }));
 const STORY_BLOB = new Blob(["story"], { type: "image/jpeg" });
 
-const STRIP_BLOB = new Blob(["strip"], { type: "image/jpeg" });
-const PHOTOS_BLOB = new Blob(["photos"], { type: "image/jpeg" });
+const STRIP_BLOB = new Blob(["card"], { type: "image/jpeg" });
 const TAKEN = new Date("2026-10-22T05:00:00Z");
 
 async function renderResult(props: Partial<Parameters<typeof ResultScreen>[0]> = {}) {
@@ -26,15 +24,14 @@ async function renderResult(props: Partial<Parameters<typeof ResultScreen>[0]> =
     render(
       <ResultScreen
         strip={STRIP_BLOB}
-        photos={PHOTOS_BLOB}
-        caption={stripCaption("live", TAKEN, "No.01")}
+        takenAt={TAKEN}
         storyLink="takesuaci.com/events/take-four"
         onRetake={vi.fn()}
         {...props}
       />,
     );
   });
-  // 사진 기둥은 FileReader로 읽혀 한 틱 뒤에 그려진다
+  // 카드는 FileReader로 읽혀 한 틱 뒤에 그려진다
   await screen.findByRole("img", { name: /네컷/ });
 }
 
@@ -51,24 +48,15 @@ afterEach(() => {
 });
 
 describe("ResultScreen", () => {
-  it("진행 중 → 띠(사진 기둥)·캡션·도장, 공유·저장·다시 찍기", async () => {
+  it("저장 카드 그대로를 보여 주고, 공유·저장·다시 찍기", async () => {
     await renderResult();
-    expect(screen.getByRole("img", { name: /네컷: 무표정/ }).getAttribute("src")).toMatch(
-      /^data:image\/jpeg;base64,/,
+    const card = screen.getByRole("img", { name: /네컷: 무표정/ });
+    expect(card.getAttribute("src")).toBe(
+      `data:image/jpeg;base64,${Buffer.from("card").toString("base64")}`,
     );
-    expect(screen.getAllByText("no.----").length).toBeGreaterThan(0);
-    expect(screen.getByText("No.01 · 10.22")).toBeInTheDocument();
-    expect(document.querySelector("[data-stamp]")).not.toBeNull();
     expect(screen.getByRole("button", { name: "공유하기" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "저장" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "다시 찍기" })).toBeInTheDocument();
-  });
-
-  it("이벤트 끝남 → 도장·No.01 없이 날짜만", async () => {
-    await renderResult({ caption: stripCaption("ended", TAKEN, "No.01") });
-    expect(screen.getByText("10.22")).toBeInTheDocument();
-    expect(screen.queryByText(/No\.01/)).toBeNull();
-    expect(document.querySelector("[data-stamp]")).toBeNull();
   });
 
   it("공유하기 → 띠로 만든 스토리와 띠를 한국 날짜 이름으로", async () => {

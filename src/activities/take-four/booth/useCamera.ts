@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 
-import { centerCrop43 } from "./crop";
+import { centerSquare } from "./crop";
 
 /** idle: 꺼짐 / starting: 권한 묻는 중 / on: 켜짐 / denied: 거절 / unavailable: 장치·API 없음 */
 export type CameraStatus = "idle" | "starting" | "on" | "denied" | "unavailable";
@@ -15,7 +15,7 @@ interface Camera {
   /** 켜지면 true. 이미 켜져 있으면 바로 true */
   start(): Promise<boolean>;
   stop(): void;
-  /** 지금 화면을 가운데 4:3로 잘라, 미리보기처럼 좌우 반전한 그대로 그린다 */
+  /** 지금 화면을 가운데 정사각으로 잘라, 미리보기처럼 좌우 반전한 그대로 그린다 */
   capture(): HTMLCanvasElement;
 }
 
@@ -28,7 +28,7 @@ const CONSTRAINTS: MediaStreamConstraints = {
 const SIZE_TIMEOUT_MS = 3000;
 
 /** 비디오가 크기를 모를 때 찍히는 빈 장(start가 막으니 안전망일 뿐) */
-const FALLBACK_SIZE = { width: 640, height: 480 } as const;
+const FALLBACK_SIZE = { width: 640, height: 640 } as const;
 
 /** 전면 카메라. 언마운트·탭 숨김에서 트랙을 끈다. */
 export function useCamera(): Camera {
@@ -112,7 +112,7 @@ export function useCamera(): Camera {
       canvas.height = FALLBACK_SIZE.height;
       return canvas;
     }
-    const crop = centerCrop43(video.videoWidth, video.videoHeight);
+    const crop = centerSquare(video.videoWidth, video.videoHeight);
     canvas.width = crop.width;
     canvas.height = crop.height;
     const ctx = canvas.getContext("2d");

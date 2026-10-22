@@ -19,9 +19,9 @@ const EVENT = {
 const CTX = { userAgent: "", url: "https://takesuaci.com/events/take-four" };
 
 describe("TAKE_FOUR.route", () => {
-  it("booth → 부스(찰칵)", () => {
+  it("booth → 부스(셔터)", () => {
     const screen = TAKE_FOUR.route(["booth"], EVENT, CTX);
-    expect(renderToStaticMarkup(<>{screen}</>)).toContain("찰칵");
+    expect(renderToStaticMarkup(<>{screen}</>)).toContain("찍기 시작");
   });
 
   it("result → 마지막 띠 화면", () => {

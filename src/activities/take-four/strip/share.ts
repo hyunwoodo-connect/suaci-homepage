@@ -10,7 +10,7 @@ export async function shareOrDownload(blob: Blob, filename: string): Promise<Sha
 }
 
 /**
- * 완성 화면 `공유하기`. 스토리(9:16)와 띠를 같이 보낼 수 있으면 둘 다, 안 되면 스토리만,
+ * 완성 화면 `공유하기`. 스토리(9:16)와 카드를 같이 보낼 수 있으면 둘 다, 안 되면 스토리만,
  * 파일 공유가 아예 안 되면 스토리를 내려받는다.
  */
 export async function shareStoryOrDownload(

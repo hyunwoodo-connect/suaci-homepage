@@ -30,22 +30,22 @@ afterEach(() => {
 const SOURCE = {} as CanvasImageSource;
 
 describe("cropToFrame", () => {
-  it("세로 사진 3024×4032 → 가운데 가로 4:3(3024×2268)을 1280×960에", () => {
+  it("세로 사진 3024×4032 → 가운데 정사각(3024×3024)을 960×960에", () => {
     const canvas = cropToFrame(SOURCE, { width: 3024, height: 4032 });
     expect([canvas.width, canvas.height]).toEqual([ALBUM_FRAME.width, ALBUM_FRAME.height]);
-    expect(ctx.drawImage).toHaveBeenCalledWith(SOURCE, 0, 882, 3024, 2268, 0, 0, 1280, 960);
+    expect(ctx.drawImage).toHaveBeenCalledWith(SOURCE, 0, 504, 3024, 3024, 0, 0, 960, 960);
   });
 
-  it("가로 16:9 1920×1080 → 양옆을 잘라 1440×1080", () => {
+  it("가로 16:9 1920×1080 → 양옆을 잘라 1080×1080", () => {
     cropToFrame(SOURCE, { width: 1920, height: 1080 });
-    expect(ctx.drawImage).toHaveBeenCalledWith(SOURCE, 240, 0, 1440, 1080, 0, 0, 1280, 960);
+    expect(ctx.drawImage).toHaveBeenCalledWith(SOURCE, 420, 0, 1080, 1080, 0, 0, 960, 960);
   });
 
   it("앨범 사진은 거울로 뒤집지 않는다", () => {
     cropToFrame(SOURCE, { width: 4032, height: 3024 });
     expect(ctx.scale).not.toHaveBeenCalled();
     expect(ctx.translate).not.toHaveBeenCalled();
-    expect(ctx.drawImage).toHaveBeenCalledWith(SOURCE, 0, 0, 4032, 3024, 0, 0, 1280, 960);
+    expect(ctx.drawImage).toHaveBeenCalledWith(SOURCE, 504, 0, 3024, 3024, 0, 0, 960, 960);
   });
 });
 
@@ -75,9 +75,9 @@ describe("loadAlbumFrame", () => {
       resizeWidth: DECODE_WIDTH,
       resizeQuality: "high",
     });
-    expect(ctx.drawImage).toHaveBeenCalledWith(bitmap, 0, 560, 1920, 1440, 0, 0, 1280, 960);
+    expect(ctx.drawImage).toHaveBeenCalledWith(bitmap, 0, 320, 1920, 1920, 0, 0, 960, 960);
     expect(bitmap.close).toHaveBeenCalledTimes(1);
-    expect(canvas.width).toBe(1280);
+    expect(canvas.width).toBe(960);
   });
 
   it("줄였더니 짧은 변 < 960(긴 파노라마) → 줄인 비트맵을 놓고 원본 크기로 한 번 더", async () => {
@@ -91,7 +91,7 @@ describe("loadAlbumFrame", () => {
 
     expect(small.close).toHaveBeenCalledTimes(1);
     expect(create).toHaveBeenLastCalledWith(file, { imageOrientation: "from-image" });
-    expect(ctx.drawImage).toHaveBeenCalledWith(full, 2667, 0, 2667, 2000, 0, 0, 1280, 960);
+    expect(ctx.drawImage).toHaveBeenCalledWith(full, 3000, 0, 2000, 2000, 0, 0, 960, 960);
     expect(full.close).toHaveBeenCalledTimes(1);
   });
 
@@ -142,12 +142,12 @@ describe("loadAlbumFrame", () => {
     expect(ctx.drawImage).toHaveBeenCalledWith(
       expect.any(HTMLImageElement),
       0,
-      875,
+      500,
       3000,
-      2250,
+      3000,
       0,
       0,
-      1280,
+      960,
       960,
     );
     expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:old");

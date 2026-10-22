@@ -7,9 +7,9 @@ import Link from "next/link";
 import type { EventDetail } from "@/types";
 
 import PillButton from "../parts/PillButton";
+import Card from "../parts/Card";
 import Pin from "../parts/Pin";
 import Screen from "../parts/Screen";
-import Strip from "../parts/Strip";
 import TextLink from "../parts/TextLink";
 import TopBar from "../parts/TopBar";
 import Wordmark from "../parts/Wordmark";
@@ -18,7 +18,7 @@ import { wallApi } from "./api";
 import type { StripView } from "./api";
 import { forgetMine, isHidden, isMine, rememberHidden } from "./deviceMarks";
 import RemoveSheet from "./RemoveSheet";
-import { wallNotice } from "./caption";
+import { wallNotice } from "./notice";
 import WallCard from "./WallCard";
 
 interface WallScreenProps {
@@ -30,17 +30,8 @@ interface WallScreenProps {
 /** first: 첫 페이지 받는 중 / more: 다음 페이지 받는 중 / failed·moreFailed: 못 받음 */
 type LoadState = "first" | "ready" | "more" | "failed" | "moreFailed";
 
-/** 시안 Wall 카드 기울기 순서 */
-const TILTS = [
-  "rotate-[-3deg]",
-  "rotate-[2deg]",
-  "rotate-[1.5deg]",
-  "rotate-[-2deg]",
-  "rotate-[-1deg]",
-  "rotate-[3deg]",
-] as const;
-const SKELETON_TILTS = ["rotate-[-2deg]", "rotate-[2deg]", "rotate-[1deg]", "rotate-[-1.5deg]"];
-const GRID = "grid grid-cols-2 gap-x-[14px] gap-y-[22px]";
+const GRID = "grid grid-cols-2 gap-x-[14px] gap-y-[20px]";
+const SKELETON_COUNT = 4;
 
 /**
  * 이미 받은 네컷은 건너뛴다 — 목록 캐시(15초) 사이에 새로 붙은 게 끼면 페이지 경계에서 겹친다.
@@ -174,9 +165,9 @@ export default function WallScreen({ event, now }: WallScreenProps) {
       <div className="pt-[6px] pb-[120px]">
         {isFirstLoad ? (
           <div role="status" aria-label="불러오는 중" className={GRID}>
-            {SKELETON_TILTS.map((tilt) => (
-              <div key={tilt} className={`flex flex-col items-center gap-[6px] ${tilt}`}>
-                <Strip size="sm" alt="" number="" meta="" />
+            {Array.from({ length: SKELETON_COUNT }, (_, i) => (
+              <div key={i} className="flex flex-col items-center gap-[8px]">
+                <Card alt="" size="fill" hasShadow />
                 <div className="h-[36px] w-[70px] rounded-full bg-(--tf-cream)/40" />
               </div>
             ))}
@@ -201,14 +192,13 @@ export default function WallScreen({ event, now }: WallScreenProps) {
 
         {strips.length > 0 ? (
           <div className={GRID}>
-            {strips.map((strip, i) => (
+            {strips.map((strip) => (
               <WallCard
                 key={strip.stripId}
                 strip={strip}
                 href={`${base}/wall/${encodeURIComponent(strip.stripId)}`}
                 isMine={mineIds.has(strip.stripId)}
                 isPosted={strip.stripId === posted?.stripId}
-                tilt={TILTS[i % TILTS.length]}
                 onAskRemove={() => setRemoving(strip)}
               />
             ))}

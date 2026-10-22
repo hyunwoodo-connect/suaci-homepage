@@ -5,7 +5,7 @@ interface FitStageProps {
 }
 
 /**
- * 띠 자리. 남은 높이만 차지하고(띠가 화면을 늘리지 않게 absolute), 작은 폰에선 띠를 줄여
+ * 카드 자리. 남은 높이만 차지하고(카드가 화면을 늘리지 않게 absolute), 작은 폰에선 카드를 줄여
  * 아래 버튼이 화면 안에 남게 한다(시안은 390×844).
  */
 export default function FitStage({ children }: FitStageProps) {

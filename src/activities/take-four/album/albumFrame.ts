@@ -1,11 +1,11 @@
-import { centerCrop43 } from "../booth/crop";
+import { centerSquare } from "../booth/crop";
 import type { Rect } from "../strip/layout";
 
 /** 먼저 이 폭으로 줄여 푼다 — 48MP 원본을 통째로 풀면 폰에서 200MB 가까이 잡는다 */
 export const DECODE_WIDTH = 1920;
 
-/** 앨범 사진 한 장을 자른 크기 — 띠 칸(4:3)보다 넉넉하게. */
-export const ALBUM_FRAME = { width: 1280, height: 960 } as const;
+/** 앨범 사진 한 장을 자른 크기 — 카드 칸(정사각 420)보다 넉넉하게. */
+export const ALBUM_FRAME = { width: 960, height: 960 } as const;
 
 /** 브라우저가 못 여는 사진(HEIC를 못 푸는 크롬·안드로이드, 깨진 파일). */
 export class AlbumDecodeError extends Error {
@@ -20,7 +20,7 @@ type Sized = Pick<Rect, "width" | "height">;
 type Decoded = Sized & { source: CanvasImageSource; release: () => void };
 
 /**
- * 고른 사진을 띠 칸 한 장으로: 회전(EXIF)을 바로 세우고, 가운데 4:3 가로로 잘라 1280×960 캔버스에.
+ * 고른 사진을 카드 칸 한 장으로: 회전(EXIF)을 바로 세우고, 가운데 정사각으로 잘라 960×960 캔버스에.
  * 앨범 사진은 거울로 뒤집지 않는다(찍힌 그대로가 보던 모습). 큰 원본 비트맵은 자르자마자 놓는다.
  */
 export async function loadAlbumFrame(file: Blob): Promise<HTMLCanvasElement> {
@@ -32,9 +32,9 @@ export async function loadAlbumFrame(file: Blob): Promise<HTMLCanvasElement> {
   }
 }
 
-/** 바로 세운 원본 크기를 받아 가운데 4:3을 ALBUM_FRAME에 그린다. */
+/** 바로 세운 원본 크기를 받아 가운데 정사각을 ALBUM_FRAME에 그린다. */
 export function cropToFrame(source: CanvasImageSource, size: Sized): HTMLCanvasElement {
-  const crop = centerCrop43(size.width, size.height);
+  const crop = centerSquare(size.width, size.height);
   const canvas = document.createElement("canvas");
   canvas.width = ALBUM_FRAME.width;
   canvas.height = ALBUM_FRAME.height;

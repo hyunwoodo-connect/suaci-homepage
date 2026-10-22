@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 
-import { stripCaption } from "../strip/caption";
+import * as compose from "../strip/compose";
 import PrintScreen, { PRINT_STEP_MS } from "./PrintScreen";
 
 const FRAMES = [0, 1, 2, 3].map(() => document.createElement("canvas"));
@@ -21,13 +21,7 @@ function openCells() {
 function renderPrint(props: Partial<Parameters<typeof PrintScreen>[0]> = {}) {
   const handlers = { onReceive: vi.fn(), onRetry: vi.fn(), onRetake: vi.fn() };
   const view = render(
-    <PrintScreen
-      frames={FRAMES}
-      caption={stripCaption("live", TAKEN, "No.01")}
-      status="ready"
-      {...handlers}
-      {...props}
-    />,
+    <PrintScreen frames={FRAMES} takenAt={TAKEN} status="ready" {...handlers} {...props} />,
   );
   return { ...handlers, view };
 }
@@ -96,9 +90,20 @@ describe("PrintScreen", () => {
     expect(onRetake).toHaveBeenCalledTimes(1);
   });
 
-  it("이벤트 끝남 → 띠 아래 No.01 없음", () => {
-    renderPrint({ caption: stripCaption("ended", TAKEN, "No.01") });
-    expect(screen.queryByText("No.01")).toBeNull();
-    expect(screen.getByText("no.----")).toBeInTheDocument();
+  it("합성 중엔 가장자리 글자 없이, 끝나면(글꼴 받음) 글자까지 저장 카드와 같게 그린다", () => {
+    const draw = vi.spyOn(compose, "drawCard").mockImplementation(() => {});
+    const { view } = renderPrint({ status: "composing" });
+    expect(draw).toHaveBeenLastCalledWith(expect.any(HTMLCanvasElement), FRAMES, TAKEN, false);
+    view.rerender(
+      <PrintScreen
+        frames={FRAMES}
+        takenAt={TAKEN}
+        status="ready"
+        onReceive={vi.fn()}
+        onRetry={vi.fn()}
+        onRetake={vi.fn()}
+      />,
+    );
+    expect(draw).toHaveBeenLastCalledWith(expect.any(HTMLCanvasElement), FRAMES, TAKEN, true);
   });
 });

@@ -12,6 +12,8 @@ interface PillButtonProps {
   variant?: "ink" | "outline";
   /** lg: 58px 18px / sheet: 시트 안 56px 17px / md: 50px 16px */
   size?: "lg" | "sheet" | "md";
+  /** full: 줄을 꽉 / fit: 글자만큼(양옆 32px) */
+  width?: "full" | "fit";
 }
 
 const SIZE_CLASS = {
@@ -28,9 +30,10 @@ export default function PillButton({
   disabled = false,
   variant = "ink",
   size = "lg",
+  width = "full",
 }: PillButtonProps) {
   // 비활성 잉크 버튼은 시안의 `보내는 중…` 회갈색
-  const className = `box-border flex w-full cursor-pointer items-center justify-center gap-[8px] rounded-full [font-family:inherit] font-bold no-underline disabled:cursor-default ${SIZE_CLASS[size]} ${
+  const className = `box-border flex ${width === "full" ? "w-full" : "w-auto px-[32px]"} cursor-pointer items-center justify-center gap-[8px] rounded-full [font-family:inherit] font-bold no-underline disabled:cursor-default ${SIZE_CLASS[size]} ${
     variant === "ink"
       ? "border-0 bg-(--tf-ink) text-(color:--tf-cream) disabled:bg-(--tf-busy)"
       : "border-2 border-solid border-(color:--tf-ink) bg-transparent text-(color:--tf-ink) disabled:opacity-50"

@@ -1,31 +1,31 @@
 import { formatKstDotDate } from "@/lib/event-date";
-import type { EventPhase } from "@/types";
 
-/** 띠 아래 글자. 폰에서 만든 띠엔 번호가 없어 `no.----`로 찍는다. */
-export interface StripCaption {
-  /** 진행 중·시작 전이면 회차 이름(`No.01`). 이벤트가 끝났거나 이벤트 내용이 없으면 null — 도장도 같이 빠진다 */
-  eventLabel: string | null;
-  date: Date;
+import { SHOT_INDEXES } from "../shots";
+
+/** 칸 오른쪽 줄 위·아래 끝 글자 */
+export const EDGE_WORDS = { top: "take four.", bottom: "suaci" } as const;
+
+/** 칸 하나의 필름 번호. 왼쪽 `▲ 11`, 오른쪽 가운데 `28`. */
+export interface EdgeNumbers {
+  frame: number;
+  edge: number;
 }
+
+/** 36장 필름 한 롤 — 넷째 칸이 36을 넘지 않게 첫 칸은 1~33 */
+const ROLL = 36;
+/** 시안 카드처럼 오른쪽 번호는 ▲ 번호보다 17 크다(11 → 28) */
+const EDGE_OFFSET = 17;
 
 /**
- * 지금 이벤트 상태로 캡션을 정한다. 놀이는 상설이라 마감 뒤엔 이벤트 표시만 뺀다.
- * label: 이벤트 내용(`@/events`)의 회차 이름. 없으면 null.
+ * 네 칸의 필름 번호. 롤 어디쯤인지는 찍은 분(分)으로 정한다 —
+ * 같은 네컷은 늘 같은 번호라 현상 화면 미리보기와 저장 카드가 같다.
  */
-export function stripCaption(phase: EventPhase, date: Date, label: string | null): StripCaption {
-  return { eventLabel: phase === "ended" ? null : label, date };
+export function edgeNumbers(takenAt: Date): EdgeNumbers[] {
+  const start = (Math.floor(takenAt.getTime() / 60_000) % (ROLL - SHOT_INDEXES.length + 1)) + 1;
+  return SHOT_INDEXES.map((i) => ({ frame: start + i, edge: start + i + EDGE_OFFSET }));
 }
 
-/** 캡션 왼쪽 번호와 오른쪽 회차·날짜. 화면 띠(Strip)와 합성 띠가 같은 글자를 쓴다. */
-export function captionText(caption: StripCaption): { number: string; meta: string } {
-  const date = formatKstDotDate(caption.date);
-  return {
-    number: "no.----",
-    meta: caption.eventLabel ? `${caption.eventLabel} · ${date}` : date,
-  };
-}
-
-/** 저장 파일 이름 */
-export function stripFilename(caption: StripCaption): string {
-  return `take-four-${formatKstDotDate(caption.date).replace(".", "")}.jpg`;
+/** 저장 파일 이름(한국 날짜) */
+export function stripFilename(takenAt: Date): string {
+  return `take-four-${formatKstDotDate(takenAt).replace(".", "")}.jpg`;
 }
