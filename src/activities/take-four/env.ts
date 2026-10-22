@@ -44,21 +44,23 @@ export function handOffUrl({ inApp, os }: DeviceEnv, url: string): string | null
   return null;
 }
 
+/* ─── 내부 ─────────────────────────── */
+
 /** 라인 인앱에서 같은 주소를 기본 브라우저로 연다. 기존 쿼리(미리보기 토큰)는 그대로 둔다. */
-export function lineExternalUrl(url: string): string {
+function lineExternalUrl(url: string): string {
   const next = new URL(url);
   next.searchParams.set("openExternalBrowser", "1");
   return next.toString();
 }
 
 /** 안드로이드 인앱에서 같은 주소를 크롬으로 연다. 미리보기 토큰이 따라가도록 쿼리를 남긴다. */
-export function androidIntentUrl(url: string): string {
+function androidIntentUrl(url: string): string {
   const { protocol, host, pathname, search } = new URL(url);
   const scheme = protocol.slice(0, -1);
   return `intent://${host}${pathname}${search}#Intent;scheme=${scheme};package=com.android.chrome;end`;
 }
 
 /** 카카오톡 인앱에서 같은 주소를 기본 브라우저로 연다. */
-export function kakaoExternalUrl(url: string): string {
+function kakaoExternalUrl(url: string): string {
   return `kakaotalk://web/openExternal?url=${encodeURIComponent(url)}`;
 }

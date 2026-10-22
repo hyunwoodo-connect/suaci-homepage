@@ -1,13 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import {
-  androidIntentUrl,
-  detectEnv,
-  handOffUrl,
-  isDesktopUa,
-  kakaoExternalUrl,
-  lineExternalUrl,
-} from "./env";
+import { detectEnv, handOffUrl, isDesktopUa } from "./env";
 
 const UA = {
   iosSafari:
@@ -77,63 +70,45 @@ describe("isDesktopUa", () => {
   });
 });
 
-describe("androidIntentUrl", () => {
-  it("같은 호스트·경로·쿼리를 크롬 intent로", () => {
-    expect(androidIntentUrl("https://takesuaci.com/events/take-four?preview=abc#x")).toBe(
-      "intent://takesuaci.com/events/take-four?preview=abc#Intent;scheme=https;package=com.android.chrome;end",
-    );
-  });
-});
-
-describe("androidIntentUrl · 포트", () => {
-  it("주소의 프로토콜·포트를 그대로 쓴다", () => {
-    expect(androidIntentUrl("http://192.168.0.5:3000/events/take-four")).toBe(
-      "intent://192.168.0.5:3000/events/take-four#Intent;scheme=http;package=com.android.chrome;end",
-    );
-  });
-});
-
-describe("kakaoExternalUrl", () => {
-  it("주소를 인코딩해 카카오톡 외부 열기 스킴으로", () => {
-    expect(kakaoExternalUrl("https://takesuaci.com/events/take-four?preview=a&b=1")).toBe(
-      "kakaotalk://web/openExternal?url=https%3A%2F%2Ftakesuaci.com%2Fevents%2Ftake-four%3Fpreview%3Da%26b%3D1",
-    );
-  });
-});
-
-describe("lineExternalUrl", () => {
-  it("기존 쿼리(미리보기 토큰)를 남기고 openExternalBrowser=1을 붙인다", () => {
-    expect(lineExternalUrl("https://takesuaci.com/events/take-four?preview=abc")).toBe(
-      "https://takesuaci.com/events/take-four?preview=abc&openExternalBrowser=1",
-    );
-  });
-
-  it("쿼리가 없으면 → ?openExternalBrowser=1", () => {
-    expect(lineExternalUrl("https://takesuaci.com/events/take-four")).toBe(
-      "https://takesuaci.com/events/take-four?openExternalBrowser=1",
-    );
-  });
-});
-
 describe("handOffUrl", () => {
   const URL_ = "https://takesuaci.com/events/take-four?preview=abc";
+  const ANDROID_INAPP = { inApp: "instagram", os: "android" } as const;
 
   it("인앱 아님 → null", () => {
     expect(handOffUrl(detectEnv(UA.iosSafari), URL_)).toBeNull();
   });
 
-  it("라인 → openExternalBrowser 쿼리", () => {
-    expect(handOffUrl(detectEnv(UA.androidLine), URL_)).toBe(lineExternalUrl(URL_));
-    expect(handOffUrl({ inApp: "line", os: "ios" }, URL_)).toBe(lineExternalUrl(URL_));
+  it("라인 → 기존 쿼리(미리보기 토큰)를 남기고 openExternalBrowser=1", () => {
+    const expected = "https://takesuaci.com/events/take-four?preview=abc&openExternalBrowser=1";
+    expect(handOffUrl(detectEnv(UA.androidLine), URL_)).toBe(expected);
+    expect(handOffUrl({ inApp: "line", os: "ios" }, URL_)).toBe(expected);
   });
 
-  it("안드로이드 인앱 → 크롬 intent", () => {
-    expect(handOffUrl(detectEnv(UA.androidInstagram), URL_)).toBe(androidIntentUrl(URL_));
-    expect(handOffUrl(detectEnv(UA.androidKakao), URL_)).toBe(androidIntentUrl(URL_));
+  it("라인 + 쿼리 없음 → ?openExternalBrowser=1", () => {
+    expect(handOffUrl({ inApp: "line", os: "ios" }, "https://takesuaci.com/events/take-four")).toBe(
+      "https://takesuaci.com/events/take-four?openExternalBrowser=1",
+    );
   });
 
-  it("iOS 카카오톡 → 외부 열기 스킴", () => {
-    expect(handOffUrl(detectEnv(UA.iosKakao), URL_)).toBe(kakaoExternalUrl(URL_));
+  it("안드로이드 인앱 → 같은 호스트·경로·쿼리를 크롬 intent로", () => {
+    const expected =
+      "intent://takesuaci.com/events/take-four?preview=abc#Intent;scheme=https;package=com.android.chrome;end";
+    expect(handOffUrl(detectEnv(UA.androidInstagram), `${URL_}#x`)).toBe(expected);
+    expect(handOffUrl(detectEnv(UA.androidKakao), URL_)).toBe(expected);
+  });
+
+  it("안드로이드 인앱 → 주소의 프로토콜·포트를 그대로", () => {
+    expect(handOffUrl(ANDROID_INAPP, "http://192.168.0.5:3000/events/take-four")).toBe(
+      "intent://192.168.0.5:3000/events/take-four#Intent;scheme=http;package=com.android.chrome;end",
+    );
+  });
+
+  it("iOS 카카오톡 → 주소를 인코딩해 외부 열기 스킴으로", () => {
+    expect(
+      handOffUrl(detectEnv(UA.iosKakao), "https://takesuaci.com/events/take-four?preview=a&b=1"),
+    ).toBe(
+      "kakaotalk://web/openExternal?url=https%3A%2F%2Ftakesuaci.com%2Fevents%2Ftake-four%3Fpreview%3Da%26b%3D1",
+    );
   });
 
   it("iOS 인스타·페이스북·네이버 → 넘길 방법 없음(null)", () => {
