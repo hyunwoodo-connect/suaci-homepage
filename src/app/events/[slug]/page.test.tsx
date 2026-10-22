@@ -88,6 +88,54 @@ describe("EventPage", () => {
     );
   });
 
+  async function intentHref(): Promise<string> {
+    headerJar.set("user-agent", ANDROID_INSTAGRAM_UA);
+    vi.mocked(eventsApi.get).mockResolvedValue(detail("live", "take-four"));
+    const ui = await EventPage({
+      params: Promise.resolve({ slug: "take-four" }),
+      searchParams: Promise.resolve({}),
+    });
+    return /href="(intent:[^"]*)"/.exec(renderToStaticMarkup(ui))?.[1] ?? "";
+  }
+
+  it("허용 목록 밖 호스트(위조) → takesuaci.com으로", async () => {
+    headerJar.set("x-forwarded-host", "evil.example");
+    headerJar.set("host", "evil.example");
+    expect(await intentHref()).toBe(
+      "intent://takesuaci.com/events/take-four#Intent;scheme=https;package=com.android.chrome;end",
+    );
+  });
+
+  it("x-forwarded-host가 위조돼도 host가 허용 주소면 그쪽(www)", async () => {
+    headerJar.set("x-forwarded-host", "evil.example");
+    headerJar.set("host", "www.takesuaci.com");
+    expect(await intentHref()).toContain("intent://www.takesuaci.com/events/take-four#");
+  });
+
+  it("http·https가 아닌 x-forwarded-proto(위조) → 무시하고 https", async () => {
+    headerJar.set("host", "takesuaci.com");
+    headerJar.set("x-forwarded-proto", "javascript");
+    expect(await intentHref()).toContain("scheme=https;");
+  });
+
+  it("운영 호스트에 http → 허용 목록 밖이라 https 기본 주소", async () => {
+    headerJar.set("host", "takesuaci.com");
+    headerJar.set("x-forwarded-proto", "http");
+    expect(await intentHref()).toContain(
+      "intent://takesuaci.com/events/take-four#Intent;scheme=https;",
+    );
+  });
+
+  it("운영 빌드에선 localhost도 허용하지 않는다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    try {
+      headerJar.set("host", "localhost:3000");
+      expect(await intentHref()).toContain("intent://takesuaci.com/");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("로컬(localhost, 프록시 헤더 없음) → http 주소", async () => {
     headerJar.set("user-agent", ANDROID_INSTAGRAM_UA);
     headerJar.set("host", "localhost:3000");
