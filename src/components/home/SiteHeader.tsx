@@ -39,6 +39,13 @@ export default function SiteHeader({ overlay = false }: SiteHeaderProps) {
       </Link>
 
       <div className="flex items-center gap-[20px] text-[13px]">
+        <Link
+          href="/events"
+          aria-current={pathname.startsWith("/events") ? "page" : undefined}
+          className={pathname.startsWith("/events") ? "text-ink" : "text-grey hover:text-ink"}
+        >
+          {t("events")}
+        </Link>
         <nav aria-label={t("lang")} className="flex items-center gap-[6px]">
           <Link
             href={pathname}

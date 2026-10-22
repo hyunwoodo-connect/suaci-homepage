@@ -7,7 +7,8 @@
     "header": {
       "account": "アカウント",
       "signIn": "ログイン",
-      "lang": "言語"
+      "lang": "言語",
+      "events": "イベント"
     },
     "hero": {
       "title": "take suaci.",
@@ -258,6 +259,15 @@
       "CLAIM_NOT_ALLOWED": "返金をリクエストできない注文です",
       "OVER_REFUND": "返金可能額を超えています",
       "default": "リクエストを処理できませんでした"
+    }
+  },
+  "events": {
+    "title": "イベント",
+    "empty": "まだイベントはありません。",
+    "phase": {
+      "upcoming": "近日公開",
+      "live": "開催中",
+      "ended": "終了"
     }
   }
 }

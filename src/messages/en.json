@@ -7,7 +7,8 @@
     "header": {
       "account": "account",
       "signIn": "sign in",
-      "lang": "language"
+      "lang": "language",
+      "events": "events"
     },
     "hero": {
       "title": "take suaci.",
@@ -258,6 +259,15 @@
       "CLAIM_NOT_ALLOWED": "a refund can't be requested for this order",
       "OVER_REFUND": "that exceeds the refundable amount",
       "default": "we couldn't process your request"
+    }
+  },
+  "events": {
+    "title": "Events",
+    "empty": "No events yet.",
+    "phase": {
+      "upcoming": "Coming soon",
+      "live": "Live",
+      "ended": "Ended"
     }
   }
 }
