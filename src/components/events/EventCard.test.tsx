@@ -1,18 +1,10 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { NextIntlClientProvider } from "next-intl";
 import EventCard from "./EventCard";
 import en from "@/messages/en.json";
+import ja from "@/messages/ja.json";
 import type { EventPhase, EventSummary } from "@/types";
-
-// next-intl/navigation은 vitest에서 next/navigation을 못 찾는다 — 링크만 대역으로 둔다
-vi.mock("@/i18n/navigation", () => ({
-  Link: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => (
-    <a href={href} {...rest}>
-      {children}
-    </a>
-  ),
-}));
 
 function summary(phase: EventPhase): EventSummary {
   return {
@@ -42,6 +34,16 @@ describe("EventCard", () => {
     expect(html).toContain("take four");
     expect(html).toContain("네 컷 이벤트");
     expect(html).toContain('href="/events/take-four"');
+  });
+
+  it("ja에서도 언어 접두사 없는 /events/take-four 링크", () => {
+    const html = renderToStaticMarkup(
+      <NextIntlClientProvider locale="ja" messages={ja}>
+        <EventCard event={summary("live")} />
+      </NextIntlClientProvider>,
+    );
+    expect(html).toContain('href="/events/take-four"');
+    expect(html).not.toContain("/ja/");
   });
 
   it.each([

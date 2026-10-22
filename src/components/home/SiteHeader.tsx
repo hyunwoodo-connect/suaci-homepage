@@ -20,6 +20,7 @@ export default function SiteHeader({ overlay = false }: SiteHeaderProps) {
   const locale = useLocale();
   const pathname = usePathname();
   const { status } = useAuth();
+  const isEventsActive = pathname === "/events" || pathname.startsWith("/events/");
   const accountHref = status === "authenticated" ? "/account" : "/login";
 
   return (
@@ -41,8 +42,8 @@ export default function SiteHeader({ overlay = false }: SiteHeaderProps) {
       <div className="flex items-center gap-[20px] text-[13px]">
         <Link
           href="/events"
-          aria-current={pathname.startsWith("/events") ? "page" : undefined}
-          className={pathname.startsWith("/events") ? "text-ink" : "text-grey hover:text-ink"}
+          aria-current={isEventsActive ? "page" : undefined}
+          className={isEventsActive ? "text-ink" : "text-grey hover:text-ink"}
         >
           {t("events")}
         </Link>

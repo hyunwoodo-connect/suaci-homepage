@@ -1,4 +1,5 @@
-import { Link } from "@/i18n/navigation";
+import Link from "next/link";
+
 import PhaseTag from "@/components/events/PhaseTag";
 import type { EventSummary } from "@/types";
 
@@ -8,6 +9,7 @@ interface EventCardProps {
 
 export default function EventCard({ event }: EventCardProps) {
   const { card, slug, phase } = event;
+  // 이벤트 페이지는 [locale] 밖이라 언어 접두사가 붙으면 안 되므로 next/link를 쓴다(AGENTS.md 예외)
   return (
     <Link
       href={`/events/${slug}`}

@@ -74,7 +74,28 @@ export function createMockEventsApi(): EventsApi {
   };
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+/** 운영에서 주소가 빠져도 가짜 이벤트를 내보내지 않도록 빈 응답으로 둔다. */
+export function createEmptyEventsApi(): EventsApi {
+  return {
+    async list() {
+      return [];
+    },
+    async get() {
+      return null;
+    },
+  };
+}
 
-/** 커머스 `api`의 mock/http 모드와 별개 — 주소가 있으면 http, 없으면 mock. */
-export const eventsApi: EventsApi = BASE_URL ? createEventsApi(BASE_URL) : createMockEventsApi();
+export function selectEventsApi(
+  baseUrl: string | undefined,
+  nodeEnv: string | undefined,
+): EventsApi {
+  if (baseUrl) return createEventsApi(baseUrl);
+  return nodeEnv === "production" ? createEmptyEventsApi() : createMockEventsApi();
+}
+
+/** 커머스 `api`의 mock/http 모드와 별개 — 주소가 있으면 http, 없으면 mock(운영은 빈 응답). */
+export const eventsApi: EventsApi = selectEventsApi(
+  process.env.NEXT_PUBLIC_API_BASE_URL,
+  process.env.NODE_ENV,
+);

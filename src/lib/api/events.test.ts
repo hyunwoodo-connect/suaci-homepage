@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createEventsApi, createMockEventsApi } from "./events";
+import { createEventsApi, createMockEventsApi, selectEventsApi } from "./events";
 import type { EventDetail } from "@/types";
 
 function mockFetchOnce(status: number, body: unknown) {
@@ -68,5 +68,25 @@ describe("eventsApi (mock)", () => {
     const api = createMockEventsApi();
     expect(await api.get("take-four")).toMatchObject({ slug: "take-four", locales: ["ko"] });
     expect(await api.get("nope")).toBeNull();
+  });
+});
+
+describe("selectEventsApi", () => {
+  it("운영 + 주소 없음 → list는 [], get은 null (가짜 이벤트 금지)", async () => {
+    const api = selectEventsApi(undefined, "production");
+    expect(await api.list()).toEqual([]);
+    expect(await api.get("take-four")).toBeNull();
+  });
+
+  it("개발 + 주소 없음 → mock", async () => {
+    const api = selectEventsApi(undefined, "development");
+    expect(await api.list()).toHaveLength(1);
+  });
+
+  it("주소가 있으면 운영에서도 http", async () => {
+    const fetchMock = mockFetchOnce(200, { data: [] });
+    vi.stubGlobal("fetch", fetchMock);
+    await selectEventsApi("https://api.test", "production").list();
+    expect(fetchMock.mock.calls[0][0]).toBe("https://api.test/events");
   });
 });
