@@ -12,7 +12,7 @@ interface Camera {
   status: CameraStatus;
   /** 미리보기 `<video>`. 화면 쪽이 `playsInline`·`muted`로 그리고 좌우 반전한다 */
   videoRef: RefObject<HTMLVideoElement | null>;
-  /** 사용자 탭 안에서만 부른다(iOS Safari). 켜지면 true */
+  /** 켜지면 true. 이미 켜져 있으면 바로 true */
   start(): Promise<boolean>;
   stop(): void;
   /** 지금 화면을 가운데 4:3로 잘라, 미리보기처럼 좌우 반전한 그대로 그린다 */

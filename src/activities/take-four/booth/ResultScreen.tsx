@@ -10,6 +10,7 @@ import Strip from "../parts/Strip";
 import TextLink from "../parts/TextLink";
 import TopBar from "../parts/TopBar";
 import Wordmark from "../parts/Wordmark";
+import { detectEnv } from "../env";
 import { captionText, photosDataUrl, stripFilename } from "../strip/compose";
 import type { StripCaption } from "../strip/compose";
 import { downloadBlob, shareOrDownload, shareStoryOrDownload } from "../strip/share";
@@ -107,10 +108,24 @@ export default function ResultScreen({
     }
   }
 
-  function handleSave() {
+  async function handleSave() {
+    // 아이폰 사파리는 <a download>를 새 탭으로 연다 — 공유 시트의 '이미지 저장'이 사진 앱에 바로 넣는다
+    if (detectEnv(navigator.userAgent).os !== "ios") {
+      try {
+        downloadBlob(strip, filename);
+      } catch {}
+      return;
+    }
+    if (sharingRef.current) return;
+    sharingRef.current = true;
+    setIsSharing(true);
     try {
-      downloadBlob(strip, filename);
-    } catch {}
+      await shareOrDownload(strip, filename);
+    } catch {
+    } finally {
+      sharingRef.current = false;
+      setIsSharing(false);
+    }
   }
 
   return (
@@ -149,7 +164,7 @@ export default function ResultScreen({
             <ShareIcon />
             공유하기
           </PillButton>
-          <PillButton variant="outline" size="md" onClick={handleSave}>
+          <PillButton variant="outline" size="md" onClick={handleSave} disabled={isSharing}>
             <SaveIcon />
             저장
           </PillButton>

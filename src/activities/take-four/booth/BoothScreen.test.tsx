@@ -70,6 +70,13 @@ afterEach(() => {
 });
 
 describe("BoothScreen", () => {
+  it("들어오면 → 찰칵 전에 카메라를 켠다", async () => {
+    await act(async () => {
+      render(<BoothScreen slug="take-four" onDone={vi.fn()} />);
+    });
+    expect(camera.start).toHaveBeenCalledTimes(1);
+  });
+
   it("찰칵 → 지시 문구 네 개가 순서대로, 단계 바 링이 따라간다", async () => {
     render(<BoothScreen slug="take-four" onDone={vi.fn()} />);
     expect(activeStep()).toBe(-1);
@@ -217,6 +224,8 @@ describe("BoothScreen", () => {
   });
 
   it("카메라 꺼짐 → 안내선 없음", () => {
+    // 권한 창을 기다리는 중이라 아직 켜지지 않았다
+    camera.start.mockImplementation(() => new Promise(() => {}));
     const { container } = render(<BoothScreen slug="take-four" onDone={vi.fn()} />);
     const video = container.querySelector("video")!;
     Object.defineProperty(video, "videoWidth", { value: 720 });

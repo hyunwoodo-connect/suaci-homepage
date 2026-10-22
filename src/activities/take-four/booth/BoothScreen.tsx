@@ -24,7 +24,7 @@ interface BoothScreenProps {
 const BEATS = ["3", "2", "1", "찰칵"] as const;
 
 /**
- * 부스 안. 찰칵 한 번이면 카메라를 켜고(권한은 이 탭에서 묻는다) 네 장을 자동으로 찍는다.
+ * 부스 안. 들어오자마자 카메라를 켜고(권한도 이때 묻는다), 찰칵 한 번이면 네 장을 자동으로 찍는다.
  * 타이머는 리듀서 상태를 따라가는 effect 한 곳에만 있다.
  */
 export default function BoothScreen({ slug, onDone }: BoothScreenProps) {
@@ -45,6 +45,11 @@ export default function BoothScreen({ slug, onDone }: BoothScreenProps) {
     dispatch({ type: "reset" });
     setFrames([]);
   }
+
+  // 들어오면 바로 켠다. 탭을 숨겼다 오거나 다 찍어서 꺼진 뒤엔 찰칵이 다시 켠다
+  useEffect(() => {
+    void start();
+  }, [start]);
 
   useEffect(() => {
     const delay = tickDelay(state);

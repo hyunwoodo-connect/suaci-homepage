@@ -138,10 +138,22 @@ describe("ResultScreen", () => {
     expect(button).toBeEnabled();
   });
 
-  it("저장 → 띠를 내려받는다", async () => {
+  it("저장(안드로이드) → 띠를 내려받는다", async () => {
     await renderResult();
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
     expect(share.downloadBlob).toHaveBeenCalledWith(STRIP_BLOB, "take-four-1022.jpg");
+  });
+
+  it("저장(아이폰) → 새 탭 대신 공유 시트로 띠만 보낸다", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1",
+    );
+    await renderResult();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    });
+    expect(share.shareOrDownload).toHaveBeenCalledWith(STRIP_BLOB, "take-four-1022.jpg");
+    expect(share.downloadBlob).not.toHaveBeenCalled();
   });
 
   it("다시 찍기 → onRetake", async () => {
