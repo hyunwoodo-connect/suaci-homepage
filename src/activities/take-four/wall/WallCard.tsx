@@ -10,7 +10,7 @@ import { useRibbon } from "./useRibbon";
 
 interface WallCardProps {
   strip: StripView;
-  /** 크게 보기 주소(`/events/{slug}/wall/{id}`) */
+  /** 크게 보기 주소(`/events/{slug}/wall/{stripId}`) */
   href: string;
   /** 이 폰이 붙인 네컷 — 잉크 테두리·`내 거`·떼기(리본 대신) */
   isMine: boolean;

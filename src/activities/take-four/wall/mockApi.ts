@@ -32,7 +32,7 @@ export function createMockWallApi(): WallApi {
       return { items: [...posted], cursor: null };
     },
     async get(id) {
-      return posted.find((s) => s.id === id) ?? null;
+      return posted.find((s) => s.stripId === id) ?? null;
     },
     async create() {
       seq += 1;
@@ -44,7 +44,7 @@ export function createMockWallApi(): WallApi {
       uploaded.set(t.key, await readAsDataUrl(blob));
     },
     async confirm(id) {
-      const done = posted.find((s) => s.id === id);
+      const done = posted.find((s) => s.stripId === id);
       if (done) return done;
       if (!pending.has(id)) throw notFound();
       const photoUrl = uploaded.get(target(id, "original").key);
@@ -55,7 +55,7 @@ export function createMockWallApi(): WallApi {
       pending.delete(id);
       const now = Date.now();
       const view: StripView = {
-        id,
+        stripId: id,
         serial: posted.length + 1,
         eventId: "no01",
         ribbons: 0,
@@ -68,18 +68,18 @@ export function createMockWallApi(): WallApi {
       return view;
     },
     async ribbon(id) {
-      const strip = posted.find((s) => s.id === id);
+      const strip = posted.find((s) => s.stripId === id);
       if (!strip) throw notFound();
       strip.ribbons += 1;
       return strip.ribbons;
     },
     async report(id) {
-      const index = posted.findIndex((s) => s.id === id);
+      const index = posted.findIndex((s) => s.stripId === id);
       if (index < 0) throw notFound();
       posted.splice(index, 1);
     },
     async remove(id) {
-      const index = posted.findIndex((s) => s.id === id);
+      const index = posted.findIndex((s) => s.stripId === id);
       if (index < 0) throw notFound();
       posted.splice(index, 1);
     },

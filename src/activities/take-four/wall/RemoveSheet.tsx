@@ -17,7 +17,7 @@ interface RemoveSheetProps {
   /** 이벤트 내용의 보조 문구(`벽에서만 내려요.` 뒤) */
   note: string | undefined;
   onClose: () => void;
-  onRemoved: (id: string) => void;
+  onRemoved: (stripId: string) => void;
 }
 
 /** 벽의 `뗄까요?` 시트. 이미 없는 네컷(404)이면 뗀 것으로 친다. */
@@ -30,13 +30,13 @@ export default function RemoveSheet({ strip, note, onClose, onRemoved }: RemoveS
     return run(async () => {
       setStatus("removing");
       try {
-        await wallApi.remove(strip.id);
+        await wallApi.remove(strip.stripId);
         setStatus("idle");
-        onRemoved(strip.id);
+        onRemoved(strip.stripId);
       } catch (err) {
         if (isNotFound(err)) {
           setStatus("idle");
-          onRemoved(strip.id);
+          onRemoved(strip.stripId);
         } else {
           setStatus("failed");
         }

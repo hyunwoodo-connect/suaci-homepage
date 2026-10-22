@@ -43,17 +43,20 @@ const SKELETON_TILTS = ["rotate-[-2deg]", "rotate-[2deg]", "rotate-[1deg]", "rot
 const GRID = "grid grid-cols-2 gap-x-[14px] gap-y-[22px]";
 
 /**
- * 이미 받은 id는 건너뛴다 — 목록 캐시(15초) 사이에 새로 붙은 게 끼면 페이지 경계에서 겹친다.
+ * 이미 받은 네컷은 건너뛴다 — 목록 캐시(15초) 사이에 새로 붙은 게 끼면 페이지 경계에서 겹친다.
  * 이 폰에서 신고·뗀 네컷도 뺀다 — 캐시된 목록엔 아직 남아 있을 수 있다.
  */
 function appendUnique(prev: StripView[], next: StripView[]): StripView[] {
-  const seen = new Set(prev.map((s) => s.id));
-  return [...prev, ...next.filter((s) => !seen.has(s.id) && !isHidden(s.id) && seen.add(s.id))];
+  const seen = new Set(prev.map((s) => s.stripId));
+  return [
+    ...prev,
+    ...next.filter((s) => !seen.has(s.stripId) && !isHidden(s.stripId) && seen.add(s.stripId)),
+  ];
 }
 
 /**
  * `/events/{slug}/wall`. 시안 Wall — 다른 사람들이 붙인 네컷을 새로 붙인 순으로, 끝에 닿으면 다음 페이지.
- * `?posted={id}`(붙이고 넘어옴)면 그 네컷을 한 장 먼저 받아 맨 위에 둔다 — 목록은 15초 캐시라 아직 없을 수 있다.
+ * `?posted={stripId}`(붙이고 넘어옴)면 그 네컷을 한 장 먼저 받아 맨 위에 둔다 — 목록은 15초 캐시라 아직 없을 수 있다.
  * 받은 게 없으면(가려짐·없음) 그냥 뺀다.
  */
 export default function WallScreen({ event, now }: WallScreenProps) {
@@ -97,11 +100,11 @@ export default function WallScreen({ event, now }: WallScreenProps) {
 
   useEffect(() => {
     // 서버 라우터는 쿼리를 받지 않아(놀이 모듈 route) 열린 주소에서 읽는다
-    const postedId = new URLSearchParams(window.location.search).get("posted");
-    if (!postedId) return;
+    const postedStripId = new URLSearchParams(window.location.search).get("posted");
+    if (!postedStripId) return;
     let isCancelled = false;
     wallApi
-      .get(postedId)
+      .get(postedStripId)
       .then((strip) => {
         if (!isCancelled) setPosted(strip);
       })
@@ -125,19 +128,23 @@ export default function WallScreen({ event, now }: WallScreenProps) {
     return () => observer.disconnect();
   }, [cursor, load, loadPage]);
 
-  function handleRemoved(id: string) {
-    forgetMine(id);
-    rememberHidden(id);
-    setItems((prev) => prev.filter((s) => s.id !== id));
-    setPosted((prev) => (prev?.id === id ? null : prev));
+  function handleRemoved(stripId: string) {
+    forgetMine(stripId);
+    rememberHidden(stripId);
+    setItems((prev) => prev.filter((s) => s.stripId !== stripId));
+    setPosted((prev) => (prev?.stripId === stripId ? null : prev));
     setRemoving(null);
   }
 
-  const strips = posted ? [posted, ...items.filter((s) => s.id !== posted.id)] : items;
+  const strips = posted ? [posted, ...items.filter((s) => s.stripId !== posted.stripId)] : items;
   // 카드마다 렌더마다 저장소를 읽지 않게 목록이 바뀔 때만 한 번
   const mineIds = useMemo(
     () =>
-      new Set([...items, ...(posted ? [posted] : [])].filter((s) => isMine(s.id)).map((s) => s.id)),
+      new Set(
+        [...items, ...(posted ? [posted] : [])]
+          .filter((s) => isMine(s.stripId))
+          .map((s) => s.stripId),
+      ),
     [items, posted],
   );
   const isFirstLoad = load === "first";
@@ -196,11 +203,11 @@ export default function WallScreen({ event, now }: WallScreenProps) {
           <div className={GRID}>
             {strips.map((strip, i) => (
               <WallCard
-                key={strip.id}
+                key={strip.stripId}
                 strip={strip}
-                href={`${base}/wall/${encodeURIComponent(strip.id)}`}
-                isMine={mineIds.has(strip.id)}
-                isPosted={strip.id === posted?.id}
+                href={`${base}/wall/${encodeURIComponent(strip.stripId)}`}
+                isMine={mineIds.has(strip.stripId)}
+                isPosted={strip.stripId === posted?.stripId}
                 tilt={TILTS[i % TILTS.length]}
                 onAskRemove={() => setRemoving(strip)}
               />

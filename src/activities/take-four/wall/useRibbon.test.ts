@@ -7,7 +7,7 @@ import { useRibbon } from "./useRibbon";
 const api = vi.hoisted(() => ({ wallApi: { ribbon: vi.fn() } }));
 vi.mock("./api", () => api);
 
-const STRIP = { id: "01J", ribbons: 4 };
+const STRIP = { stripId: "01J", ribbons: 4 };
 
 beforeEach(() => {
   api.wallApi.ribbon.mockReset();

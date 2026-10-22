@@ -11,7 +11,7 @@ const api = vi.hoisted(() => ({
 vi.mock("./api", () => api);
 
 const STRIP: StripView = {
-  id: "s298",
+  stripId: "s298",
   serial: 298,
   eventId: "no01",
   ribbons: 48,
@@ -23,7 +23,7 @@ const STRIP: StripView = {
 
 async function open() {
   await act(async () => {
-    render(<DetailScreen slug="take-four" id="s298" />);
+    render(<DetailScreen slug="take-four" stripId="s298" />);
   });
 }
 

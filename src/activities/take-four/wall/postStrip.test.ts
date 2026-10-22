@@ -11,7 +11,7 @@ const THUMB = new Blob(["t"], { type: "image/jpeg" });
 const PHOTOS = new Blob(["p"], { type: "image/jpeg" });
 const ORIGINAL_TARGET = { url: "u", fields: {}, key: "o" } as UploadTarget;
 const THUMB_TARGET = { url: "u", fields: {}, key: "t" } as UploadTarget;
-const VIEW = { id: "01J", serial: 1 } as StripView;
+const VIEW = { stripId: "01J", serial: 1 } as StripView;
 
 let calls: string[];
 

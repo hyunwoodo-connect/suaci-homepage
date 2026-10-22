@@ -23,7 +23,7 @@ export const TAKE_FOUR: ActivityModule = {
       if (!isStageOn(event, "wall") || rest.length > 2) return null;
       return rest.length === 1
         ? createElement(WallScreen, { event, now: Date.now() })
-        : createElement(DetailScreen, { slug: event.slug, id: rest[1] });
+        : createElement(DetailScreen, { slug: event.slug, stripId: rest[1] });
     }
     if (rest.length !== 1) return null;
     switch (rest[0]) {

@@ -15,7 +15,7 @@ function response(status: number, body?: unknown) {
 }
 
 const VIEW: StripView = {
-  id: "01J",
+  stripId: "01J",
   serial: 347,
   eventId: "no01",
   ribbons: 0,
@@ -148,9 +148,9 @@ describe("wallApi (mock)", () => {
     await api.upload(uploads.original, new Blob(["o"], { type: "image/jpeg" }));
     await api.upload(uploads.thumb, new Blob(["t"], { type: "image/jpeg" }));
     const view = await api.confirm(id);
-    expect(view).toMatchObject({ id, serial: 1, ribbons: 0 });
+    expect(view).toMatchObject({ stripId: id, serial: 1, ribbons: 0 });
     expect(view.thumbUrl).toMatch(/^data:image\/jpeg/);
-    expect((await api.list()).items[0].id).toBe(id);
+    expect((await api.list()).items[0].stripId).toBe(id);
     expect(await api.get(id)).toEqual(view);
   });
 

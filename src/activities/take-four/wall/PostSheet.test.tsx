@@ -17,7 +17,7 @@ function renderSheet() {
 }
 
 beforeEach(() => {
-  wall.postStrip.mockReset().mockResolvedValue({ id: "01J" });
+  wall.postStrip.mockReset().mockResolvedValue({ stripId: "01J" });
   router.push.mockReset();
 });
 
@@ -48,7 +48,7 @@ describe("PostSheet", () => {
     expect(wall.postStrip).toHaveBeenCalledTimes(1);
     expect(wall.postStrip).toHaveBeenCalledWith(PHOTOS_BLOB);
     expect(screen.getByRole("button", { name: "보내는 중…" })).toBeDisabled();
-    await act(async () => finish({ id: "01J" }));
+    await act(async () => finish({ stripId: "01J" }));
   });
 
   it("실패 → 알림 + 다시 보내기, 다시 보내면 또 보낸다", async () => {
@@ -65,7 +65,7 @@ describe("PostSheet", () => {
     expect(router.push).toHaveBeenCalledWith("/events/take-four/wall?posted=01J");
   });
 
-  it("성공 → 벽으로(posted=id)", async () => {
+  it("성공 → 벽으로(posted=stripId)", async () => {
     renderSheet();
     fireEvent.click(screen.getByRole("button", { name: "벽에 붙이기" }));
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "붙이기" })));

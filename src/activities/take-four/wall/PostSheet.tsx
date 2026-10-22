@@ -30,9 +30,9 @@ export default function PostSheet({ photos, slug }: PostSheetProps) {
     return run(async () => {
       setStatus("posting");
       try {
-        const { id } = await postStrip(photos);
+        const { stripId } = await postStrip(photos);
         // 넘어가는 동안에도 `보내는 중…`으로 잠가 둔다
-        router.push(`/events/${slug}/wall?posted=${encodeURIComponent(id)}`);
+        router.push(`/events/${slug}/wall?posted=${encodeURIComponent(stripId)}`);
       } catch (err) {
         // 하루 한도(기기당 10장)는 다시 보내도 안 되니 버튼 없이 알리기만
         setStatus(isRateLimited(err) ? "limited" : "failed");

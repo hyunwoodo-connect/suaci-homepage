@@ -20,15 +20,15 @@ import { useRibbon } from "./useRibbon";
 
 interface DetailScreenProps {
   slug: string;
-  /** 네컷 id(경로 `/events/{slug}/wall/{id}`) */
-  id: string;
+  /** 경로 `/events/{slug}/wall/{stripId}`의 네컷 id */
+  stripId: string;
 }
 
 /**
- * `/events/{slug}/wall/{id}`. 시안 Detail — 원본 사진으로 큰 띠, 리본, 신고.
+ * `/events/{slug}/wall/{stripId}`. 시안 Detail — 원본 사진으로 큰 띠, 리본, 신고.
  * 없거나 가려졌으면(신고·관리자) 벽에 없다고만 알린다.
  */
-export default function DetailScreen({ slug, id }: DetailScreenProps) {
+export default function DetailScreen({ slug, stripId }: DetailScreenProps) {
   const wallHref = `/events/${slug}/wall`;
   /** 받는 중 undefined, 벽에 없으면 null */
   const [strip, setStrip] = useState<StripView | null | undefined>(undefined);
@@ -36,7 +36,7 @@ export default function DetailScreen({ slug, id }: DetailScreenProps) {
   useEffect(() => {
     let isCancelled = false;
     wallApi
-      .get(id)
+      .get(stripId)
       .then((found) => {
         if (!isCancelled) setStrip(found);
       })
@@ -46,7 +46,7 @@ export default function DetailScreen({ slug, id }: DetailScreenProps) {
     return () => {
       isCancelled = true;
     };
-  }, [id]);
+  }, [stripId]);
 
   if (strip === null) {
     return (
@@ -107,12 +107,12 @@ function Actions({ strip, wallHref }: ActionsProps) {
     return run(async () => {
       setReport("sending");
       try {
-        await wallApi.report(strip.id);
-        rememberHidden(strip.id);
+        await wallApi.report(strip.stripId);
+        rememberHidden(strip.stripId);
         setReport("sent");
       } catch (err) {
         if (isNotFound(err)) {
-          rememberHidden(strip.id);
+          rememberHidden(strip.stripId);
           setReport("sent");
         } else {
           setReport(isRateLimited(err) ? "limited" : "failed");

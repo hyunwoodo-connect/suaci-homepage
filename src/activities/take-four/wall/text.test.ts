@@ -31,7 +31,7 @@ function event(phase: EventDetail["phase"], extra: Partial<EventDetail> = {}): E
 
 function strip(extra: Partial<StripView> = {}): StripView {
   return {
-    id: "01J",
+    stripId: "01J",
     serial: 347,
     eventId: "no01",
     ribbons: 0,

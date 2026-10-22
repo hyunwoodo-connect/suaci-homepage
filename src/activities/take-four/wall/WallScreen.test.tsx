@@ -48,7 +48,7 @@ const EVENT = {
 
 function strip(id: string, extra: Partial<StripView> = {}): StripView {
   return {
-    id,
+    stripId: id,
     serial: Number(id.replace(/\D/g, "")) || 1,
     eventId: "no01",
     ribbons: 2,

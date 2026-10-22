@@ -6,7 +6,7 @@ import { createMockWallApi } from "./mockApi";
 
 /** 벽에 붙은 네컷(suaci-api `StripView`). */
 export interface StripView {
-  id: string;
+  stripId: string;
   serial: number;
   /** 붙인 순간 진행 중이던 take-four 이벤트(없으면 null) */
   eventId: string | null;
@@ -37,15 +37,15 @@ export interface WallPage {
 export interface WallApi {
   list(cursor?: string): Promise<WallPage>;
   /** 벽에 없으면(없음·가림·pending) null */
-  get(id: string): Promise<StripView | null>;
+  get(stripId: string): Promise<StripView | null>;
   create(): Promise<CreatedStrip>;
   /** `create`가 준 자리에 사진을 올린다(http는 `uploadTo`) */
   upload(target: UploadTarget, blob: Blob): Promise<void>;
-  confirm(id: string): Promise<StripView>;
+  confirm(stripId: string): Promise<StripView>;
   /** 단 뒤의 리본 수 */
-  ribbon(id: string): Promise<number>;
-  report(id: string): Promise<void>;
-  remove(id: string): Promise<void>;
+  ribbon(stripId: string): Promise<number>;
+  report(stripId: string): Promise<void>;
+  remove(stripId: string): Promise<void>;
 }
 
 const BASE = "/activities/take-four/strips";
@@ -64,7 +64,7 @@ export async function uploadTo(target: UploadTarget, blob: Blob): Promise<void> 
 export function createWallApi(baseUrl: string): WallApi {
   const { request } = createFetcher(baseUrl);
   const device = () => ({ "X-Device-Token": getDeviceToken() });
-  const path = (id: string) => `${BASE}/${encodeURIComponent(id)}`;
+  const path = (stripId: string) => `${BASE}/${encodeURIComponent(stripId)}`;
 
   return {
     async list(cursor) {
@@ -73,9 +73,9 @@ export function createWallApi(baseUrl: string): WallApi {
       });
       return { items: body.data, cursor: body.cursor ?? null };
     },
-    async get(id) {
+    async get(stripId) {
       try {
-        return (await request<Envelope<StripView>>(path(id))).data;
+        return (await request<Envelope<StripView>>(path(stripId))).data;
       } catch (err) {
         if (isNotFound(err)) return null;
         throw err;
@@ -86,27 +86,27 @@ export function createWallApi(baseUrl: string): WallApi {
         .data;
     },
     upload: uploadTo,
-    async confirm(id) {
+    async confirm(stripId) {
       return (
-        await request<Envelope<StripView>>(`${path(id)}/confirm`, {
+        await request<Envelope<StripView>>(`${path(stripId)}/confirm`, {
           method: "POST",
           headers: device(),
         })
       ).data;
     },
-    async ribbon(id) {
+    async ribbon(stripId) {
       return (
-        await request<Envelope<{ ribbons: number }>>(`${path(id)}/ribbon`, {
+        await request<Envelope<{ ribbons: number }>>(`${path(stripId)}/ribbon`, {
           method: "PUT",
           headers: device(),
         })
       ).data.ribbons;
     },
-    async report(id) {
-      await request<void>(`${path(id)}/report`, { method: "POST", headers: device() });
+    async report(stripId) {
+      await request<void>(`${path(stripId)}/report`, { method: "POST", headers: device() });
     },
-    async remove(id) {
-      await request<void>(path(id), { method: "DELETE", headers: device() });
+    async remove(stripId) {
+      await request<void>(path(stripId), { method: "DELETE", headers: device() });
     },
   };
 }

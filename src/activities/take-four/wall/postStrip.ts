@@ -12,6 +12,6 @@ export async function postStrip(photos: Blob, api: WallApi = wallApi): Promise<S
   const { id, uploads } = await api.create();
   await Promise.all([api.upload(uploads.original, photos), api.upload(uploads.thumb, thumb)]);
   const view = await api.confirm(id);
-  rememberMine(view.id);
+  rememberMine(view.stripId);
   return view;
 }

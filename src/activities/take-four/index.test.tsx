@@ -41,12 +41,12 @@ describe("TAKE_FOUR.route", () => {
     expect(TAKE_FOUR.route(["nope"], EVENT, CTX)).toBeNull();
   });
 
-  it("wall 스위치가 꺼졌으면 wall·wall/{id} → null(404)", () => {
+  it("wall 스위치가 꺼졌으면 wall·wall/{stripId} → null(404)", () => {
     expect(TAKE_FOUR.route(["wall"], EVENT, CTX)).toBeNull();
     expect(TAKE_FOUR.route(["wall", "01J"], EVENT, CTX)).toBeNull();
   });
 
-  it("wall 스위치가 켜졌으면 wall → 벽, wall/{id} → 크게 보기", () => {
+  it("wall 스위치가 켜졌으면 wall → 벽, wall/{stripId} → 크게 보기", () => {
     const on = { ...EVENT, switches: { wall: true } };
     expect(renderToStaticMarkup(<>{TAKE_FOUR.route(["wall"], on, CTX)}</>)).toContain("the wall");
     expect(renderToStaticMarkup(<>{TAKE_FOUR.route(["wall", "01J"], on, CTX)}</>)).toContain(
