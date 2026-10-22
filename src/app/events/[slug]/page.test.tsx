@@ -5,6 +5,12 @@ import { eventsApi } from "@/lib/api";
 import type { EventDetail, EventPhase } from "@/types";
 
 vi.mock("@/lib/api", () => ({ eventsApi: { get: vi.fn(), list: vi.fn() } }));
+const cookieJar = new Map<string, string>();
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: (n: string) => (cookieJar.has(n) ? { value: cookieJar.get(n) } : undefined),
+  }),
+}));
 vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
@@ -40,6 +46,7 @@ async function render(phase: EventPhase) {
 describe("EventPage", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    cookieJar.clear();
   });
 
   it("upcoming → 여는 날짜(M월 D일)와 copy.upcoming", async () => {
@@ -75,5 +82,17 @@ describe("EventPage", () => {
       searchParams: Promise.resolve({ preview: "tok" }),
     });
     expect(eventsApi.get).toHaveBeenCalledWith("take-four", "tok");
+  });
+
+  it("쿼리 없이 쿠키만 있으면 쿠키 토큰으로 이벤트를 연다", async () => {
+    cookieJar.set("suaci_evt_take-four", "cookie-token-1234567");
+    vi.mocked(eventsApi.get).mockImplementation(async (_s, p) =>
+      p === "cookie-token-1234567" ? detail("live") : null,
+    );
+    const ui = await EventPage({
+      params: Promise.resolve({ slug: "take-four" }),
+      searchParams: Promise.resolve({}),
+    });
+    expect(renderToStaticMarkup(ui)).toContain("지금 찍어요");
   });
 });

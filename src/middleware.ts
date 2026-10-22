@@ -2,7 +2,7 @@ import createMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { routing } from "./i18n/routing";
-import { checkEventAccess, eventSlugFromPath } from "./lib/event-access";
+import { checkEventAccess, eventSlugFromPath, validPreviewToken } from "./lib/event-access";
 import { SITE_LOCK_COOKIE, gateResponse, isUnlocked } from "./lib/site-lock";
 
 const intl = createMiddleware(routing);
@@ -15,16 +15,27 @@ export default async function middleware(req: NextRequest) {
   const slug = eventSlugFromPath(req.nextUrl.pathname);
   if (slug) {
     const cookieName = `suaci_evt_${slug}`;
-    const queryToken = req.nextUrl.searchParams.get("preview") || undefined;
-    const token = queryToken ?? req.cookies.get(cookieName)?.value;
-    if (await checkEventAccess(slug, token)) {
+    const queryToken = validPreviewToken(req.nextUrl.searchParams.get("preview"));
+    const cookieToken = validPreviewToken(req.cookies.get(cookieName)?.value);
+
+    // 공개 이벤트면 토큰 없이 통과(쿠키도 심지 않는다). 아니면 쿼리 토큰, 그다음 쿠키 토큰.
+    let granted: { ok: boolean; token?: string } = {
+      ok: await checkEventAccess(slug, undefined),
+    };
+    for (const token of [queryToken, cookieToken]) {
+      if (granted.ok || !token) continue;
+      if (await checkEventAccess(slug, token)) granted = { ok: true, token };
+    }
+
+    if (granted.ok) {
       const res = NextResponse.next();
-      if (queryToken) {
-        res.cookies.set(cookieName, queryToken, {
+      res.headers.set("Referrer-Policy", "same-origin"); // 토큰이 Referer로 새지 않게
+      if (granted.token && granted.token === queryToken) {
+        res.cookies.set(cookieName, granted.token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
           sameSite: "lax",
-          path: "/",
+          path: `/events/${slug}`,
           maxAge: EVENT_PREVIEW_MAX_AGE_S,
         });
       }

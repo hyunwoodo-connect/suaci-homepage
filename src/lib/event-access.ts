@@ -1,27 +1,47 @@
 import { eventsApi } from "@/lib/api/events";
 
 const SLUG_PATH = /^\/events\/([a-z0-9-]{2,40})(?:\/|$)/;
+const PREVIEW_TOKEN = /^[A-Za-z0-9_-]{16,128}$/;
 const CACHE_TTL_MS = 30_000;
+const FAILURE_TTL_MS = 5_000;
+const BACKEND_TIMEOUT_MS = 3_000;
+const CACHE_MAX = 500;
 
-const cache = new Map<string, { ok: boolean; at: number }>();
+const cache = new Map<string, { ok: boolean; until: number }>();
 
 /** `/events/{slug}` 또는 그 아래 경로면 slug. `/events`(목록)나 언어 접두사가 붙은 경로는 null. */
 export function eventSlugFromPath(pathname: string): string | null {
   return SLUG_PATH.exec(pathname)?.[1] ?? null;
 }
 
-/** 이벤트가 공개이거나 미리보기 토큰이 맞으면 true. 결과는 30초 기억한다. */
+/** 모양이 맞는 미리보기 토큰만 돌려준다. 아니면 없는 것으로 본다. */
+export function validPreviewToken(token: string | undefined | null): string | undefined {
+  return token && PREVIEW_TOKEN.test(token) ? token : undefined;
+}
+
+function fetchWithTimeout(slug: string, preview: string | undefined) {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error("timeout")), BACKEND_TIMEOUT_MS);
+  });
+  return Promise.race([eventsApi.get(slug, preview), timeout]).finally(() => clearTimeout(timer));
+}
+
+/** 이벤트가 공개이거나 미리보기 토큰이 맞으면 true. 결과는 30초(오류·시간 초과는 5초) 기억한다. */
 export async function checkEventAccess(slug: string, preview: string | undefined) {
-  const key = `${slug}\n${preview ?? ""}`;
+  const token = validPreviewToken(preview);
+  const key = `${slug}\n${token ?? ""}`;
   const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.ok;
+  if (hit && Date.now() < hit.until) return hit.ok;
 
   let ok = false;
+  let ttl = CACHE_TTL_MS;
   try {
-    ok = (await eventsApi.get(slug, preview)) !== null;
+    ok = (await fetchWithTimeout(slug, token)) !== null;
   } catch {
-    ok = false; // 백엔드 오류면 잠금 쪽으로 닫는다
+    ttl = FAILURE_TTL_MS; // 백엔드 오류·시간 초과면 잠금 쪽으로 닫되 짧게만 기억한다
   }
-  cache.set(key, { ok, at: Date.now() });
+  if (cache.size >= CACHE_MAX) cache.clear();
+  cache.set(key, { ok, until: Date.now() + ttl });
   return ok;
 }
