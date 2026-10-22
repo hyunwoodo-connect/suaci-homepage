@@ -18,35 +18,35 @@ export interface Point {
   y: number;
 }
 
-/** 저장되는 네컷 띠(px). 개발 스펙 5장. */
-export const STRIP = { width: 900, height: 2970 } as const;
+/** 시안 Result 띠 한 단위(176 폭)가 저장 띠에서 몇 px인지 */
+const K = 900 / 176;
 
-/**
- * 시안 Result의 띠(176 폭, 사진 144×450 = 견본 `strip-main-duo.jpg` 480×1500)를 5배로 키운 값.
- * 사진 기둥(720×2250)은 견본과 같은 비율이라 칸 4:3, 칸 사이 = 칸 폭의 1/24(견본 20/480).
- * 띠 높이 2970이 정해져 있어 아래 여백이 시안보다 길고, 캡션은 그 여백 가운데에 둔다.
+/** 저장되는 네컷 띠(px). 시안 띠(viewBox 176×520)와 같은 비율로 폭 900. */
+export const STRIP = { width: 900, height: Math.round(520 * K) } as const;
+
+/*
+ * 모두 시안 Result 띠의 값 × K. 사진 기둥 144×450(= 견본 `strip-main-duo.jpg` 480×1500)을
+ * 띠 가장자리에서 16 안쪽에 둔다. 칸 4:3, 칸 사이 = 칸 폭의 1/24(견본 20/480).
  */
-const SCALE = 5;
-const BORDER_STROKE = 5 * SCALE;
-const PHOTO_X = 90;
-const PHOTO_WIDTH = STRIP.width - PHOTO_X * 2;
+const BORDER_STROKE = 5 * K;
+const PHOTO_X = 16 * K;
+const PHOTO_WIDTH = 144 * K;
 const CELL_HEIGHT = (PHOTO_WIDTH * 3) / 4;
 const CELL_GAP = PHOTO_WIDTH / 24;
 const PHOTO_HEIGHT = CELL_HEIGHT * 4 + CELL_GAP * 3;
-/** 시안 캡션은 사진보다 양옆 2px 안쪽(padding 18 vs 사진 16) */
-const CAPTION_INSET = 2 * SCALE;
-/**
- * 도장은 시안(지름 52, 띠 오른쪽 밖으로 18 삐져나옴) 그대로면 그림 밖으로 잘린다.
- * 조금 줄여(지름 240) 띠 안쪽 오른쪽 위에 찍는다.
- */
-const STAMP_R = 120;
+/** 시안 캡션: 양옆 padding 18, 아래 12 */
+const CAPTION_PAD = 18 * K;
+const CAPTION_BOTTOM = 12 * K;
+/** 시안 도장: 지름 52, 위 20. 시안은 띠 오른쪽 밖으로 18 나가지만 그림 밖은 잘리니 테두리 안쪽에 붙인다 */
+const STAMP_R = 26 * K;
+const STAMP_TOP = 20 * K;
 
 export interface StripLayout {
   /** 칸 네 개, 위에서부터 찍은 순서 */
   frames: Rect[];
   /** 칸 넷을 감싼 사진 기둥(완성 화면 띠 안 사진이 이 부분) */
   photo: Rect;
-  /** `no.---- · No.01 · MM.DD` 줄이 들어가는 아래 여백 */
+  /** 사진 아래 캡션 줄 자리. 아래 변(y + height)이 글자 기준선 */
   caption: Rect;
   stamp: Circle;
   border: { stroke: number; points: Point[] };
@@ -63,20 +63,20 @@ export function stripLayout(): StripLayout {
   }));
   const photo = { x: PHOTO_X, y: PHOTO_X, width: PHOTO_WIDTH, height: PHOTO_HEIGHT };
   const photoBottom = photo.y + photo.height;
-  const inner = BORDER_STROKE;
+  const baseline = STRIP.height - CAPTION_BOTTOM - BORDER_STROKE / 2;
   return {
     frames,
     photo,
     caption: {
-      x: PHOTO_X + CAPTION_INSET,
+      x: CAPTION_PAD,
       y: photoBottom,
-      width: PHOTO_WIDTH - CAPTION_INSET * 2,
-      height: STRIP.height - inner - photoBottom,
+      width: STRIP.width - CAPTION_PAD * 2,
+      height: baseline - photoBottom,
     },
-    stamp: { x: STRIP.width - inner - STAMP_R - 8, y: 232, r: STAMP_R },
+    stamp: { x: STRIP.width - BORDER_STROKE - STAMP_R, y: STAMP_TOP + STAMP_R, r: STAMP_R },
     border: { stroke: BORDER_STROKE, points: wavyPoints(BORDER_STROKE / 2) },
     // 시안 12px(번호는 1.15em) · 도장 13px · 도장 테두리 2px
-    font: { number: 12 * 1.15 * SCALE, meta: 12 * SCALE, stamp: 60, stampRing: 9 },
+    font: { number: 12 * 1.15 * K, meta: 12 * K, stamp: 13 * K, stampRing: 2 * K },
   };
 }
 

@@ -85,6 +85,21 @@ describe("ResultScreen", () => {
     expect(screen.getByRole("button", { name: "저장" })).toBeInTheDocument();
   });
 
+  it("공유 시트가 떠 있는 동안 → 공유하기 비활성, 연타해도 한 번만", async () => {
+    let finish: (value: string) => void = () => {};
+    share.shareOrDownload.mockImplementation(() => new Promise((resolve) => (finish = resolve)));
+    await renderResult();
+    const button = screen.getByRole("button", { name: "공유하기" });
+    await act(async () => {
+      fireEvent.click(button);
+      fireEvent.click(button);
+    });
+    expect(share.shareOrDownload).toHaveBeenCalledTimes(1);
+    expect(button).toBeDisabled();
+    await act(async () => finish("shared"));
+    expect(button).toBeEnabled();
+  });
+
   it("저장 → 띠를 내려받는다", async () => {
     await renderResult();
     fireEvent.click(screen.getByRole("button", { name: "저장" }));

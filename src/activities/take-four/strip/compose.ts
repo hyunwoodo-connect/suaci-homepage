@@ -17,8 +17,11 @@ export type StripFrame = HTMLCanvasElement | ImageBitmap;
 
 const EVENT_LABEL = "No.01";
 const JPEG_QUALITY = 0.86;
-/** 글꼴을 이 이상 기다리지 않는다(느린 망에서 합성이 영영 멈추지 않게) */
-export const FONT_TIMEOUT_MS = 4000;
+/**
+ * 글꼴을 이만큼까지 기다린다. 현상 화면이 도는 동안이라 넉넉히 둔다.
+ * 넘으면 기본 글꼴로 찍지 않고 실패로 던진다(현상 화면의 `다시 인화하기`).
+ */
+export const FONT_TIMEOUT_MS = 12_000;
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
 /** 지금 이벤트 상태로 캡션을 정한다. 놀이는 상설이라 마감 뒤엔 이벤트 표시만 뺀다. */
@@ -49,7 +52,7 @@ export function stripFilename(caption: StripCaption): string {
 }
 
 /**
- * 네 장을 900×2970 띠로 합성해 JPEG(0.86)로. 글꼴(Fraunces)을 받은 뒤에 글자를 그린다.
+ * 네 장을 시안 비율 띠(900×2659)로 합성해 JPEG(0.86)로. 글꼴(Fraunces)을 받은 뒤에만 글자를 그린다.
  * 사진은 찍힌 그대로(전면 카메라 거울 모양) 얹는다.
  */
 export async function composeStrip(frames: StripFrame[], caption: StripCaption): Promise<Blob> {
@@ -63,7 +66,7 @@ export async function composeStrip(frames: StripFrame[], caption: StripCaption):
   const isLoaded = await loadFonts(
     caption.eventLabel ? Object.values(fonts) : [fonts.number, fonts.meta],
   );
-  if (!isLoaded) console.warn("[take-four] 글꼴을 기다리다 시간이 지나 그대로 합성했어요");
+  if (!isLoaded) throw new Error("글꼴(Fraunces)을 못 받아 합성하지 않았어요");
 
   const canvas = document.createElement("canvas");
   canvas.width = STRIP.width;
@@ -87,7 +90,7 @@ export async function composeStrip(frames: StripFrame[], caption: StripCaption):
 
   // ---- 캡션 ----
   const { number, meta } = captionText(caption);
-  const baseline = layout.caption.y + layout.caption.height / 2 + layout.font.meta * 0.35;
+  const baseline = layout.caption.y + layout.caption.height;
   ctx.fillStyle = TAKE_FOUR_COLORS.ink;
   ctx.textBaseline = "alphabetic";
   ctx.font = fonts.number;
@@ -165,7 +168,13 @@ export function photosDataUrl(photos: Blob): Promise<string> {
 function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
-      (blob) => (blob ? resolve(blob) : reject(new Error("이미지를 만들지 못했어요"))),
+      (blob) => {
+        // 큰 캔버스(900×2659) 메모리를 바로 돌려준다 — 폰 사파리는 캔버스 총량 한도가 빠듯하다
+        canvas.width = 0;
+        canvas.height = 0;
+        if (blob) resolve(blob);
+        else reject(new Error("이미지를 만들지 못했어요"));
+      },
       type,
       quality,
     );
@@ -203,7 +212,7 @@ function latinFamily(): string {
   return value ? `${value}, serif` : "Fraunces, serif";
 }
 
-/** 쓰는 글꼴을 다 받았으면 true. 시간 안에 못 받으면 false(그래도 합성은 한다). */
+/** 쓰는 글꼴을 다 받았으면 true. 시간 안에 못 받으면 false. */
 async function loadFonts(fonts: string[]): Promise<boolean> {
   if (!("fonts" in document)) return false;
   let timer: ReturnType<typeof setTimeout> | undefined;

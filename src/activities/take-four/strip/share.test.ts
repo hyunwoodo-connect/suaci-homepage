@@ -46,6 +46,12 @@ describe("shareOrDownload", () => {
     expect(clicked).toHaveLength(0);
   });
 
+  it("앞선 공유가 아직 열려 있음(InvalidStateError) → cancelled, 내려받지 않는다", async () => {
+    stubShare(true, () => Promise.reject(new DOMException("열려 있음", "InvalidStateError")));
+    await expect(shareOrDownload(BLOB, "a.jpg")).resolves.toBe("cancelled");
+    expect(clicked).toHaveLength(0);
+  });
+
   it("공유가 다른 이유로 실패 → 내려받기", async () => {
     stubShare(true, () => Promise.reject(new DOMException("막힘", "NotAllowedError")));
     await expect(shareOrDownload(BLOB, "a.jpg")).resolves.toBe("downloaded");

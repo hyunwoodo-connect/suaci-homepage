@@ -16,6 +16,8 @@ const LATE_UTC = new Date("2026-10-22T23:30:00Z");
 interface FakeCanvas {
   width: number;
   height: number;
+  /** toBlob 순간의 크기(그 뒤엔 메모리를 돌려주려 0으로 줄인다) */
+  sizeAtBlob?: [number, number];
   ctx: Record<string, unknown> & { calls: string[] };
   toBlob: ReturnType<typeof vi.fn>;
 }
@@ -75,7 +77,10 @@ beforeEach(() => {
       height: 0,
       ctx,
       getContext: () => ctx,
-      toBlob: vi.fn((cb: (b: Blob | null) => void) => cb(blobResult)),
+      toBlob: vi.fn((cb: (b: Blob | null) => void) => {
+        canvas.sizeAtBlob = [canvas.width, canvas.height];
+        cb(blobResult);
+      }),
     };
     canvases.push(canvas);
     return canvas as never;
@@ -121,14 +126,15 @@ describe("stripCaption · captionText", () => {
 });
 
 describe("composeStrip", () => {
-  it("900×2970 캔버스에 네 장을 칸마다 그리고 JPEG 0.86으로", async () => {
+  it("900×2659 캔버스에 네 장을 칸마다 그리고 JPEG 0.86으로, 다 쓰면 캔버스를 비운다", async () => {
     const blob = await composeStrip(
       [frame(), frame(), frame(), frame()],
       stripCaption("live", LATE_UTC),
     );
     expect(blob).toBe(blobResult);
     const [canvas] = canvases;
-    expect([canvas.width, canvas.height]).toEqual([STRIP.width, STRIP.height]);
+    expect(canvas.sizeAtBlob).toEqual([STRIP.width, STRIP.height]);
+    expect([canvas.width, canvas.height]).toEqual([0, 0]);
     const draws = vi.mocked(canvas.ctx.drawImage as () => void).mock.calls as unknown[][];
     expect(draws).toHaveLength(4);
     const cells = stripLayout().frames;
@@ -169,14 +175,23 @@ describe("composeStrip", () => {
     expect(ctx.calls).not.toContain("arc");
   });
 
-  it("글꼴이 끝내 안 옴 → 시간 한도 뒤 그대로 합성하고 경고", async () => {
+  it("글꼴이 끝내 안 옴 → 12초 뒤 실패, 기본 글꼴로 그리지 않는다", async () => {
     vi.useFakeTimers();
     fonts.load.mockReturnValue(new Promise(() => {}));
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const done = composeStrip([frame(), frame(), frame(), frame()], stripCaption("live", LATE_UTC));
+    const outcome = expect(done).rejects.toThrow(/글꼴/);
+    expect(FONT_TIMEOUT_MS).toBe(12_000);
     await vi.advanceTimersByTimeAsync(FONT_TIMEOUT_MS);
-    await expect(done).resolves.toBe(blobResult);
-    expect(warn).toHaveBeenCalledTimes(1);
+    await outcome;
+    expect(canvases).toHaveLength(0);
+  });
+
+  it("글꼴 받기는 끝났지만 check가 false → 실패", async () => {
+    fonts.check.mockReturnValue(false);
+    await expect(
+      composeStrip([frame(), frame(), frame(), frame()], stripCaption("live", LATE_UTC)),
+    ).rejects.toThrow(/글꼴/);
+    expect(canvases).toHaveLength(0);
   });
 
   it("toBlob이 null → 실패로 던진다", async () => {

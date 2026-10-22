@@ -37,7 +37,9 @@ export async function saveLast(blob: Blob, photos: Blob, caption: StripCaption):
     };
     const db = await openDb();
     try {
-      await request(db.transaction(STORE, "readwrite").objectStore(STORE).put(record, KEY));
+      const tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).put(record, KEY);
+      await committed(tx);
     } finally {
       db.close();
     }
@@ -104,6 +106,15 @@ function request<T>(req: IDBRequest<T>): Promise<T> {
   });
 }
 
+/** put 성공만으론 디스크에 안 남았을 수 있다(용량 초과는 트랜잭션 abort로 온다) */
+function committed(tx: IDBTransaction): Promise<void> {
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onabort = () => reject(tx.error ?? new Error("IndexedDB 저장 취소"));
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 function isStoredStrip(value: unknown): value is StoredStrip {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
@@ -112,6 +123,8 @@ function isStoredStrip(value: unknown): value is StoredStrip {
     Object.prototype.toString.call(v.bytes) === "[object ArrayBuffer]" &&
     Object.prototype.toString.call(v.photoBytes) === "[object ArrayBuffer]" &&
     typeof v.type === "string" &&
+    (v.serial === null || typeof v.serial === "string") &&
+    (v.eventLabel === null || typeof v.eventLabel === "string") &&
     typeof v.takenAt === "number"
   );
 }

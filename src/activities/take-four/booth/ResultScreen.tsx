@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import PillButton from "../parts/PillButton";
 import SaveIcon from "../parts/SaveIcon";
@@ -16,7 +16,7 @@ import { downloadBlob, shareOrDownload } from "../strip/share";
 import { SHOT_NAMES } from "./machine";
 
 interface ResultScreenProps {
-  /** 합성된 900×2970 띠 */
+  /** 합성된 띠(900×2659 JPEG) — 저장·공유하는 파일 */
   strip: Blob;
   /** 같은 네 장의 사진 기둥(띠 안에 보이는 것) */
   photos: Blob;
@@ -42,6 +42,9 @@ export default function ResultScreen({
   retakeHref,
 }: ResultScreenProps) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
+  // 같은 렌더 안의 연타는 state가 아직 안 바뀌어 ref로 막는다
+  const sharingRef = useRef(false);
   const { number, meta } = captionText(caption);
   const filename = stripFilename(caption);
 
@@ -58,11 +61,19 @@ export default function ResultScreen({
   }, [photos]);
 
   async function handleShare() {
+    // 공유 시트가 떠 있는 동안 두 번 누르면 두 번째 share()가 InvalidStateError — 한 번만
+    if (sharingRef.current) return;
+    sharingRef.current = true;
+    setIsSharing(true);
     // 취소·실패해도 화면은 그대로 — 띠는 이 화면이 들고 있다
     try {
       // TODO(Task 4): 띠 대신 9:16 스토리 이미지를 공유한다
       await shareOrDownload(strip, filename);
-    } catch {}
+    } catch {
+    } finally {
+      sharingRef.current = false;
+      setIsSharing(false);
+    }
   }
 
   function handleSave() {
@@ -98,7 +109,7 @@ export default function ResultScreen({
       <div className="flex flex-col gap-[10px]">
         {canEnter ? <PillButton>응모하기</PillButton> : null}
         <div className="grid grid-cols-2 gap-[8px]">
-          <PillButton variant="outline" size="md" onClick={handleShare}>
+          <PillButton variant="outline" size="md" onClick={handleShare} disabled={isSharing}>
             <ShareIcon />
             공유하기
           </PillButton>

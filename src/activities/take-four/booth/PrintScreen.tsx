@@ -8,6 +8,7 @@ import TextLink from "../parts/TextLink";
 import TopBar from "../parts/TopBar";
 import Wordmark from "../parts/Wordmark";
 import { captionText, drawPhotos } from "../strip/compose";
+import { stripLayout } from "../strip/layout";
 import type { StripCaption, StripFrame } from "../strip/compose";
 
 interface PrintScreenProps {
@@ -23,6 +24,14 @@ interface PrintScreenProps {
 /** 시안 Print: 0.9초마다 칸이 한 장씩 드러난다(4장 ≈ 3.6초) */
 export const PRINT_STEP_MS = 900;
 const CELLS = [0, 1, 2, 3] as const;
+/** 시안 Print의 사진 폭(px) */
+const PHOTO_WIDTH = 126;
+/** 칸 덮개 자리: 합성 띠의 칸을 126px 폭으로 줄인 것(시안 top i×99.75, 높이 ≈95) */
+const COVERS = (() => {
+  const { photo, frames } = stripLayout();
+  const scale = PHOTO_WIDTH / photo.width;
+  return frames.map((f) => ({ top: (f.y - photo.y) * scale, height: f.height * scale }));
+})();
 
 /**
  * 현상. 크림 덮개가 칸마다 걷히며 `printing…` → `here.` + `받기`.
@@ -51,6 +60,7 @@ export default function PrintScreen({
   const { number } = captionText(caption);
 
   return (
+    // 시안 Print.dc.html은 라임 바탕이다(계획서의 "현상은 크림"은 잘못 — 시안이 정답)
     <Screen tone="lime">
       <TopBar start={<Wordmark />} label="4 / 4" />
 
@@ -77,8 +87,8 @@ export default function PrintScreen({
                   key={i}
                   aria-hidden="true"
                   data-cell-cover={i < shown ? "open" : "closed"}
-                  style={{ top: i * 99.75 }}
-                  className={`absolute left-0 h-[95px] w-[126px] bg-(--tf-cream) ${
+                  style={{ top: COVERS[i].top, height: COVERS[i].height, width: PHOTO_WIDTH }}
+                  className={`absolute left-0 bg-(--tf-cream) ${
                     i < shown ? "opacity-0" : "opacity-[0.92]"
                   }`}
                 />
