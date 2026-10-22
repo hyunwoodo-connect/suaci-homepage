@@ -30,7 +30,10 @@ export function createMockWallApi(): WallApi {
       seq += 1;
       const id = `mock-${seq}`;
       pending.add(id);
-      return { id, uploads: { original: target(id, "original"), thumb: target(id, "thumb") } };
+      return {
+        stripId: id,
+        uploads: { original: target(id, "original"), thumb: target(id, "thumb") },
+      };
     },
     async upload(t, blob) {
       uploaded.set(t.key, await blobToDataUrl(blob));

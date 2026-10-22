@@ -88,7 +88,7 @@ describe("wallApi (http)", () => {
   });
 
   it("create: X-Device-Token을 달아 POST, data를 돌려준다", async () => {
-    const created = { id: "01J", uploads: { original: TARGET, thumb: TARGET } };
+    const created = { stripId: "01J", uploads: { original: TARGET, thumb: TARGET } };
     const fetchMock = vi.fn().mockResolvedValue(response(201, { data: created }));
     vi.stubGlobal("fetch", fetchMock);
     expect(await createWallApi("https://api.test").create()).toEqual(created);
@@ -144,7 +144,7 @@ describe("wallApi (http)", () => {
 describe("wallApi (mock)", () => {
   it("만들기 → 업로드 두 번 → 확정 → 목록 맨 앞", async () => {
     const api = createMockWallApi();
-    const { id, uploads } = await api.create();
+    const { stripId: id, uploads } = await api.create();
     await api.upload(uploads.original, new Blob(["o"], { type: "image/jpeg" }));
     await api.upload(uploads.thumb, new Blob(["t"], { type: "image/jpeg" }));
     const view = await api.confirm(id);
@@ -156,8 +156,8 @@ describe("wallApi (mock)", () => {
 
   it("업로드 없이 확정 → 409 UPLOAD_MISSING", async () => {
     const api = createMockWallApi();
-    const { id } = await api.create();
-    await expect(api.confirm(id)).rejects.toMatchObject({ code: "UPLOAD_MISSING" });
+    const { stripId } = await api.create();
+    await expect(api.confirm(stripId)).rejects.toMatchObject({ code: "UPLOAD_MISSING" });
   });
 });
 

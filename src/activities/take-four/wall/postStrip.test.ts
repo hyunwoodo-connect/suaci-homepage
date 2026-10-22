@@ -24,7 +24,7 @@ beforeEach(() => {
   thumb.makeThumb.mockReset().mockResolvedValue(THUMB);
   api.wallApi.create.mockReset().mockImplementation(async () => {
     calls.push("create");
-    return { id: "01J", uploads: { original: ORIGINAL_TARGET, thumb: THUMB_TARGET } };
+    return { stripId: "01J", uploads: { original: ORIGINAL_TARGET, thumb: THUMB_TARGET } };
   });
   api.wallApi.upload.mockReset().mockImplementation(async (target: UploadTarget) => {
     calls.push(`upload:${target.key}`);

@@ -25,7 +25,7 @@ export interface UploadTarget {
 }
 
 export interface CreatedStrip {
-  id: string;
+  stripId: string;
   uploads: { original: UploadTarget; thumb: UploadTarget };
 }
 
