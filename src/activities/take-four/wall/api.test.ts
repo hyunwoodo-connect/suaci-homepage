@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import { getDeviceToken } from "@/lib/device-token";
 
-import { createMockWallApi, createWallApi, selectWallApi, uploadTo } from "./api";
+import { createWallApi, selectWallApi, uploadTo } from "./api";
+import { createMockWallApi } from "./mockApi";
 import type { StripView, UploadTarget } from "./api";
 
 function response(status: number, body?: unknown) {

@@ -11,6 +11,11 @@ export interface RequestOpts {
   query?: Record<string, string | number | undefined>;
 }
 
+/** 백엔드 성공 응답 껍데기(`{ data }`). */
+export interface Envelope<T> {
+  data: T;
+}
+
 interface ErrorBody {
   error?: string;
   message?: string;

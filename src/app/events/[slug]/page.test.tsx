@@ -4,7 +4,10 @@ import EventPage from "./page";
 import { eventsApi } from "@/lib/api";
 import type { EventDetail, EventPhase } from "@/types";
 
-vi.mock("@/lib/api", () => ({ eventsApi: { get: vi.fn(), list: vi.fn() } }));
+vi.mock("@/lib/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/api")>()),
+  eventsApi: { get: vi.fn(), list: vi.fn() },
+}));
 const cookieJar = new Map<string, string>();
 const headerJar = new Map<string, string>();
 vi.mock("next/headers", () => ({

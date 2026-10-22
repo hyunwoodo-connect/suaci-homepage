@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createEventsApi, createMockEventsApi, selectEventsApi } from "./events";
+import { createEventsApi, selectEventsApi } from "./events";
+import { createMockEventsApi } from "./mock/events";
 import type { EventDetail } from "@/types";
 
 function mockFetchOnce(status: number, body: unknown) {

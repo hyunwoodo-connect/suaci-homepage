@@ -1,3 +1,4 @@
+// 미들웨어 번들에 커머스 `api`(mock·토큰 저장소)를 끌어오지 않게 `@/lib/api` 대신 events만 가져온다
 import { eventsApi } from "@/lib/api/events";
 
 const SLUG_PATH = /^\/events\/([a-z0-9-]{2,40})(?:\/|$)/;

@@ -32,6 +32,8 @@ Next.js (App Router) · React · TypeScript strict · Tailwind CSS v4 · next-in
 
 - All data access goes through `@/lib/api`. Pages and components never call `fetch` for app data directly.
 - `src/types/` mirrors backend DTOs. Don't change a DTO shape on the frontend alone.
+- **Exception — activity-owned endpoints** (`/activities/{id}/…`): the client and its DTOs live inside that activity module (e.g. `take-four/wall/api.ts`), so the module stays self-contained. It imports only the public pieces from `@/lib/api` (`createFetcher`, `Envelope`, `ApiClientError`, `isNotFound`, `isRateLimited`, `selectApi`), never `@/lib/api/http/*` or other internals.
+- Event and activity APIs pick their implementation with `selectApi` (backend URL set → live; no URL → mock in dev/test, empty in production — production never serves mock data). Mocks live in their own files (`lib/api/mock/events.ts`, `take-four/wall/mockApi.ts`). The commerce `api` is separate and uses `NEXT_PUBLIC_API_MODE`.
 - No auth library, DB access, or payment logic in this repo — that is the backend's job.
 - Don't add code "for later" (YAGNI). Unused exports, methods, locales, and dependencies get deleted.
 

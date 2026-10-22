@@ -21,10 +21,7 @@ import type {
 } from "@/types";
 import type { ApiClient } from "../client";
 import { createFetcher } from "./fetcher";
-
-interface Envelope<T> {
-  data: T;
-}
+import type { Envelope } from "./fetcher";
 
 export function createHttpClient(baseUrl?: string): ApiClient {
   const base = baseUrl ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
