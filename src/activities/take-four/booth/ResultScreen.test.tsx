@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 
-import { stripCaption } from "../strip/compose";
+import { stripCaption } from "../strip/caption";
 import ResultScreen from "./ResultScreen";
 
 const share = vi.hoisted(() => ({

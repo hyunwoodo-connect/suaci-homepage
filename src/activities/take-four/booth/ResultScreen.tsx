@@ -11,8 +11,9 @@ import Strip from "../parts/Strip";
 import TextLink from "../parts/TextLink";
 import TopBar from "../parts/TopBar";
 import Wordmark from "../parts/Wordmark";
-import { captionText, photosDataUrl, stripFilename } from "../strip/compose";
-import type { StripCaption } from "../strip/compose";
+import { blobToDataUrl } from "../canvas";
+import { captionText, stripFilename } from "../strip/caption";
+import type { StripCaption } from "../strip/caption";
 import { useShareActions } from "../strip/useShareActions";
 import { SHOT_NAMES } from "./machine";
 
@@ -55,7 +56,7 @@ export default function ResultScreen({
 
   useEffect(() => {
     let isCancelled = false;
-    photosDataUrl(photos)
+    blobToDataUrl(photos)
       .then((url) => {
         if (!isCancelled) setPhotoUrl(url);
       })

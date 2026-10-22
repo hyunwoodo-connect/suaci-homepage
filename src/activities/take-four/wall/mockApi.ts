@@ -1,15 +1,7 @@
 import { ApiClientError } from "@/lib/api";
 
+import { blobToDataUrl } from "../canvas";
 import type { StripView, UploadTarget, WallApi } from "./api";
-
-function readAsDataUrl(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(blob);
-  });
-}
 
 function notFound(): ApiClientError {
   return new ApiClientError("STRIP_NOT_FOUND", "없는 네컷이에요", 404);
@@ -41,7 +33,7 @@ export function createMockWallApi(): WallApi {
       return { id, uploads: { original: target(id, "original"), thumb: target(id, "thumb") } };
     },
     async upload(t, blob) {
-      uploaded.set(t.key, await readAsDataUrl(blob));
+      uploaded.set(t.key, await blobToDataUrl(blob));
     },
     async confirm(id) {
       const done = posted.find((s) => s.stripId === id);

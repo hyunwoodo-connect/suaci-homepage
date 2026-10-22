@@ -7,9 +7,11 @@ import Screen from "../parts/Screen";
 import TextLink from "../parts/TextLink";
 import TopBar from "../parts/TopBar";
 import Wordmark from "../parts/Wordmark";
-import { captionText, drawPhotos } from "../strip/compose";
+import { captionText } from "../strip/caption";
+import type { StripCaption } from "../strip/caption";
+import { drawPhotos } from "../strip/compose";
 import { stripLayout } from "../strip/layout";
-import type { StripCaption, StripFrame } from "../strip/compose";
+import type { StripFrame } from "../strip/compose";
 
 interface PrintScreenProps {
   frames: StripFrame[];

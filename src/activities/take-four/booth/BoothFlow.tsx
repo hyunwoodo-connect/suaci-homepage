@@ -5,8 +5,10 @@ import { useRef, useState } from "react";
 import { getEventContent } from "@/events";
 import type { EventDetail } from "@/types";
 
-import { composePhotos, composeStrip, stripCaption } from "../strip/compose";
-import type { StripCaption, StripFrame } from "../strip/compose";
+import { stripCaption } from "../strip/caption";
+import type { StripCaption } from "../strip/caption";
+import { composePhotos, composeStrip } from "../strip/compose";
+import type { StripFrame } from "../strip/compose";
 import { saveLast } from "../strip/storage";
 import { storyLink } from "../story/composeStory";
 import { canPostToWall } from "../stage";

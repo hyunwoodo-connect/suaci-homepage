@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 
-import { FONT_TIMEOUT_MS, captionText, composeStrip, stripCaption, stripFilename } from "./compose";
+import { FONT_TIMEOUT_MS } from "../canvas";
+import { stripCaption } from "./caption";
+import { composeStrip } from "./compose";
 import { STRIP, stripLayout } from "./layout";
 
 // 2026-10-22 23:30 UTC = 10-23 08:30 KST
@@ -88,30 +90,6 @@ afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
   document.documentElement.style.removeProperty("--font-fraunces");
-});
-
-describe("stripCaption · captionText", () => {
-  it.each(["upcoming", "live"] as const)("%s → No.01 표시, 번호는 no.----", (phase) => {
-    const caption = stripCaption(phase, LATE_UTC, "No.01");
-    expect(caption.eventLabel).toBe("No.01");
-    expect(captionText(caption)).toEqual({ number: "no.----", meta: "No.01 · 10.23" });
-  });
-
-  it("ended → 이벤트 표시 없이 날짜만", () => {
-    const caption = stripCaption("ended", LATE_UTC, "No.01");
-    expect(caption.eventLabel).toBeNull();
-    expect(captionText(caption)).toEqual({ number: "no.----", meta: "10.23" });
-  });
-
-  it("이벤트 내용이 없음(label null) → 진행 중이어도 이벤트 표시 없음", () => {
-    const caption = stripCaption("live", LATE_UTC, null);
-    expect(caption.eventLabel).toBeNull();
-    expect(captionText(caption).meta).toBe("10.23");
-  });
-
-  it("파일 이름 → 한국 날짜", () => {
-    expect(stripFilename(stripCaption("live", LATE_UTC, "No.01"))).toBe("take-four-1023.jpg");
-  });
 });
 
 describe("composeStrip", () => {

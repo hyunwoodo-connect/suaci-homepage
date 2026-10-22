@@ -1,4 +1,4 @@
-import type { StripCaption } from "./compose";
+import type { StripCaption } from "./caption";
 
 /** 입구의 `아까 찍은 네컷`이 다시 여는 마지막 띠 */
 export interface LastStrip {

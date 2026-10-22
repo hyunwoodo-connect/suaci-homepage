@@ -1,7 +1,7 @@
 import { Blob as NodeBlob } from "node:buffer";
 import { describe, it, expect, vi, afterEach } from "vitest";
 
-import { stripCaption } from "./compose";
+import { stripCaption } from "./caption";
 import { loadLast, saveLast } from "./storage";
 
 const TAKEN = new Date("2026-10-22T05:00:00Z");

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-import { photosDataUrl } from "./strip/compose";
+import { blobToDataUrl } from "./canvas";
 import { loadLast } from "./strip/storage";
 
 interface ResumeCardProps {
@@ -17,7 +17,7 @@ export default function ResumeCard({ href }: ResumeCardProps) {
   useEffect(() => {
     let isCancelled = false;
     loadLast()
-      .then((last) => (last ? photosDataUrl(last.photos) : null))
+      .then((last) => (last ? blobToDataUrl(last.photos) : null))
       .then((url) => {
         if (!isCancelled) setThumb(url);
       })

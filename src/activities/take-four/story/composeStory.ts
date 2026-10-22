@@ -1,5 +1,5 @@
 import { TAKE_FOUR_COLORS } from "../theme";
-import { canvasFont, canvasToBlob, fontFamily, loadFonts } from "../strip/compose";
+import { canvasFont, canvasToBlob, fontFamily, loadFonts } from "../canvas";
 import { STRIP } from "../strip/layout";
 
 /** 9:16 스토리 이미지. 시안 Story(360×640)의 3배. */

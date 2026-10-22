@@ -4,7 +4,7 @@ import { act, cleanup, render, screen } from "@testing-library/react";
 import type { EventDetail } from "@/types";
 
 import Entrance from "./Entrance";
-import { stripCaption } from "./strip/compose";
+import { stripCaption } from "./strip/caption";
 
 const storage = vi.hoisted(() => ({ loadLast: vi.fn() }));
 vi.mock("./strip/storage", () => storage);

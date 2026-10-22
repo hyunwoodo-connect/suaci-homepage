@@ -1,4 +1,4 @@
-import { canvasToBlob } from "../strip/compose";
+import { canvasToBlob } from "../canvas";
 
 const THUMB_WIDTH = 360;
 const THUMB_QUALITY = 0.8;

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 
-import { stripCaption } from "../strip/compose";
+import { stripCaption } from "../strip/caption";
 import PrintScreen, { PRINT_STEP_MS } from "./PrintScreen";
 
 const FRAMES = [0, 1, 2, 3].map(() => document.createElement("canvas"));
