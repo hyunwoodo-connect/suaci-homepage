@@ -1,8 +1,11 @@
 "use client";
 
+import { Fragment } from "react";
+
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
+import type { Locale } from "@/i18n/routing";
 import { HOME_MEDIA } from "@/constants/product";
 import { useAuth } from "@/lib/auth/auth-context";
 
@@ -11,8 +14,15 @@ interface SiteHeaderProps {
   overlay?: boolean;
 }
 
+/** 언어 전환 표기. 로케일 코드와 화면에 보이는 짧은 이름이 다르다(ja→jp, ko→kr) */
+const LANGS: ReadonlyArray<readonly [Locale, string]> = [
+  ["en", "en"],
+  ["ja", "jp"],
+  ["ko", "kr"],
+] as const;
+
 /**
- * v5 헤더 — 로고 / en·jp / 계정 아이콘.
+ * v5 헤더 — 로고 / en·jp·kr / 계정 아이콘.
  * 구매 CTA는 두지 않는다(원클릭 바 하나만 남긴다).
  */
 export default function SiteHeader({ overlay = false }: SiteHeaderProps) {
@@ -48,25 +58,23 @@ export default function SiteHeader({ overlay = false }: SiteHeaderProps) {
           {t("events")}
         </Link>
         <nav aria-label={t("lang")} className="flex items-center gap-[6px]">
-          <Link
-            href={pathname}
-            locale="en"
-            aria-current={locale === "en" ? "true" : undefined}
-            className={locale === "en" ? "text-ink" : "text-grey hover:text-ink"}
-          >
-            en
-          </Link>
-          <span aria-hidden="true" className="text-grey">
-            /
-          </span>
-          <Link
-            href={pathname}
-            locale="ja"
-            aria-current={locale === "ja" ? "true" : undefined}
-            className={locale === "ja" ? "text-ink" : "text-grey hover:text-ink"}
-          >
-            jp
-          </Link>
+          {LANGS.map(([code, label], i) => (
+            <Fragment key={code}>
+              {i > 0 && (
+                <span aria-hidden="true" className="text-grey">
+                  /
+                </span>
+              )}
+              <Link
+                href={pathname}
+                locale={code}
+                aria-current={locale === code ? "true" : undefined}
+                className={locale === code ? "text-ink" : "text-grey hover:text-ink"}
+              >
+                {label}
+              </Link>
+            </Fragment>
+          ))}
         </nav>
         <Link
           href={accountHref}
