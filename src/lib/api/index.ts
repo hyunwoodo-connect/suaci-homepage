@@ -10,6 +10,8 @@ export type { ApiClient } from "./client";
 export { ApiClientError, isNotFound, isRateLimited } from "./errors";
 export { eventsApi } from "./events";
 export type { EventsApi } from "./events";
+export { legalApi } from "./legal";
+export type { LegalApi } from "./legal";
 export { createFetcher } from "./http/fetcher";
 export type { Envelope } from "./http/fetcher";
 export { selectApi } from "./select";

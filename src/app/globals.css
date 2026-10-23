@@ -104,6 +104,36 @@ video {
   }
 }
 
+/* ── 정책 문서(마크다운) ───────────────────────── */
+.legal-doc > * + * {
+  margin-top: 10px;
+}
+.legal-doc h1,
+.legal-doc h2,
+.legal-doc h3 {
+  margin-top: 32px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-ink);
+}
+.legal-doc > :is(h1, h2, h3):first-child {
+  margin-top: 0;
+}
+.legal-doc p {
+  margin: 0;
+}
+.legal-doc ol,
+.legal-doc ul {
+  margin: 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.legal-doc a {
+  text-decoration: underline;
+}
+
 /* ── 홈 ─────────────────────────────────────────── */
 .home-details summary {
   list-style: none;

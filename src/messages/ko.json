@@ -269,5 +269,19 @@
       "live": "진행 중",
       "ended": "종료"
     }
+  },
+  "legal": {
+    "terms": "이용약관",
+    "privacy": "개인정보처리방침",
+    "refund": "배송·교환·환불 안내",
+    "business": "사업자 정보",
+    "effective": "시행 {date}",
+    "upcoming": "{date}부터 개정판이 시행됩니다.",
+    "history": "개정 이력",
+    "version": "{n}판",
+    "current": "현재 판",
+    "pastVersion": "지난 판입니다.",
+    "koOnly": "이 페이지는 현재 한국어로만 제공됩니다.",
+    "more": "다른 정책"
   }
 }

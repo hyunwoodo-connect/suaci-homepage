@@ -6,3 +6,4 @@ export * from "./address";
 export * from "./order";
 export * from "./claim";
 export * from "./event";
+export * from "./legal";

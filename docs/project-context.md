@@ -37,7 +37,7 @@
 
 - Next.js 16 · React 19 · Tailwind v4 · next-intl · pnpm. AWS Amplify 호스팅(main 푸시 시 자동 배포), GitHub `hyunwoodo-connect/suaci-homepage`.
 - 라우팅 `en`(접두사 없음) + `ja` + `ko`. 카탈로그 키 일치는 `src/messages/messages.test.ts`가 지킨다.
-- 라우트: `/` · `/checkout` · `/orders` · `/orders/[id]` · `/account` · `/account/addresses` · `/login` · `/signup` · `/password/*`. 상품목록·브랜드·장바구니는 **제거**(단일 SKU). `@/lib/api` seam은 지금 쓰는 메서드만 둔다(YAGNI).
+- 라우트: `/` · `/checkout` · `/orders` · `/orders/[id]` · `/account` · `/account/addresses` · `/login` · `/signup` · `/password/*` · `/legal/[slug]`(terms·privacy·refund·business, 백엔드 `GET /legal/{slug}` 마크다운을 react-markdown으로, 원시 HTML 차단) · `/legal/[slug]/[version]`(개정 이력). 정책 본문은 코드에 없고 관리 툴(admin.takesuaci.com)에서 판(버전)으로 고친다. 2026-10-23. 상품목록·브랜드·장바구니는 **제거**(단일 SKU). `@/lib/api` seam은 지금 쓰는 메서드만 둔다(YAGNI).
 - 홈 컴포넌트 `src/components/home/`: SiteHeader, Hero, Story, Moments, ProductSection, SiteFooter, BuyBar. 상수 `src/constants/product.ts`.
 - 에셋: `public/image/v5/`, `public/video/v5/hero.{mp4,webm}`, `public/brand/`.
 - 결제·로그인: **UI만** 디자인대로. 동작은 seam mock. TODO: Stripe(Apple/Google Pay), Cognito federated(google/apple/line), **게스트 주문 백엔드 계약**(현재는 로그인+배송지 필요).
@@ -59,6 +59,6 @@
 - 바구니 컷 라임이 너무 큼 → 재생성(확인 후)
 - 헤더 스크롤 동작, 구매 시트 포커스 트랩
 - 일본어 카피 다듬기, 엔화 표기 정책
-- 정책 페이지·特定商取引法 페이지·주문 조회, 푸터 `#` 링크
+- 特定商取引法 페이지(2차 일본), 푸터 instagram 링크. 정책 4종·푸터 링크는 2026-10-23 끝(백엔드 판 관리)
 - 실제 제품 컷으로 교체, 제품 카피(사용법·전성분·배송)
 - Stripe·소셜 로그인·게스트 주문 연동

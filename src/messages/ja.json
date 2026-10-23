@@ -269,5 +269,19 @@
       "live": "開催中",
       "ended": "終了"
     }
+  },
+  "legal": {
+    "terms": "利用規約",
+    "privacy": "プライバシーポリシー",
+    "refund": "配送・返品",
+    "business": "事業者情報",
+    "effective": "施行 {date}",
+    "upcoming": "{date} に改定版が施行されます。",
+    "history": "改定履歴",
+    "version": "第{n}版",
+    "current": "現行版",
+    "pastVersion": "これは過去の版です。",
+    "koOnly": "このページは現在、韓国語のみで提供しています。",
+    "more": "その他のポリシー"
   }
 }

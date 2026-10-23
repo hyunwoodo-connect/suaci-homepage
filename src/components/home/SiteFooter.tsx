@@ -6,7 +6,7 @@ import { SITE } from "@/constants/site";
 
 /**
  * v5 푸터 — 흰 바탕. 슬로건·내비 / 법적 표기 / 하단에 잘려 나가는 대형 로고.
- * 정책 페이지는 아직 없음 → href="#" (TODO).
+ * 정책 링크는 /legal/* 로. 인스타그램 계정과 特定商取引法 페이지는 아직 없다.
  */
 export default function SiteFooter() {
   const t = useTranslations("home.footer");
@@ -23,13 +23,13 @@ export default function SiteFooter() {
             <Link href="/orders" className="hover:text-grey">
               {t("orderLookup")}
             </Link>
-            {/* TODO: 정책·연락처 페이지 */}
-            <a href="#" className="hover:text-grey">
+            <Link href="/legal/refund" className="hover:text-grey">
               {t("shipping")}
-            </a>
-            <a href="#" className="hover:text-grey">
+            </Link>
+            <Link href="/legal/business" className="hover:text-grey">
               {t("contact")}
-            </a>
+            </Link>
+            {/* TODO(출시): 인스타그램 계정 주소 */}
             <a href="#" className="hover:text-grey">
               {t("instagram")}
             </a>
@@ -38,12 +38,13 @@ export default function SiteFooter() {
         <div className="flex flex-wrap items-start justify-between gap-[16px] text-[12px] text-grey">
           <p className="m-0">{t("legal")}</p>
           <nav className="flex flex-wrap gap-x-[20px] gap-y-[6px]">
-            <a href="#" className="hover:text-ink">
+            <Link href="/legal/terms" className="hover:text-ink">
               {t("terms")}
-            </a>
-            <a href="#" className="hover:text-ink">
+            </Link>
+            <Link href="/legal/privacy" className="hover:text-ink">
               {t("privacy")}
-            </a>
+            </Link>
+            {/* TODO(일본): 特定商取引法に基づく表記 페이지는 2차 일본 진출 때 */}
             <a href="#" className="hover:text-ink">
               {t("tokushoho")}
             </a>

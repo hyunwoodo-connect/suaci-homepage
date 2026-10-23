@@ -269,5 +269,19 @@
       "live": "Live",
       "ended": "Ended"
     }
+  },
+  "legal": {
+    "terms": "terms",
+    "privacy": "privacy",
+    "refund": "shipping & returns",
+    "business": "business information",
+    "effective": "effective {date}",
+    "upcoming": "a revised version takes effect on {date}.",
+    "history": "revision history",
+    "version": "v{n}",
+    "current": "current version",
+    "pastVersion": "this is a past version.",
+    "koOnly": "this page is currently available in korean only.",
+    "more": "other policies"
   }
 }
