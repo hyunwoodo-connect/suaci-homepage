@@ -12,6 +12,8 @@ export { eventsApi } from "./events";
 export type { EventsApi } from "./events";
 export { legalApi } from "./legal";
 export type { LegalApi } from "./legal";
+export { waitlistApi } from "./waitlist";
+export type { WaitlistApi, WaitlistJoinInput } from "./waitlist";
 export { createFetcher } from "./http/fetcher";
 export type { Envelope } from "./http/fetcher";
 export { selectApi } from "./select";

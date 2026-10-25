@@ -283,5 +283,25 @@
     "pastVersion": "this is a past version.",
     "koOnly": "this page is currently available in korean only.",
     "more": "other policies"
+  },
+  "waitlist": {
+    "title": "get notified",
+    "meta": "be the first to hear when [product name] launches",
+    "lead": "leave your email and we'll tell you first when [product name] is out.",
+    "email": "email",
+    "privacyConsent": "i agree to the collection and use of my personal information (required)",
+    "privacyDetail": "collected: email · purpose: launch notice and suaci news · kept until you unsubscribe",
+    "marketingConsent": "i agree to receive promotional emails, including the launch notice (required)",
+    "submit": "notify me",
+    "sending": "sending…",
+    "done": "you're on the list. we'll email you first when [product name] launches.",
+    "again": "add another email",
+    "needConsent": "please agree to both.",
+    "error": {
+      "INVALID_EMAIL": "please check your email address.",
+      "RATE_LIMITED": "please try again in a moment.",
+      "default": "we couldn't add you right now. please try again in a moment."
+    },
+    "retry": "try again"
   }
 }

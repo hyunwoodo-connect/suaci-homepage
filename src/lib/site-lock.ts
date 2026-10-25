@@ -20,6 +20,14 @@ export async function isUnlocked(cookie: string | undefined, pin: string | undef
   return cookie === (await lockToken(pin));
 }
 
+// 출시 전에도 열어 두는 화면: 출시 알림 받기. 12월 티저 링크가 여기로 온다
+const OPEN_BEFORE_LAUNCH = /^\/(?:(?:en|ja|ko)\/)?notify\/?$/;
+
+/** 출시 전 잠금을 건너뛰는 경로인가. 언어 접두사(en·ja·ko)는 있어도 없어도 된다 */
+export function isOpenBeforeLaunch(pathname: string): boolean {
+  return OPEN_BEFORE_LAUNCH.test(pathname);
+}
+
 /** 들어간 뒤 돌아갈 곳. 같은 사이트 경로만(//evil.com 같은 건 /) */
 export function safeNext(next: unknown): string {
   return typeof next === "string" && next.startsWith("/") && !next.startsWith("//") ? next : "/";
