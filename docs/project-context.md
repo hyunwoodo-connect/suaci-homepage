@@ -40,7 +40,9 @@
 - 라우트: `/` · `/checkout` · `/orders` · `/orders/[id]` · `/account` · `/account/addresses` · `/login` · `/signup` · `/password/*` · `/legal/[slug]`(terms·privacy·refund·business, 백엔드 `GET /legal/{slug}` 마크다운을 react-markdown으로, 원시 HTML 차단) · `/legal/[slug]/[version]`(개정 이력). 정책 본문은 코드에 없고 관리 툴(admin.takesuaci.com)에서 판(버전)으로 고친다. 2026-10-23. 상품목록·브랜드·장바구니는 **제거**(단일 SKU). `@/lib/api` seam은 지금 쓰는 메서드만 둔다(YAGNI).
 - 홈 컴포넌트 `src/components/home/`: SiteHeader, Hero, Story, Moments, ProductSection, SiteFooter, BuyBar. 상수 `src/constants/product.ts`.
 - 에셋: `public/image/v5/`, `public/video/v5/hero.{mp4,webm}`, `public/brand/`.
-- 결제·로그인: **UI만** 디자인대로. 동작은 seam mock. TODO: Stripe(Apple/Google Pay), Cognito federated(google/apple/line), **게스트 주문 백엔드 계약**(현재는 로그인+배송지 필요).
+- 결제·로그인(2026-10-26, feat/two-click-checkout): **두 번 클릭 구매** — 바(수량+`총액 · 사기`) → 로그인 시트(카카오·네이버만, 이메일은 접힘) → 재구매 시트(주소·수단·메모 미리 채움) → 결제창 → `/pay/complete`(승인) → 완료. 첫 구매·주소 변경은 `/checkout` 한 화면(Daum 우편번호 레이어). 게스트 주문 없음(결정 1). 라우트 추가: `/auth/[provider]/callback` · `/auth/consent` · `/auth/mock/[provider]`(개발 대역) · `/pay/complete` · `/pay/fail`.
+- 어댑터 모드(소셜·결제 공통): 클라 키 있으면 **live** / 없고 mock 모드거나 개발이면 **mock**(앱 안 목업 동의·즉시 성공 결제) / 운영+http 면 **off**(버튼 대신 준비 중 한 줄). 실키 오면 env 만 넣으면 전환. 미정 값(판매가 28,000·배송비 3,000·"suaci 바로결제" 가칭)은 `src/constants/checkout.ts` 한 곳.
+- UX 스펙: `docs/superpowers/specs/2026-10-26-payment-ux.md`(결제 UX 설계 — 두 번 누르면 끝).
 - 제품 섹션 사진 3장은 퓨리토 레퍼런스 — 출시 전 교체.
 - 최근 커밋: v5 리디자인 → 코드 점검 → 히어로 v2 영상(크로스페이드 제거) → 제품 섹션 재구성.
 
