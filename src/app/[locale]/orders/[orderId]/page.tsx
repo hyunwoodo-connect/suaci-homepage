@@ -53,9 +53,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ orderId:
 
 function OrderDetail({ orderId }: { orderId: string }) {
   const t = useTranslations("orders");
+  const tp = useTranslations("pay.result");
   const { status } = useAuth();
   const searchParams = useSearchParams();
   const welcome = searchParams.get("welcome") === "1";
+  const firstPurchase = searchParams.get("first") === "1";
 
   const [order, setOrder] = useState<Order | null>(null);
   const [claims, setClaims] = useState<Claim[]>([]);
@@ -98,7 +100,12 @@ function OrderDetail({ orderId }: { orderId: string }) {
         <div className="max-w-[860px]">
           {welcome && (
             <div className="border border-line bg-lime px-[16px] py-[13px] mb-[20px] flex items-baseline justify-between gap-[12px] flex-wrap">
-              <b className="font-sans text-[15px] text-ink">{t("welcomeTitle")}</b>
+              <div>
+                <b className="font-sans text-[15px] text-ink block">{tp("done")}</b>
+                <span className="font-sans text-[12px] text-ink">
+                  {firstPurchase ? tp("doneFirst") : tp("doneSub")}
+                </span>
+              </div>
               <span className="font-sans text-[10px] text-ink num">
                 {t("welcomeOrderNo", { orderNo: order.orderNo })}
               </span>
