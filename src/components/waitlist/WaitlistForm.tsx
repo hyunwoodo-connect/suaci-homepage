@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
 import { ApiClientError } from "@/lib/api/errors";
+import { trackLead } from "@/lib/analytics";
 import { waitlistApi } from "@/lib/api/waitlist";
 
 interface WaitlistFormProps {
@@ -39,6 +40,7 @@ export default function WaitlistForm({ locale, source }: WaitlistFormProps) {
     setError(null);
     try {
       await waitlistApi.join({ email: email.trim(), locale, ...(source ? { source } : {}) });
+      trackLead(source);
       setStatus("done");
     } catch (err) {
       const code = err instanceof ApiClientError ? err.code : "";

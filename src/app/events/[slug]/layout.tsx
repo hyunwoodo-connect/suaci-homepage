@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Gowun_Batang } from "next/font/google";
 import "../../globals.css";
+import Analytics from "@/components/analytics/Analytics";
 
 export const metadata: Metadata = {
   title: "suaci — 이벤트",
@@ -29,7 +30,10 @@ const gowunBatang = Gowun_Batang({
 export default function EventLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko" className={`${fraunces.variable} ${gowunBatang.variable}`}>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
