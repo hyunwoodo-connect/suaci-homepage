@@ -77,3 +77,19 @@ export function authorizeUrl(args: {
   });
   return `${AUTHORIZE_BASE[provider]}?${q.toString()}`;
 }
+
+/** 프로바이더 콘솔 클라 ID(빌드 시 주입). 없으면 live 어댑터를 못 쓴다 */
+export function envClientId(provider: SocialProvider): string | undefined {
+  return provider === "kakao"
+    ? process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID
+    : process.env.NEXT_PUBLIC_NAVER_CLIENT_ID;
+}
+
+/** 지금 환경의 소셜 모드 — 컴포넌트가 부르는 한 줄짜리 */
+export function envSocialMode(provider: SocialProvider): SocialMode {
+  return socialMode({
+    clientId: envClientId(provider),
+    apiMode: process.env.NEXT_PUBLIC_API_MODE ?? "mock",
+    nodeEnv: process.env.NODE_ENV,
+  });
+}

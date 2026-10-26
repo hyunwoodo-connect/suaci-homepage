@@ -352,6 +352,12 @@
       "expired": "sign-up timed out. please sign in again.",
       "toLogin": "to sign in",
       "tangled": "sign-in got tangled. please start over."
+    },
+    "mock": {
+      "title": "{provider} sign in (mock)",
+      "name": "name",
+      "agree": "agree & continue",
+      "cancel": "cancel"
     }
   }
 }
