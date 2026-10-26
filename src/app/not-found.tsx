@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function NotFound() {
   return (
-    <html lang="en">
+    <html lang="ko">
       <body
         style={{
           display: "flex",

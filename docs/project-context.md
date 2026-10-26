@@ -17,7 +17,7 @@
 - 제품 **brume no.1** — lime & basil face mist, **100 ml, 단일 SKU**. 임시 가격 ₩38,000.
 - 슬로건 **take suaci.** (take a break → take suaci). 브랜드 성격: **유쾌한 리프레쉬**. 명상·힐링·진정 톤 아님.
 - 브랜드 스토리 한 줄: "for the days your mind gets sensitive before your skin does." 본문: "people, pings, all day long. some days it's not your skin that needs a break first. / suaci is a quick, playful refresh. not silence, not meditation. just a spray, a little laugh, and back to your day."
-- 사이트 언어 **영어(기본) + 일본어 + 한국어**(`/ko`, 2026-10-23 추가. 기본 언어 결정은 열려 있음). 영문 카피 **전부 소문자**. 미니멀 카피.
+- 사이트 언어 **한국어(기본, 2026-10-26 #93) + 영어 + 일본어**. 영문 카피 **전부 소문자**. 미니멀 카피.
 - 금지 표현: 치료/효과/개선, 기능성 암시. "no sting" 류 문구는 출시 전 표현 가능 여부 확인 필요.
 
 ## 비주얼
@@ -36,7 +36,7 @@
 ## 저장소 `suaci-official` 상태
 
 - Next.js 16 · React 19 · Tailwind v4 · next-intl · pnpm. AWS Amplify 호스팅(main 푸시 시 자동 배포), GitHub `hyunwoodo-connect/suaci-homepage`.
-- 라우팅 `en`(접두사 없음) + `ja` + `ko`. 카탈로그 키 일치는 `src/messages/messages.test.ts`가 지킨다.
+- 라우팅 `ko`(기본, 접두사 없음 — 2026-10-26 #93) + `en` + `ja`. 카탈로그 키 일치는 `src/messages/messages.test.ts`가 지킨다.
 - 라우트: `/` · `/checkout` · `/orders` · `/orders/[id]` · `/account` · `/account/addresses` · `/login` · `/signup` · `/password/*` · `/legal/[slug]`(terms·privacy·refund·business, 백엔드 `GET /legal/{slug}` 마크다운을 react-markdown으로, 원시 HTML 차단) · `/legal/[slug]/[version]`(개정 이력). 정책 본문은 코드에 없고 관리 툴(admin.takesuaci.com)에서 판(버전)으로 고친다. 2026-10-23. 상품목록·브랜드·장바구니는 **제거**(단일 SKU). `@/lib/api` seam은 지금 쓰는 메서드만 둔다(YAGNI).
 - 홈 컴포넌트 `src/components/home/`: SiteHeader, Hero, Story, Moments, ProductSection, SiteFooter, BuyBar. 상수 `src/constants/product.ts`.
 - 에셋: `public/image/v5/`, `public/video/v5/hero.{mp4,webm}`, `public/brand/`.
