@@ -4,7 +4,14 @@ import { NextRequest } from "next/server";
 import middleware from "@/middleware";
 import { POST } from "@/app/api/site-lock/route";
 
-import { SITE_LOCK_COOKIE, gateHtml, isUnlocked, lockToken, safeNext } from "./site-lock";
+import {
+  SITE_LOCK_COOKIE,
+  gateHtml,
+  isOpenBeforeLaunch,
+  isUnlocked,
+  lockToken,
+  safeNext,
+} from "./site-lock";
 
 // next-intl 미들웨어는 vitest에서 못 읽으므로, 통과하면 200을 돌려주는 것으로 바꾼다
 vi.mock("next-intl/middleware", () => ({
@@ -80,5 +87,21 @@ describe("site-lock", () => {
   it("POST: 비번이 설정 안 됐으면 빈 값으로도 못 연다", async () => {
     vi.stubEnv("SITE_LOCK_PIN", "");
     expect((await post({ pin: "", next: "/" })).status).toBe(401);
+  });
+
+  it("출시 알림 받기(/notify)는 잠금 밖: 언어 접두사 있든 없든 쿠키 없이 열린다", async () => {
+    vi.stubEnv("SITE_LOCK_PIN", "1234");
+    for (const path of ["/notify", "/ko/notify", "/ja/notify", "/en/notify"]) {
+      expect((await middleware(new NextRequest(`https://takesuaci.com${path}`))).status).toBe(200);
+    }
+  });
+
+  it("isOpenBeforeLaunch: /notify만. 비슷한 다른 경로는 잠근다", () => {
+    expect(isOpenBeforeLaunch("/notify")).toBe(true);
+    expect(isOpenBeforeLaunch("/ko/notify/")).toBe(true);
+    expect(isOpenBeforeLaunch("/ko/notify/x")).toBe(false);
+    expect(isOpenBeforeLaunch("/notifyx")).toBe(false);
+    expect(isOpenBeforeLaunch("/fr/notify")).toBe(false);
+    expect(isOpenBeforeLaunch("/ko")).toBe(false);
   });
 });
