@@ -297,7 +297,9 @@
       "detailRequired": "add the unit — 'none' is fine too.",
       "phoneInvalid": "numbers only — we'll add the hyphens.",
       "saveDefault": "use this next time",
-      "brandpayHint": "register once, pay instantly next time."
+      "brandpayHint": "register once, pay instantly next time.",
+      "phone": "phone",
+      "detail": "unit / detail"
     },
     "result": {
       "confirming": "confirming your payment…",

@@ -297,7 +297,9 @@
       "detailRequired": "동·호수까지 적어 주세요. 없으면 '없음'도 돼요.",
       "phoneInvalid": "숫자만 넣어 주세요. 하이픈은 알아서 넣을게요.",
       "saveDefault": "다음에도 여기로",
-      "brandpayHint": "한 번 등록하면 다음부턴 바로 결제돼요."
+      "brandpayHint": "한 번 등록하면 다음부턴 바로 결제돼요.",
+      "phone": "전화",
+      "detail": "상세주소"
     },
     "result": {
       "confirming": "결제를 확인하는 중…",

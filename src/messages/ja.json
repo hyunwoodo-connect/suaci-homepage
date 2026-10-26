@@ -297,7 +297,9 @@
       "detailRequired": "部屋番号まで書いてください。なければ「なし」でも大丈夫。",
       "phoneInvalid": "数字だけ入れてください。ハイフンはこちらで入れます。",
       "saveDefault": "次回もここへ",
-      "brandpayHint": "一度登録すれば次からすぐ決済できます。"
+      "brandpayHint": "一度登録すれば次からすぐ決済できます。",
+      "phone": "電話",
+      "detail": "詳細住所"
     },
     "result": {
       "confirming": "決済を確認しています…",
