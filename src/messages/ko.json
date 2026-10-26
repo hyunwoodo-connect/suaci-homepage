@@ -92,8 +92,6 @@
     "password": "비밀번호",
     "name": "이름",
     "submitLogin": "로그인",
-    "noAccount": "처음이세요?",
-    "goSignup": "가입",
     "error": "다시 확인하고 시도해 주세요",
     "signupSub": "30초면 돼요. 진짜로.",
     "confirmSub": "메일함만 확인해 주세요",
@@ -117,12 +115,7 @@
     "submitReset": "비밀번호 바꾸기",
     "forgotPassword": "비밀번호를 잊으셨나요?",
     "backToLogin": "로그인으로 돌아가기",
-    "continueWith": "{provider}로 계속",
-    "google": "google",
-    "apple": "apple",
-    "line": "line",
-    "orEmail": "또는 이메일로 로그인",
-    "socialSoon": "소셜 로그인은 준비 중이에요. 지금은 이메일로 로그인해 주세요."
+    "emailLogin": "이메일로 로그인"
   },
   "account": {
     "needLogin": "로그인이 필요해요",

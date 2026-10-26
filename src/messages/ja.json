@@ -92,8 +92,6 @@
     "password": "パスワード",
     "name": "名前",
     "submitLogin": "ログイン",
-    "noAccount": "はじめてですか？",
-    "goSignup": "登録する",
     "error": "確認してもう一度お試しください",
     "signupSub": "30秒で終わります。本当に。",
     "confirmSub": "メールを確認するだけ",
@@ -117,12 +115,7 @@
     "submitReset": "パスワードを変更",
     "forgotPassword": "パスワードをお忘れですか？",
     "backToLogin": "ログインに戻る",
-    "continueWith": "{provider}で続ける",
-    "google": "google",
-    "apple": "apple",
-    "line": "line",
-    "orEmail": "またはメールでログイン",
-    "socialSoon": "ソーシャルログインはまもなく対応します。今はメールをご利用ください。"
+    "emailLogin": "メールでログイン"
   },
   "account": {
     "needLogin": "ログインが必要です",

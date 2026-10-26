@@ -7,6 +7,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
 import PageShell from "@/components/shell/PageShell";
+import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
 import { useAuth } from "@/lib/auth/auth-context";
 
 /**
@@ -26,6 +27,8 @@ export default function LoginPage() {
 
 function LoginForm() {
   const t = useTranslations("auth");
+  const tp = useTranslations("pay.login");
+  const [showEmail, setShowEmail] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
@@ -35,14 +38,18 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const nextPath = () => {
+    const next = searchParams.get("next");
+    return next && next.startsWith("/") ? next : "/account";
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setError(null);
     try {
       await login(email, password);
-      const next = searchParams.get("next");
-      router.push(next && next.startsWith("/") ? next : "/account");
+      router.push(nextPath());
     } catch {
       setError(t("error"));
     } finally {
@@ -60,60 +67,54 @@ function LoginForm() {
       meta={t("loginSub")}
     >
       <div className="max-w-[440px]">
-        {/* 소셜 로그인 — UI만. TODO(백엔드): Cognito federated(Google/Apple/LINE) 연동 */}
-        <div className="mb-[28px] flex flex-col gap-[10px]">
-          {(["google", "apple", "line"] as const).map((provider) => (
+        {/* 소셜 로그인 — 카카오·네이버만(오너 결정 #93). 이메일 폼은 접어 둔다(결정 2: 숨김, 삭제 아님) */}
+        <div className="mb-[28px] flex flex-col gap-[12px]">
+          <SocialLoginButtons next={nextPath()} />
+          <p className="m-0 text-center text-[12px] text-grey">{tp("hint")}</p>
+          {!showEmail && (
             <button
-              key={provider}
               type="button"
-              onClick={() => setError(t("socialSoon"))}
-              className="h-[48px] cursor-pointer rounded-full border border-line text-[14px] text-ink hover:bg-ink hover:text-paper"
+              onClick={() => setShowEmail(true)}
+              className="mx-auto mt-[4px] cursor-pointer text-[12px] text-grey underline underline-offset-[3px] hover:text-ink"
             >
-              {t("continueWith", { provider: t(provider) })}
+              {t("emailLogin")}
             </button>
-          ))}
-          <p className="m-0 mt-[8px] text-center text-[12px] text-grey">{t("orEmail")}</p>
+          )}
         </div>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-[18px]">
-          <InputField
-            label={t("email")}
-            type="email"
-            required
-            autoComplete="email"
-            placeholder="you@email.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <InputField
-            label={t("password")}
-            type="password"
-            required
-            autoComplete="current-password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          {error && <p className="font-sans text-[11px] text-[#c0392b] m-0">✕ {error}</p>}
-          <Button type="submit" disabled={busy} className="mt-[6px]">
-            {busy ? "..." : t("submitLogin")}
-          </Button>
-        </form>
+        {showEmail && (
+          <>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-[18px]">
+              <InputField
+                label={t("email")}
+                type="email"
+                required
+                autoComplete="email"
+                placeholder="you@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <InputField
+                label={t("password")}
+                type="password"
+                required
+                autoComplete="current-password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              {error && <p className="font-sans text-[11px] text-[#c0392b] m-0">✕ {error}</p>}
+              <Button type="submit" disabled={busy} className="mt-[6px]">
+                {busy ? "..." : t("submitLogin")}
+              </Button>
+            </form>
 
-        <p className="mt-[16px] font-sans text-[11px]">
-          <Link href="/password/forgot" className="text-grey hover:text-lime">
-            {t("forgotPassword")} →
-          </Link>
-        </p>
-
-        <p className="mt-[24px] font-sans text-[11px] text-grey">
-          {t("noAccount")}{" "}
-          <Link
-            href="/signup"
-            className="text-ink underline underline-offset-[3px] hover:text-lime"
-          >
-            {t("goSignup")} →
-          </Link>
-        </p>
+            <p className="mt-[16px] font-sans text-[11px]">
+              <Link href="/password/forgot" className="text-grey hover:text-lime">
+                {t("forgotPassword")} →
+              </Link>
+            </p>
+          </>
+        )}
       </div>
     </PageShell>
   );

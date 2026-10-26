@@ -92,8 +92,6 @@
     "password": "password",
     "name": "name",
     "submitLogin": "sign in",
-    "noAccount": "first time here?",
-    "goSignup": "join",
     "error": "please check and try again",
     "signupSub": "thirty seconds. really.",
     "confirmSub": "just check your inbox",
@@ -117,12 +115,7 @@
     "submitReset": "change password",
     "forgotPassword": "forgot your password?",
     "backToLogin": "back to sign in",
-    "continueWith": "continue with {provider}",
-    "google": "google",
-    "apple": "apple",
-    "line": "line",
-    "orEmail": "or sign in with email",
-    "socialSoon": "social sign-in is coming soon. please use email for now."
+    "emailLogin": "sign in with email"
   },
   "account": {
     "needLogin": "you need to sign in",
