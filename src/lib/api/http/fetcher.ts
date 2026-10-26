@@ -65,7 +65,7 @@ export function createFetcher(baseUrl: string) {
       ...opts.headers,
     };
     if (opts.auth) {
-      const token = tokenOverride ?? tokenStore.getAccessToken();
+      const token = tokenOverride ?? tokenStore.getAuthToken();
       if (token) headers.Authorization = `Bearer ${token}`;
     }
     const url = buildUrl(baseUrl, path, opts.query);
@@ -107,7 +107,7 @@ export function createFetcher(baseUrl: string) {
         if (tokens) {
           // Exactly one retry. If it also 401s, clear the (now-stale) tokens before propagating.
           try {
-            return await request<T>(path, { ...opts, auth: true }, tokens.accessToken);
+            return await request<T>(path, { ...opts, auth: true }, tokens.idToken);
           } catch (retryErr) {
             if (retryErr instanceof ApiClientError && retryErr.status === 401) {
               tokenStore.clear();

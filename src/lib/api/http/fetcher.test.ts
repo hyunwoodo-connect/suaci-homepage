@@ -83,7 +83,8 @@ describe("http client", () => {
     expect(tokenStore.getAccessToken()).toBe("new"); // refresh 저장됨
     // 재요청에 새 토큰 사용됐는지
     const lastCall = fetchMock.mock.calls[2];
-    expect((lastCall[1].headers as Record<string, string>).Authorization).toBe("Bearer new");
+    // 재시도도 idToken 으로(authorizer 가 받는 토큰)
+    expect((lastCall[1].headers as Record<string, string>).Authorization).toBe("Bearer i2");
   });
 
   it("최초 401 → refresh도 401 → getMe 실패 + 토큰 클리어", async () => {

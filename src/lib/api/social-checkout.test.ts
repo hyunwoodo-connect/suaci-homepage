@@ -41,13 +41,14 @@ describe("소셜·체크아웃 http", () => {
   });
 
   it("getCheckoutDefaults: GET /checkout/defaults (인증 헤더)", async () => {
-    tokenStore.save({ idToken: "i", accessToken: "tok", refreshToken: "r", expiresIn: 60 });
+    tokenStore.save({ idToken: "id-tok", accessToken: "tok", refreshToken: "r", expiresIn: 60 });
     const f = mockFetchOnce(200, { data: { address: null, lastPaymentMethod: "브랜드페이" } });
     const out = await createHttpClient("https://api.test").getCheckoutDefaults();
     expect(out).toEqual({ address: null, lastPaymentMethod: "브랜드페이" });
     const [url, init] = f.mock.calls[0];
     expect(url).toBe("https://api.test/checkout/defaults");
-    expect(init.headers.Authorization).toBe("Bearer tok");
+    // API Gateway Cognito authorizer 는 idToken 만 받는다 — accessToken 이면 실서버 401
+    expect(init.headers.Authorization).toBe("Bearer id-tok");
     tokenStore.clear();
   });
 });
