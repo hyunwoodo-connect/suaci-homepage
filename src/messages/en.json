@@ -65,25 +65,6 @@
       "terms": "terms",
       "privacy": "privacy",
       "tokushoho": "特定商取引法に基づく表記"
-    },
-    "buy": {
-      "bar": "buy",
-      "open": "buy brume no.1",
-      "title": "checkout",
-      "close": "close",
-      "quantity": "quantity",
-      "decrease": "decrease quantity",
-      "increase": "increase quantity",
-      "subtotal": "subtotal",
-      "shipping": "shipping",
-      "shippingNote": "calculated at payment",
-      "total": "total",
-      "applePay": "apple pay",
-      "googlePay": "google pay",
-      "card": "pay with card",
-      "signInHint": "sign in to track orders faster.",
-      "error": "something went wrong. please try again.",
-      "processing": "processing…"
     }
   },
   "auth": {
