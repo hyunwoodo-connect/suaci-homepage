@@ -7,3 +7,4 @@ export * from "./order";
 export * from "./claim";
 export * from "./event";
 export * from "./legal";
+export * from "./checkout";

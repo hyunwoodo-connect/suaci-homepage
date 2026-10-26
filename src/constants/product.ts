@@ -1,3 +1,5 @@
+import { CHECKOUT_PRICING } from "./checkout";
+
 /**
  * v5 단일 SKU — brume no.1.
  * 홈·구매 시트가 참조하는 정적 값. 가격·재고의 권위는 백엔드(seam)이며,
@@ -9,8 +11,8 @@ export const PRODUCT = {
   slug: "daily-calming-mist",
   name: "brume no.1",
   volume: "100 ml",
-  /** KRW 정가 — 임시 가격 */
-  price: 38000,
+  /** KRW 정가 — 한 곳(constants/checkout)의 임시 값을 그대로 쓴다 */
+  price: CHECKOUT_PRICING.price,
   maxQuantity: 9,
 } as const;
 

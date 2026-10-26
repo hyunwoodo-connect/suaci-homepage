@@ -1,4 +1,9 @@
 import type {
+  CheckoutDefaults,
+  SocialCompleteRequest,
+  SocialProvider,
+  SocialSignInRequest,
+  SocialSignInResult,
   User,
   TokenResponse,
   SignupRequest,
@@ -28,7 +33,12 @@ export interface ApiClient {
   forgotPassword(email: string): Promise<{ sent: boolean }>;
   resetPassword(r: ResetPasswordRequest): Promise<{ reset: boolean }>;
   logout(): Promise<{ loggedOut: boolean }>;
+  /** 카카오·네이버 인가 코드 → 로그인 또는 가입 표(UX 두 번 클릭의 로그인). */
+  socialSignIn(provider: SocialProvider, r: SocialSignInRequest): Promise<SocialSignInResult>;
+  socialComplete(r: SocialCompleteRequest): Promise<TokenResponse>;
   getMe(): Promise<User>;
+  /** 구매 시트가 미리 채울 기본 배송지·지난 결제수단. */
+  getCheckoutDefaults(): Promise<CheckoutDefaults>;
   listAddresses(): Promise<Address[]>;
   createAddress(r: CreateAddressRequest): Promise<Address>;
   updateAddress(id: string, r: UpdateAddressRequest): Promise<Address>;

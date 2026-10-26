@@ -6,6 +6,7 @@ export const MOCK_KEYS = {
   cart: "suaci.mock.cart",
   addresses: "suaci.mock.addresses",
   orders: "suaci.mock.orders",
+  socialDone: "suaci.mock.social-done",
   claims: "suaci.mock.claims",
   // Idempotency-key → resource-id map. Intentionally unbounded (dev-only mock; no eviction/TTL).
   idem: "suaci.mock.idem",
@@ -33,6 +34,8 @@ export const store = {
   readAddresses: (): Address[] => read<Address[]>(MOCK_KEYS.addresses, []),
   writeAddresses: (v: Address[]): void => write(MOCK_KEYS.addresses, v),
   readOrders: (): Order[] => read<Order[]>(MOCK_KEYS.orders, []),
+  readSocialDone: (): string[] => read<string[]>(MOCK_KEYS.socialDone, []),
+  writeSocialDone: (v: string[]): void => write(MOCK_KEYS.socialDone, v),
   writeOrders: (v: Order[]): void => write(MOCK_KEYS.orders, v),
   readClaims: (): Claim[] => read<Claim[]>(MOCK_KEYS.claims, []),
   writeClaims: (v: Claim[]): void => write(MOCK_KEYS.claims, v),

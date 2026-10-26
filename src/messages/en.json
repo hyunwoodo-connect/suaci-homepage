@@ -283,5 +283,75 @@
     "pastVersion": "this is a past version.",
     "koOnly": "this page is currently available in korean only.",
     "more": "other policies"
+  },
+  "pay": {
+    "bar": {
+      "buy": "buy",
+      "shippingIncluded": "shipping included.",
+      "keep": "keep it",
+      "kept": "kept.",
+      "decrease": "decrease quantity",
+      "increase": "increase quantity",
+      "kept_note": "you kept something.",
+      "resume": "pick up where you left off?",
+      "resumeCta": "continue"
+    },
+    "login": {
+      "title": "just tell us who you are.",
+      "hint": "we'll fill in your address and phone for you.",
+      "kakao": "continue with kakao",
+      "naver": "continue with naver",
+      "declined": "no worries. naver works too.",
+      "preparing": "sign-in is coming soon."
+    },
+    "sheet": {
+      "title": "same as last time.",
+      "change": "change",
+      "payCta": "pay {total}",
+      "memo": "delivery note",
+      "customMemo": "i'll write it",
+      "method": "payment",
+      "address": "ship to",
+      "preparing": "payments are coming soon.",
+      "paying": "heading to payment…"
+    },
+    "checkout": {
+      "whereTo": "where should we send it?",
+      "recipient": "recipient",
+      "searchHint": "try a street or building name.",
+      "detailPlaceholder": "unit (or 'none')",
+      "detailRequired": "add the unit — 'none' is fine too.",
+      "phoneInvalid": "numbers only — we'll add the hyphens.",
+      "saveDefault": "use this next time",
+      "brandpayHint": "register once, pay instantly next time."
+    },
+    "result": {
+      "confirming": "confirming your payment…",
+      "badLink": "this link doesn't look right.",
+      "home": "home",
+      "declined": "the card company said no. try another way?",
+      "backToCheckout": "back to checkout",
+      "hiccup": "a little hiccup. tap once more.",
+      "retry": "try again",
+      "stopped": "payment stopped. everything you typed is still here.",
+      "continue": "continue",
+      "done": "order placed.",
+      "doneSub": "give it a spray when it arrives.",
+      "doneFirst": "next time it's just two taps.",
+      "soldOut": "all gone for now."
+    },
+    "consent": {
+      "title": "agree & continue",
+      "name": "name",
+      "terms": "terms of service (required)",
+      "privacy": "privacy (required)",
+      "age": "i am 14 or older (required)",
+      "marketing": "news & perks (optional)",
+      "required": "please check the three required boxes.",
+      "submit": "agree & continue",
+      "expired": "sign-up timed out. please sign in again.",
+      "toLogin": "to sign in",
+      "tangled": "sign-in got tangled. please start over."
+    }
   }
 }

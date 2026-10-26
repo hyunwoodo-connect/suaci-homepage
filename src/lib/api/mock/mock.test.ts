@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { createMockClient } from "./index";
 import { tokenStore } from "@/lib/auth/token-store";
 import { products } from "@/data/fixtures";
+import { CHECKOUT_PRICING } from "@/constants/checkout";
 
 const api = createMockClient();
 async function loginDemo() {
@@ -132,7 +133,7 @@ describe("mock client", () => {
       reasonCode: "단순변심",
       lines: [{ lineId, quantity: 1 }],
     });
-    expect(c1.refundAmount).toBe(38000);
+    expect(c1.refundAmount).toBe(CHECKOUT_PRICING.price);
     expect((await api.getOrder(order.orderId)).paymentStatus).toBe("partially_refunded");
 
     // 2) 2개 라인 환불 시도 (76000) → 누적 114000 > 상품소계 76000 → OVER_REFUND

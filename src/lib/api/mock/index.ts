@@ -1,5 +1,6 @@
 import type {
   Address,
+  CheckoutDefaults,
   AddToCartRequest,
   ApiPage,
   Cart,
@@ -15,6 +16,10 @@ import type {
   OrderItem,
   OrderSummary,
   SignupRequest,
+  SocialCompleteRequest,
+  SocialProvider,
+  SocialSignInRequest,
+  SocialSignInResult,
   TokenResponse,
   UpdateAddressRequest,
   User,
@@ -23,11 +28,12 @@ import type { ApiClient } from "../client";
 import { ApiClientError } from "../errors";
 import { effectivePrice } from "@/lib/format";
 import { tokenStore } from "@/lib/auth/token-store";
+import { CHECKOUT_PRICING } from "@/constants/checkout";
 import { demoUser, products } from "@/data/fixtures";
 import { store } from "./store";
 
-const FREE_SHIP_THRESHOLD = 50000;
-const SHIPPING_FEE = 3000;
+const FREE_SHIP_THRESHOLD = CHECKOUT_PRICING.freeShippingOver;
+const SHIPPING_FEE = CHECKOUT_PRICING.shippingFee;
 const REFUND_DUE_MS = 3 * 24 * 60 * 60 * 1000;
 
 const now = (): { createdAt: number; createdDtm: string } => {
@@ -151,6 +157,39 @@ export function createMockClient(): ApiClient {
     async getMe(): Promise<User> {
       requireAuth();
       return demoUser;
+    },
+
+    // ---- social (dev 대역: 완료한 이름을 기억해 두 번째부터 바로 로그인) ----
+    async socialSignIn(
+      provider: SocialProvider,
+      r: SocialSignInRequest,
+    ): Promise<SocialSignInResult> {
+      const name = r.code.split(":")[2] || "mina";
+      if (store.readSocialDone().includes(`${provider}:${name}`)) {
+        return { status: "signed_in", tokens: await this.login({ email: "", password: "" }) };
+      }
+      return {
+        status: "needs_consent",
+        signupToken: `mock-signup-${provider}:${name}`,
+        email: `${name}@example.com`,
+        name,
+      };
+    },
+    async socialComplete(r: SocialCompleteRequest): Promise<TokenResponse> {
+      const done = store.readSocialDone();
+      const key = r.signupToken.replace("mock-signup-", "");
+      store.writeSocialDone(done.includes(key) ? done : [...done, key]);
+      return this.login({ email: "", password: "" });
+    },
+    async getCheckoutDefaults(): Promise<CheckoutDefaults> {
+      requireAuth();
+      const addresses = store.readAddresses();
+      const address = addresses.find((a) => a.isDefault) ?? addresses[0] ?? null;
+      const lastPaid = store
+        .readOrders()
+        .filter((o) => o.paymentStatus === "paid")
+        .sort((a, b) => b.createdAt - a.createdAt)[0];
+      return { address, lastPaymentMethod: lastPaid?.paymentMethod ?? null };
     },
 
     // ---- address ----
@@ -347,7 +386,21 @@ export function createMockClient(): ApiClient {
       if (r.amount !== order.totals.grandTotal) {
         throw new ApiClientError("PAYMENT_AMOUNT_MISMATCH", "결제 금액이 일치하지 않습니다", 400);
       }
-      const paid: Order = { ...order, paymentStatus: "paid", status: "open" };
+      // 데이터 원칙: 목업도 수단을 남긴다 — paymentKey 가 mock_{수단}_… 모양이면 그 수단
+      const m = /^mock_(CARD|BRANDPAY|TOSSPAY|NAVERPAY|KAKAOPAY)_/.exec(r.paymentKey);
+      const label = {
+        CARD: "카드",
+        BRANDPAY: "브랜드페이",
+        TOSSPAY: "간편결제(토스페이)",
+        NAVERPAY: "간편결제(네이버페이)",
+        KAKAOPAY: "간편결제(카카오페이)",
+      }[m?.[1] ?? ""];
+      const paid: Order = {
+        ...order,
+        paymentStatus: "paid",
+        status: "open",
+        ...(label ? { paymentMethod: label } : {}),
+      };
       orders[idx] = paid;
       store.writeOrders(orders);
       return paid;

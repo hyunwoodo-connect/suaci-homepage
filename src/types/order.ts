@@ -36,6 +36,8 @@ export interface Order {
   totals: OrderTotals;
   shippingAddress: ShippingAddressSnapshot;
   items: OrderItem[];
+  /** 결제 수단 이름(백엔드가 남긴 그대로: "브랜드페이"·"간편결제(네이버페이)"…). 결제 전엔 없음 */
+  paymentMethod?: string;
   createdAt: number;
   createdDtm: string;
 }

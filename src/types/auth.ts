@@ -35,6 +35,21 @@ export interface LoginRequest {
   email: string;
   password: string;
 }
+export type SocialProvider = "kakao" | "naver";
+export interface SocialSignInRequest {
+  code: string;
+  redirectUri: string;
+}
+/** 백엔드 POST /auth/social/{provider} 응답. 처음 온 사람은 가입 표(10분)를 받는다. */
+export type SocialSignInResult =
+  | { status: "signed_in"; tokens: TokenResponse }
+  | { status: "needs_consent"; signupToken: string; email?: string; name?: string };
+export interface SocialCompleteRequest {
+  signupToken: string;
+  name?: string;
+  consents: Consents;
+}
+
 export interface ResetPasswordRequest {
   email: string;
   code: string;

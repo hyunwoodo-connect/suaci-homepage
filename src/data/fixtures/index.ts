@@ -1,4 +1,5 @@
 import type { Product, User } from "@/types";
+import { CHECKOUT_PRICING } from "@/constants/checkout";
 
 /** 로그인 목데모 유저. mock 클라이언트의 getMe/인증 판단에 사용. */
 export const demoUser: User = {
@@ -31,7 +32,7 @@ export const products: Product[] = [
         variantId: "var_daily_80",
         sku: "SUACI-MIST-100",
         optionName: "100 ml",
-        price: krw(38000),
+        price: krw(CHECKOUT_PRICING.price),
         stock: 120,
         available: 120,
         status: "active",

@@ -1,5 +1,6 @@
 import type {
   Address,
+  CheckoutDefaults,
   AddToCartRequest,
   ApiPage,
   Cart,
@@ -14,6 +15,10 @@ import type {
   OrderSummary,
   ResetPasswordRequest,
   SignupRequest,
+  SocialCompleteRequest,
+  SocialProvider,
+  SocialSignInRequest,
+  SocialSignInResult,
   TokenResponse,
   UpdateAddressRequest,
   User,
@@ -61,6 +66,27 @@ export function createHttpClient(baseUrl?: string): ApiClient {
           auth: false,
         }),
       );
+    },
+    async socialSignIn(provider: SocialProvider, r: SocialSignInRequest) {
+      return unwrap(
+        await request<Envelope<SocialSignInResult>>(`/auth/social/${provider}`, {
+          method: "POST",
+          body: r,
+          auth: false,
+        }),
+      );
+    },
+    async socialComplete(r: SocialCompleteRequest) {
+      return unwrap(
+        await request<Envelope<TokenResponse>>("/auth/social/complete", {
+          method: "POST",
+          body: r,
+          auth: false,
+        }),
+      );
+    },
+    async getCheckoutDefaults() {
+      return unwrap(await authedRequest<Envelope<CheckoutDefaults>>("/checkout/defaults"));
     },
     async forgotPassword(email: string) {
       return unwrap(
