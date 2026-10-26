@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -63,5 +63,36 @@ describe("WaitlistForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
     expect(await screen.findByText(/등록했어요/)).toBeInTheDocument();
     expect(join).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("WaitlistForm — 리뷰 보강", () => {
+  it("'다른 이메일 남기기' 뒤에는 동의가 리셋된다 — 앞사람 동의 승계 금지", async () => {
+    join.mockResolvedValue({ joined: true });
+    renderForm();
+    await fill();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "알림 받기" }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /다른 이메일/ }));
+    });
+    expect(
+      (screen.getByLabelText(/개인정보 수집·이용에 동의합니다/) as HTMLInputElement).checked,
+    ).toBe(false);
+    expect(
+      (screen.getByLabelText(/광고성 정보를 이메일로 받는 데 동의합니다/) as HTMLInputElement)
+        .checked,
+    ).toBe(false);
+  });
+
+  it("source 는 64자 상한으로 잘라 보낸다", async () => {
+    join.mockResolvedValue({ joined: true });
+    renderForm("x".repeat(200));
+    await fill();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "알림 받기" }));
+    });
+    expect((join.mock.calls[0]?.[0] as { source?: string }).source).toHaveLength(64);
   });
 });

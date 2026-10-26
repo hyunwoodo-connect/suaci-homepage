@@ -39,8 +39,10 @@ export default function WaitlistForm({ locale, source }: WaitlistFormProps) {
     setStatus("sending");
     setError(null);
     try {
-      await waitlistApi.join({ email: email.trim(), locale, ...(source ? { source } : {}) });
-      trackLead(source);
+      // source 는 임의 쿼리 유입 — 64자 상한(저장·CSV 위생)
+      const src = source?.slice(0, 64);
+      await waitlistApi.join({ email: email.trim(), locale, ...(src ? { source: src } : {}) });
+      trackLead(source?.slice(0, 64));
       setStatus("done");
     } catch (err) {
       const code = err instanceof ApiClientError ? err.code : "";
@@ -60,7 +62,10 @@ export default function WaitlistForm({ locale, source }: WaitlistFormProps) {
         <button
           type="button"
           onClick={() => {
+            // 다른 사람 이메일일 수 있다 — 동의는 승계하지 않는다
             setEmail("");
+            setPrivacy(false);
+            setMarketing(false);
             setStatus("idle");
           }}
           className="cursor-pointer text-[12px] text-grey underline underline-offset-[3px] hover:text-ink"
