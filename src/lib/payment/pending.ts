@@ -11,6 +11,9 @@ export interface PendingOrder {
   amount: number;
   idempotencyKey: string;
   qty: number;
+  /** 주문의 배송지·메모 — 재사용 판단에 쓴다(서버는 멱등 히트면 입력을 무시하므로) */
+  addressId: string;
+  memo: string;
   savedAt: number;
 }
 
@@ -39,6 +42,20 @@ export function readPendingOrder(now: number = Date.now()): PendingOrder | null 
     } catch {}
     return null;
   }
+}
+
+/**
+ * 멱등키 재사용 판단 — 금액·배송지·메모가 전부 같을 때만 기존 키(리뷰 Critical 1).
+ * 하나라도 다르면 null: 서버는 같은 키면 입력을 보지 않고 옛 주문(옛 주소 스냅샷)을 돌려주기 때문.
+ */
+export function reuseKey(
+  p: PendingOrder | null,
+  cur: { amount: number; addressId: string; memo: string },
+): string | null {
+  if (!p) return null;
+  return p.amount === cur.amount && p.addressId === cur.addressId && p.memo === cur.memo
+    ? p.idempotencyKey
+    : null;
 }
 
 export function clearPendingOrder(): void {

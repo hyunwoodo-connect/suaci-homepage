@@ -13,7 +13,7 @@ import { api, ApiClientError } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useCart } from "@/lib/cart/cart-context";
 import { formatKRW } from "@/lib/format";
-import { readPendingOrder, savePendingOrder } from "@/lib/payment/pending";
+import { readPendingOrder, reuseKey, savePendingOrder } from "@/lib/payment/pending";
 import {
   adapterFor,
   availableMethods,
@@ -56,11 +56,22 @@ function CheckoutBody() {
   const { status, user } = useAuth();
   const { clear, add } = useCart();
 
+  // 수량: 쿼리 > 보류 주문(이어가기 — "적은 건 그대로") > 1
   const qtyParam = Number(search.get("qty"));
+  const [pendingQty, setPendingQty] = useState<number | null>(null);
   const qty =
-    Number.isInteger(qtyParam) && qtyParam >= 1 ? Math.min(qtyParam, PRODUCT.maxQuantity) : 1;
+    Number.isInteger(qtyParam) && qtyParam >= 1
+      ? Math.min(qtyParam, PRODUCT.maxQuantity)
+      : (pendingQty ?? 1);
   const first = search.get("first") === "1";
   const total = displayTotal(qty);
+
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      const p = readPendingOrder();
+      if (p && p.qty >= 1) setPendingQty(Math.min(p.qty, PRODUCT.maxQuantity));
+    });
+  }, []);
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [addrLoaded, setAddrLoaded] = useState(false);
@@ -153,9 +164,10 @@ function CheckoutBody() {
       try {
         localStorage.setItem(MEMO_KEY, memo);
       } catch {}
-      const pending = readPendingOrder();
+      // 금액·배송지·메모가 전부 같을 때만 기존 키 — 서버는 멱등 히트면 입력을 무시한다
       const idempotencyKey =
-        pending && pending.amount === total ? pending.idempotencyKey : crypto.randomUUID();
+        reuseKey(readPendingOrder(), { amount: total, addressId: selected.addressId, memo }) ??
+        crypto.randomUUID();
       const order = await api.createOrder({
         addressId: selected.addressId,
         idempotencyKey,
@@ -167,6 +179,8 @@ function CheckoutBody() {
         amount: order.totals.grandTotal,
         idempotencyKey,
         qty,
+        addressId: selected.addressId,
+        memo,
       });
       await adapter.request(method, {
         orderId: order.orderId,

@@ -3,6 +3,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   authorizeUrl,
   createLoginState,
+  safeNextPath,
+  safeRedirectTarget,
   socialMode,
   socialRedirectUri,
   takeLoginState,
@@ -56,5 +58,24 @@ describe("authorizeUrl / socialRedirectUri", () => {
     expect(socialRedirectUri("https://takesuaci.com", "naver")).toBe(
       "https://takesuaci.com/auth/naver/callback",
     );
+  });
+});
+
+describe("safeNextPath / safeRedirectTarget — 오픈 리다이렉트 차단", () => {
+  it("next 는 같은 사이트 경로만 — //evil.com·절대 URL 은 /", () => {
+    expect(safeNextPath("/?buy=1")).toBe("/?buy=1");
+    expect(safeNextPath("//evil.com")).toBe("/");
+    expect(safeNextPath("https://evil.com")).toBe("/");
+    expect(safeNextPath(null)).toBe("/");
+  });
+  it("목업 동의의 redirect_uri 는 같은 오리진(또는 상대 경로)만, 아니면 null", () => {
+    const origin = "https://takesuaci.com";
+    expect(safeRedirectTarget("https://takesuaci.com/auth/kakao/callback", origin)).toBe(
+      "https://takesuaci.com/auth/kakao/callback",
+    );
+    expect(safeRedirectTarget("/auth/kakao/callback", origin)).toBe("/auth/kakao/callback");
+    expect(safeRedirectTarget("https://evil.com/cb", origin)).toBeNull();
+    expect(safeRedirectTarget("//evil.com/cb", origin)).toBeNull();
+    expect(safeRedirectTarget("https://takesuaci.com.evil.com/cb", origin)).toBeNull();
   });
 });

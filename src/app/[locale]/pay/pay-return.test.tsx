@@ -41,7 +41,9 @@ const pendingBase = {
   orderNo: "20261026-A",
   amount: 31000,
   idempotencyKey: "ik",
-  qty: 1,
+  qty: 2,
+  addressId: "a1",
+  memo: "문 앞",
 };
 
 describe("/pay/complete", () => {
@@ -136,7 +138,9 @@ describe("/pay/fail", () => {
       );
     });
     expect(screen.getByText("결제를 멈췄어요. 적은 건 그대로 있어요.")).toBeTruthy();
-    expect(screen.getByText("이어서 하기")).toBeTruthy();
+    const cont = await screen.findByText("이어서 하기");
+    // 수량까지 들고 돌아간다 — 복귀가 1개짜리 새 주문이 되면 안 된다
+    expect(cont.closest("a")?.getAttribute("href")).toBe("/checkout?qty=2");
     expect(readPendingOrder()).toMatchObject(pendingBase);
   });
 });

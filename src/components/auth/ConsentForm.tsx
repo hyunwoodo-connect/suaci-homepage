@@ -8,6 +8,7 @@ import InputField from "@/components/ui/InputField";
 import { api } from "@/lib/api";
 import { ApiClientError } from "@/lib/api/errors";
 import { useAuth } from "@/lib/auth/auth-context";
+import { safeNextPath } from "@/lib/auth/social";
 
 /** 콜백이 sessionStorage 에 담아 둔 가입 표 */
 export interface SignupStash {
@@ -58,7 +59,7 @@ export default function ConsentForm({ stash }: ConsentFormProps) {
         localStorage.setItem("suaci.auth.lastProvider", stash.provider);
         sessionStorage.removeItem("suaci.auth.signup");
       } catch {}
-      router.replace(stash.next.startsWith("/") ? stash.next : "/");
+      router.replace(safeNextPath(stash.next));
     } catch (err) {
       setError(
         err instanceof ApiClientError && err.code === "SOCIAL_SIGNUP_EXPIRED"

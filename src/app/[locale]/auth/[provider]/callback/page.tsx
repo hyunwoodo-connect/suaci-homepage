@@ -6,7 +6,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { Link, useRouter } from "@/i18n/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
-import { socialRedirectUri, takeLoginState } from "@/lib/auth/social";
+import { safeNextPath, socialRedirectUri, takeLoginState } from "@/lib/auth/social";
 import type { SocialProvider } from "@/types";
 
 /**
@@ -54,7 +54,7 @@ function CallbackBody() {
           setPhase("tangled");
           return;
         }
-        const next = saved.next.startsWith("/") ? saved.next : "/";
+        const next = safeNextPath(saved.next);
         const result = await api.socialSignIn(provider, {
           code,
           redirectUri: socialRedirectUri(window.location.origin, provider),

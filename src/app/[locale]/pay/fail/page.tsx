@@ -1,8 +1,9 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { readPendingOrder } from "@/lib/payment/pending";
 
 /**
  * 결제 실패·중단 복귀 — 보류 주문(sessionStorage)은 지우지 않는다.
@@ -20,11 +21,20 @@ export default function PayFailPage() {
 
 function PayFailBody() {
   const t = useTranslations("pay.result");
+  const [qty, setQty] = useState<number | null>(null);
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      setQty(readPendingOrder()?.qty ?? null);
+    });
+  }, []);
   return (
     <main>
       <div className="mx-auto flex min-h-[60vh] max-w-[480px] flex-col items-center justify-center gap-4 px-4 text-center">
         <p className="text-sm">{t("stopped")}</p>
-        <Link href="/checkout" className="text-sm underline">
+        <Link
+          href={qty ? `/checkout?qty=${String(qty)}` : "/checkout"}
+          className="text-sm underline"
+        >
           {t("continue")}
         </Link>
       </div>

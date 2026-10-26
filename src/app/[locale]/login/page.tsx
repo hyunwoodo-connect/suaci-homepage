@@ -8,6 +8,7 @@ import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
 import PageShell from "@/components/shell/PageShell";
 import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
+import { safeNextPath } from "@/lib/auth/social";
 import { useAuth } from "@/lib/auth/auth-context";
 
 /**
@@ -40,7 +41,8 @@ function LoginForm() {
 
   const nextPath = () => {
     const next = searchParams.get("next");
-    return next && next.startsWith("/") ? next : "/account";
+    const safe = safeNextPath(next);
+    return safe === "/" && next !== "/" ? "/account" : safe;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

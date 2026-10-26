@@ -63,6 +63,8 @@ vi.stubGlobal("daum", {
   },
 });
 
+import { savePendingOrder } from "@/lib/payment/pending";
+
 import CheckoutPage from "./page";
 
 const ADDRESS = {
@@ -122,5 +124,27 @@ describe("주문서(첫 구매)", () => {
     expect((navigate.mock.calls[0] as string[])[0]).toBe(
       "https://x/pay/complete?o=o1&first=1&paymentKey=mock_CARD_k1234567&orderId=20261026-A&amount=31000",
     );
+  });
+});
+
+describe("주문서 — 이어가기 수량", () => {
+  it("qty 쿼리가 없으면 pending.qty 로 — '적은 건 그대로'", async () => {
+    sessionStorage.clear();
+    vi.clearAllMocks();
+    searchParams.value = new URLSearchParams();
+    savePendingOrder({
+      orderId: "o1",
+      orderNo: "N",
+      amount: 56000,
+      idempotencyKey: "ik",
+      qty: 2,
+      addressId: "a1",
+      memo: "문 앞",
+    });
+    listAddresses.mockResolvedValue([ADDRESS]);
+    await act(async () => {
+      renderPage();
+    });
+    expect(await screen.findByRole("button", { name: "₩56,000 결제하기" })).toBeTruthy();
   });
 });

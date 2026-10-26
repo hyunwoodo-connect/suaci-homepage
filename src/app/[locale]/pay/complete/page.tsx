@@ -7,7 +7,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { api } from "@/lib/api";
 import { ApiClientError } from "@/lib/api/errors";
 import { useCart } from "@/lib/cart/cart-context";
-import { clearPendingOrder } from "@/lib/payment/pending";
+import { clearPendingOrder, readPendingOrder } from "@/lib/payment/pending";
 import { parsePaymentReturn } from "@/lib/payment/providers";
 
 /**
@@ -32,7 +32,14 @@ function PayCompleteBody() {
   const search = useSearchParams();
   const { refresh } = useCart();
   const [phase, setPhase] = useState<Phase>("confirming");
+  const [pendingQty, setPendingQty] = useState<number | null>(null);
   const ran = useRef(false);
+
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      setPendingQty(readPendingOrder()?.qty ?? null);
+    });
+  }, []);
 
   const orderId = search.get("o");
   const parsed = parsePaymentReturn(search);
@@ -81,7 +88,10 @@ function PayCompleteBody() {
         {phase === "declined" && (
           <>
             <p className="text-sm">{t("declined")}</p>
-            <Link href="/checkout" className="text-sm underline">
+            <Link
+              href={pendingQty ? `/checkout?qty=${String(pendingQty)}` : "/checkout"}
+              className="text-sm underline"
+            >
               {t("backToCheckout")}
             </Link>
           </>

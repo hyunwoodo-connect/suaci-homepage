@@ -51,6 +51,22 @@ export function takeLoginState(state: string | null): { next: string } | null {
   }
 }
 
+/** 로그인 뒤 돌아갈 곳 — 같은 사이트 경로만(`//evil.com`·절대 URL 은 `/`, 오픈 리다이렉트 차단) */
+export function safeNextPath(next: string | null | undefined): string {
+  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+}
+
+/**
+ * 목업 동의 화면의 `redirect_uri` 검증 — 같은 오리진(또는 상대 경로)만 돌려주고 아니면 null.
+ * 이 화면은 mock 모드의 운영 데모에서도 열리므로 임의 외부 주소로 보내면 피싱 통로가 된다.
+ */
+export function safeRedirectTarget(uri: string | null, origin: string): string | null {
+  if (!uri) return null;
+  if (uri.startsWith("/") && !uri.startsWith("//")) return uri;
+  if (uri === origin || uri.startsWith(`${origin}/`)) return uri;
+  return null;
+}
+
 /** 프로바이더 콘솔에 등록하는 콜백 주소 — 언어 접두사 없는 고정 경로 */
 export function socialRedirectUri(origin: string, provider: SocialProvider): string {
   return `${origin}/auth/${provider}/callback`;

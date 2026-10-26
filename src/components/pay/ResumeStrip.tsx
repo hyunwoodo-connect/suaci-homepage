@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useCart } from "@/lib/cart/cart-context";
-import { readPendingOrder } from "@/lib/payment/pending";
+import { readPendingOrder, type PendingOrder } from "@/lib/payment/pending";
 
 interface ResumeStripProps {
-  onResume: () => void;
+  onResume: (pending: PendingOrder) => void;
 }
 
 /**
@@ -16,26 +16,28 @@ interface ResumeStripProps {
 export default function ResumeStrip({ onResume }: ResumeStripProps) {
   const t = useTranslations("pay.bar");
   const { cart } = useCart();
-  const [hasPending, setHasPending] = useState(false);
+  const [pending, setPending] = useState<PendingOrder | null>(null);
 
   useEffect(() => {
     // setState 는 .then 안에서(react-hooks 린트)
     Promise.resolve().then(() => {
-      setHasPending(readPendingOrder() !== null);
+      setPending(readPendingOrder());
     });
   }, []);
 
   const kept = (cart?.items.length ?? 0) > 0;
-  if (!hasPending && !kept) return null;
+  if (!pending && !kept) return null;
 
   return (
     <div className="sticky top-0 z-20 flex items-center justify-center gap-[12px] border-b border-line bg-paper/95 px-[16px] py-[10px] text-[13px] backdrop-blur">
-      {hasPending ? (
+      {pending ? (
         <>
           <span>{t("resume")}</span>
           <button
             type="button"
-            onClick={onResume}
+            onClick={() => {
+              onResume(pending);
+            }}
             className="cursor-pointer font-medium underline underline-offset-[3px]"
           >
             {t("resumeCta")}

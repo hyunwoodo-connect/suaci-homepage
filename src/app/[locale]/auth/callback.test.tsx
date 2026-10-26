@@ -96,6 +96,21 @@ describe("소셜 콜백", () => {
     expect(screen.getByText("로그인이 꼬였어요. 처음부터 다시 해 주세요.")).toBeTruthy();
   });
 
+  it("next 가 //evil.com 이면 / 로 — 오픈 리다이렉트 차단", async () => {
+    const nonce = createLoginState("//evil.com");
+    searchParams.value = new URLSearchParams({ code: "mock:kakao:mina", state: nonce });
+    socialSignIn.mockResolvedValue({
+      status: "signed_in",
+      tokens: { idToken: "i", accessToken: "a", refreshToken: "r", expiresIn: 60 },
+    });
+    getMe.mockResolvedValue({ userId: "u1" });
+    await act(async () => {
+      renderPage();
+    });
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
+    tokenStore.clear();
+  });
+
   it("access_denied(kakao) → '괜찮아요. 네이버로 해도 돼요.'", async () => {
     searchParams.value = new URLSearchParams({ error: "access_denied", state: "x" });
     await act(async () => {

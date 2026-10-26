@@ -3,7 +3,7 @@
 import { Suspense, useState } from "react";
 import { useTranslations } from "next-intl";
 import { notFound, useParams, useSearchParams } from "next/navigation";
-import { envSocialMode } from "@/lib/auth/social";
+import { envSocialMode, safeRedirectTarget } from "@/lib/auth/social";
 import type { SocialProvider } from "@/types";
 
 /**
@@ -40,7 +40,10 @@ function MockConsentBody() {
   const style = PROVIDER_STYLE[provider];
 
   const go = (query: string) => {
-    window.location.assign(`${redirectUri}?${query}&state=${encodeURIComponent(state)}`);
+    // 같은 오리진만 — 이 화면은 운영 데모(mock 모드)에서도 열리므로 외부로 보내면 피싱 통로가 된다
+    const target = safeRedirectTarget(redirectUri, window.location.origin);
+    if (!target) return;
+    window.location.assign(`${target}?${query}&state=${encodeURIComponent(state)}`);
   };
 
   return (

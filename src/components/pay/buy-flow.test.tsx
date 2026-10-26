@@ -163,6 +163,8 @@ describe("재구매 시트", () => {
       amount: 31000,
       idempotencyKey: "ik-prev",
       qty: 1,
+      addressId: "a1",
+      memo: "문 앞",
     });
     createOrder.mockResolvedValue({ orderId: "o2", orderNo: "B", totals: { grandTotal: 31000 } });
     await openSheet();
@@ -171,6 +173,27 @@ describe("재구매 시트", () => {
     });
     await waitFor(() => expect(createOrder).toHaveBeenCalled());
     expect((createOrder.mock.calls[0]?.[0] as { idempotencyKey: string }).idempotencyKey).toBe(
+      "ik-prev",
+    );
+  });
+
+  it("pending 의 주소가 다르면 키를 재사용하지 않는다 — 옛 주소로 배송되면 안 된다", async () => {
+    savePendingOrder({
+      orderId: "prev",
+      orderNo: "N",
+      amount: 31000,
+      idempotencyKey: "ik-prev",
+      qty: 1,
+      addressId: "OTHER",
+      memo: "문 앞",
+    });
+    createOrder.mockResolvedValue({ orderId: "o2", orderNo: "B", totals: { grandTotal: 31000 } });
+    await openSheet();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "₩31,000 결제하기" }));
+    });
+    await waitFor(() => expect(createOrder).toHaveBeenCalled());
+    expect((createOrder.mock.calls[0]?.[0] as { idempotencyKey: string }).idempotencyKey).not.toBe(
       "ik-prev",
     );
   });
@@ -193,12 +216,25 @@ describe("ResumeStrip", () => {
     cartState.value = { items: [] };
   });
 
-  it("pending 있으면 '아까 하던 주문, 이어서 할까요?'", async () => {
-    savePendingOrder({ orderId: "o1", orderNo: "N", amount: 31000, idempotencyKey: "ik", qty: 1 });
+  it("pending 있으면 '아까 하던 주문, 이어서 할까요?' — 이어서는 그 수량으로 시트를 연다", async () => {
+    savePendingOrder({
+      orderId: "o1",
+      orderNo: "N",
+      amount: 56000,
+      idempotencyKey: "ik",
+      qty: 2,
+      addressId: "a1",
+      memo: "문 앞",
+    });
+    getCheckoutDefaults.mockResolvedValue({ address: ADDRESS, lastPaymentMethod: null });
     await act(async () => {
       renderBar();
     });
     expect(screen.getByText("아까 하던 주문, 이어서 할까요?")).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "이어서" }));
+    });
+    expect(await screen.findByRole("button", { name: "₩56,000 결제하기" })).toBeTruthy();
   });
 
   it("pending 없고 카트에 있으면 '담아 둔 게 있어요.'", () => {

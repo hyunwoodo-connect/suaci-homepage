@@ -34,27 +34,32 @@ export default function BuyBar() {
 
   const total = displayTotal(qty);
 
-  const buy = useCallback(async () => {
-    if (busy) return;
-    if (status !== "authenticated") {
-      setSheet("login");
-      return;
-    }
-    setBusy(true);
-    try {
-      const defaults = await api.getCheckoutDefaults();
-      if (!defaults.address) {
-        router.push(`/checkout?qty=${String(qty)}&first=1`);
+  const buy = useCallback(
+    async (qtyOverride?: number) => {
+      if (busy) return;
+      const q = qtyOverride ?? qty;
+      if (qtyOverride) setQty(qtyOverride);
+      if (status !== "authenticated") {
+        setSheet("login");
         return;
       }
-      setSheet(defaults);
-    } catch {
-      // defaults 를 못 읽어도 구매는 막지 않는다 — 주문서에서 고르면 된다
-      router.push(`/checkout?qty=${String(qty)}&first=1`);
-    } finally {
-      setBusy(false);
-    }
-  }, [busy, qty, router, status]);
+      setBusy(true);
+      try {
+        const defaults = await api.getCheckoutDefaults();
+        if (!defaults.address) {
+          router.push(`/checkout?qty=${String(q)}&first=1`);
+          return;
+        }
+        setSheet(defaults);
+      } catch {
+        // defaults 를 못 읽어도 구매는 막지 않는다 — 주문서에서 고르면 된다
+        router.push(`/checkout?qty=${String(q)}&first=1`);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [busy, qty, router, status],
+  );
 
   // 로그인에서 ?buy=1 로 돌아오면 시트를 이어서 연다
   useEffect(() => {
@@ -79,8 +84,9 @@ export default function BuyBar() {
   return (
     <>
       <ResumeStrip
-        onResume={() => {
-          void buy();
+        onResume={(pending) => {
+          // 아까 하던 주문 그대로 — 수량까지 들고 시트를 연다
+          void buy(Math.min(pending.qty, PRODUCT.maxQuantity));
         }}
       />
       {/* 바 높이(66+16px)만큼 끌어올려 푸터 아래에 빈 띠가 생기지 않게 한다. */}
