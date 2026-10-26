@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { User } from "@/types";
+import type { TokenResponse, User } from "@/types";
 import { api } from "@/lib/api";
 import { tokenStore } from "./token-store";
 
@@ -19,6 +19,8 @@ export interface AuthContextValue {
   user: User | null;
   status: AuthStatus;
   login(email: string, password: string): Promise<void>;
+  /** 소셜 로그인이 받아 온 토큰을 입양 — 저장하고 내 정보를 불러 authenticated 로 */
+  adoptTokens(tokens: TokenResponse): Promise<void>;
   logout(): Promise<void>;
   refresh(): Promise<void>;
 }
@@ -78,6 +80,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus("authenticated");
   }, []);
 
+  const adoptTokens = useCallback(async (tokens: TokenResponse) => {
+    tokenStore.save(tokens);
+    const me = await api.getMe();
+    setUser(me);
+    setStatus("authenticated");
+  }, []);
+
   const logout = useCallback(async () => {
     await api.logout().catch(() => {});
     tokenStore.clear();
@@ -86,8 +95,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, status, login, logout, refresh }),
-    [user, status, login, logout, refresh],
+    () => ({ user, status, login, adoptTokens, logout, refresh }),
+    [user, status, login, adoptTokens, logout, refresh],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
