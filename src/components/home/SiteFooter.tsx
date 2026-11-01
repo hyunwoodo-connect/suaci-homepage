@@ -4,56 +4,73 @@ import { Link } from "@/i18n/navigation";
 import { HOME_MEDIA } from "@/constants/product";
 import { SITE } from "@/constants/site";
 
+const LINK = "transition-colors hover:text-grey";
+const SMALL_LINK = "transition-colors hover:text-ink";
+
 /**
- * v5 푸터 — 흰 바탕. 슬로건·내비 / 법적 표기 / 하단에 잘려 나가는 대형 로고.
- * 정책 링크는 /legal/* 로. 인스타그램 계정과 特定商取引法 페이지는 아직 없다.
+ * v5 푸터 — 흰 바탕. 위: 슬로건(라임 점 하나)·제품 한 줄 / 오른쪽 링크 두 묶음,
+ * 가는 선 아래: 법적 표기·정책, 맨 아래 잘려 나가는 대형 로고.
+ * 정책 링크는 /legal/* 로. 特定商取引法 페이지는 아직 없다(2차 일본).
  */
 export default function SiteFooter() {
   const t = useTranslations("home.footer");
   const tp = useTranslations("home.hero");
 
   return (
-    <footer className="w-full overflow-hidden border-t border-line px-[clamp(16px,4vw,48px)] pt-[clamp(48px,6vw,80px)]">
-      <div className="mx-auto flex max-w-[1344px] flex-col gap-[40px]">
-        <div className="flex flex-wrap items-start justify-between gap-[24px]">
-          <p className="m-0 text-[14px]">
-            {tp("title")} <span className="text-grey">{tp("product")}</span>
-          </p>
-          <nav className="flex flex-wrap gap-x-[24px] gap-y-[8px] text-[13px]">
-            <Link href="/orders" className="hover:text-grey">
-              {t("orderLookup")}
-            </Link>
-            <Link href="/legal/refund" className="hover:text-grey">
-              {t("shipping")}
-            </Link>
-            <Link href="/legal/business" className="hover:text-grey">
-              {t("contact")}
-            </Link>
-            <a
-              href="https://www.instagram.com/suaci_/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-grey"
-            >
-              {t("instagram")}
-            </a>
-          </nav>
+    <footer className="w-full overflow-hidden border-t border-line px-[clamp(16px,4vw,48px)] pt-[clamp(56px,8vw,112px)]">
+      <div className="mx-auto max-w-[1344px]">
+        <div className="grid gap-[40px] md:grid-cols-[1fr_auto] md:gap-[64px]">
+          <div className="flex flex-col gap-[12px]">
+            <p className="m-0 flex items-center gap-[12px] text-[clamp(28px,4vw,44px)] leading-[1.1] font-medium tracking-[-0.02em]">
+              {tp("title")}
+              <span aria-hidden="true" className="h-[10px] w-[10px] rounded-full bg-lime" />
+            </p>
+            <p className="m-0 text-[14px] text-grey">{tp("product")}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-x-[48px] gap-y-[12px] text-[14px] md:gap-x-[72px]">
+            <nav className="flex flex-col gap-[12px]">
+              <Link href="/orders" className={LINK}>
+                {t("orderLookup")}
+              </Link>
+              <Link href="/legal/refund" className={LINK}>
+                {t("shipping")}
+              </Link>
+              <Link href="/legal/business" className={LINK}>
+                {t("contact")}
+              </Link>
+            </nav>
+            <nav className="flex flex-col gap-[12px]">
+              <a
+                href="https://www.instagram.com/suaci_/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${LINK} inline-flex items-center gap-[4px]`}
+              >
+                {t("instagram")}
+                <span aria-hidden="true" className="text-[12px]">
+                  ↗
+                </span>
+              </a>
+            </nav>
+          </div>
         </div>
-        <div className="flex flex-wrap items-start justify-between gap-[16px] text-[12px] text-grey">
+
+        <div className="mt-[clamp(48px,6vw,80px)] flex flex-col gap-[16px] border-t border-line pt-[20px] text-[12px] text-grey md:flex-row md:items-start md:justify-between">
           <p className="m-0">{t("legal")}</p>
-          <nav className="flex flex-wrap gap-x-[20px] gap-y-[6px]">
-            <Link href="/legal/terms" className="hover:text-ink">
+          <div className="flex flex-wrap items-center gap-x-[20px] gap-y-[8px]">
+            <Link href="/legal/terms" className={SMALL_LINK}>
               {t("terms")}
             </Link>
-            <Link href="/legal/privacy" className="hover:text-ink">
+            {/* 개인정보처리방침은 다른 고지와 구분되게 보여야 한다(개인정보 보호법 표시 기준) */}
+            <Link href="/legal/privacy" className={`${SMALL_LINK} font-medium text-ink-soft`}>
               {t("privacy")}
             </Link>
             {/* TODO(일본): 特定商取引法に基づく表記 페이지는 2차 일본 진출 때 */}
-            <a href="#" className="hover:text-ink">
+            <a href="#" className={SMALL_LINK}>
               {t("tokushoho")}
             </a>
             <span>{SITE.copyright}</span>
-          </nav>
+          </div>
         </div>
       </div>
       <Image
@@ -63,7 +80,7 @@ export default function SiteFooter() {
         width={1608}
         height={400}
         unoptimized
-        className="mx-auto mt-[clamp(24px,4vw,56px)] h-auto w-full max-w-[1344px] translate-y-[18%]"
+        className="mx-auto mt-[clamp(32px,5vw,72px)] h-auto w-full max-w-[1344px] translate-y-[18%]"
       />
     </footer>
   );
