@@ -61,7 +61,18 @@
       "shipping": "shipping & returns",
       "contact": "contact",
       "instagram": "instagram",
-      "legal": "[company name · registration no. · address — coming]",
+      "business": {
+        "name": "company",
+        "representatives": "representatives",
+        "registrationNo": "business registration no.",
+        "verify": "verify",
+        "mailOrderNo": "mail-order business no.",
+        "cosmeticsNo": "cosmetics distributor no.",
+        "address": "address",
+        "phone": "customer service",
+        "email": "email",
+        "privacyOfficer": "privacy officer"
+      },
       "terms": "terms",
       "privacy": "privacy",
       "tokushoho": "特定商取引法に基づく表記"

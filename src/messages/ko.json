@@ -61,7 +61,18 @@
       "shipping": "배송·반품",
       "contact": "문의",
       "instagram": "instagram",
-      "legal": "[상호 · 사업자등록번호 · 주소 — 준비 중]",
+      "business": {
+        "name": "상호",
+        "representatives": "대표",
+        "registrationNo": "사업자등록번호",
+        "verify": "사업자정보 확인",
+        "mailOrderNo": "통신판매업 신고",
+        "cosmeticsNo": "화장품책임판매업",
+        "address": "주소",
+        "phone": "고객센터",
+        "email": "이메일",
+        "privacyOfficer": "개인정보 보호책임자"
+      },
       "terms": "이용약관",
       "privacy": "개인정보처리방침",
       "tokushoho": "特定商取引法に基づく表記"

@@ -2,14 +2,14 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { HOME_MEDIA } from "@/constants/product";
-import { SITE } from "@/constants/site";
+import { BUSINESS, SITE } from "@/constants/site";
 
 const LINK = "transition-colors hover:text-grey";
 const SMALL_LINK = "transition-colors hover:text-ink";
 
 /**
  * v5 푸터 — 흰 바탕. 위: 슬로건(라임 점 하나)·제품 한 줄 / 오른쪽 링크 두 묶음,
- * 가는 선 아래: 법적 표기·정책, 맨 아래 잘려 나가는 대형 로고.
+ * 가는 선 아래: 사업자 정보(전자상거래법 표시사항)·정책, 맨 아래 잘려 나가는 대형 로고.
  * 정책 링크는 /legal/* 로. 特定商取引法 페이지는 아직 없다(2차 일본).
  */
 export default function SiteFooter() {
@@ -55,9 +55,9 @@ export default function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-[clamp(48px,6vw,80px)] flex flex-col gap-[16px] border-t border-line pt-[20px] text-[12px] text-grey md:flex-row md:items-start md:justify-between">
-          <p className="m-0">{t("legal")}</p>
-          <div className="flex flex-wrap items-center gap-x-[20px] gap-y-[8px]">
+        <div className="mt-[clamp(48px,6vw,80px)] flex flex-col gap-[20px] border-t border-line pt-[20px] text-[12px] text-grey md:flex-row md:items-start md:justify-between md:gap-[48px]">
+          <BusinessInfo />
+          <div className="flex shrink-0 flex-wrap items-center gap-x-[20px] gap-y-[8px]">
             <Link href="/legal/terms" className={SMALL_LINK}>
               {t("terms")}
             </Link>
@@ -83,5 +83,46 @@ export default function SiteFooter() {
         className="mx-auto mt-[clamp(32px,5vw,72px)] h-auto w-full max-w-[1344px] translate-y-[18%]"
       />
     </footer>
+  );
+}
+
+/* ─── 하위 컴포넌트 ─────────────────────────── */
+
+/** 사이버몰 운영자 표시. 값은 constants/site BUSINESS 한 곳, 항목 이름만 언어별 */
+function BusinessInfo() {
+  const t = useTranslations("home.footer.business");
+  const rows: Array<[keyof typeof BUSINESS & string, React.ReactNode]> = [
+    ["name", BUSINESS.name],
+    ["representatives", BUSINESS.representatives],
+    [
+      "registrationNo",
+      <>
+        {BUSINESS.registrationNo}{" "}
+        <a
+          href={BUSINESS.verifyUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-[3px] transition-colors hover:text-ink"
+        >
+          {t("verify")}
+        </a>
+      </>,
+    ],
+    ["mailOrderNo", BUSINESS.mailOrderNo],
+    ["cosmeticsNo", BUSINESS.cosmeticsNo],
+    ["address", BUSINESS.address],
+    ["phone", BUSINESS.phone],
+    ["email", BUSINESS.email],
+    ["privacyOfficer", BUSINESS.privacyOfficer],
+  ];
+  return (
+    <dl className="m-0 flex max-w-[760px] flex-wrap gap-x-[16px] gap-y-[6px] leading-[1.6]">
+      {rows.map(([key, value]) => (
+        <div key={key} className="flex gap-[6px]">
+          <dt>{t(key)}</dt>
+          <dd className="m-0 text-ink-soft">{value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
