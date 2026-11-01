@@ -1,7 +1,7 @@
 {
   "site": {
     "title": "suaci — take suaci.",
-    "description": "brume no.1 — 라임 & 바질 페이스 미스트. 피부보다 마음이 먼저 예민해지는 날을 위한, 가볍고 유쾌한 리프레시."
+    "description": "라임바질 페이셜 세럼 미스트 · take-01. 피부보다 마음이 먼저 예민해지는 날을 위한, 가볍고 유쾌한 리프레시."
   },
   "home": {
     "header": {
@@ -12,7 +12,7 @@
     },
     "hero": {
       "title": "take suaci.",
-      "product": "brume no.1 — 라임 & 바질 페이스 미스트",
+      "product": "라임바질 페이셜 세럼 미스트 · take-01",
       "videoLabel": "라임 그린 니트 카디건을 입은 여성이 라임이 든 망 가방 옆 스튜디오 바닥에 앉아 살짝 고개를 기울이며 웃는다"
     },
     "story": {
@@ -38,8 +38,8 @@
       "earrings": "5분 뒤."
     },
     "product": {
-      "name": "brume no.1",
-      "descriptor": "라임 & 바질 페이스 미스트 · 100 ml",
+      "name": "라임바질 페이셜 세럼 미스트",
+      "descriptor": "take-01 · 100 ml",
       "note": "라임과 바질의 곱고 시원한 미스트. 뿌리고, 숨 쉬고, 다시 하루로. 메이크업 위에 뿌려도 된다.",
       "referenceTag": "reference · replace before launch",
       "imageAlt": "참고용 제품 사진(suaci 보틀로 교체 예정)",

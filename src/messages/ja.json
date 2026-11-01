@@ -1,7 +1,7 @@
 {
   "site": {
     "title": "suaci — take suaci.",
-    "description": "brume no.1 — ライム&バジル フェイスミスト。肌より先に心がゆらぐ日のための、軽くて愉快なリフレッシュ。"
+    "description": "ライム&バジル フェイシャル セラムミスト · take-01。肌より先に心がゆらぐ日のための、軽くて愉快なリフレッシュ。"
   },
   "home": {
     "header": {
@@ -12,7 +12,7 @@
     },
     "hero": {
       "title": "take suaci.",
-      "product": "brume no.1 — ライム&バジル フェイスミスト",
+      "product": "ライム&バジル フェイシャル セラムミスト · take-01",
       "videoLabel": "ライムグリーンのニットを着た女性が、ライムの入ったネットバッグの横で床に座り、小さく首をかしげて微笑む"
     },
     "story": {
@@ -38,8 +38,8 @@
       "earrings": "5分後。"
     },
     "product": {
-      "name": "brume no.1",
-      "descriptor": "ライム&バジル フェイスミスト · 100 ml",
+      "name": "ライム&バジル フェイシャル セラムミスト",
+      "descriptor": "take-01 · 100 ml",
       "note": "ライムとバジルの、細かくてひんやりしたミスト。ひと吹きして、深呼吸して、また一日へ。メイクの上からでも。",
       "referenceTag": "reference · replace before launch",
       "imageAlt": "参考用の製品写真(suaciのボトルに差し替え予定)",

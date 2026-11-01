@@ -1,7 +1,7 @@
 import { CHECKOUT_PRICING } from "./checkout";
 
 /**
- * v5 단일 SKU — brume no.1.
+ * v5 단일 SKU — 라임바질 페이셜 세럼 미스트 · take-01(정확한 문자열은 진시우 최종).
  * 홈·구매 시트가 참조하는 정적 값. 가격·재고의 권위는 백엔드(seam)이며,
  * id는 fixtures(`prod_daily_mist` / `var_daily_80`)와 1:1로 맞춘다.
  */
@@ -9,7 +9,7 @@ export const PRODUCT = {
   productId: "prod_daily_mist",
   variantId: "var_daily_80",
   slug: "daily-calming-mist",
-  name: "brume no.1",
+  name: "라임바질 페이셜 세럼 미스트 · take-01",
   volume: "100 ml",
   /** KRW 정가 — 한 곳(constants/checkout)의 임시 값을 그대로 쓴다 */
   price: CHECKOUT_PRICING.price,

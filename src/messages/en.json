@@ -1,7 +1,7 @@
 {
   "site": {
     "title": "suaci — take suaci.",
-    "description": "brume no.1 — lime & basil face mist. a quick, playful refresh for the days your mind gets sensitive before your skin does."
+    "description": "lime & basil facial serum mist · take-01. a quick, playful refresh for the days your mind gets sensitive before your skin does."
   },
   "home": {
     "header": {
@@ -12,7 +12,7 @@
     },
     "hero": {
       "title": "take suaci.",
-      "product": "brume no.1 — lime & basil face mist",
+      "product": "lime & basil facial serum mist · take-01",
       "videoLabel": "a woman in a lime-green knit cardigan sitting cross-legged on a studio floor beside a mesh bag of limes, tilting her head with a soft smile"
     },
     "story": {
@@ -38,8 +38,8 @@
       "earrings": "five minutes later."
     },
     "product": {
-      "name": "brume no.1",
-      "descriptor": "lime & basil face mist · 100 ml",
+      "name": "lime & basil facial serum mist",
+      "descriptor": "take-01 · 100 ml",
       "note": "a fine, cool mist of lime and basil. spray, breathe, back to your day. over makeup is fine.",
       "referenceTag": "reference · replace before launch",
       "imageAlt": "reference product photo, to be replaced with the suaci bottle",

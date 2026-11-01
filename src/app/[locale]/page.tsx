@@ -7,7 +7,7 @@ import SiteHeader from "@/components/home/SiteHeader";
 import Story from "@/components/home/Story";
 
 /**
- * Home v5 — white studio. 단일 SKU(brume no.1) 원페이지.
+ * Home v5 — white studio. 단일 SKU(라임바질 페이셜 세럼 미스트 · take-01) 원페이지.
  * 히어로 영상 → 브랜드 스토리 → 무드 갤러리 → 제품 → 푸터, 하단 원클릭 바.
  */
 export default function Home() {

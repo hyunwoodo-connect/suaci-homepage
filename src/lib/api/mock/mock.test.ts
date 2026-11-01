@@ -113,7 +113,7 @@ describe("mock client", () => {
 
   it("라인 부분환불: 상품소계 넘어가면 두번째 클레임 OVER_REFUND", async () => {
     await loginDemo();
-    // brume no.1(38000) qty2 → itemsSubtotal 76000
+    // take-01(38000) qty2 → itemsSubtotal 76000
     const p = products[0];
     const v = p.variants[0];
     await api.addToCart({ productId: p.productId, variantId: v.variantId, quantity: 2 });
