@@ -111,7 +111,7 @@ function LoginForm() {
             </form>
 
             <p className="mt-[16px] font-sans text-[11px]">
-              <Link href="/password/forgot" className="text-grey hover:text-lime">
+              <Link href="/password/forgot" className="text-grey hover:text-ink">
                 {t("forgotPassword")} →
               </Link>
             </p>

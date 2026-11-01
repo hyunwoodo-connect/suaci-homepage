@@ -146,7 +146,7 @@ export default function SignupPage() {
 
         <p className="mt-[24px] font-sans text-[11px] text-grey">
           {t("hasAccount")}{" "}
-          <Link href="/login" className="text-ink underline underline-offset-[3px] hover:text-lime">
+          <Link href="/login" className="text-ink underline underline-offset-[3px] hover:text-grey">
             {t("goLogin")} →
           </Link>
         </p>

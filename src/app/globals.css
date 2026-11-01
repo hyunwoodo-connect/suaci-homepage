@@ -9,8 +9,8 @@
 
 @theme inline {
   /* ── v5 팔레트 ── */
-  --color-lime: #738136; /* suaci lime — 키컬러 (소파 그린) */
-  --color-ink: #111111;
+  --color-lime: #a9ff39; /* suaci key lime — 키컬러(10/27 확정). 매우 밝아 글자색으로 쓰지 않는다: 점·띠·블록, 위 글자는 ink */
+  --color-ink: #141414;
   --color-paper: #ffffff;
   --color-studio: #d3d4d8; /* 사진 배경 그레이 */
   --color-grey: #5f5f5c; /* 보조 텍스트 */

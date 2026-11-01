@@ -8,7 +8,7 @@ export const TAKE_FOUR_COLORS = {
   paper: "#FFFDF8", // 벽에 붙이기 시트
   red: "#E2453C", // 포인트 — 액자·핀
   ink: "#2B2420",
-  dot: "#738136", // 워드마크 점
+  dot: "#A9FF39", // 워드마크 점(브랜드 키컬러)
   camera: "#C9D6C0", // 카메라 화면이 비었을 때
   idle: "#B9ADA3", // 셔터 — 카메라 켜는 중
   busy: "#6B625B", // 비활성 잉크 버튼(보내는 중)

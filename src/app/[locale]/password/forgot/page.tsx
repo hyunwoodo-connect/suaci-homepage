@@ -54,7 +54,7 @@ export default function ForgotPasswordPage() {
               {t("goReset")} →
             </Link>
             <p className="mt-[6px] font-sans text-[11px] text-grey">
-              <Link href="/login" className="text-grey hover:text-lime">
+              <Link href="/login" className="text-grey hover:text-ink">
                 {t("backToLogin")} →
               </Link>
             </p>
@@ -80,7 +80,7 @@ export default function ForgotPasswordPage() {
             <p className="mt-[24px] font-sans text-[11px] text-grey">
               <Link
                 href="/login"
-                className="text-ink underline underline-offset-[3px] hover:text-lime"
+                className="text-ink underline underline-offset-[3px] hover:text-grey"
               >
                 {t("backToLogin")} →
               </Link>

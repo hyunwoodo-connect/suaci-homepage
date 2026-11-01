@@ -9,8 +9,8 @@ export default function PhaseTag({ phase }: PhaseTagProps) {
   const t = useTranslations("events.phase");
   return (
     <span
-      className={`inline-block rounded-full border px-[10px] py-[3px] text-[11px] ${
-        phase === "live" ? "border-lime text-lime" : "border-line text-grey"
+      className={`inline-block w-fit rounded-full border px-[10px] py-[3px] text-[11px] ${
+        phase === "live" ? "border-lime bg-lime text-ink" : "border-line text-grey"
       }`}
     >
       {t(phase)}

@@ -48,16 +48,16 @@ export function gateHtml({ next, wrong }: { next: string; wrong: boolean }): str
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box}
-  html,body{margin:0;height:100%;background:#fff;color:#111}
+  html,body{margin:0;height:100%;background:#fff;color:#141414}
   body{display:grid;place-items:center;padding:24px;font-family:Geist,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
   main{width:100%;max-width:320px;display:flex;flex-direction:column;align-items:center;gap:28px;text-align:center}
   .mark{font-size:32px;font-weight:600;letter-spacing:-0.03em;display:flex;align-items:center;gap:8px}
-  .dot{width:8px;height:8px;border-radius:50%;background:#738136}
+  .dot{width:8px;height:8px;border-radius:50%;background:#a9ff39}
   p{margin:0;color:#5f5f5c;font-size:15px}
   form{width:100%;display:flex;flex-direction:column;gap:12px}
-  input{width:100%;height:56px;border:1px solid #e4e5e8;border-radius:12px;text-align:center;font:inherit;font-size:24px;letter-spacing:0.5em;padding-left:0.5em;color:#111;outline:none}
-  input:focus{border-color:#111}
-  button{height:52px;border:0;border-radius:12px;background:#111;color:#fff;font:inherit;font-size:15px;font-weight:500;cursor:pointer}
+  input{width:100%;height:56px;border:1px solid #e4e5e8;border-radius:12px;text-align:center;font:inherit;font-size:24px;letter-spacing:0.5em;padding-left:0.5em;color:#141414;outline:none}
+  input:focus{border-color:#141414}
+  button{height:52px;border:0;border-radius:12px;background:#141414;color:#fff;font:inherit;font-size:15px;font-weight:500;cursor:pointer}
   .err{color:#b42318;font-size:14px}
 </style>
 </head>

@@ -99,7 +99,7 @@ function ResetForm() {
       </form>
 
       <p className="mt-[24px] font-sans text-[11px] text-grey">
-        <Link href="/login" className="text-ink underline underline-offset-[3px] hover:text-lime">
+        <Link href="/login" className="text-ink underline underline-offset-[3px] hover:text-grey">
           {t("backToLogin")} →
         </Link>
       </p>
