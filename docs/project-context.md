@@ -1,6 +1,8 @@
 # suaci — 프로젝트 컨텍스트 (2026-10-18 기준)
 
 > 브랜드·비주얼·진행 상황. 코드 규칙은 `AGENTS.md`. claude.ai 프로젝트 지식으로 붙여 넣어도 된다.
+>
+> **⚠️ 브랜드 최신 기준 (2026-10-27 확정):** 키컬러 **#A9FF39** · 제품명 **'라임바질 페이셜 세럼 미스트 · take-01'** (**'brume no.1' 폐기**). 전체 기준은 suaci 서랍 `브랜드/최신기준.md` + `패키지 브리프 v1.1`. 이 문서·코드에 남은 옛 값(`brume no.1`, `#738136`)은 사이트 비주얼 재작업(#167)에서 순차 교체.
 
 ## 일하는 규칙 (반드시)
 
@@ -14,7 +16,7 @@
 ## 브랜드
 
 - 브랜드 **suaci** (워드마크 소문자). 코스메틱 D2C, 개발자 도현우 + 파트너.
-- 제품 **brume no.1** — lime & basil face mist, **100 ml, 단일 SKU**. 임시 가격 ₩38,000.
+- 제품 **라임바질 페이셜 세럼 미스트 · take-01** (영문 lime & basil facial serum mist), **100 ml, 단일 SKU**. 임시 가격 ₩28,000. (옛 'brume no.1' 폐기. 정확한 제품명 문자열은 진시우 최종.)
 - 슬로건 **take suaci.** (take a break → take suaci). 브랜드 성격: **유쾌한 리프레쉬**. 명상·힐링·진정 톤 아님.
 - 브랜드 스토리 한 줄: "for the days your mind gets sensitive before your skin does." 본문: "people, pings, all day long. some days it's not your skin that needs a break first. / suaci is a quick, playful refresh. not silence, not meditation. just a spray, a little laugh, and back to your day."
 - 사이트 언어 **한국어(기본, 2026-10-26 #93) + 영어 + 일본어**. 영문 카피 **전부 소문자**. 미니멀 카피.
@@ -23,7 +25,7 @@
 ## 비주얼
 
 - 흰 바탕, 넓은 여백, 풀블리드 사진. 스튜디오 그레이(#d3d4d8) 룩북 사진 + **키컬러 하나**.
-- 팔레트: `lime #738136`(키컬러, 점·작은 디테일만) · `ink #111111` · `paper #ffffff` · `studio #d3d4d8` · `grey #5f5f5c` · `line #e4e5e8`. 네온 그린(#a9ff39)은 **폐기**.
+- 팔레트: **키컬러 `lime #A9FF39`**(10/27 확정 · 점·띠·블록 하나로만) · `ink #141414` · `paper #ffffff` · `studio #d3d4d8` · `grey #5f5f5c` · `line #e4e5e8`. (옛 `#738136`·"#a9ff39 폐기" 표기는 뒤집힘 — 사이트 코드 색 교체는 #167.)
 - 폰트: Geist + Zen Kaku Gothic New(일본어) + Noto Sans KR(한국어). 소문자 본문엔 자간 금지.
 - 로고는 헤더·푸터 모두 **검정**. SVG(`public/brand/logo-black.svg`, `logo-white.svg`).
 - 모델: 20대 중후반 동아시아 여성, 밝고 행복한 표정(무표정 X), 포즈 반복 X. 히어로 모델(라임 니트 카디건) 컷을 레퍼런스로 유지.
@@ -31,7 +33,7 @@
 
 ## 홈 구성 (v5 "white studio")
 
-헤더(로고 / en·jp·kr / 계정 아이콘, 구매 버튼 없음) → 히어로(룩북 루프 영상 5초, 무음 자동재생, 포스터 = 첫 프레임, 캡션 "take suaci. brume no.1 — lime & basil face mist") → 브랜드 스토리(작은 글씨, 점+our story, take ~~a break~~ suaci.) → 무드 갤러리 7컷 엇갈림(소파 "3pm. inbox full." / 스마일 종이 "after the meeting." / 물결 풀블리드 / 턴테이블 라임 / 모델+보틀 / 메탈 바구니 라임 / 라임 귀걸이) → 제품 섹션(큰 컷+텍스트, 디테일 컷 2장, 접이식 how to use·ingredients·shipping) → 푸터(슬로건, 링크, 법적 표기, 하단에 잘려 나가는 대형 로고) → **하단 원클릭 바 = 유일한 구매 CTA**(구매 시트: 수량, apple pay / google pay / 카드).
+헤더(로고 / en·jp·kr / 계정 아이콘, 구매 버튼 없음) → 히어로(룩북 루프 영상 5초, 무음 자동재생, 포스터 = 첫 프레임, 캡션 "take suaci. — lime & basil facial serum mist") → 브랜드 스토리(작은 글씨, 점+our story, take ~~a break~~ suaci.) → 무드 갤러리 7컷 엇갈림(소파 "3pm. inbox full." / 스마일 종이 "after the meeting." / 물결 풀블리드 / 턴테이블 라임 / 모델+보틀 / 메탈 바구니 라임 / 라임 귀걸이) → 제품 섹션(큰 컷+텍스트, 디테일 컷 2장, 접이식 how to use·ingredients·shipping) → 푸터(슬로건, 링크, 법적 표기, 하단에 잘려 나가는 대형 로고) → **하단 원클릭 바 = 유일한 구매 CTA**(구매 시트: 수량, apple pay / google pay / 카드).
 
 ## 저장소 `suaci-official` 상태
 
