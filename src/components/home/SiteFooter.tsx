@@ -29,8 +29,12 @@ export default function SiteFooter() {
             <Link href="/legal/business" className="hover:text-grey">
               {t("contact")}
             </Link>
-            {/* TODO(출시): 인스타그램 계정 주소 */}
-            <a href="#" className="hover:text-grey">
+            <a
+              href="https://www.instagram.com/suaci_/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-grey"
+            >
               {t("instagram")}
             </a>
           </nav>
