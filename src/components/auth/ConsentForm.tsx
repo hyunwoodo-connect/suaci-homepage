@@ -63,7 +63,9 @@ export default function ConsentForm({ stash }: ConsentFormProps) {
       // 이 가입 표는 다시 못 쓴다 — 새로고침해도 죽은 폼이 남지 않게 지운다
       clearSignupStash();
       setError(
-        err instanceof ApiClientError && err.code === "SOCIAL_SIGNUP_EXPIRED" ? "expired" : "broken",
+        err instanceof ApiClientError && err.code === "SOCIAL_SIGNUP_EXPIRED"
+          ? "expired"
+          : "broken",
       );
     } finally {
       setBusy(false);

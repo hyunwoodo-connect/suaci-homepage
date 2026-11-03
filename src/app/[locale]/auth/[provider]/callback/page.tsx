@@ -42,9 +42,7 @@ export default function CallbackPage() {
  * 안 된 경우 셋 — 손님이 동의 화면에서 취소(declined) / 프로바이더가 다른 이유로 돌려보냄(refused,
  * 예: 검수 전 네이버 앱에 멤버가 아닌 사람) / 우리 쪽 왕복이 끊김(broken: state 불일치·코드 없음·교환 실패).
  */
-type Phase =
-  | { kind: "working" }
-  | { kind: "declined" | "refused" | "broken"; next: string };
+type Phase = { kind: "working" } | { kind: "declined" | "refused" | "broken"; next: string };
 
 /** 어디서 왔는지 모를 때 다시 로그인하면 갈 곳 — 로그인 화면의 기본값과 같다 */
 const FALLBACK_NEXT = "/account";
@@ -133,7 +131,10 @@ function CallbackBody({ provider }: CallbackBodyProps) {
       <div className="flex max-w-[400px] flex-col gap-[28px]">
         {/* 다시 하기 = 공식 버튼 그대로(같은 프로바이더로 다시, 또는 다른 쪽으로). 돌아갈 곳(next)은 이어 간다 */}
         <SocialLoginButtons next={phase.next} />
-        <Link href="/" className="self-start text-[14px] text-grey underline underline-offset-[3px]">
+        <Link
+          href="/"
+          className="self-start text-[14px] text-grey underline underline-offset-[3px]"
+        >
           {tc("home")}
         </Link>
       </div>

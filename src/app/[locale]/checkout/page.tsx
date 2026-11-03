@@ -373,9 +373,11 @@ function CheckoutBody() {
             </div>
           </div>
           <ReturnNotice className="mb-[14px]" />
-          {note && <p role="alert" className="mb-[14px] text-[13px] text-alert">
+          {note && (
+            <p role="alert" className="mb-[14px] text-[13px] text-alert">
               {note}
-            </p>}
+            </p>
+          )}
           <button
             type="button"
             onClick={() => {
