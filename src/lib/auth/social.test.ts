@@ -9,6 +9,7 @@ import {
   clearSignupStash,
   createLoginState,
   envSocialMode,
+  hiddenProviders,
   isSocialProvider,
   readLastProvider,
   readSignupStash,
@@ -19,6 +20,7 @@ import {
   socialRedirectUri,
   stashSignup,
   takeLoginState,
+  unlockedProviders,
 } from "./social";
 
 afterEach(() => {
@@ -175,5 +177,32 @@ describe("stashSignup / readSignupStash / clearSignupStash", () => {
   ])("%s → null", (_label, raw) => {
     sessionStorage.setItem("suaci.auth.signup", raw);
     expect(readSignupStash()).toBeNull();
+  });
+});
+
+describe("hiddenProviders / unlockedProviders", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    sessionStorage.clear();
+  });
+  it("숨김 목록은 쉼표·공백·대소문자를 가리지 않고, 모르는 이름은 버린다", () => {
+    vi.stubEnv("NEXT_PUBLIC_SOCIAL_HIDDEN", " Naver , google,");
+    expect(hiddenProviders()).toEqual(["naver"]);
+    vi.stubEnv("NEXT_PUBLIC_SOCIAL_HIDDEN", "");
+    expect(hiddenProviders()).toEqual([]);
+  });
+  it("?with= 는 아는 프로바이더만 이 탭에 기억하고, 빈 값·모르는 값은 무시한다", () => {
+    expect(unlockedProviders("?with=naver,foo")).toEqual(["naver"]);
+    expect(unlockedProviders("")).toEqual(["naver"]);
+    expect(unlockedProviders("?with=")).toEqual(["naver"]);
+    sessionStorage.clear();
+    expect(unlockedProviders("?with=foo")).toEqual([]);
+  });
+  it("sessionStorage 가 막히면 닫힌 쪽(빈 목록)", () => {
+    const spy = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    expect(unlockedProviders("?with=naver")).toEqual([]);
+    spy.mockRestore();
   });
 });

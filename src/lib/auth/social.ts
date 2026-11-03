@@ -218,10 +218,13 @@ const WITH_KEY = "suaci.auth.with";
  * 쉼표 목록 `NEXT_PUBLIC_SOCIAL_HIDDEN`(빌드 때 들어간다). 일반 손님에게는 버튼이 안 보인다
  */
 export function hiddenProviders(): SocialProvider[] {
-  return (process.env.NEXT_PUBLIC_SOCIAL_HIDDEN ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(isSocialProvider);
+  return (
+    (process.env.NEXT_PUBLIC_SOCIAL_HIDDEN ?? "")
+      .split(",")
+      // 대소문자를 가리면 `Naver` 같은 오타 하나로 숨김이 통째로 풀린다
+      .map((s) => s.trim().toLowerCase())
+      .filter(isSocialProvider)
+  );
 }
 
 /**
