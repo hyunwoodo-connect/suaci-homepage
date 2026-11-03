@@ -13,7 +13,6 @@ import type { OrderSummary } from "@/types";
 
 /**
  * 주문 내역 — listOrders. 상태는 손님 말(orders.orderStatus.*)로. 없으면 제품으로 가는 길 하나.
- * 판매 전에는 middleware 가 이 화면을 잠근다(비번 화면) — 여기 오는 건 테스터뿐.
  */
 export default function OrdersPage() {
   const t = useTranslations("orders");

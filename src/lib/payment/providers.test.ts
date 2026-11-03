@@ -9,6 +9,7 @@ import {
   methodFromLabel,
   parsePaymentReturn,
   PAY_METHOD_LABEL,
+  canTakePayment,
   selectPaymentAdapters,
 } from "./providers";
 
@@ -34,6 +35,23 @@ describe("selectPaymentAdapters", () => {
     expect(availableMethods(mock)).toEqual(["BRANDPAY", "KAKAOPAY", "NAVERPAY", "CARD"]);
     expect(adapterFor(mock, "NAVERPAY")?.id).toBe("mock");
     expect(adapterFor([], "CARD")).toBeNull();
+  });
+});
+
+describe("canTakePayment", () => {
+  it("운영 + 실서버(http) → false — 결제창이 없으니 결제 직전에서 멈추고 주문을 만들지 않는다", () => {
+    expect(canTakePayment({ apiMode: "http", nodeEnv: "production" })).toBe(false);
+  });
+
+  it("토스 키만 있고 위젯 어댑터 전 → false", () => {
+    expect(canTakePayment({ tossClientKey: "ck", apiMode: "http", nodeEnv: "production" })).toBe(
+      false,
+    );
+  });
+
+  it("목업 API 이거나 개발 빌드 → true(목업 결제창)", () => {
+    expect(canTakePayment({ apiMode: "mock", nodeEnv: "production" })).toBe(true);
+    expect(canTakePayment({ apiMode: "http", nodeEnv: "development" })).toBe(true);
   });
 });
 

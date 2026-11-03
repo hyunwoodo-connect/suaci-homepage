@@ -240,6 +240,12 @@ describe("재구매 시트", () => {
     expect(createOrder).not.toHaveBeenCalled();
     expect(navigate).not.toHaveBeenCalled();
   });
+
+  it("어댑터 없음 → 결제수단 줄에는 '바꾸기'가 없다(고를 수단이 없다), 주소·메모 줄에는 있다", async () => {
+    selectMock.value = false;
+    await openSheet();
+    expect(screen.getAllByRole("button", { name: "바꾸기" })).toHaveLength(2);
+  });
 });
 
 describe("ResumeStrip", () => {

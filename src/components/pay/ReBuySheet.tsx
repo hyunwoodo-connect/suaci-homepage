@@ -184,11 +184,16 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
           {address ? `${address.addr1} ${address.addr2 ?? ""} · ${address.recipient}` : ""}
         </SheetRow>
 
+        {/* 결제창이 없으면 고를 수단도 없다 — '변경'을 두지 않는다 */}
         <SheetRow
           label={t("method")}
-          onChange={() => {
-            setPickMethod((v) => !v);
-          }}
+          onChange={
+            ready
+              ? () => {
+                  setPickMethod((v) => !v);
+                }
+              : undefined
+          }
           changeLabel={t("change")}
         >
           {PAY_METHOD_LABEL[method]}
@@ -279,7 +284,8 @@ function SheetRow({
 }: {
   label: string;
   children: React.ReactNode;
-  onChange: () => void;
+  /** 없으면 '변경' 버튼을 그리지 않는다 */
+  onChange?: () => void;
   changeLabel: string;
 }) {
   return (
@@ -288,13 +294,15 @@ function SheetRow({
         <p className="m-0 text-[11px] text-grey">{label}</p>
         <p className="m-0 truncate text-[14px]">{children}</p>
       </div>
-      <button
-        type="button"
-        onClick={onChange}
-        className="shrink-0 cursor-pointer text-[12px] text-grey underline underline-offset-[3px] hover:text-ink"
-      >
-        {changeLabel}
-      </button>
+      {onChange && (
+        <button
+          type="button"
+          onClick={onChange}
+          className="shrink-0 cursor-pointer text-[12px] text-grey underline underline-offset-[3px] hover:text-ink"
+        >
+          {changeLabel}
+        </button>
+      )}
     </div>
   );
 }

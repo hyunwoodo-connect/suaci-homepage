@@ -14,7 +14,6 @@ import type { Address } from "@/types";
 
 /**
  * 내 계정 — 이름·이메일(있을 때만)·가입일, 배송지·주문 내역 줄, 로그아웃.
- * 판매 전에는 주문 내역 화면이 잠겨 있어(비번 화면) 링크 대신 '출시하면 여기서' 안내 + 출시 알림 받기.
  */
 export default function AccountPage() {
   const t = useTranslations("account");

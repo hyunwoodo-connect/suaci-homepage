@@ -50,14 +50,13 @@ export default async function middleware(req: NextRequest) {
       }
       return res;
     }
-    // 공개 전 이벤트는 판매를 연 뒤에도 잠근다 — 비번(테스터)으로만 연다
+    // 공개 전 이벤트는 비번(테스터)으로만 연다
     if (!(await isUnlocked(req.cookies.get(SITE_LOCK_COOKIE)?.value, process.env.SITE_LOCK_PIN))) {
       return gate(req);
     }
     return NextResponse.next();
   }
 
-  // 주문·결제 화면은 출시 전에도 연다(오너 11/3, 카드 심사) — 결제를 받기 전에는 결제 직전에서 멈춘다
   return intl(req);
 }
 
