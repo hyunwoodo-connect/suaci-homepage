@@ -2,13 +2,14 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { useParams, useSearchParams } from "next/navigation";
+import { notFound, useParams, useSearchParams } from "next/navigation";
 
 import { SIGNUP_STASH_KEY, type SignupStash } from "@/components/auth/ConsentForm";
 import { Link, useRouter } from "@/i18n/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import {
+  isSocialProvider,
   rememberLastProvider,
   safeNextPath,
   socialRedirectUri,
@@ -19,11 +20,15 @@ import type { SocialProvider } from "@/types";
 /**
  * 소셜 로그인 콜백 — 프로바이더(또는 목업 동의 화면)가 code·state 를 들고 돌아오는 곳.
  * state 가 저장된 nonce 와 다르면 교환 없이 안내만(위조 방지). 처음 온 사람은 /auth/consent 로.
+ * 모르는 프로바이더 경로는 404.
  */
 export default function CallbackPage() {
+  const { provider } = useParams<{ provider: string }>();
+  if (!isSocialProvider(provider)) notFound();
+
   return (
     <Suspense>
-      <CallbackBody />
+      <CallbackBody provider={provider} />
     </Suspense>
   );
 }
@@ -32,16 +37,17 @@ export default function CallbackPage() {
 
 type Phase = "working" | "declined" | "tangled";
 
-function CallbackBody() {
+interface CallbackBodyProps {
+  provider: SocialProvider;
+}
+
+function CallbackBody({ provider }: CallbackBodyProps) {
   const t = useTranslations("pay");
   const router = useRouter();
-  const params = useParams<{ provider: string }>();
   const search = useSearchParams();
   const { adoptTokens } = useAuth();
   const [phase, setPhase] = useState<Phase>("working");
   const ran = useRef(false);
-
-  const provider = (params.provider === "naver" ? "naver" : "kakao") as SocialProvider;
 
   useEffect(() => {
     // StrictMode 이중 실행 방지 — state 는 한 번 읽으면 사라진다.
@@ -95,7 +101,7 @@ function CallbackBody() {
         {phase === "working" && <p className="text-sm text-grey">{t("result.confirming")}</p>}
         {phase === "declined" && (
           <>
-            <p className="text-sm">{t(provider === "kakao" ? "login.declined" : "login.title")}</p>
+            <p className="text-sm">{t(`login.declined.${provider}`)}</p>
             <Link href="/login" className="text-sm underline">
               {t("consent.toLogin")}
             </Link>

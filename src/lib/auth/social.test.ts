@@ -35,14 +35,20 @@ describe("isSocialProvider", () => {
 });
 
 describe("SOCIAL_PROVIDER_CONFIG", () => {
-  it("프로바이더마다 https 인가 주소·버튼 색·버튼 문구(ko)가 있다", () => {
-    const loginMessages = ko.pay.login as Record<string, unknown>;
+  it("프로바이더마다 https 인가 주소·버튼 색이 있다", () => {
     for (const p of SOCIAL_PROVIDERS) {
       const config = SOCIAL_PROVIDER_CONFIG[p];
       expect(config.authorizeBase, p).toMatch(/^https:\/\//);
       expect(config.colors.bg, p).toMatch(/^#[0-9a-f]{6}$/i);
       expect(config.colors.fg, p).toMatch(/^#[0-9a-f]{6}$/i);
-      expect(typeof loginMessages[p], p).toBe("string");
+    }
+  });
+  it("프로바이더마다 버튼 문구·동의 취소 안내가 있다(ko — en·ja 는 messages.test 가 키를 맞춘다)", () => {
+    const login = ko.pay.login as Record<string, unknown>;
+    const declined = ko.pay.login.declined as Record<string, unknown>;
+    for (const p of SOCIAL_PROVIDERS) {
+      expect(typeof login[p], p).toBe("string");
+      expect(typeof declined[p], p).toBe("string");
     }
   });
   it("클라 ID 는 프로바이더별 환경변수에서 — 카카오만 있으면 카카오만 live", () => {

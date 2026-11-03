@@ -274,7 +274,10 @@
       "hint": "we'll fill in your address and phone for you.",
       "kakao": "continue with kakao",
       "naver": "continue with naver",
-      "declined": "no worries. naver works too.",
+      "declined": {
+        "kakao": "no worries. naver works too.",
+        "naver": "no worries. kakao works too."
+      },
       "preparing": "sign-in is coming soon."
     },
     "sheet": {
