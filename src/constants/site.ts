@@ -25,7 +25,7 @@ export const BUSINESS = {
   cosmeticsNo: "제53463호",
   address: "대전광역시 유성구 용계동 667-1 207동 701호",
   phone: "010-6227-7918",
-  email: "suaci89@naver.com",
+  email: "hello@takesuaci.com",
   privacyOfficer: "도현우",
   /** 공정위 사업자정보 공개 페이지(시행규칙 제7조 — 사이버몰 초기 화면에서 연결) */
   verifyUrl: "https://www.ftc.go.kr/bizCommPop.do?wrkr_no=3151568551",
