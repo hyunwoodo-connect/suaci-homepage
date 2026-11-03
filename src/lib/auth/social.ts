@@ -23,6 +23,11 @@ interface SocialProviderConfig {
   readClientId: () => string | undefined;
   /** 로그인 버튼·목업 동의 화면 색. 우리 팔레트가 아니라 각 프로바이더 로그인 버튼 가이드의 색이다 */
   colors: { bg: string; fg: string };
+  /**
+   * 프로바이더가 버튼 이미지를 그대로 쓰라고 정한 경우(네이버 BI 가이드: 색·로고·형태 변경 불가, 크기만 조정).
+   * 언어별 공식 PNG(4배 해상도)와 원본 크기. 없으면 colors 로 글자 버튼을 그린다
+   */
+  buttonImage?: { ko: string; other: string; width: number; height: number };
 }
 
 /**
@@ -40,7 +45,15 @@ export const SOCIAL_PROVIDER_CONFIG: Record<SocialProvider, SocialProviderConfig
   naver: {
     authorizeBase: "https://nid.naver.com/oauth2.0/authorize",
     readClientId: () => process.env.NEXT_PUBLIC_NAVER_CLIENT_ID,
-    colors: { bg: "#03C75A", fg: "#ffffff" },
+    // 네이버 로그인 버튼 가이드(developers.naver.com/docs/login/bi/bi.md): 배경 #03A94D, 로고·글자 흰색
+    colors: { bg: "#03A94D", fg: "#ffffff" },
+    // 공식 리소스 NAVER_login_KR/EN 의 Light·green·center·H48 (흰 바탕 페이지용 완성형)
+    buttonImage: {
+      ko: "/brand/naver/naver-login-ko.png",
+      other: "/brand/naver/naver-login-en.png",
+      width: 1472,
+      height: 192,
+    },
   },
 };
 

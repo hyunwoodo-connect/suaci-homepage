@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-import { useTranslations } from "next-intl";
+import Image from "next/image";
+import { useLocale, useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import {
@@ -29,6 +30,7 @@ interface SocialLoginButtonsProps {
  */
 export default function SocialLoginButtons({ next }: SocialLoginButtonsProps) {
   const t = useTranslations("pay.login");
+  const locale = useLocale();
   const router = useRouter();
 
   // 숨긴 프로바이더를 연 탭인지는 주소·sessionStorage 를 봐야 해서 붙은 뒤에 정한다(서버 그림과 어긋나지 않게 처음엔 숨김)
@@ -63,7 +65,29 @@ export default function SocialLoginButtons({ next }: SocialLoginButtonsProps) {
   return (
     <div className="flex flex-col gap-[10px]">
       {providers.map((provider) => {
-        const { bg, fg } = SOCIAL_PROVIDER_CONFIG[provider].colors;
+        const { colors, buttonImage } = SOCIAL_PROVIDER_CONFIG[provider];
+        // 공식 버튼 이미지를 정한 프로바이더(네이버)는 그 이미지를 그대로 — 크기만 맞춘다
+        if (buttonImage) {
+          return (
+            <button
+              key={provider}
+              type="button"
+              aria-label={t(provider)}
+              onClick={() => {
+                start(provider);
+              }}
+              className="block w-full cursor-pointer p-0"
+            >
+              <Image
+                src={locale === "ko" ? buttonImage.ko : buttonImage.other}
+                alt=""
+                width={buttonImage.width}
+                height={buttonImage.height}
+                className="block h-auto w-full"
+              />
+            </button>
+          );
+        }
         return (
           <button
             key={provider}
@@ -72,7 +96,7 @@ export default function SocialLoginButtons({ next }: SocialLoginButtonsProps) {
               start(provider);
             }}
             className="h-[48px] cursor-pointer text-[14px] font-medium"
-            style={{ backgroundColor: bg, color: fg }}
+            style={{ backgroundColor: colors.bg, color: colors.fg }}
           >
             {t(provider)}
           </button>

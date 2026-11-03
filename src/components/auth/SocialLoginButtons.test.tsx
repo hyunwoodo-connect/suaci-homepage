@@ -28,10 +28,13 @@ describe("SocialLoginButtons", () => {
     vi.unstubAllGlobals();
   });
 
-  it("카카오·네이버 버튼을 그린다", () => {
+  it("카카오·네이버 버튼을 그린다 — 네이버는 공식 버튼 이미지 그대로(글자 대신 이미지, 이름은 aria-label)", () => {
     renderButtons();
     expect(screen.getByRole("button", { name: "카카오로 계속" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "네이버로 계속" })).toBeTruthy();
+    const naver = screen.getByRole("button", { name: "네이버 로그인" });
+    const img = naver.querySelector("img");
+    expect(img?.getAttribute("src")).toContain("naver-login-ko.png");
+    expect(img?.getAttribute("alt")).toBe("");
   });
 
   it("클릭 → state 저장 + 목업 동의 화면으로 push (개발 환경은 mock 모드)", () => {
@@ -51,7 +54,7 @@ describe("SocialLoginButtons", () => {
     vi.stubEnv("NEXT_PUBLIC_NAVER_CLIENT_ID", "");
     renderButtons();
     expect(screen.getByRole("button", { name: "카카오로 계속" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "네이버로 계속" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "네이버 로그인" })).toBeNull();
   });
 
   it("전부 off(운영+실서버+키 없음) → 버튼 없이 준비 중 한 줄", () => {
@@ -87,7 +90,7 @@ describe("SocialLoginButtons", () => {
     vi.stubEnv("NEXT_PUBLIC_SOCIAL_HIDDEN", "naver");
     renderButtons();
     await waitFor(() => expect(screen.getByRole("button", { name: "카카오로 계속" })).toBeTruthy());
-    expect(screen.queryByRole("button", { name: "네이버로 계속" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "네이버 로그인" })).toBeNull();
   });
 
   it("?with=naver 로 연 탭 → 숨긴 버튼도 보이고, 같은 탭에서는 주소에 없어도 계속 보인다", async () => {
@@ -98,12 +101,12 @@ describe("SocialLoginButtons", () => {
     vi.stubEnv("NEXT_PUBLIC_SOCIAL_HIDDEN", "naver");
     window.history.replaceState(null, "", "/login?with=naver");
     const first = renderButtons();
-    expect(await screen.findByRole("button", { name: "네이버로 계속" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "네이버 로그인" })).toBeTruthy();
     first.unmount();
 
     window.history.replaceState(null, "", "/");
     renderButtons();
-    expect(await screen.findByRole("button", { name: "네이버로 계속" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "네이버 로그인" })).toBeTruthy();
     window.history.replaceState(null, "", "/");
   });
 });

@@ -269,9 +269,9 @@
     },
     "login": {
       "title": "just tell us who you are.",
-      "hint": "we'll fill in your address and phone for you.",
+      "hint": "one tap to sign up, and you're in.",
       "kakao": "continue with kakao",
-      "naver": "continue with naver",
+      "naver": "Log in with NAVER",
       "declined": "no worries. there are other ways in.",
       "preparing": "sign-in is coming soon."
     },
