@@ -41,8 +41,6 @@
       "name": "라임바질 페이셜 세럼 미스트",
       "descriptor": "take-01 · 100 ml",
       "note": "라임과 바질의 곱고 시원한 미스트. 뿌리고, 숨 쉬고, 다시 하루로. 메이크업 위에 뿌려도 된다.",
-      "referenceTag": "reference · replace before launch",
-      "imageAlt": "참고용 제품 사진(suaci 보틀로 교체 예정)",
       "howToUse": "사용법",
       "howToUseBody": "[사용법 — 준비 중]",
       "ingredients": "전성분",
@@ -50,11 +48,7 @@
       "shipping": "배송·반품",
       "shippingBody": "[배송·반품 안내 — 준비 중]",
       "label": "the product",
-      "grassAlt": "따뜻한 빛 아래 풀밭에 놓인 참고용 제품 사진",
-      "grassCaption": "라임. 바질. 그게 다다.",
-      "pourAlt": "텍스처가 보틀 위로 흐르는 참고용 제품 사진",
-      "pourCaption": "고운 미스트. 흐르지 않고, 따갑지 않다.",
-      "referenceTagShort": "reference"
+      "photoSoon": "제품 사진 준비 중"
     },
     "footer": {
       "orderLookup": "주문 조회",
@@ -271,7 +265,9 @@
       "increase": "수량 늘리기",
       "kept_note": "담아 둔 게 있어요.",
       "resume": "아까 하던 주문, 이어서 할까요?",
-      "resumeCta": "이어서"
+      "resumeCta": "이어서",
+      "soon": "출시 준비 중이에요.",
+      "notify": "출시 알림 받기"
     },
     "login": {
       "title": "누군지만 알려 주세요.",

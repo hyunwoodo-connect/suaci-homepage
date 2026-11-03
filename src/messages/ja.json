@@ -41,8 +41,6 @@
       "name": "ライム&バジル フェイシャル セラムミスト",
       "descriptor": "take-01 · 100 ml",
       "note": "ライムとバジルの、細かくてひんやりしたミスト。ひと吹きして、深呼吸して、また一日へ。メイクの上からでも。",
-      "referenceTag": "reference · replace before launch",
-      "imageAlt": "参考用の製品写真(suaciのボトルに差し替え予定)",
       "howToUse": "使い方",
       "howToUseBody": "[使い方 — 準備中]",
       "ingredients": "全成分",
@@ -50,11 +48,7 @@
       "shipping": "配送・返品",
       "shippingBody": "[配送・返品ポリシー — 準備中]",
       "label": "the product",
-      "grassAlt": "草の上に置かれた参考用製品写真",
-      "grassCaption": "ライム。バジル。それだけ。",
-      "pourAlt": "テクスチャーがボトルに流れる参考用製品写真",
-      "pourCaption": "細かいミスト。垂れない、しみない。",
-      "referenceTagShort": "reference"
+      "photoSoon": "製品写真は準備中です"
     },
     "footer": {
       "orderLookup": "注文照会",
@@ -271,7 +265,9 @@
       "increase": "数量を増やす",
       "kept_note": "とっておいたものがあります。",
       "resume": "さっきの注文、続けますか？",
-      "resumeCta": "続ける"
+      "resumeCta": "続ける",
+      "soon": "発売準備中です。",
+      "notify": "発売のお知らせを受け取る"
     },
     "login": {
       "title": "どなたかだけ教えてください。",

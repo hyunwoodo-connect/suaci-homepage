@@ -105,6 +105,15 @@ describe("middleware: 이벤트 경로", () => {
     expect((await middleware(new NextRequest(url("/events/hid-evt")))).status).toBe(401);
   });
 
+  it("숨김 이벤트도 사이트 비번 쿠키(테스터)면 열린다 — 언어 접두사 없이 그대로", async () => {
+    get.mockResolvedValue(null);
+    const req = new NextRequest(url("/events/hid-evt"));
+    req.cookies.set(SITE_LOCK_COOKIE, await lockToken("1234"));
+    const res = await middleware(req);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-middleware-next")).toBe("1");
+  });
+
   it("맞는 preview 토큰이면 통과 + 쿠키 설정", async () => {
     get.mockImplementation(async (_s, p) => (p === "good-token-1234567" ? detail : null));
     const res = await middleware(
@@ -166,13 +175,9 @@ describe("middleware: 이벤트 경로", () => {
 });
 
 describe("middleware: 그 밖의 경로", () => {
-  it.each(["/events", "/en/events", "/ja/events"])("%s(목록)는 잠금 그대로", async (p) => {
+  it.each(["/events", "/en/events", "/ja/events"])("%s(목록)는 사이트와 같이 열린다", async (p) => {
     get.mockResolvedValue(detail);
-    expect((await middleware(new NextRequest(url(p)))).status).toBe(401);
+    expect((await middleware(new NextRequest(url(p)))).status).toBe(200);
     expect(get).not.toHaveBeenCalled();
-
-    const req = new NextRequest(url(p));
-    req.cookies.set(SITE_LOCK_COOKIE, await lockToken("1234"));
-    expect((await middleware(req)).status).toBe(200);
   });
 });

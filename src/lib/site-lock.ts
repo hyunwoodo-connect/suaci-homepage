@@ -1,7 +1,7 @@
 /**
  * 출시 전 잠금. 숫자 비번(SITE_LOCK_PIN, Amplify 환경 변수 — 저장소가 공개라 코드에 두지 않는다)을
  * 넣으면 쿠키로 30일 열어 둔다. 비번이 설정 안 됐으면 아무도 못 들어간다(잘못 열리는 쪽보다 낫다).
- * 출시 때는 middleware에서 이 잠금 한 줄을 빼면 된다.
+ * 2026-11-03부터 잠그는 곳은 주문·결제 화면뿐이다(`isLockedBeforeLaunch`).
  */
 export const SITE_LOCK_COOKIE = "suaci_preview";
 export const SITE_LOCK_MAX_AGE_S = 60 * 60 * 24 * 30;
@@ -20,13 +20,14 @@ export async function isUnlocked(cookie: string | undefined, pin: string | undef
   return cookie === (await lockToken(pin));
 }
 
-// 출시 전에도 열어 두는 화면: 출시 알림 받기(12월 티저 링크가 여기로 온다)와 개인정보처리방침(판 포함).
-// 처리방침은 공개해야 하고(개인정보보호법 제30조), 잠금 밖 take four. 벽에 붙이기 시트가 여기로 링크한다
-const OPEN_BEFORE_LAUNCH = /^\/(?:(?:en|ja|ko)\/)?(?:notify|legal\/privacy(?:\/[1-9]\d{0,3})?)\/?$/;
+// 출시 전에 잠그는 화면: 주문·결제·주문 내역뿐(2026-11-03 오너 "락을 풀어"). 커머스 API 가 아직 목업이라
+// 손님이 실제로 주문한 줄 알면 안 된다. 홈·상품·가격·정책·사업자 정보·로그인·가입은 연다(카카오 동의항목 심사·PG 카드 심사).
+// 테스터는 비번으로 지금처럼 열 수 있다. 판매를 열면(`SALES_OPEN`) 이 잠금도 같이 빠진다.
+const LOCKED_BEFORE_LAUNCH = /^\/(?:(?:en|ja|ko)\/)?(?:checkout|pay|orders)(?:\/.*)?$/;
 
-/** 출시 전 잠금을 건너뛰는 경로인가. 언어 접두사(en·ja·ko)는 있어도 없어도 된다 */
-export function isOpenBeforeLaunch(pathname: string): boolean {
-  return OPEN_BEFORE_LAUNCH.test(pathname);
+/** 출시 전 잠금 대상인가(주문·결제·주문 내역). 언어 접두사(en·ja·ko)는 있어도 없어도 된다 */
+export function isLockedBeforeLaunch(pathname: string): boolean {
+  return LOCKED_BEFORE_LAUNCH.test(pathname);
 }
 
 /** 들어간 뒤 돌아갈 곳. 같은 사이트 경로만(//evil.com 같은 건 /) */

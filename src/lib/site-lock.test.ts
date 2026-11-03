@@ -7,7 +7,7 @@ import { POST } from "@/app/api/site-lock/route";
 import {
   SITE_LOCK_COOKIE,
   gateHtml,
-  isOpenBeforeLaunch,
+  isLockedBeforeLaunch,
   isUnlocked,
   lockToken,
   safeNext,
@@ -59,15 +59,31 @@ describe("site-lock", () => {
     expect(gateHtml({ next: "/", wrong: false })).not.toContain("wrong code.");
   });
 
-  it("middleware: 쿠키 없으면 잠금 화면(401), 맞는 쿠키면 통과", async () => {
+  it("middleware: 주문·결제 화면은 쿠키 없으면 잠금 화면(401), 맞는 쿠키면 통과", async () => {
     vi.stubEnv("SITE_LOCK_PIN", "1234");
-    const locked = await middleware(new NextRequest("https://takesuaci.com/ja"));
+    const locked = await middleware(new NextRequest("https://takesuaci.com/ja/checkout"));
     expect(locked.status).toBe(401);
-    expect(await locked.text()).toContain('name="next" value="/ja"');
+    expect(await locked.text()).toContain('name="next" value="/ja/checkout"');
 
-    const req = new NextRequest("https://takesuaci.com/ja");
+    const req = new NextRequest("https://takesuaci.com/ja/checkout");
     req.cookies.set(SITE_LOCK_COOKIE, await lockToken("1234"));
     expect((await middleware(req)).status).toBe(200);
+  });
+
+  it("middleware: 홈·정책·로그인·가입·계정은 쿠키 없이 열린다(카카오·PG 심사)", async () => {
+    vi.stubEnv("SITE_LOCK_PIN", "1234");
+    for (const path of [
+      "/",
+      "/ja",
+      "/legal/terms",
+      "/en/legal/business",
+      "/login",
+      "/signup",
+      "/auth/consent",
+      "/account",
+    ]) {
+      expect((await middleware(new NextRequest(`https://takesuaci.com${path}`))).status).toBe(200);
+    }
   });
 
   it("POST: 맞으면 쿠키 + 원래 경로로, 틀리면 다시 잠금 화면", async () => {
@@ -89,29 +105,37 @@ describe("site-lock", () => {
     expect((await post({ pin: "", next: "/" })).status).toBe(401);
   });
 
-  it("출시 알림 받기(/notify)는 잠금 밖: 언어 접두사 있든 없든 쿠키 없이 열린다", async () => {
+  it("출시 알림 받기(/notify)는 언어 접두사 있든 없든 쿠키 없이 열린다", async () => {
     vi.stubEnv("SITE_LOCK_PIN", "1234");
     for (const path of ["/notify", "/ko/notify", "/ja/notify", "/en/notify"]) {
       expect((await middleware(new NextRequest(`https://takesuaci.com${path}`))).status).toBe(200);
     }
   });
 
-  it("isOpenBeforeLaunch: /notify만. 비슷한 다른 경로는 잠근다", () => {
-    expect(isOpenBeforeLaunch("/notify")).toBe(true);
-    expect(isOpenBeforeLaunch("/ko/notify/")).toBe(true);
-    expect(isOpenBeforeLaunch("/ko/notify/x")).toBe(false);
-    expect(isOpenBeforeLaunch("/notifyx")).toBe(false);
-    expect(isOpenBeforeLaunch("/fr/notify")).toBe(false);
-    expect(isOpenBeforeLaunch("/ko")).toBe(false);
-  });
-
-  it("isOpenBeforeLaunch: 개인정보처리방침(판 포함)은 열고, 다른 정책은 잠근다", () => {
-    expect(isOpenBeforeLaunch("/legal/privacy")).toBe(true);
-    expect(isOpenBeforeLaunch("/en/legal/privacy/")).toBe(true);
-    expect(isOpenBeforeLaunch("/legal/privacy/2")).toBe(true);
-    expect(isOpenBeforeLaunch("/legal/privacy/x")).toBe(false);
-    expect(isOpenBeforeLaunch("/legal/privacyx")).toBe(false);
-    expect(isOpenBeforeLaunch("/legal/refund")).toBe(false);
-    expect(isOpenBeforeLaunch("/legal/terms")).toBe(false);
+  it("isLockedBeforeLaunch: 주문·결제·주문 내역만(하위 경로·언어 접두사 포함)", () => {
+    for (const path of [
+      "/checkout",
+      "/ko/checkout",
+      "/pay/complete",
+      "/en/pay/fail",
+      "/orders",
+      "/orders/o_1",
+      "/ja/orders/",
+    ]) {
+      expect(isLockedBeforeLaunch(path)).toBe(true);
+    }
+    for (const path of [
+      "/",
+      "/notify",
+      "/login",
+      "/signup",
+      "/legal/refund",
+      "/account",
+      "/checkoutx",
+      "/fr/checkout",
+      "/payment",
+    ]) {
+      expect(isLockedBeforeLaunch(path)).toBe(false);
+    }
   });
 });

@@ -24,7 +24,7 @@ export const products: Product[] = [
     nameKo: "라임바질 페이셜 세럼 미스트 · take-01",
     descriptor: "lime & basil facial serum mist",
     category: "mist",
-    images: ["/image/v5/product-reference.webp"],
+    images: [],
     status: "active",
     defaultVariantId: "var_daily_80",
     variants: [

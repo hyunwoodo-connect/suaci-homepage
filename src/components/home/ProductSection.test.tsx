@@ -42,4 +42,14 @@ describe("ProductSection — 반품 제한 고지(전자상거래법 제17조제
       "/legal/refund",
     );
   });
+
+  it("다른 브랜드 사진 없이 '제품 사진 준비 중' 자리만", () => {
+    const { container } = render(
+      <NextIntlClientProvider locale="ko" messages={ko}>
+        <ProductSection />
+      </NextIntlClientProvider>,
+    );
+    expect(screen.getByRole("img", { name: "제품 사진 준비 중" })).toBeTruthy();
+    expect(container.querySelector("img")).toBeNull();
+  });
 });

@@ -18,6 +18,12 @@ export function displayTotal(qty: number): number {
   return subtotal + shipping;
 }
 
+/**
+ * 판매를 열었나. 열기 전에는 하단 바가 '출시 준비 중 · 알림 받기'로 바뀌고, 주문·결제·주문 내역 화면은 잠근다(middleware).
+ * 커머스 API(NEXT_PUBLIC_API_MODE)가 실서버이고 실결제 키가 붙은 뒤 true 로 바꾼다.
+ */
+export const SALES_OPEN = false;
+
 /** 브랜드페이 표시 이름 — 가칭. 시우 결정 전(UX "오너에게 남긴 것") */
 export const BRANDPAY_LABEL = "suaci 바로결제";
 

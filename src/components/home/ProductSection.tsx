@@ -1,13 +1,12 @@
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import ReturnNotice from "@/components/legal/ReturnNotice";
-import { HOME_MEDIA, PRODUCT } from "@/constants/product";
+import { PRODUCT } from "@/constants/product";
 import { formatKRW } from "@/lib/format";
 
 /**
  * v5 제품 섹션 — 단일 SKU. 구매 CTA는 두지 않는다(하단 원클릭 바가 유일한 CTA).
- * 큰 스튜디오 컷 + 텍스트, 아래에 작은 디테일 컷 2장이 무드 갤러리처럼 엇갈려 놓인다.
- * 세 사진 모두 실제 제품 출시 전까지 타사 레퍼런스 + 교체 태그. TODO(출시): suaci 보틀 컷으로 교체.
+ * 큰 제품 컷 자리 + 텍스트. 제품 사진이 나오기 전에는 '준비 중' 자리만 둔다(다른 브랜드 사진은 공개하지 않는다).
+ * TODO(출시): suaci 보틀 컷으로 교체.
  */
 export default function ProductSection() {
   const t = useTranslations("home.product");
@@ -24,16 +23,7 @@ export default function ProductSection() {
           {t("label")}
         </p>
 
-        <ReferenceFigure
-          src={HOME_MEDIA.productReference}
-          alt={t("imageAlt")}
-          w={681}
-          h={782}
-          aspect="aspect-[4/5]"
-          sizes="(max-width: 767px) 92vw, 40vw"
-          tag={t("referenceTag")}
-          className="w-[max(40%,min(100%,320px))]"
-        />
+        <PhotoSoon label={t("photoSoon")} className="w-[max(40%,min(100%,320px))]" />
 
         <div className="flex min-w-0 flex-[1_1_300px] flex-col gap-[28px] pt-[clamp(0px,2vw,24px)] md:max-w-[440px]">
           <div className="flex flex-col gap-[6px]">
@@ -53,32 +43,6 @@ export default function ProductSection() {
           {/* 접힌 배송·반품 안에 두지 않는다 — 펼치지 않아도 보여야 한다 */}
           <ReturnNotice className="-mt-[12px]" />
         </div>
-
-        {/* 디테일 컷 2장 — 한 줄을 강제로 차지해 큰 컷/텍스트 아래에서 엇갈린다. */}
-        <div className="flex w-full items-start justify-between gap-[20px]">
-          <ReferenceFigure
-            src={HOME_MEDIA.productReferenceGrass}
-            alt={t("grassAlt")}
-            w={736}
-            h={981}
-            aspect="aspect-[3/4]"
-            sizes="(max-width: 767px) 46vw, 22vw"
-            tag={t("referenceTagShort")}
-            caption={t("grassCaption")}
-            className="ml-[max(0px,8%)] w-[max(22%,min(46%,200px))]"
-          />
-          <ReferenceFigure
-            src={HOME_MEDIA.productReferencePour}
-            alt={t("pourAlt")}
-            w={1024}
-            h={1024}
-            aspect="aspect-square"
-            sizes="(max-width: 767px) 46vw, 26vw"
-            tag={t("referenceTagShort")}
-            caption={t("pourCaption")}
-            className="mt-[clamp(0px,5vw,80px)] w-[max(26%,min(46%,220px))]"
-          />
-        </div>
       </div>
     </section>
   );
@@ -86,46 +50,23 @@ export default function ProductSection() {
 
 /* ─── 하위 컴포넌트 ─────────────────────────── */
 
-interface ReferenceFigureProps {
-  src: string;
-  alt: string;
-  w: number;
-  h: number;
-  aspect: string;
-  sizes: string;
-  tag: string;
-  caption?: string;
+interface PhotoSoonProps {
+  label: string;
   className: string;
 }
 
-function ReferenceFigure({
-  src,
-  alt,
-  w,
-  h,
-  aspect,
-  sizes,
-  tag,
-  caption,
-  className,
-}: ReferenceFigureProps) {
+/** 제품 사진 자리. 스튜디오 그레이 4:5 안에 '준비 중' 한 줄 */
+function PhotoSoon({ label, className }: PhotoSoonProps) {
   return (
-    <figure className={`m-0 flex flex-col gap-[10px] ${className}`}>
-      <div className="relative bg-studio">
-        <Image
-          src={src}
-          alt={alt}
-          width={w}
-          height={h}
-          sizes={sizes}
-          className={`${aspect} h-auto w-full object-cover`}
-        />
-        <figcaption className="absolute left-[12px] top-[12px] bg-ink px-[8px] py-[4px] text-[11px] text-paper">
-          {tag}
-        </figcaption>
-      </div>
-      {caption && <p className="m-0 text-[13px] text-grey">{caption}</p>}
-    </figure>
+    <div
+      role="img"
+      aria-label={label}
+      className={`flex aspect-[4/5] items-center justify-center bg-studio ${className}`}
+    >
+      <span aria-hidden="true" className="text-[13px] text-grey">
+        {label}
+      </span>
+    </div>
   );
 }
 
