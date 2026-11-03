@@ -13,13 +13,14 @@ interface LoginSheetProps {
 /** 구매 직전 로그인 하단 시트 — "누군지만 알려 주세요." + 카카오·네이버 (스펙 §2 B) */
 export default function LoginSheet({ next, onClose }: LoginSheetProps) {
   const t = useTranslations("pay.login");
+  const tc = useTranslations("common");
   useBodyScrollLock(true);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
       <button
         type="button"
-        aria-label="close"
+        aria-label={tc("close")}
         onClick={onClose}
         className="absolute inset-0 cursor-default bg-ink/30"
       />

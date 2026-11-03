@@ -14,7 +14,7 @@ import { readSignupStash, type SignupStash } from "@/lib/auth/social";
  * 표가 없으면(직접 들어옴·새로고침 뒤 소비됨) 로그인으로 돌려보낸다.
  */
 export default function ConsentPage() {
-  const t = useTranslations("pay.consent");
+  const t = useTranslations("auth.consent");
   const router = useRouter();
   const [stash, setStash] = useState<SignupStash | null>(null);
 
@@ -28,8 +28,8 @@ export default function ConsentPage() {
   }, [router]);
 
   return (
-    <PageShell title={t("title")}>
-      <div className="mx-auto max-w-[480px]">{stash && <ConsentForm stash={stash} />}</div>
+    <PageShell title={t("title")} meta={t("sub")}>
+      <div className="max-w-[440px]">{stash && <ConsentForm stash={stash} />}</div>
     </PageShell>
   );
 }

@@ -20,14 +20,7 @@ export default function ResetPasswordPage() {
   const t = useTranslations("auth");
 
   return (
-    <PageShell
-      title={
-        <>
-          Reset <em>password</em>
-        </>
-      }
-      meta={t("resetSub")}
-    >
+    <PageShell title={t("resetTitle")} meta={t("resetSub")}>
       <div className="max-w-[440px]">
         <Suspense fallback={null}>
           <ResetForm />
@@ -56,7 +49,7 @@ function ResetForm() {
     setError(null);
     try {
       await api.resetPassword({ email, code, newPassword });
-      router.push("/login");
+      router.push({ pathname: "/login", query: { reset: "1" } });
     } catch {
       setError(t("error"));
     } finally {
@@ -66,7 +59,7 @@ function ResetForm() {
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-[18px]">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-[16px]">
         <InputField
           label={t("email")}
           type="email"
@@ -80,6 +73,7 @@ function ResetForm() {
           label={t("codeLabel")}
           required
           inputMode="numeric"
+          autoComplete="one-time-code"
           placeholder="000000"
           value={code}
           onChange={(e) => setCode(e.target.value)}
@@ -94,17 +88,19 @@ function ResetForm() {
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
         />
-        {error && <p className="font-sans text-[11px] text-alert m-0">✕ {error}</p>}
-        <Button type="submit" disabled={busy} className="mt-[6px]">
-          {busy ? "..." : t("submitReset")}
+        {error && (
+          <p role="alert" className="m-0 text-[13px] text-alert">
+            {error}
+          </p>
+        )}
+        <Button type="submit" disabled={busy} className="mt-[4px]">
+          {t("submitReset")}
         </Button>
       </form>
 
-      <p className="mt-[24px] font-sans text-[11px] text-grey">
-        <Link href="/login" className="text-ink underline underline-offset-[3px] hover:text-grey">
-          {t("backToLogin")} →
-        </Link>
-      </p>
+      <Link href="/login" className="mt-[24px] inline-block text-[13px] text-grey hover:text-ink">
+        {t("backToLogin")}
+      </Link>
     </>
   );
 }

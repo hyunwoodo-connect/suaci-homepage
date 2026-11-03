@@ -3,6 +3,11 @@
     "title": "suaci — take suaci.",
     "description": "ライム&バジル フェイシャル セラムミスト · take-01。肌より先に心がゆらぐ日のための、軽くて愉快なリフレッシュ。"
   },
+  "common": {
+    "loading": "読み込み中…",
+    "home": "ホームへ",
+    "close": "閉じる"
+  },
   "home": {
     "header": {
       "account": "アカウント",
@@ -73,19 +78,14 @@
     }
   },
   "auth": {
-    "loginSub": "おかえりなさい。まずひと息。",
+    "loginSub": "はじめてでも、2回目でも、同じボタンです。",
     "email": "メール",
     "password": "パスワード",
     "name": "名前",
     "submitLogin": "ログイン",
-    "error": "確認してもう一度お試しください",
+    "error": "入力内容をもう一度ご確認ください。",
     "signupSub": "30秒で終わります。本当に。",
     "confirmSub": "メールを確認するだけ",
-    "consents": "同意",
-    "consentTerms": "利用規約に同意 (必須)",
-    "consentPrivacy": "個人情報の取り扱いに同意 (必須)",
-    "consentAge": "14歳以上です (必須)",
-    "consentMarketing": "お知らせ受信に同意 (任意)",
     "submitSignup": "アカウント作成",
     "confirmBody": "{email}に認証コードを送りました。迷惑メールもご確認を。",
     "codeLabel": "認証コード",
@@ -101,7 +101,46 @@
     "submitReset": "パスワードを変更",
     "forgotPassword": "パスワードをお忘れですか？",
     "backToLogin": "ログインに戻る",
-    "emailLogin": "メールでログイン"
+    "emailLogin": "メールでログイン",
+    "lastUsed": "前回は{provider}でログインしました。",
+    "provider": {
+      "kakao": "カカオ",
+      "naver": "NAVER"
+    },
+    "loginError": "メールアドレスかパスワードが違います。",
+    "noAccount": "アカウントがまだない方は",
+    "goSignup": "メールで登録",
+    "resetDone": "パスワードを変更しました。新しいパスワードでログインしてください。",
+    "signupTitle": "メールで登録",
+    "forgotTitle": "パスワードをお忘れの方",
+    "resetTitle": "パスワード再設定",
+    "callback": {
+      "working": "ログインしています…",
+      "declinedTitle": "ログインをキャンセルしました",
+      "declinedBody": "大丈夫です。気が変わったら、もう一度押してください。",
+      "brokenTitle": "ログインが途中で切れました",
+      "brokenBody": "もう一度だけボタンを押してください。",
+      "refusedTitle": "{provider}でログインできませんでした",
+      "refusedBody": "少し待ってからもう一度どうぞ。続くときは別の方法でログインしてください。"
+    },
+    "consent": {
+      "title": "はじめまして。",
+      "sub": "同意すれば登録完了です。",
+      "name": "名前",
+      "all": "すべてに同意",
+      "terms": "利用規約に同意（必須）",
+      "privacy": "個人情報の収集・利用に同意（必須）",
+      "age": "14歳以上です（必須）",
+      "marketing": "お知らせを受け取る（任意）",
+      "view": "見る",
+      "required": "必須の3つにチェックしてください。",
+      "submit": "同意して登録",
+      "working": "登録しています…",
+      "expired": "登録の時間が切れました。もう一度ボタンを押してください。",
+      "broken": "登録が途中で切れました。もう一度ボタンを押してください。",
+      "joinedElsewhere": "別の方法で登録済みですか？",
+      "toLogin": "ログインに戻る"
+    }
   },
   "account": {
     "needLogin": "ログインが必要です",
@@ -272,7 +311,6 @@
       "hint": "ボタンひとつで登録して、すぐに始められます。",
       "kakao": "Login with Kakao",
       "naver": "Log in with NAVER",
-      "declined": "大丈夫。ほかの方法でもログインできます。",
       "preparing": "ログインは準備中です。"
     },
     "sheet": {
@@ -311,19 +349,6 @@
       "done": "注文しました。",
       "doneSub": "届いたら一度シュッとしてみて。",
       "doneFirst": "次は2タップで終わります。"
-    },
-    "consent": {
-      "title": "同意して続ける",
-      "name": "名前",
-      "terms": "利用規約に同意（必須）",
-      "privacy": "個人情報の収集・利用に同意（必須）",
-      "age": "14歳以上です（必須）",
-      "marketing": "お知らせを受け取る（任意）",
-      "required": "必須の3つにチェックしてください。",
-      "submit": "同意して続ける",
-      "expired": "時間切れです。もう一度ログインしてください。",
-      "toLogin": "ログインへ",
-      "tangled": "ログインがこんがらがりました。最初からやり直してください。"
     },
     "mock": {
       "title": "{provider} ログイン（モック）",

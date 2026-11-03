@@ -41,6 +41,7 @@ const MEMO_KEY = "suaci.checkout.memo";
 export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) {
   const t = useTranslations("pay.sheet");
   const tc = useTranslations("pay.checkout");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const { user } = useAuth();
   const { clear, add } = useCart();
@@ -162,7 +163,7 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
     <div className="fixed inset-0 z-50 flex items-end justify-center">
       <button
         type="button"
-        aria-label="close"
+        aria-label={tCommon("close")}
         onClick={onClose}
         className="absolute inset-0 cursor-default bg-ink/30"
       />

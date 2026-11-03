@@ -1,53 +1,67 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 
 import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 
 import { Link, useRouter } from "@/i18n/navigation";
 import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
 import PageShell from "@/components/shell/PageShell";
+import ConsentChecks from "@/components/auth/ConsentChecks";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
+import { afterLoginPath } from "@/lib/auth/social";
+import type { Consents } from "@/types";
 
 type Step = "form" | "confirm";
 
 /**
- * 이메일 회원가입 — 2단계.
- * signup(이메일·비밀번호·이름·동의) → confirm(인증코드) → login.
+ * 이메일 회원가입 — 2단계. 로그인 화면의 이메일 칸에서 들어온다(소셜이 기본).
+ * signup(이메일·비밀번호·이름·동의) → confirm(인증코드) → login → ?next= 로.
  */
 export default function SignupPage() {
+  return (
+    <Suspense>
+      <SignupBody />
+    </Suspense>
+  );
+}
+
+/* ─── 하위 컴포넌트 ─────────────────────────── */
+
+function SignupBody() {
   const t = useTranslations("auth");
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
+  const next = afterLoginPath(searchParams.get("next"));
 
   const [step, setStep] = useState<Step>("form");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [terms, setTerms] = useState(false);
-  const [privacy, setPrivacy] = useState(false);
-  const [age, setAge] = useState(false);
-  const [marketing, setMarketing] = useState(false);
+  const [consents, setConsents] = useState<Consents>({
+    terms: false,
+    privacy: false,
+    age: false,
+    marketing: false,
+  });
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const canSubmit = terms && privacy && age;
-
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!consents.terms || !consents.privacy || !consents.age) {
+      setError(t("consent.required"));
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
-      await api.signup({
-        email,
-        password,
-        name,
-        consents: { terms, privacy, age, marketing },
-      });
+      await api.signup({ email, password, name, consents });
       setStep("confirm");
     } catch {
       setError(t("error"));
@@ -63,7 +77,7 @@ export default function SignupPage() {
     try {
       await api.confirm({ email, code });
       await login(email, password);
-      router.push("/account");
+      router.push(next);
     } catch {
       setError(t("error"));
     } finally {
@@ -72,23 +86,18 @@ export default function SignupPage() {
   };
 
   return (
-    <PageShell
-      title={
-        <>
-          Join <em>suaci</em>
-        </>
-      }
-      meta={step === "form" ? t("signupSub") : t("confirmSub")}
-    >
+    <PageShell title={t("signupTitle")} meta={step === "form" ? t("signupSub") : t("confirmSub")}>
       <div className="max-w-[440px]">
         {step === "form" ? (
-          <form onSubmit={handleSignup} className="flex flex-col gap-[18px]">
+          <form onSubmit={handleSignup} className="flex flex-col gap-[16px]">
             <InputField
               label={t("name")}
               required
               autoComplete="name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+              }}
             />
             <InputField
               label={t("email")}
@@ -97,7 +106,9 @@ export default function SignupPage() {
               autoComplete="email"
               placeholder="you@email.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+              }}
             />
             <InputField
               label={t("password")}
@@ -107,49 +118,46 @@ export default function SignupPage() {
               autoComplete="new-password"
               placeholder="••••••••"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+              }}
             />
-
-            <fieldset className="border border-line p-[16px] m-0 flex flex-col gap-[10px]">
-              <legend className="font-sans text-[10px] text-grey px-[6px]">{t("consents")}</legend>
-              <Consent checked={terms} onChange={setTerms} label={t("consentTerms")} />
-              <Consent checked={privacy} onChange={setPrivacy} label={t("consentPrivacy")} />
-              <Consent checked={age} onChange={setAge} label={t("consentAge")} />
-              <Consent
-                checked={marketing}
-                onChange={setMarketing}
-                label={t("consentMarketing")}
-                optional
-              />
-            </fieldset>
-
+            <div className="mt-[8px]">
+              <ConsentChecks value={consents} onChange={setConsents} />
+            </div>
             {error && <ErrorNote text={error} />}
-            <Button type="submit" disabled={busy || !canSubmit} className="mt-[6px]">
-              {busy ? "..." : t("submitSignup")}
+            <Button type="submit" disabled={busy} className="mt-[4px]">
+              {t("submitSignup")}
             </Button>
           </form>
         ) : (
-          <form onSubmit={handleConfirm} className="flex flex-col gap-[18px]">
-            <p className="text-[14px] text-ink m-0">{t("confirmBody", { email })}</p>
+          <form onSubmit={handleConfirm} className="flex flex-col gap-[16px]">
+            <p className="m-0 text-[15px] text-ink">{t("confirmBody", { email })}</p>
             <InputField
               label={t("codeLabel")}
               required
               inputMode="numeric"
+              autoComplete="one-time-code"
               placeholder="000000"
               value={code}
-              onChange={(e) => setCode(e.target.value)}
+              onChange={(e) => {
+                setCode(e.target.value);
+              }}
             />
             {error && <ErrorNote text={error} />}
-            <Button type="submit" disabled={busy} className="mt-[6px]">
-              {busy ? "..." : t("submitConfirm")}
+            <Button type="submit" disabled={busy} className="mt-[4px]">
+              {t("submitConfirm")}
             </Button>
           </form>
         )}
 
-        <p className="mt-[24px] font-sans text-[11px] text-grey">
+        <p className="m-0 mt-[24px] text-[13px] text-grey">
           {t("hasAccount")}{" "}
-          <Link href="/login" className="text-ink underline underline-offset-[3px] hover:text-grey">
-            {t("goLogin")} →
+          <Link
+            href={{ pathname: "/login", query: { next } }}
+            className="text-ink underline underline-offset-[3px]"
+          >
+            {t("goLogin")}
           </Link>
         </p>
       </div>
@@ -157,34 +165,10 @@ export default function SignupPage() {
   );
 }
 
-/* ─── 하위 컴포넌트 ─────────────────────────── */
-
-function Consent({
-  checked,
-  onChange,
-  label,
-  optional = false,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  label: string;
-  optional?: boolean;
-}) {
-  return (
-    <label
-      className={`flex items-center gap-[10px] text-[13px] cursor-pointer ${optional ? "text-grey" : "text-ink"}`}
-    >
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="w-[15px] h-[15px] accent-[#121210]"
-      />
-      {label}
-    </label>
-  );
-}
-
 function ErrorNote({ text }: { text: string }) {
-  return <p className="font-sans text-[11px] text-alert m-0">✕ {text}</p>;
+  return (
+    <p role="alert" className="m-0 text-[13px] text-alert">
+      {text}
+    </p>
+  );
 }

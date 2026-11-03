@@ -12,6 +12,7 @@ import {
   hiddenProviders,
   isSocialProvider,
   readLastProvider,
+  afterLoginPath,
   readSignupStash,
   rememberLastProvider,
   safeNextPath,
@@ -48,13 +49,16 @@ describe("SOCIAL_PROVIDER_CONFIG", () => {
       expect(config.colors.fg, p).toMatch(/^#[0-9a-f]{6}$/i);
     }
   });
-  it("프로바이더마다 버튼 문구가 있다(ko — en·ja 는 messages.test 가 키를 맞춘다), 동의 취소 안내는 한 문장", () => {
+  it("프로바이더마다 버튼 문구·안내용 이름이 있다(ko — en·ja 는 messages.test 가 키를 맞춘다), 동의 취소 안내는 프로바이더를 권하지 않는다", () => {
     const login = ko.pay.login as Record<string, unknown>;
+    const names = ko.auth.provider as Record<string, unknown>;
     for (const p of SOCIAL_PROVIDERS) {
       expect(typeof login[p], p).toBe("string");
+      expect(typeof names[p], p).toBe("string");
     }
     // 켜진 다른 로그인이 환경마다 달라서 특정 프로바이더를 권하지 않는다
-    expect(ko.pay.login.declined).not.toMatch(/카카오|네이버/);
+    const { declinedTitle, declinedBody } = ko.auth.callback;
+    expect(`${declinedTitle} ${declinedBody}`).not.toMatch(/카카오|네이버/);
   });
   it("클라 ID 는 프로바이더별 환경변수에서 — 카카오만 있으면 카카오만 live", () => {
     vi.stubEnv("NEXT_PUBLIC_API_MODE", "http");
@@ -136,6 +140,12 @@ describe("safeNextPath / safeRedirectTarget — 오픈 리다이렉트 차단", 
     expect(safeNextPath("//evil.com")).toBe("/");
     expect(safeNextPath("https://evil.com")).toBe("/");
     expect(safeNextPath(null)).toBe("/");
+  });
+  it("afterLoginPath: next 가 없거나 막힌 주소면 내 계정, 일부러 준 / 는 홈", () => {
+    expect(afterLoginPath(null)).toBe("/account");
+    expect(afterLoginPath("//evil.com")).toBe("/account");
+    expect(afterLoginPath("/")).toBe("/");
+    expect(afterLoginPath("/account/addresses")).toBe("/account/addresses");
   });
   it("목업 동의의 redirect_uri 는 같은 오리진(또는 상대 경로)만, 아니면 null", () => {
     const origin = "https://takesuaci.com";

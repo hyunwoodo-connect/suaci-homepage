@@ -113,6 +113,12 @@ export function safeNextPath(next: string | null | undefined): string {
   return next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
 }
 
+/** 로그인·가입 화면의 `?next=` → 끝나고 갈 곳. 없거나 막힌 주소면 내 계정, 일부러 준 `/` 는 홈 */
+export function afterLoginPath(raw: string | null): string {
+  const safe = safeNextPath(raw);
+  return safe === "/" && raw !== "/" ? "/account" : safe;
+}
+
 /**
  * 목업 동의 화면의 `redirect_uri` 검증 — 같은 오리진(또는 상대 경로)만 돌려주고 아니면 null.
  * 이 화면은 mock 모드의 운영 데모에서도 열리므로 임의 외부 주소로 보내면 피싱 통로가 된다.
