@@ -35,6 +35,15 @@ describe("PostSheet", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
+  it("시트 → 떼면 바로 지워진다는 안내 + 개인정보처리방침 링크(새 탭)", () => {
+    renderSheet();
+    fireEvent.click(screen.getByRole("button", { name: "벽에 붙이기" }));
+    expect(screen.getByRole("dialog")).toHaveTextContent("떼면 바로 지워져요.");
+    const link = screen.getByRole("link", { name: "개인정보처리방침" });
+    expect(link).toHaveAttribute("href", "/legal/privacy");
+    expect(link).toHaveAttribute("target", "_blank");
+  });
+
   it("붙이기 연타 → 한 번만 보내고, 보내는 중엔 잠근다", async () => {
     let finish: (value: unknown) => void = () => {};
     wall.postStrip.mockImplementation(() => new Promise((resolve) => (finish = resolve)));

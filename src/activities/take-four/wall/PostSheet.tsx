@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { isRateLimited } from "@/lib/api";
@@ -52,6 +53,18 @@ export default function PostSheet({ card, slug }: PostSheetProps) {
       <BottomSheet isOpen={isOpen} onClose={handleClose} label="벽에 붙이기" tone="paper">
         <h2 className="m-0 text-[22px] font-bold">벽에 붙일까요?</h2>
         <p className="m-0 text-[15px] leading-[1.5]">누구나 볼 수 있어요. 언제든 뗄 수 있어요.</p>
+        {/* 개인정보처리방침과 같은 말 — 뗀 네컷은 서버에서도 바로 지운다. 새 탭이라 완성 화면은 그대로 */}
+        <p className="m-0 -mt-[4px] text-[13px] leading-[1.5] text-(color:--tf-ink)/70">
+          떼면 바로 지워져요.{" "}
+          <Link
+            href="/legal/privacy"
+            target="_blank"
+            rel="noopener"
+            className="text-inherit underline underline-offset-4"
+          >
+            개인정보처리방침
+          </Link>
+        </p>
         {status === "failed" ? (
           <p role="alert" className="m-0 text-[14px] font-bold text-(color:--tf-error)">
             연결이 끊겼어요. 네컷은 폰에 그대로 있어요.
