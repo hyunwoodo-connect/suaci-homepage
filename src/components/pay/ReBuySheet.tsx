@@ -10,6 +10,7 @@ import MethodPicker from "@/components/pay/MethodPicker";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
+import { readLastProvider } from "@/lib/auth/social";
 import { useCart } from "@/lib/cart/cart-context";
 import { formatKRW } from "@/lib/format";
 import { readPendingOrder, reuseKey, savePendingOrder } from "@/lib/payment/pending";
@@ -21,7 +22,7 @@ import {
   selectPaymentAdapters,
   type PayMethodId,
 } from "@/lib/payment/providers";
-import type { CheckoutDefaults, SocialProvider } from "@/types";
+import type { CheckoutDefaults } from "@/types";
 
 interface ReBuySheetProps {
   qty: number;
@@ -83,9 +84,11 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
           setMemo(saved);
           if (!(DELIVERY_MEMOS as readonly string[]).includes(saved)) setCustomMemo(true);
         }
-        const provider = localStorage.getItem("suaci.auth.lastProvider") as SocialProvider | null;
         setMethod(
-          defaultMethod({ lastPaymentMethod: defaults.lastPaymentMethod, loginProvider: provider }),
+          defaultMethod({
+            lastPaymentMethod: defaults.lastPaymentMethod,
+            loginProvider: readLastProvider(),
+          }),
         );
       } catch {}
     });

@@ -1,15 +1,17 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+
 import { useRouter } from "@/i18n/navigation";
 import {
+  SOCIAL_PROVIDER_CONFIG,
   authorizeUrl,
   createLoginState,
   envClientId,
   envSocialMode,
   socialRedirectUri,
 } from "@/lib/auth/social";
-import type { SocialProvider } from "@/types";
+import { SOCIAL_PROVIDERS, type SocialProvider } from "@/types";
 
 interface SocialLoginButtonsProps {
   /** 로그인 뒤 돌아갈 경로 */
@@ -17,14 +19,14 @@ interface SocialLoginButtonsProps {
 }
 
 /**
- * 카카오·네이버 로그인 버튼(결정: 이 둘만). live 는 프로바이더로, mock 은 목업 동의 화면으로.
- * 둘 다 off(운영 + 키 없음)면 버튼 대신 준비 중 안내 한 줄.
+ * 소셜 로그인 버튼 — `SOCIAL_PROVIDERS` 순서대로. live 는 프로바이더로, mock 은 목업 동의 화면으로.
+ * off(운영 + 키 없음)인 프로바이더는 빼고, 전부 off 면 버튼 대신 준비 중 안내 한 줄.
  */
 export default function SocialLoginButtons({ next }: SocialLoginButtonsProps) {
   const t = useTranslations("pay.login");
   const router = useRouter();
 
-  const providers = (["kakao", "naver"] as const).filter((p) => envSocialMode(p) !== "off");
+  const providers = SOCIAL_PROVIDERS.filter((p) => envSocialMode(p) !== "off");
   if (providers.length === 0) {
     return <p className="text-center text-[13px] text-grey">{t("preparing")}</p>;
   }
@@ -46,23 +48,22 @@ export default function SocialLoginButtons({ next }: SocialLoginButtonsProps) {
 
   return (
     <div className="flex flex-col gap-[10px]">
-      {providers.map((provider) => (
-        <button
-          key={provider}
-          type="button"
-          onClick={() => {
-            start(provider);
-          }}
-          className="h-[48px] cursor-pointer text-[14px] font-medium"
-          style={
-            provider === "kakao"
-              ? { backgroundColor: "#FEE500", color: "#191919" }
-              : { backgroundColor: "#03C75A", color: "#ffffff" }
-          }
-        >
-          {t(provider)}
-        </button>
-      ))}
+      {providers.map((provider) => {
+        const { bg, fg } = SOCIAL_PROVIDER_CONFIG[provider].colors;
+        return (
+          <button
+            key={provider}
+            type="button"
+            onClick={() => {
+              start(provider);
+            }}
+            className="h-[48px] cursor-pointer text-[14px] font-medium"
+            style={{ backgroundColor: bg, color: fg }}
+          >
+            {t(provider)}
+          </button>
+        );
+      })}
     </div>
   );
 }

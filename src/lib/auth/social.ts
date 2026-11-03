@@ -1,18 +1,50 @@
 /**
- * 소셜 로그인(카카오·네이버) 인가 왕복.
+ * 소셜 로그인 인가 왕복과 프로바이더별 설정.
  * 어댑터 패턴: 실키가 오면 환경변수(클라 ID)만 넣으면 live 주소로 바뀐다 — 그 전엔 목업 동의 화면.
- * live 는 커머스 API 가 실서버(http)일 때만 — 목업 API 는 실제 카카오 코드를 바꿀 수 없어서, 클라 ID 가 있어도 목업 화면을 쓴다.
+ * live 는 커머스 API 가 실서버(http)일 때만 — 목업 API 는 실제 프로바이더 코드를 바꿀 수 없어서, 클라 ID 가 있어도 목업 화면을 쓴다.
  * 운영(main) + 실서버(http) 조합에서 클라 ID 가 없으면 목업을 절대 켜지 않는다(off).
  */
-import type { SocialProvider } from "@/types";
+import { SOCIAL_PROVIDERS, type SocialProvider } from "@/types";
 
 /** sessionStorage — 인가 state(nonce) 왕복. 한 번 읽으면 지운다 */
 const STATE_KEY = "suaci.auth.state";
+/** localStorage — 마지막으로 로그인한 프로바이더. 결제 기본 수단(그 프로바이더의 페이)을 고르는 데 쓴다 */
+const LAST_PROVIDER_KEY = "suaci.auth.lastProvider";
 
-const AUTHORIZE_BASE: Record<SocialProvider, string> = {
-  kakao: "https://kauth.kakao.com/oauth/authorize",
-  naver: "https://nid.naver.com/oauth2.0/authorize",
+interface SocialProviderConfig {
+  /** 프로바이더의 동의(인가) 화면 주소 */
+  authorizeBase: string;
+  /**
+   * 프로바이더 콘솔 클라 ID(빌드 때 주입). Next 는 `process.env.NEXT_PUBLIC_*` 를 글자 그대로 쓴 곳만
+   * 값으로 바꿔 넣으므로 키를 계산해서 읽지 않는다. 테스트가 env 를 바꿀 수 있게 부를 때 읽는다
+   */
+  readClientId: () => string | undefined;
+  /** 로그인 버튼·목업 동의 화면 색. 우리 팔레트가 아니라 각 프로바이더 로그인 버튼 가이드의 색이다 */
+  colors: { bg: string; fg: string };
+}
+
+/**
+ * 프로바이더별 설정 한 곳. 새 프로바이더(구글·애플·라인…)는 `SOCIAL_PROVIDERS` 에 이름을 넣고
+ * 여기 한 칸과 메시지 `pay.login.{id}`(버튼)·`pay.login.declined.{id}`(동의 취소 안내)를 채운다.
+ * 버튼·콜백·목업 동의 화면은 이 목록을 따라간다.
+ */
+export const SOCIAL_PROVIDER_CONFIG: Record<SocialProvider, SocialProviderConfig> = {
+  kakao: {
+    authorizeBase: "https://kauth.kakao.com/oauth/authorize",
+    readClientId: () => process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID,
+    colors: { bg: "#FEE500", fg: "#191919" },
+  },
+  naver: {
+    authorizeBase: "https://nid.naver.com/oauth2.0/authorize",
+    readClientId: () => process.env.NEXT_PUBLIC_NAVER_CLIENT_ID,
+    colors: { bg: "#03C75A", fg: "#ffffff" },
+  },
 };
+
+/** URL·저장소에서 온 값이 받는 프로바이더인가 */
+export function isSocialProvider(value: unknown): value is SocialProvider {
+  return typeof value === "string" && (SOCIAL_PROVIDERS as readonly string[]).includes(value);
+}
 
 export type SocialMode = "live" | "mock" | "off";
 
@@ -92,14 +124,12 @@ export function authorizeUrl(args: {
     response_type: "code",
     state,
   });
-  return `${AUTHORIZE_BASE[provider]}?${q.toString()}`;
+  return `${SOCIAL_PROVIDER_CONFIG[provider].authorizeBase}?${q.toString()}`;
 }
 
-/** 프로바이더 콘솔 클라 ID(빌드 시 주입). 없으면 live 어댑터를 못 쓴다 */
+/** 프로바이더 콘솔 클라 ID. 없으면 live 어댑터를 못 쓴다 */
 export function envClientId(provider: SocialProvider): string | undefined {
-  return provider === "kakao"
-    ? process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID
-    : process.env.NEXT_PUBLIC_NAVER_CLIENT_ID;
+  return SOCIAL_PROVIDER_CONFIG[provider].readClientId();
 }
 
 /** 지금 환경의 소셜 모드 — 컴포넌트가 부르는 한 줄짜리 */
@@ -109,4 +139,21 @@ export function envSocialMode(provider: SocialProvider): SocialMode {
     apiMode: process.env.NEXT_PUBLIC_API_MODE ?? "mock",
     nodeEnv: process.env.NODE_ENV,
   });
+}
+
+/** 로그인에 성공한 프로바이더를 기억한다. 저장소가 막혀도(시크릿 모드) 로그인은 그대로 간다 */
+export function rememberLastProvider(provider: SocialProvider): void {
+  try {
+    localStorage.setItem(LAST_PROVIDER_KEY, provider);
+  } catch {}
+}
+
+/** 마지막 로그인 프로바이더. 없거나 모르는 값이면 null */
+export function readLastProvider(): SocialProvider | null {
+  try {
+    const saved = localStorage.getItem(LAST_PROVIDER_KEY);
+    return isSocialProvider(saved) ? saved : null;
+  } catch {
+    return null;
+  }
 }

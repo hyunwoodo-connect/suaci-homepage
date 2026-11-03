@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import PageShell from "@/components/shell/PageShell";
-import ConsentForm, { type SignupStash } from "@/components/auth/ConsentForm";
+import ConsentForm, { SIGNUP_STASH_KEY, type SignupStash } from "@/components/auth/ConsentForm";
 
 /**
  * 소셜 첫 가입 동의 페이지 — 콜백이 담아 둔 가입 표(sessionStorage)를 꺼내 ConsentForm 에 준다.
@@ -19,7 +19,7 @@ export default function ConsentPage() {
     // setState 는 .then() 안에서(동기 setState 를 react-hooks 린트가 막는다)
     Promise.resolve().then(() => {
       try {
-        const raw = sessionStorage.getItem("suaci.auth.signup");
+        const raw = sessionStorage.getItem(SIGNUP_STASH_KEY);
         if (!raw) {
           router.replace("/login");
           return;

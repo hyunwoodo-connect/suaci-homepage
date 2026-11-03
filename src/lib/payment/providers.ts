@@ -90,6 +90,15 @@ export function methodFromLabel(label: string | null): PayMethodId | null {
   return null;
 }
 
+/**
+ * 로그인 프로바이더의 간편결제 — 그 계정으로 들어온 사람은 그 페이가 이미 손에 익었다(스펙 §1).
+ * 짝이 되는 페이가 없는 프로바이더는 null(카드로 간다). 프로바이더를 늘리면 여기서 짝을 정한다.
+ */
+const LOGIN_PAY_METHOD: Record<SocialProvider, PayMethodId | null> = {
+  kakao: "KAKAOPAY",
+  naver: "NAVERPAY",
+};
+
 /** 시트 기본 수단 — 지난 수단 ?? 로그인 프로바이더의 페이 ?? 카드 (스펙 §1) */
 export function defaultMethod(opts: {
   lastPaymentMethod: string | null;
@@ -97,9 +106,8 @@ export function defaultMethod(opts: {
 }): PayMethodId {
   const last = methodFromLabel(opts.lastPaymentMethod);
   if (last) return last;
-  if (opts.loginProvider === "kakao") return "KAKAOPAY";
-  if (opts.loginProvider === "naver") return "NAVERPAY";
-  return "CARD";
+  const loginPay = opts.loginProvider ? LOGIN_PAY_METHOD[opts.loginProvider] : null;
+  return loginPay ?? "CARD";
 }
 
 /** 결제 복귀 쿼리 해석 — 셋 다 있고 amount 가 정수일 때만. 아니면 null(변조·잘못 들어옴) */

@@ -1,8 +1,16 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import ko from "@/messages/ko.json";
+import { SOCIAL_PROVIDERS } from "@/types";
 
 import {
+  SOCIAL_PROVIDER_CONFIG,
   authorizeUrl,
   createLoginState,
+  envSocialMode,
+  isSocialProvider,
+  readLastProvider,
+  rememberLastProvider,
   safeNextPath,
   safeRedirectTarget,
   socialMode,
@@ -10,7 +18,55 @@ import {
   takeLoginState,
 } from "./social";
 
-afterEach(() => sessionStorage.clear());
+afterEach(() => {
+  sessionStorage.clear();
+  vi.unstubAllEnvs();
+});
+
+describe("isSocialProvider", () => {
+  it("받는 프로바이더 이름만 true", () => {
+    for (const p of SOCIAL_PROVIDERS) expect(isSocialProvider(p)).toBe(true);
+  });
+  it("모르는 이름·대문자·빈 값·문자열 아님 → false", () => {
+    for (const v of ["google", "KAKAO", "", null, undefined, 1]) {
+      expect(isSocialProvider(v)).toBe(false);
+    }
+  });
+});
+
+describe("SOCIAL_PROVIDER_CONFIG", () => {
+  it("프로바이더마다 https 인가 주소·버튼 색·버튼 문구(ko)가 있다", () => {
+    const loginMessages = ko.pay.login as Record<string, unknown>;
+    for (const p of SOCIAL_PROVIDERS) {
+      const config = SOCIAL_PROVIDER_CONFIG[p];
+      expect(config.authorizeBase, p).toMatch(/^https:\/\//);
+      expect(config.colors.bg, p).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(config.colors.fg, p).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(typeof loginMessages[p], p).toBe("string");
+    }
+  });
+  it("클라 ID 는 프로바이더별 환경변수에서 — 카카오만 있으면 카카오만 live", () => {
+    vi.stubEnv("NEXT_PUBLIC_API_MODE", "http");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_KAKAO_CLIENT_ID", "k-123");
+    vi.stubEnv("NEXT_PUBLIC_NAVER_CLIENT_ID", "");
+    expect(SOCIAL_PROVIDER_CONFIG.kakao.readClientId()).toBe("k-123");
+    expect(envSocialMode("kakao")).toBe("live");
+    expect(envSocialMode("naver")).toBe("off");
+  });
+});
+
+describe("rememberLastProvider / readLastProvider", () => {
+  it("기억한 프로바이더를 돌려준다", () => {
+    rememberLastProvider("naver");
+    expect(readLastProvider()).toBe("naver");
+  });
+  it("없거나 모르는 값이 저장돼 있으면 null", () => {
+    expect(readLastProvider()).toBeNull();
+    localStorage.setItem("suaci.auth.lastProvider", "google");
+    expect(readLastProvider()).toBeNull();
+  });
+});
 
 describe("socialMode", () => {
   it("클라ID + 실서버(http)면 live, 없으면 데모(mock 모드)거나 개발일 때만 mock, 운영+http 는 off", () => {

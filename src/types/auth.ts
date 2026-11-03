@@ -35,7 +35,12 @@ export interface LoginRequest {
   email: string;
   password: string;
 }
-export type SocialProvider = "kakao" | "naver";
+/**
+ * 받는 소셜 로그인. 값은 백엔드 `POST /auth/social/{provider}` 경로 그대로라 백엔드와 같이 늘린다.
+ * 화면 쪽 설정(인가 주소·클라 ID·색)은 `lib/auth/social.ts` 의 `SOCIAL_PROVIDER_CONFIG`.
+ */
+export const SOCIAL_PROVIDERS = ["kakao", "naver"] as const;
+export type SocialProvider = (typeof SOCIAL_PROVIDERS)[number];
 export interface SocialSignInRequest {
   code: string;
   redirectUri: string;

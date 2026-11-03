@@ -12,6 +12,7 @@ import { CHECKOUT_PRICING, DELIVERY_MEMOS, displayTotal } from "@/constants/chec
 import { PRODUCT } from "@/constants/product";
 import { api, ApiClientError } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
+import { readLastProvider } from "@/lib/auth/social";
 import { useCart } from "@/lib/cart/cart-context";
 import { formatKRW } from "@/lib/format";
 import { readPendingOrder, reuseKey, savePendingOrder } from "@/lib/payment/pending";
@@ -22,7 +23,7 @@ import {
   selectPaymentAdapters,
   type PayMethodId,
 } from "@/lib/payment/providers";
-import type { Address, CreateAddressRequest, SocialProvider } from "@/types";
+import type { Address, CreateAddressRequest } from "@/types";
 
 /** 처리 가능한 주문 에러 코드 → 메시지 키. 그 외는 GENERIC. */
 const KNOWN_ERROR_CODES = [
@@ -114,8 +115,7 @@ function CheckoutBody() {
           setMemo(saved);
           if (!(DELIVERY_MEMOS as readonly string[]).includes(saved)) setCustomMemo(true);
         }
-        const provider = localStorage.getItem("suaci.auth.lastProvider") as SocialProvider | null;
-        setMethod(defaultMethod({ lastPaymentMethod: null, loginProvider: provider }));
+        setMethod(defaultMethod({ lastPaymentMethod: null, loginProvider: readLastProvider() }));
       } catch {}
     });
   }, []);

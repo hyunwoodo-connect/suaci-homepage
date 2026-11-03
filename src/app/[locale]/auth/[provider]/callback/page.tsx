@@ -3,10 +3,17 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useParams, useSearchParams } from "next/navigation";
+
+import { SIGNUP_STASH_KEY, type SignupStash } from "@/components/auth/ConsentForm";
 import { Link, useRouter } from "@/i18n/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
-import { safeNextPath, socialRedirectUri, takeLoginState } from "@/lib/auth/social";
+import {
+  rememberLastProvider,
+  safeNextPath,
+  socialRedirectUri,
+  takeLoginState,
+} from "@/lib/auth/social";
 import type { SocialProvider } from "@/types";
 
 /**
@@ -61,23 +68,19 @@ function CallbackBody() {
         });
         if (result.status === "signed_in") {
           await adoptTokens(result.tokens);
-          try {
-            localStorage.setItem("suaci.auth.lastProvider", provider);
-          } catch {}
+          rememberLastProvider(provider);
           router.replace(next);
           return;
         }
+        const stash: SignupStash = {
+          signupToken: result.signupToken,
+          provider,
+          email: result.email,
+          name: result.name,
+          next,
+        };
         try {
-          sessionStorage.setItem(
-            "suaci.auth.signup",
-            JSON.stringify({
-              signupToken: result.signupToken,
-              provider,
-              email: result.email,
-              name: result.name,
-              next,
-            }),
-          );
+          sessionStorage.setItem(SIGNUP_STASH_KEY, JSON.stringify(stash));
         } catch {}
         router.replace("/auth/consent");
       })

@@ -3,41 +3,44 @@
 import { Suspense, useState } from "react";
 import { useTranslations } from "next-intl";
 import { notFound, useParams, useSearchParams } from "next/navigation";
-import { envSocialMode, safeRedirectTarget } from "@/lib/auth/social";
+
+import {
+  SOCIAL_PROVIDER_CONFIG,
+  envSocialMode,
+  isSocialProvider,
+  safeRedirectTarget,
+} from "@/lib/auth/social";
 import type { SocialProvider } from "@/types";
 
 /**
  * 목업 동의 화면 — 실키 전 개발 대역. 실제 프로바이더 동의 화면 자리에서
- * `code=mock:{provider}:{이름}` 을 콜백으로 돌려보낸다. live/off 환경에서는 404.
+ * `code=mock:{provider}:{이름}` 을 콜백으로 돌려보낸다. 모르는 프로바이더나 live/off 환경에서는 404.
  */
 export default function MockConsentPage() {
+  const { provider } = useParams<{ provider: string }>();
+  if (!isSocialProvider(provider) || envSocialMode(provider) !== "mock") notFound();
+
   return (
     <Suspense>
-      <MockConsentBody />
+      <MockConsentBody provider={provider} />
     </Suspense>
   );
 }
 
 /* ─── 하위 컴포넌트 ─────────────────────────── */
 
-const PROVIDER_STYLE: Record<SocialProvider, { bg: string; fg: string; label: string }> = {
-  kakao: { bg: "#FEE500", fg: "#191919", label: "kakao" },
-  naver: { bg: "#03C75A", fg: "#ffffff", label: "naver" },
-};
+interface MockConsentBodyProps {
+  provider: SocialProvider;
+}
 
-function MockConsentBody() {
+function MockConsentBody({ provider }: MockConsentBodyProps) {
   const t = useTranslations("pay.mock");
-  const params = useParams<{ provider: string }>();
   const search = useSearchParams();
   const [name, setName] = useState("mina");
 
-  if (params.provider !== "kakao" && params.provider !== "naver") notFound();
-  const provider = params.provider as SocialProvider;
-  if (envSocialMode(provider) !== "mock") notFound();
-
   const redirectUri = search.get("redirect_uri") ?? "";
   const state = search.get("state") ?? "";
-  const style = PROVIDER_STYLE[provider];
+  const { bg, fg } = SOCIAL_PROVIDER_CONFIG[provider].colors;
 
   const go = (query: string) => {
     // 같은 오리진만 — 이 화면은 운영 데모(mock 모드)에서도 열리므로 외부로 보내면 피싱 통로가 된다
@@ -51,11 +54,11 @@ function MockConsentBody() {
       <div className="w-full max-w-[360px] border border-line bg-paper p-6">
         <div
           className="mb-5 flex h-12 items-center justify-center text-sm font-bold"
-          style={{ backgroundColor: style.bg, color: style.fg }}
+          style={{ backgroundColor: bg, color: fg }}
         >
-          {style.label}
+          {provider}
         </div>
-        <h1 className="mb-4 text-base font-medium">{t("title", { provider: style.label })}</h1>
+        <h1 className="mb-4 text-base font-medium">{t("title", { provider })}</h1>
         <label className="mb-5 block text-sm">
           {t("name")}
           <input
@@ -72,7 +75,7 @@ function MockConsentBody() {
               go(`code=${encodeURIComponent(`mock:${provider}:${name.trim() || "mina"}`)}`);
             }}
             className="w-full py-3 text-sm font-medium"
-            style={{ backgroundColor: style.bg, color: style.fg }}
+            style={{ backgroundColor: bg, color: fg }}
           >
             {t("agree")}
           </button>
