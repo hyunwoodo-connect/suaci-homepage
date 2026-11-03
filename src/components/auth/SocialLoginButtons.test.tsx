@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -77,5 +77,33 @@ describe("SocialLoginButtons", () => {
     expect(`${url.origin}${url.pathname}`).toBe("https://kauth.kakao.com/oauth/authorize");
     expect(url.searchParams.get("client_id")).toBe("k-123");
     expect(url.searchParams.get("redirect_uri")).toBe("https://takesuaci.com/auth/kakao/callback");
+  });
+
+  it("출시 전 숨긴 프로바이더(NEXT_PUBLIC_SOCIAL_HIDDEN=naver) → 일반 손님에게는 안 보인다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_API_MODE", "http");
+    vi.stubEnv("NEXT_PUBLIC_KAKAO_CLIENT_ID", "k-123");
+    vi.stubEnv("NEXT_PUBLIC_NAVER_CLIENT_ID", "n-456");
+    vi.stubEnv("NEXT_PUBLIC_SOCIAL_HIDDEN", "naver");
+    renderButtons();
+    await waitFor(() => expect(screen.getByRole("button", { name: "카카오로 계속" })).toBeTruthy());
+    expect(screen.queryByRole("button", { name: "네이버로 계속" })).toBeNull();
+  });
+
+  it("?with=naver 로 연 탭 → 숨긴 버튼도 보이고, 같은 탭에서는 주소에 없어도 계속 보인다", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_API_MODE", "http");
+    vi.stubEnv("NEXT_PUBLIC_KAKAO_CLIENT_ID", "k-123");
+    vi.stubEnv("NEXT_PUBLIC_NAVER_CLIENT_ID", "n-456");
+    vi.stubEnv("NEXT_PUBLIC_SOCIAL_HIDDEN", "naver");
+    window.history.replaceState(null, "", "/login?with=naver");
+    const first = renderButtons();
+    expect(await screen.findByRole("button", { name: "네이버로 계속" })).toBeTruthy();
+    first.unmount();
+
+    window.history.replaceState(null, "", "/");
+    renderButtons();
+    expect(await screen.findByRole("button", { name: "네이버로 계속" })).toBeTruthy();
+    window.history.replaceState(null, "", "/");
   });
 });

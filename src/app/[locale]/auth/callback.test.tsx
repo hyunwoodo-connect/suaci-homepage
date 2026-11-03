@@ -68,6 +68,11 @@ describe("소셜 콜백", () => {
       renderPage();
     });
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/?buy=1"));
+    // 인가 때 쓴 state 를 그대로 서버에 넘긴다(네이버는 토큰 요청에 필요)
+    expect(socialSignIn).toHaveBeenCalledWith(
+      "kakao",
+      expect.objectContaining({ code: "mock:kakao:mina", state: nonce }),
+    );
     expect(tokenStore.getAccessToken()).toBe("a");
     expect(localStorage.getItem("suaci.auth.lastProvider")).toBe("kakao");
     tokenStore.clear();

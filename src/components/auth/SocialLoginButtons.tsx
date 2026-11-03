@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
@@ -10,8 +12,10 @@ import {
   envClientId,
   envSocialMode,
   socialRedirectUri,
+  unlockedProviders,
+  visibleProviders,
 } from "@/lib/auth/social";
-import { SOCIAL_PROVIDERS, type SocialProvider } from "@/types";
+import type { SocialProvider } from "@/types";
 
 interface SocialLoginButtonsProps {
   /** 로그인 뒤 돌아갈 경로 */
@@ -20,13 +24,23 @@ interface SocialLoginButtonsProps {
 
 /**
  * 소셜 로그인 버튼 — `SOCIAL_PROVIDERS` 순서대로. live 는 프로바이더로, mock 은 목업 동의 화면으로.
- * off(운영 + 키 없음)인 프로바이더는 빼고, 전부 off 면 버튼 대신 준비 중 안내 한 줄.
+ * off(운영 + 키 없음)인 프로바이더는 빼고, 출시 전 숨긴 프로바이더(`NEXT_PUBLIC_SOCIAL_HIDDEN`)는 `?with=` 로 연 탭에서만 보인다.
+ * 전부 빠지면 버튼 대신 준비 중 안내 한 줄.
  */
 export default function SocialLoginButtons({ next }: SocialLoginButtonsProps) {
   const t = useTranslations("pay.login");
   const router = useRouter();
 
-  const providers = SOCIAL_PROVIDERS.filter((p) => envSocialMode(p) !== "off");
+  // 숨긴 프로바이더를 연 탭인지는 주소·sessionStorage 를 봐야 해서 붙은 뒤에 정한다(서버 그림과 어긋나지 않게 처음엔 숨김)
+  const [unlocked, setUnlocked] = useState<SocialProvider[]>([]);
+  useEffect(() => {
+    // setState 는 .then() 안에서(동기 setState 를 react-hooks 린트가 막는다)
+    void Promise.resolve().then(() => {
+      setUnlocked(unlockedProviders(window.location.search));
+    });
+  }, []);
+
+  const providers = visibleProviders(unlocked);
   if (providers.length === 0) {
     return <p className="text-center text-[13px] text-grey">{t("preparing")}</p>;
   }

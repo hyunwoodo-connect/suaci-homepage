@@ -209,3 +209,41 @@ export function clearSignupStash(): void {
     sessionStorage.removeItem(SIGNUP_STASH_KEY);
   } catch {}
 }
+
+/** sessionStorage — `?with=<프로바이더>` 로 연 숨은 프로바이더 목록(이 탭에서만) */
+const WITH_KEY = "suaci.auth.with";
+
+/**
+ * 출시 전 숨겨 두는 프로바이더 — 검수 전이라 앱 멤버만 로그인되는 경우(네이버 '개발 중' 등).
+ * 쉼표 목록 `NEXT_PUBLIC_SOCIAL_HIDDEN`(빌드 때 들어간다). 일반 손님에게는 버튼이 안 보인다
+ */
+export function hiddenProviders(): SocialProvider[] {
+  return (process.env.NEXT_PUBLIC_SOCIAL_HIDDEN ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(isSocialProvider);
+}
+
+/**
+ * 주소의 `?with=naver` 를 이 탭에 기억하고, 기억한 목록을 돌려준다 — 검수관·앱 멤버가 숨은 버튼을 열어 시험하는 길.
+ * 로그인 화면을 거쳐 구매 시트로 돌아와도 같은 탭이면 계속 보인다
+ */
+export function unlockedProviders(search: string): SocialProvider[] {
+  try {
+    const fromUrl = new URLSearchParams(search).get("with");
+    const saved = (sessionStorage.getItem(WITH_KEY) ?? "").split(",");
+    const all = [...new Set([...saved, ...(fromUrl ?? "").split(",")])].filter(isSocialProvider);
+    if (fromUrl) sessionStorage.setItem(WITH_KEY, all.join(","));
+    return all;
+  } catch {
+    return [];
+  }
+}
+
+/** 버튼을 보일 프로바이더 — 꺼진(off) 것은 빼고, 숨긴 것은 `?with=` 로 연 것만 */
+export function visibleProviders(unlocked: SocialProvider[]): SocialProvider[] {
+  const hidden = hiddenProviders();
+  return SOCIAL_PROVIDERS.filter(
+    (p) => envSocialMode(p) !== "off" && (!hidden.includes(p) || unlocked.includes(p)),
+  );
+}

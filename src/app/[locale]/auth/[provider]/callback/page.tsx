@@ -72,6 +72,7 @@ function CallbackBody({ provider }: CallbackBodyProps) {
         const result = await api.socialSignIn(provider, {
           code,
           redirectUri: socialRedirectUri(window.location.origin, provider),
+          state: search.get("state") ?? undefined,
         });
         if (result.status === "signed_in") {
           await adoptTokens(result.tokens);

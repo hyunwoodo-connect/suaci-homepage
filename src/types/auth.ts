@@ -44,6 +44,8 @@ export type SocialProvider = (typeof SOCIAL_PROVIDERS)[number];
 export interface SocialSignInRequest {
   code: string;
   redirectUri: string;
+  /** 인가 때 쓴 state(우리 쪽 확인은 이미 끝난 값). 네이버는 토큰 요청에 같은 값을 요구한다 */
+  state?: string;
 }
 /** 백엔드 POST /auth/social/{provider} 응답. 처음 온 사람은 가입 표(10분)를 받는다. */
 export type SocialSignInResult =
