@@ -24,8 +24,8 @@ interface SocialProviderConfig {
   /** 로그인 버튼·목업 동의 화면 색. 우리 팔레트가 아니라 각 프로바이더 로그인 버튼 가이드의 색이다 */
   colors: { bg: string; fg: string };
   /**
-   * 프로바이더가 버튼 이미지를 그대로 쓰라고 정한 경우(네이버 BI 가이드: 색·로고·형태 변경 불가, 크기만 조정).
-   * 언어별 공식 PNG(4배 해상도)와 원본 크기. 없으면 colors 로 글자 버튼을 그린다
+   * 프로바이더 공식 버튼 이미지(카카오·네이버 가이드: 심볼·로고·색·형태 변경 불가, 크기만 조정).
+   * 한국어용과 그 밖의 언어용(영문) PNG 와 원본 픽셀 크기. 없으면 colors 로 글자 버튼을 그린다
    */
   buttonImage?: { ko: string; other: string; width: number; height: number };
 }
@@ -40,7 +40,15 @@ export const SOCIAL_PROVIDER_CONFIG: Record<SocialProvider, SocialProviderConfig
   kakao: {
     authorizeBase: "https://kauth.kakao.com/oauth/authorize",
     readClientId: () => process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID,
+    // 카카오 로그인 디자인 가이드(developers.kakao.com/docs/latest/ko/kakaologin/design-guide): 컨테이너 #FEE500, 심볼 #000000
     colors: { bg: "#FEE500", fg: "#191919" },
+    // 공식 리소스(도구 > 리소스 다운로드 > 카카오 로그인)의 large_wide — 말풍선 심볼·둥근 모서리(12px)·'카카오 로그인'
+    buttonImage: {
+      ko: "/brand/kakao/kakao-login-ko.png",
+      other: "/brand/kakao/kakao-login-en.png",
+      width: 600,
+      height: 90,
+    },
   },
   naver: {
     authorizeBase: "https://nid.naver.com/oauth2.0/authorize",

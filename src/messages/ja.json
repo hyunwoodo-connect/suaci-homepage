@@ -270,7 +270,7 @@
     "login": {
       "title": "どなたかだけ教えてください。",
       "hint": "ボタンひとつで登録して、すぐに始められます。",
-      "kakao": "カカオで続ける",
+      "kakao": "Login with Kakao",
       "naver": "Log in with NAVER",
       "declined": "大丈夫。ほかの方法でもログインできます。",
       "preparing": "ログインは準備中です。"

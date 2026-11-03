@@ -34,7 +34,7 @@ function renderPage() {
 describe("로그인 페이지", () => {
   it("소셜 둘 + 안내 한 줄, google/apple/line 은 없다", () => {
     renderPage();
-    expect(screen.getByRole("button", { name: "카카오로 계속" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "카카오 로그인" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "네이버 로그인" })).toBeTruthy();
     expect(screen.getByText("버튼 하나로 가입하고 바로 시작해요.")).toBeTruthy();
     expect(screen.queryByText(/google|apple|line/)).toBeNull();

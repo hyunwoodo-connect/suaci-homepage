@@ -270,7 +270,7 @@
     "login": {
       "title": "just tell us who you are.",
       "hint": "one tap to sign up, and you're in.",
-      "kakao": "continue with kakao",
+      "kakao": "Login with Kakao",
       "naver": "Log in with NAVER",
       "declined": "no worries. there are other ways in.",
       "preparing": "sign-in is coming soon."

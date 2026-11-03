@@ -28,9 +28,10 @@ describe("SocialLoginButtons", () => {
     vi.unstubAllGlobals();
   });
 
-  it("카카오·네이버 버튼을 그린다 — 네이버는 공식 버튼 이미지 그대로(글자 대신 이미지, 이름은 aria-label)", () => {
+  it("카카오·네이버 버튼을 그린다 — 둘 다 공식 버튼 이미지 그대로(글자 대신 이미지, 이름은 aria-label)", () => {
     renderButtons();
-    expect(screen.getByRole("button", { name: "카카오로 계속" })).toBeTruthy();
+    const kakao = screen.getByRole("button", { name: "카카오 로그인" });
+    expect(kakao.querySelector("img")?.getAttribute("src")).toContain("kakao-login-ko.png");
     const naver = screen.getByRole("button", { name: "네이버 로그인" });
     const img = naver.querySelector("img");
     expect(img?.getAttribute("src")).toContain("naver-login-ko.png");
@@ -39,7 +40,7 @@ describe("SocialLoginButtons", () => {
 
   it("클릭 → state 저장 + 목업 동의 화면으로 push (개발 환경은 mock 모드)", () => {
     renderButtons();
-    fireEvent.click(screen.getByRole("button", { name: "카카오로 계속" }));
+    fireEvent.click(screen.getByRole("button", { name: "카카오 로그인" }));
     expect(push).toHaveBeenCalledTimes(1);
     const url = (push.mock.calls[0] as string[])[0];
     expect(url).toMatch(/^\/auth\/mock\/kakao\?redirect_uri=/);
@@ -53,7 +54,7 @@ describe("SocialLoginButtons", () => {
     vi.stubEnv("NEXT_PUBLIC_KAKAO_CLIENT_ID", "k-123");
     vi.stubEnv("NEXT_PUBLIC_NAVER_CLIENT_ID", "");
     renderButtons();
-    expect(screen.getByRole("button", { name: "카카오로 계속" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "카카오 로그인" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "네이버 로그인" })).toBeNull();
   });
 
@@ -74,7 +75,7 @@ describe("SocialLoginButtons", () => {
     const assign = vi.fn();
     vi.stubGlobal("location", { ...window.location, origin: "https://takesuaci.com", assign });
     renderButtons();
-    fireEvent.click(screen.getByRole("button", { name: "카카오로 계속" }));
+    fireEvent.click(screen.getByRole("button", { name: "카카오 로그인" }));
     expect(push).not.toHaveBeenCalled();
     const url = new URL(assign.mock.calls[0][0] as string);
     expect(`${url.origin}${url.pathname}`).toBe("https://kauth.kakao.com/oauth/authorize");
@@ -89,7 +90,7 @@ describe("SocialLoginButtons", () => {
     vi.stubEnv("NEXT_PUBLIC_NAVER_CLIENT_ID", "n-456");
     vi.stubEnv("NEXT_PUBLIC_SOCIAL_HIDDEN", "naver");
     renderButtons();
-    await waitFor(() => expect(screen.getByRole("button", { name: "카카오로 계속" })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole("button", { name: "카카오 로그인" })).toBeTruthy());
     expect(screen.queryByRole("button", { name: "네이버 로그인" })).toBeNull();
   });
 
