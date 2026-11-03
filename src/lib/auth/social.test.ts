@@ -13,8 +13,10 @@ import {
 afterEach(() => sessionStorage.clear());
 
 describe("socialMode", () => {
-  it("클라ID 있으면 live, 없으면 데모(mock 모드)거나 개발일 때만 mock, 운영+http 는 off", () => {
+  it("클라ID + 실서버(http)면 live, 없으면 데모(mock 모드)거나 개발일 때만 mock, 운영+http 는 off", () => {
     expect(socialMode({ clientId: "k-123", apiMode: "http", nodeEnv: "production" })).toBe("live");
+    // 목업 API 는 실제 카카오 코드를 바꿀 수 없다 — 클라 ID 가 있어도 목업 동의 화면
+    expect(socialMode({ clientId: "k-123", apiMode: "mock", nodeEnv: "production" })).toBe("mock");
     expect(socialMode({ apiMode: "mock", nodeEnv: "production" })).toBe("mock");
     expect(socialMode({ apiMode: "http", nodeEnv: "development" })).toBe("mock");
     expect(socialMode({ apiMode: "http", nodeEnv: "production" })).toBe("off");

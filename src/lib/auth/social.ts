@@ -1,7 +1,8 @@
 /**
  * 소셜 로그인(카카오·네이버) 인가 왕복.
  * 어댑터 패턴: 실키가 오면 환경변수(클라 ID)만 넣으면 live 주소로 바뀐다 — 그 전엔 목업 동의 화면.
- * 운영(main) + 실서버(http) 조합에선 목업을 절대 켜지 않는다(off).
+ * live 는 커머스 API 가 실서버(http)일 때만 — 목업 API 는 실제 카카오 코드를 바꿀 수 없어서, 클라 ID 가 있어도 목업 화면을 쓴다.
+ * 운영(main) + 실서버(http) 조합에서 클라 ID 가 없으면 목업을 절대 켜지 않는다(off).
  */
 import type { SocialProvider } from "@/types";
 
@@ -15,13 +16,13 @@ const AUTHORIZE_BASE: Record<SocialProvider, string> = {
 
 export type SocialMode = "live" | "mock" | "off";
 
-/** 지금 쓸 소셜 로그인 어댑터 — 실키(live) > 목업(개발·mock 모드) > 꺼짐(운영 실서버) */
+/** 지금 쓸 소셜 로그인 어댑터 — 실키+실서버(live) > 목업(개발·mock 모드) > 꺼짐(운영 실서버) */
 export function socialMode(env: {
   clientId?: string;
   apiMode: string;
   nodeEnv: string;
 }): SocialMode {
-  if (env.clientId) return "live";
+  if (env.clientId && env.apiMode === "http") return "live";
   if (env.apiMode === "mock") return "mock";
   return env.nodeEnv === "production" ? "off" : "mock";
 }
