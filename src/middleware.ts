@@ -49,7 +49,7 @@ export default async function middleware(req: NextRequest) {
     // 못 열면 아래 기존 잠금으로 떨어진다
   }
 
-  // TODO(출시): 출시 전 잠금 — 출시 때 이 블록을 지운다. 출시 알림 받기 화면만 잠금 밖
+  // TODO(출시): 출시 전 잠금 — 출시 때 이 블록을 지운다. 출시 알림 받기·개인정보처리방침만 잠금 밖
   if (
     !isOpenBeforeLaunch(req.nextUrl.pathname) &&
     !(await isUnlocked(req.cookies.get(SITE_LOCK_COOKIE)?.value, process.env.SITE_LOCK_PIN))

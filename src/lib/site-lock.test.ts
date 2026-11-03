@@ -104,4 +104,14 @@ describe("site-lock", () => {
     expect(isOpenBeforeLaunch("/fr/notify")).toBe(false);
     expect(isOpenBeforeLaunch("/ko")).toBe(false);
   });
+
+  it("isOpenBeforeLaunch: 개인정보처리방침(판 포함)은 열고, 다른 정책은 잠근다", () => {
+    expect(isOpenBeforeLaunch("/legal/privacy")).toBe(true);
+    expect(isOpenBeforeLaunch("/en/legal/privacy/")).toBe(true);
+    expect(isOpenBeforeLaunch("/legal/privacy/2")).toBe(true);
+    expect(isOpenBeforeLaunch("/legal/privacy/x")).toBe(false);
+    expect(isOpenBeforeLaunch("/legal/privacyx")).toBe(false);
+    expect(isOpenBeforeLaunch("/legal/refund")).toBe(false);
+    expect(isOpenBeforeLaunch("/legal/terms")).toBe(false);
+  });
 });

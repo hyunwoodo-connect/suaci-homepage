@@ -20,8 +20,9 @@ export async function isUnlocked(cookie: string | undefined, pin: string | undef
   return cookie === (await lockToken(pin));
 }
 
-// 출시 전에도 열어 두는 화면: 출시 알림 받기. 12월 티저 링크가 여기로 온다
-const OPEN_BEFORE_LAUNCH = /^\/(?:(?:en|ja|ko)\/)?notify\/?$/;
+// 출시 전에도 열어 두는 화면: 출시 알림 받기(12월 티저 링크가 여기로 온다)와 개인정보처리방침(판 포함).
+// 처리방침은 공개해야 하고(개인정보보호법 제30조), 잠금 밖 take four. 벽에 붙이기 시트가 여기로 링크한다
+const OPEN_BEFORE_LAUNCH = /^\/(?:(?:en|ja|ko)\/)?(?:notify|legal\/privacy(?:\/[1-9]\d{0,3})?)\/?$/;
 
 /** 출시 전 잠금을 건너뛰는 경로인가. 언어 접두사(en·ja·ko)는 있어도 없어도 된다 */
 export function isOpenBeforeLaunch(pathname: string): boolean {
