@@ -8,6 +8,7 @@ import { Link } from "@/i18n/navigation";
 import Button from "@/components/ui/Button";
 import PageShell from "@/components/shell/PageShell";
 import AddressForm from "@/components/pay/AddressForm";
+import { addressName } from "@/lib/checkout/address";
 import { api, ApiClientError } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import type { Address, CreateAddressRequest } from "@/types";
@@ -153,8 +154,7 @@ export default function AddressesPage() {
             {items.map((a) => (
               <li key={a.addressId} className="border border-line p-[16px]">
                 <div className="mb-[6px] flex flex-wrap items-center gap-[8px]">
-                  <b className="text-[15px] font-medium">{a.recipient}</b>
-                  {a.label && <span className="text-[13px] text-grey">{a.label}</span>}
+                  <h2 className="m-0 text-[15px] font-medium">{addressName(a)}</h2>
                   {a.isDefault && (
                     <span className="rounded-full bg-lime px-[8px] py-[1px] text-[12px] text-ink">
                       {t("defaultBadge")}
@@ -164,7 +164,10 @@ export default function AddressesPage() {
                 <p className="m-0 text-[14px] leading-[1.6] text-ink-soft">
                   <span className="num">({a.zipcode})</span> {a.addr1} {a.addr2 ?? ""}
                   <br />
-                  <span className="num">{a.phone}</span>
+                  {/* 배송지 이름이 제목이면 받는 분은 여기 — 이름이 없으면 제목이 곧 받는 분 */}
+                  <span className="num">
+                    {addressName(a) === a.recipient ? a.phone : `${a.recipient} · ${a.phone}`}
+                  </span>
                 </p>
 
                 {confirmingId === a.addressId ? (
@@ -248,7 +251,12 @@ export default function AddressesPage() {
                 {tc("close")}
               </button>
             </div>
-            <AddressForm onSubmit={save} submitLabel={t("save")} initialRecipient={user?.name} />
+            <AddressForm
+              onSubmit={save}
+              submitLabel={t("save")}
+              initialRecipient={user?.name}
+              withLabel
+            />
           </section>
         )}
 

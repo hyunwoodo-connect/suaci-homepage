@@ -342,6 +342,8 @@
     },
     "checkout": {
       "whereTo": "どこへ送りますか？",
+      "label": "配送先の名前（任意）",
+      "labelPlaceholder": "自宅、会社",
       "recipient": "受取人",
       "searchHint": "道路名や建物名で探してみてください。",
       "detailPlaceholder": "部屋番号（なければ「なし」）",

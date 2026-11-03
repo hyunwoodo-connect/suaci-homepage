@@ -342,6 +342,8 @@
     },
     "checkout": {
       "whereTo": "어디로 보낼까요?",
+      "label": "배송지 이름 (선택)",
+      "labelPlaceholder": "집, 회사",
       "recipient": "받는 분",
       "searchHint": "도로명이나 건물 이름으로 찾아봐요.",
       "detailPlaceholder": "동·호수 (없으면 '없음')",

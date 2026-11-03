@@ -68,6 +68,27 @@ describe("배송지", () => {
     expect(screen.queryByLabelText("받는 분")).toBeNull();
   });
 
+  it("배송지 이름이 있으면 그 이름이 제목, 받는 분은 아래 줄에", async () => {
+    listAddresses.mockResolvedValue([{ ...ADDRESS, label: "회사" }]);
+    await renderPage();
+    expect(screen.getByRole("heading", { name: "회사" })).toBeTruthy();
+    expect(screen.getByText("지우 · 010-1234-5678")).toBeTruthy();
+  });
+
+  it("배송지 이름이 없으면 → 받는 분 이름이 제목", async () => {
+    listAddresses.mockResolvedValue([ADDRESS]);
+    await renderPage();
+    expect(screen.getByRole("heading", { name: "지우" })).toBeTruthy();
+    expect(screen.getByText("010-1234-5678")).toBeTruthy();
+  });
+
+  it("'배송지 추가' → 배송지 이름(선택) 칸이 있다", async () => {
+    listAddresses.mockResolvedValue([]);
+    await renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "배송지 추가" }));
+    expect(screen.getByLabelText("배송지 이름 (선택)")).toBeTruthy();
+  });
+
   it("삭제는 한 번 더 묻는다 — '그대로 두기'면 지우지 않는다", async () => {
     listAddresses.mockResolvedValue([ADDRESS]);
     await renderPage();

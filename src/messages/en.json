@@ -342,6 +342,8 @@
     },
     "checkout": {
       "whereTo": "where should we send it?",
+      "label": "address name (optional)",
+      "labelPlaceholder": "home, work",
       "recipient": "recipient",
       "searchHint": "try a street or building name.",
       "detailPlaceholder": "unit (or 'none')",

@@ -20,12 +20,22 @@ vi.stubGlobal("daum", {
 
 const submit = vi.fn().mockResolvedValue(undefined);
 
-function renderForm() {
+function renderForm(withLabel = false) {
   return render(
     <NextIntlClientProvider locale="ko" messages={ko}>
-      <AddressForm onSubmit={submit} submitLabel="저장" />
+      <AddressForm onSubmit={submit} submitLabel="저장" withLabel={withLabel} />
     </NextIntlClientProvider>,
   );
+}
+
+async function fillAndSubmit() {
+  await pickAddress();
+  fireEvent.change(screen.getByLabelText("받는 분"), { target: { value: "미나" } });
+  fireEvent.change(screen.getByLabelText("전화"), { target: { value: "01012345678" } });
+  fireEvent.change(screen.getByLabelText("상세주소"), { target: { value: "없음" } });
+  await act(async () => {
+    fireEvent.submit(screen.getByRole("button", { name: "저장" }).closest("form")!);
+  });
 }
 
 async function pickAddress() {
@@ -82,5 +92,27 @@ describe("AddressForm", () => {
       addr2: "없음",
       isDefault: true,
     });
+  });
+
+  it("주문서(배송지 이름 칸 없음) → 배송지 이름을 묻지 않는다", () => {
+    renderForm();
+    expect(screen.queryByLabelText("배송지 이름 (선택)")).toBeNull();
+  });
+
+  it("배송지 이름은 선택 — 비우고 저장하면 label 을 보내지 않는다", async () => {
+    renderForm(true);
+    expect(screen.getByPlaceholderText("집, 회사")).toBeTruthy();
+    await fillAndSubmit();
+    expect(submit).toHaveBeenCalledTimes(1);
+    expect(submit.mock.calls[0]?.[0]).not.toHaveProperty("label");
+  });
+
+  it("배송지 이름을 적으면 → 앞뒤 공백을 떼고 label 로 보낸다", async () => {
+    renderForm(true);
+    fireEvent.change(screen.getByLabelText("배송지 이름 (선택)"), { target: { value: " 회사 " } });
+    await fillAndSubmit();
+    expect(submit).toHaveBeenCalledWith(
+      expect.objectContaining({ label: "회사", recipient: "미나" }),
+    );
   });
 });

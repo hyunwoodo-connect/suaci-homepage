@@ -15,6 +15,7 @@ import { PRODUCT } from "@/constants/product";
 import { api, ApiClientError } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { readLastProvider } from "@/lib/auth/social";
+import { addressName } from "@/lib/checkout/address";
 import { useCart } from "@/lib/cart/cart-context";
 import { formatKRW } from "@/lib/format";
 import { readPendingOrder, reuseKey, savePendingOrder } from "@/lib/payment/pending";
@@ -247,11 +248,11 @@ function CheckoutBody() {
                       }`}
                     >
                       <div className="mb-[6px] flex items-center gap-[10px]">
-                        <b className="font-sans text-[15px]">{a.recipient}</b>
+                        <b className="font-sans text-[15px]">{addressName(a)}</b>
                         <span
                           className={`num font-sans text-[11px] ${active ? "text-paper/70" : "text-grey"}`}
                         >
-                          {a.phone}
+                          {addressName(a) === a.recipient ? a.phone : `${a.recipient} · ${a.phone}`}
                         </span>
                         {a.isDefault && (
                           <span

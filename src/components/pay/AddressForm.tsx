@@ -10,7 +10,12 @@ interface AddressFormProps {
   submitLabel: string;
   /** 수령인 프리필(소셜 이름) */
   initialRecipient?: string;
+  /** 배송지 이름(집·회사, 선택) 칸을 보일지 — 내 계정 배송지 화면만. 주문서는 결제까지 칸을 줄인다 */
+  withLabel?: boolean;
 }
+
+/** 배송지 이름 최대 글자 수 — 목록 제목 한 줄에 들어가는 길이 */
+const LABEL_MAX = 20;
 
 /** Daum 우편번호 임베드가 주는 값 중 쓰는 것 */
 interface DaumPostcodeData {
@@ -38,8 +43,14 @@ const DAUM_SCRIPT = "https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postco
  * 배송지 입력 — Daum 우편번호 레이어를 페이지 안에 임베드(결정 11: 팝업 금지).
  * 고르면 우편번호·주소가 채워지고 상세주소로 포커스가 간다. 전화는 자동 하이픈.
  */
-export default function AddressForm({ onSubmit, submitLabel, initialRecipient }: AddressFormProps) {
+export default function AddressForm({
+  onSubmit,
+  submitLabel,
+  initialRecipient,
+  withLabel = false,
+}: AddressFormProps) {
   const t = useTranslations("pay.checkout");
+  const [label, setLabel] = useState("");
   const [recipient, setRecipient] = useState(initialRecipient ?? "");
   const [phone, setPhone] = useState("");
   const [zipcode, setZipcode] = useState("");
@@ -98,6 +109,7 @@ export default function AddressForm({ onSubmit, submitLabel, initialRecipient }:
     setError(null);
     try {
       await onSubmit({
+        ...(label.trim() ? { label: label.trim() } : {}),
         recipient: recipient.trim(),
         phone,
         zipcode,
@@ -112,6 +124,23 @@ export default function AddressForm({ onSubmit, submitLabel, initialRecipient }:
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-[16px]">
+      {withLabel && (
+        <Field label={t("label")}>
+          {(id) => (
+            <input
+              id={id}
+              value={label}
+              onChange={(e) => {
+                setLabel(e.target.value);
+              }}
+              maxLength={LABEL_MAX}
+              placeholder={t("labelPlaceholder")}
+              autoComplete="off"
+              className="w-full border border-line px-[12px] py-[11px] text-[16px]"
+            />
+          )}
+        </Field>
+      )}
       <Field label={t("recipient")}>
         {(id) => (
           <input
