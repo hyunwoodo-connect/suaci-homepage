@@ -45,6 +45,7 @@ vi.mock("@/lib/payment/providers", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/payment/providers")>();
   return {
     ...actual,
+    canTakePayment: () => selectMock.value,
     selectPaymentAdapters: () =>
       selectMock.value
         ? [actual.createMockAdapter({ origin: "https://x", navigate, newKey: () => "k1234567" })]
@@ -104,6 +105,21 @@ describe("사기 바", () => {
   it("로그인 + 기본 배송지 없음 → /checkout?qty&first=1", async () => {
     getCheckoutDefaults.mockResolvedValue({ address: null, lastPaymentMethod: null });
     renderBar();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "₩31,000 · 사기" }));
+    });
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/checkout?qty=1&first=1"));
+  });
+
+  it("결제를 받기 전 → 사기 버튼은 그대로, 위 안내는 '출시 준비 중' + 출시 알림 링크", async () => {
+    selectMock.value = false;
+    getCheckoutDefaults.mockResolvedValue({ address: null, lastPaymentMethod: null });
+    renderBar();
+    expect(screen.getByText(/출시 준비 중이에요\./)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "출시 알림 받기" }).getAttribute("href")).toBe(
+      "/notify",
+    );
+    expect(screen.queryByText("배송비 포함이에요.")).toBeNull();
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "₩31,000 · 사기" }));
     });
@@ -212,13 +228,17 @@ describe("재구매 시트", () => {
     );
   });
 
-  it("어댑터 없음 → '아직 결제를 준비 중이에요.' + 버튼 비활성", async () => {
+  it("어댑터 없음 → '아직 결제를 준비 중이에요.' + '결제 준비 중' 버튼 비활성, 눌러도 주문을 만들지 않는다", async () => {
     selectMock.value = false;
     await openSheet();
     expect(screen.getByText("아직 결제를 준비 중이에요.")).toBeTruthy();
-    expect(
-      (screen.getByRole("button", { name: "₩31,000 결제하기" }) as HTMLButtonElement).disabled,
-    ).toBe(true);
+    const cta = screen.getByRole("button", { name: "결제 준비 중" }) as HTMLButtonElement;
+    expect(cta.disabled).toBe(true);
+    await act(async () => {
+      fireEvent.click(cta);
+    });
+    expect(createOrder).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
   });
 });
 
@@ -228,6 +248,7 @@ describe("ResumeStrip", () => {
     sessionStorage.clear();
     authState.value = { status: "authenticated", user: { userId: "u1" } };
     cartState.value = { items: [] };
+    selectMock.value = true;
   });
 
   it("pending 있으면 '아까 하던 주문, 이어서 할까요?' — 이어서는 그 수량으로 시트를 연다", async () => {

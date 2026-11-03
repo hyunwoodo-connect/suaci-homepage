@@ -5,7 +5,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 
-import { useRouter } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import PageShell from "@/components/shell/PageShell";
 import ReturnNotice from "@/components/legal/ReturnNotice";
 import AddressForm from "@/components/pay/AddressForm";
@@ -22,6 +22,7 @@ import {
   adapterFor,
   availableMethods,
   defaultMethod,
+  paymentEnv,
   selectPaymentAdapters,
   type PayMethodId,
 } from "@/lib/payment/providers";
@@ -124,11 +125,7 @@ function CheckoutBody() {
   }, []);
 
   const adapters = selectPaymentAdapters(
-    {
-      tossClientKey: process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY,
-      apiMode: process.env.NEXT_PUBLIC_API_MODE ?? "mock",
-      nodeEnv: process.env.NODE_ENV,
-    },
+    paymentEnv(),
     typeof window === "undefined"
       ? undefined
       : {
@@ -387,8 +384,21 @@ function CheckoutBody() {
             disabled={busy || !ready || !selected}
             className="h-[52px] w-full cursor-pointer rounded-full bg-ink text-[15px] font-medium text-paper disabled:opacity-50"
           >
-            {busy ? tp("sheet.paying") : tp("sheet.payCta", { total: formatKRW(total) })}
+            {!ready
+              ? tp("sheet.preparingCta")
+              : busy
+                ? tp("sheet.paying")
+                : tp("sheet.payCta", { total: formatKRW(total) })}
           </button>
+          {/* 결제를 열기 전(카드 심사 중)에는 여기까지가 끝 — 주문은 만들지 않고 출시 알림으로 보낸다 */}
+          {!ready && (
+            <Link
+              href="/notify"
+              className="mt-[14px] block text-center text-[13px] text-grey underline underline-offset-[3px] hover:text-ink"
+            >
+              {tp("bar.notify")}
+            </Link>
+          )}
         </section>
       </div>
     </PageShell>

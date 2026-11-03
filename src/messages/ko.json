@@ -159,7 +159,6 @@
     "addresses": "배송지",
     "addressesNone": "아직 없어요",
     "orders": "주문 내역",
-    "ordersSoon": "출시하면 여기서 볼 수 있어요.",
     "logout": "로그아웃",
     "helloNoName": "반가워요."
   },
@@ -338,6 +337,7 @@
       "method": "결제수단",
       "address": "배송지",
       "preparing": "아직 결제를 준비 중이에요.",
+      "preparingCta": "결제 준비 중",
       "paying": "결제로 가는 중…"
     },
     "checkout": {

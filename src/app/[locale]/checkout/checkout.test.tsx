@@ -4,16 +4,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ko from "@/messages/ko.json";
 
-const { listAddresses, createAddress, createOrder, navigate, push, searchParams } = vi.hoisted(
-  () => ({
+const { listAddresses, createAddress, createOrder, navigate, push, searchParams, payReady } =
+  vi.hoisted(() => ({
     listAddresses: vi.fn(),
     createAddress: vi.fn(),
     createOrder: vi.fn(),
     navigate: vi.fn(),
     push: vi.fn(),
     searchParams: { value: new URLSearchParams("qty=1&first=1") },
-  }),
-);
+    payReady: { value: true },
+  }));
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>();
   return {
@@ -46,9 +46,10 @@ vi.mock("@/lib/payment/providers", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/payment/providers")>();
   return {
     ...actual,
-    selectPaymentAdapters: () => [
-      actual.createMockAdapter({ origin: "https://x", navigate, newKey: () => "k1234567" }),
-    ],
+    selectPaymentAdapters: () =>
+      payReady.value
+        ? [actual.createMockAdapter({ origin: "https://x", navigate, newKey: () => "k1234567" })]
+        : [],
   };
 });
 
@@ -91,6 +92,26 @@ describe("주문서(첫 구매)", () => {
     sessionStorage.clear();
     localStorage.clear();
     searchParams.value = new URLSearchParams("qty=1&first=1");
+    payReady.value = true;
+  });
+
+  it("결제를 받기 전(어댑터 없음) → 주문서는 보이고, '결제 준비 중' 비활성 + 출시 알림, 주문은 만들지 않는다", async () => {
+    payReady.value = false;
+    listAddresses.mockResolvedValue([ADDRESS]);
+    await act(async () => {
+      renderPage();
+    });
+    expect(await screen.findByText(/서울 중구 세종대로 110/)).toBeTruthy();
+    expect(screen.getByText("아직 결제를 준비 중이에요.")).toBeTruthy();
+    expect(screen.getByText("₩31,000")).toBeTruthy();
+    const cta = screen.getByRole("button", { name: "결제 준비 중" }) as HTMLButtonElement;
+    expect(cta.disabled).toBe(true);
+    expect(screen.getByRole("link", { name: "출시 알림 받기" })).toHaveAttribute("href", "/notify");
+    await act(async () => {
+      fireEvent.click(cta);
+    });
+    expect(createOrder).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it("주소 없음 → '어디로 보낼까요?' + 주소 폼", async () => {

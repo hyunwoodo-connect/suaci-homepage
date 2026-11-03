@@ -7,7 +7,6 @@ import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import Button from "@/components/ui/Button";
 import PageShell from "@/components/shell/PageShell";
-import { SALES_OPEN } from "@/constants/checkout";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { formatDateKST } from "@/lib/format";
@@ -67,11 +66,7 @@ export default function AccountPage() {
             <AddressesRow label={t("addresses")} none={t("addressesNone")} />
           </li>
           <li className="border-b border-line">
-            {SALES_OPEN ? (
-              <MenuLink href="/orders" label={t("orders")} />
-            ) : (
-              <OrdersSoonRow label={t("orders")} hint={t("ordersSoon")} />
-            )}
+            <MenuLink href="/orders" label={t("orders")} />
           </li>
         </ul>
 
@@ -127,24 +122,6 @@ function MenuLink({ href, label, sub }: { href: string; label: string; sub?: str
       </span>
       <Chevron />
     </Link>
-  );
-}
-
-function OrdersSoonRow({ label, hint }: { label: string; hint: string }) {
-  const tb = useTranslations("pay.bar");
-  return (
-    <div className="flex min-h-[68px] items-center gap-[16px] py-[12px]">
-      <span className="flex min-w-0 flex-1 flex-col gap-[2px]">
-        <span className="text-[16px] text-grey">{label}</span>
-        <span className="text-[13px] text-grey">{hint}</span>
-      </span>
-      <Link
-        href="/notify"
-        className="shrink-0 text-[13px] text-ink underline underline-offset-[3px]"
-      >
-        {tb("notify")}
-      </Link>
-    </div>
   );
 }
 

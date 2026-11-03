@@ -1,7 +1,7 @@
 /**
  * 결제 어댑터 포트 — 오너 지시(심사를 기다리지 않는다): 지금은 목업 어댑터가 결제창을 흉내 내고,
  * 실키가 오면 같은 모양의 토스 위젯/직가맹 어댑터를 꽂는다(두 형태 다 수용 — 어댑터 목록이라서).
- * 운영(main) + 실서버(http) 조합에서 목업은 절대 켜지지 않는다.
+ * 운영(main) + 실서버(http) 조합에서 목업은 절대 켜지지 않는다 — 그동안 운영은 결제 직전까지만 보여 준다.
  */
 import { BRANDPAY_LABEL } from "@/constants/checkout";
 import type { SocialProvider } from "@/types";
@@ -58,15 +58,37 @@ export function createMockAdapter(deps: MockAdapterDeps): PaymentAdapter {
   };
 }
 
-/** 환경에 맞는 어댑터 목록. 토스 실키가 오면 여기서 위젯 어댑터를 돌려준다 */
-export function selectPaymentAdapters(
-  env: { tossClientKey?: string; apiMode: string; nodeEnv: string },
-  deps?: MockAdapterDeps,
-): PaymentAdapter[] {
-  // TODO(키): 토스 위젯 어댑터 — 실키가 오면 구현해 여기 먼저 넣는다
-  if (env.tossClientKey) return [];
-  const mockAllowed = env.apiMode === "mock" || env.nodeEnv !== "production";
-  return mockAllowed && deps ? [createMockAdapter(deps)] : [];
+/** 결제창을 고르는 데 쓰는 빌드 환경 */
+export interface PaymentEnv {
+  tossClientKey?: string;
+  apiMode: string;
+  nodeEnv: string;
+}
+
+/** 이 빌드의 결제 환경 — NEXT_PUBLIC_* 는 빌드 때 박혀서 서버 렌더와 브라우저가 같은 값을 본다 */
+export function paymentEnv(): PaymentEnv {
+  return {
+    tossClientKey: process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY,
+    apiMode: process.env.NEXT_PUBLIC_API_MODE ?? "mock",
+    nodeEnv: process.env.NODE_ENV,
+  };
+}
+
+/**
+ * 결제를 받을 수 있나(결제창이 하나라도 있나). 창(window) 없이 환경만으로 정해서 서버 렌더와 어긋나지 않는다.
+ * false 면 구매 흐름은 결제 직전까지 열려 있고, 결제 버튼 자리에 '결제 준비 중'이 서며 주문은 만들지 않는다.
+ */
+export function canTakePayment(env: PaymentEnv): boolean {
+  // TODO(키): 토스 위젯 어댑터가 생기면 키가 있을 때 true
+  if (env.tossClientKey) return false;
+  return env.apiMode === "mock" || env.nodeEnv !== "production";
+}
+
+/** 환경에 맞는 어댑터 목록. 운영(main) + 실서버(http)에서는 목업이 절대 켜지지 않는다 */
+export function selectPaymentAdapters(env: PaymentEnv, deps?: MockAdapterDeps): PaymentAdapter[] {
+  if (!canTakePayment(env) || !deps) return [];
+  // TODO(키): 토스 키가 있으면 토스 위젯 어댑터를 돌려준다
+  return [createMockAdapter(deps)];
 }
 
 /** 이 수단을 다루는 어댑터(없으면 null — 버튼이 준비 중 안내) */

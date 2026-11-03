@@ -1,5 +1,5 @@
 /**
- * 출시 전 잠금 — 주문·결제 화면(`isLockedBeforeLaunch`)과 공개 전 이벤트를 숫자 비번 뒤에 둔다.
+ * 테스터 잠금 — 공개 전 이벤트를 숫자 비번 뒤에 둔다.
  * 비번(SITE_LOCK_PIN)은 Amplify 환경 변수 — 저장소가 공개라 코드에 두지 않는다. 맞히면 쿠키로 30일 열어 둔다.
  * 비번이 설정 안 됐으면 아무도 못 들어간다(잘못 열리는 쪽보다 낫다).
  */
@@ -19,16 +19,6 @@ export async function lockToken(pin: string): Promise<string> {
 export async function isUnlocked(cookie: string | undefined, pin: string | undefined) {
   if (!pin || !cookie) return false;
   return cookie === (await lockToken(pin));
-}
-
-// 판매를 열기 전(`SALES_OPEN` false)에는 주문이 실제 주문이 아니다 — 손님이 주문했다고 믿을 화면만 잠근다.
-// 홈·상품·가격·정책·사업자 정보·로그인·가입은 연다(카카오 동의항목·PG 카드 심사가 이 화면들을 본다).
-// 판매를 열면 middleware 가 이 검사를 건너뛴다.
-const LOCKED_BEFORE_LAUNCH = /^\/(?:(?:en|ja|ko)\/)?(?:checkout|pay|orders)(?:\/.*)?$/;
-
-/** 출시 전 잠금 대상인가(주문·결제·주문 내역). 언어 접두사(en·ja·ko)는 있어도 없어도 된다 */
-export function isLockedBeforeLaunch(pathname: string): boolean {
-  return LOCKED_BEFORE_LAUNCH.test(pathname);
 }
 
 /**
@@ -51,17 +41,12 @@ const GATE_LOCALES: readonly GateLocale[] = ["ko", "en", "ja"];
 
 /**
  * 잠금 화면 문구. i18n·레이아웃을 거치지 않는 단독 HTML이라 여기 둔다(브랜드 톤: 영어는 소문자).
- * order = 주문·결제·주문 내역(판매 전), page = 공개 전 이벤트 같은 그 밖의 잠긴 화면.
  */
 const GATE_COPY = {
   ko: {
     title: "suaci — 출시 준비 중",
-    order: {
-      heading: "주문은 출시하는 날 열려요.",
-      body: "그 전엔 둘러보기만 할 수 있어요. 출시 소식은 먼저 알려 드릴게요.",
-    },
-    page: { heading: "아직 열리지 않은 페이지예요.", body: "열리면 홈에서 먼저 보여 드릴게요." },
-    notify: "출시 알림 받기",
+    heading: "아직 열리지 않은 페이지예요.",
+    body: "열리면 홈에서 먼저 보여 드릴게요.",
     home: "홈으로",
     tester: "테스터 입장",
     code: "테스터 코드",
@@ -70,12 +55,8 @@ const GATE_COPY = {
   },
   en: {
     title: "suaci — coming soon",
-    order: {
-      heading: "ordering opens on launch day.",
-      body: "until then, feel free to look around. we'll tell you first when it's out.",
-    },
-    page: { heading: "this page isn't open yet.", body: "we'll show it on the home page first." },
-    notify: "get notified",
+    heading: "this page isn't open yet.",
+    body: "we'll show it on the home page first.",
     home: "home",
     tester: "tester entry",
     code: "tester code",
@@ -84,15 +65,8 @@ const GATE_COPY = {
   },
   ja: {
     title: "suaci — 発売準備中",
-    order: {
-      heading: "ご注文は発売日から。",
-      body: "それまではご覧いただくだけです。発売のお知らせは先にお送りします。",
-    },
-    page: {
-      heading: "このページはまだ公開前です。",
-      body: "公開したら、まずホームでお知らせします。",
-    },
-    notify: "発売のお知らせを受け取る",
+    heading: "このページはまだ公開前です。",
+    body: "公開したら、まずホームでお知らせします。",
     home: "ホームへ",
     tester: "テスター入口",
     code: "テスターコード",
@@ -131,7 +105,7 @@ export function gateLocale(
 }
 
 /**
- * 잠금 화면 — 손님용 안내(무엇이 언제 열리는지 + 홈·출시 알림)가 주인공, 테스터 비번은 접힌 칸 하나.
+ * 잠금 화면 — 손님용 안내(아직 안 열렸다 + 홈으로)가 주인공, 테스터 비번은 접힌 칸 하나.
  * 비번 폼은 /api/site-lock 으로 POST(동작은 그대로). 틀리면 칸을 연 채로 안내
  */
 export function gateHtml({
@@ -144,13 +118,7 @@ export function gateHtml({
   locale: GateLocale;
 }): string {
   const c = GATE_COPY[locale];
-  const kind = isLockedBeforeLaunch(next.split("?")[0]) ? "order" : "page";
-  const base = locale === "ko" ? "" : `/${locale}`;
-  const primary =
-    kind === "order"
-      ? `<a class="btn" href="${base}/notify">${c.notify}</a>
-    <a class="link" href="${base || "/"}">${c.home}</a>`
-      : `<a class="btn" href="${base || "/"}">${c.home}</a>`;
+  const home = locale === "ko" ? "/" : `/${locale}`;
   return `<!doctype html>
 <html lang="${locale}">
 <head>
@@ -171,7 +139,6 @@ export function gateHtml({
   h1 .dot{display:inline-block;width:8px;height:8px;margin-left:6px;border-radius:50%;background:#a9ff39;vertical-align:middle}
   .body{margin:12px 0 0;color:#5f5f5c;font-size:15px;line-height:1.7}
   .btn{display:flex;align-items:center;justify-content:center;height:52px;margin-top:28px;border-radius:999px;background:#141414;color:#fff;font-size:15px;font-weight:500;text-decoration:none}
-  .link{align-self:flex-start;margin-top:16px;color:#5f5f5c;font-size:14px;text-underline-offset:3px}
   details{margin-top:48px;border-top:1px solid #e4e5e8;padding-top:16px}
   summary{cursor:pointer;color:#5f5f5c;font-size:13px;width:max-content}
   form{display:flex;flex-direction:column;gap:10px;margin-top:16px}
@@ -186,9 +153,9 @@ export function gateHtml({
 <body>
 <main>
   <img class="logo" src="/brand/logo-black.svg" alt="suaci" width="80" height="20">
-  <h1>${c[kind].heading}<span class="dot" aria-hidden="true"></span></h1>
-  <p class="body">${c[kind].body}</p>
-  ${primary}
+  <h1>${c.heading}<span class="dot" aria-hidden="true"></span></h1>
+  <p class="body">${c.body}</p>
+  <a class="btn" href="${home}">${c.home}</a>
   <details${wrong ? " open" : ""}>
     <summary>${c.tester}</summary>
     <form method="post" action="/api/site-lock">

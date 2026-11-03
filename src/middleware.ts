@@ -1,6 +1,6 @@
 /**
  * 모든 페이지 요청의 입구. 이벤트 페이지(/events/{slug})는 공개 여부·미리보기 토큰으로 열고,
- * 그 밖은 출시 전 잠금(주문·결제 화면)을 거친 뒤 next-intl 로 언어를 붙인다.
+ * 그 밖은 next-intl 로 언어를 붙인다.
  */
 import createMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
@@ -12,14 +12,7 @@ import {
   previewCookieName,
   validPreviewToken,
 } from "./lib/event-access";
-import { SALES_OPEN } from "./constants/checkout";
-import {
-  SITE_LOCK_COOKIE,
-  gateLocale,
-  gateResponse,
-  isLockedBeforeLaunch,
-  isUnlocked,
-} from "./lib/site-lock";
+import { SITE_LOCK_COOKIE, gateLocale, gateResponse, isUnlocked } from "./lib/site-lock";
 
 const intl = createMiddleware(routing);
 
@@ -64,14 +57,7 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // 출시 전 잠금은 주문·결제 화면만 — 판매를 열면(SALES_OPEN) 빠진다
-  if (
-    !SALES_OPEN &&
-    isLockedBeforeLaunch(req.nextUrl.pathname) &&
-    !(await isUnlocked(req.cookies.get(SITE_LOCK_COOKIE)?.value, process.env.SITE_LOCK_PIN))
-  ) {
-    return gate(req);
-  }
+  // 주문·결제 화면은 출시 전에도 연다(오너 11/3, 카드 심사) — 결제를 받기 전에는 결제 직전에서 멈춘다
   return intl(req);
 }
 

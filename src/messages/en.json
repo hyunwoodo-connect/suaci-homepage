@@ -159,7 +159,6 @@
     "addresses": "addresses",
     "addressesNone": "none yet",
     "orders": "orders",
-    "ordersSoon": "you'll see them here after launch.",
     "logout": "sign out",
     "helloNoName": "hi there."
   },
@@ -338,6 +337,7 @@
       "method": "payment",
       "address": "ship to",
       "preparing": "payments are coming soon.",
+      "preparingCta": "payments coming soon",
       "paying": "heading to payment…"
     },
     "checkout": {

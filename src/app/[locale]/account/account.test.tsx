@@ -73,15 +73,11 @@ describe("내 계정", () => {
     expect(within(info as HTMLElement).queryByText("이메일")).toBeNull();
   });
 
-  it("판매 전 → 주문 내역은 잠긴 화면으로 가는 링크가 아니라 안내 + 출시 알림", async () => {
+  it("주문 내역 → /orders 링크(주문 화면은 출시 전에도 열려 있다)", async () => {
     tokenStore.save({ idToken: "i", accessToken: "a", refreshToken: "r", expiresIn: 60 });
     getMe.mockResolvedValue(USER);
     await renderPage();
-    expect(screen.getByText("출시하면 여기서 볼 수 있어요.")).toBeTruthy();
-    expect(document.querySelector('a[href="/orders"]')).toBeNull();
-    expect(screen.getByRole("link", { name: "출시 알림 받기" }).getAttribute("href")).toBe(
-      "/notify",
-    );
+    expect(document.querySelector('a[href="/orders"]')).not.toBeNull();
   });
 
   it("배송지가 없으면 → 배송지 줄에 '아직 없어요'", async () => {

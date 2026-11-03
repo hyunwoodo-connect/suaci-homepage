@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 
-import { useRouter } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { displayTotal } from "@/constants/checkout";
 import { PRODUCT } from "@/constants/product";
 import LoginSheet from "@/components/pay/LoginSheet";
@@ -15,11 +15,13 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useCart } from "@/lib/cart/cart-context";
 import { formatKRW } from "@/lib/format";
+import { canTakePayment, paymentEnv } from "@/lib/payment/providers";
 import type { CheckoutDefaults } from "@/types";
 
 /**
  * v5 하단 사기 바 — 사이트의 유일한 구매 CTA. "쿠팡처럼 두 번 클릭이면 구매 끝"(오너 #93).
  * 수량은 바에서 고르고, 사기 = (로그인 시트 →) 재구매 시트 → 결제창. 기본 배송지가 없으면 주문서로.
+ * 결제를 받기 전(토스 키 전)에도 바는 열어 둔다 — 결제 버튼 자리에서 '결제 준비 중'으로 멈춘다(오너 11/3, 카드 심사).
  */
 export default function BuyBar() {
   const t = useTranslations("pay.bar");
@@ -35,6 +37,7 @@ export default function BuyBar() {
   const [autoOpened, setAutoOpened] = useState(false);
 
   const total = displayTotal(qty);
+  const paymentsOpen = canTakePayment(paymentEnv());
 
   const buy = useCallback(
     async (qtyOverride?: number) => {
@@ -93,9 +96,22 @@ export default function BuyBar() {
       />
       {/* 바 높이(66+16px)만큼 끌어올려 푸터 아래에 빈 띠가 생기지 않게 한다. */}
       <div className="pointer-events-none sticky bottom-0 z-20 -mt-[82px] flex flex-col items-center gap-[6px] px-[16px] pb-[16px]">
-        <p className="pointer-events-none m-0 rounded-full bg-paper/90 px-[10px] py-[2px] text-[11px] text-grey">
-          {note ?? t("shippingIncluded")}
-        </p>
+        {note || paymentsOpen ? (
+          <p className="pointer-events-none m-0 rounded-full bg-paper/90 px-[10px] py-[2px] text-[11px] text-grey">
+            {note ?? t("shippingIncluded")}
+          </p>
+        ) : (
+          // 결제를 열기 전에도 사기는 결제 직전까지 간다(카드 심사) — 출시 알림 길은 여기 남긴다
+          <p className="pointer-events-auto m-0 rounded-full bg-paper/90 px-[10px] py-[2px] text-[11px] text-grey">
+            {t("soon")}{" "}
+            <Link
+              href="/notify"
+              className="text-ink underline underline-offset-[3px] hover:text-grey"
+            >
+              {t("notify")}
+            </Link>
+          </p>
+        )}
         <div className="pointer-events-auto flex h-[52px] items-center gap-[10px] rounded-full bg-ink pl-[10px] pr-[8px] text-paper shadow-[0_6px_24px_rgba(17,17,17,0.18)]">
           <div
             role="group"

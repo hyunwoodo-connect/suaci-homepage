@@ -21,6 +21,7 @@ import {
   availableMethods,
   defaultMethod,
   PAY_METHOD_LABEL,
+  paymentEnv,
   selectPaymentAdapters,
   type PayMethodId,
 } from "@/lib/payment/providers";
@@ -60,19 +61,12 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
   // 어댑터 목록 — 실키가 오면 selectPaymentAdapters 가 토스 위젯을 돌려준다
   const adapters = useMemo(
     () =>
-      selectPaymentAdapters(
-        {
-          tossClientKey: process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY,
-          apiMode: process.env.NEXT_PUBLIC_API_MODE ?? "mock",
-          nodeEnv: process.env.NODE_ENV,
+      selectPaymentAdapters(paymentEnv(), {
+        origin: window.location.origin,
+        navigate: (url) => {
+          window.location.assign(url);
         },
-        {
-          origin: window.location.origin,
-          navigate: (url) => {
-            window.location.assign(url);
-          },
-        },
-      ),
+      }),
     [],
   );
   const methods = useMemo(() => availableMethods(adapters), [adapters]);
@@ -265,7 +259,7 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
           disabled={busy || !ready}
           className="h-[52px] cursor-pointer rounded-full bg-ink text-[15px] font-medium text-paper disabled:opacity-50"
         >
-          {t("payCta", { total: formatKRW(total) })}
+          {ready ? t("payCta", { total: formatKRW(total) }) : t("preparingCta")}
         </button>
         <p role="status" className="m-0 min-h-[18px] text-center text-[12px] text-grey">
           {note ?? (!ready ? t("preparing") : "")}

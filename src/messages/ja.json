@@ -159,7 +159,6 @@
     "addresses": "お届け先",
     "addressesNone": "まだありません",
     "orders": "注文履歴",
-    "ordersSoon": "発売後、ここで確認できます。",
     "logout": "ログアウト",
     "helloNoName": "こんにちは。"
   },
@@ -338,6 +337,7 @@
       "method": "支払い方法",
       "address": "お届け先",
       "preparing": "決済はまだ準備中です。",
+      "preparingCta": "決済準備中",
       "paying": "決済へ移動中…"
     },
     "checkout": {

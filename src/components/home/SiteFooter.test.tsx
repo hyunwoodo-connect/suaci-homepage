@@ -13,16 +13,15 @@ vi.mock("@/i18n/navigation", () => ({
 import SiteFooter from "./SiteFooter";
 
 describe("SiteFooter", () => {
-  it("판매 전(SALES_OPEN false) → 잠긴 주문 조회 링크는 없고, 정책·문의 링크와 고객센터 이메일은 있다", () => {
+  it("주문 조회·정책·문의 링크와 고객센터 이메일이 있다", () => {
     render(
       <NextIntlClientProvider locale="ko" messages={ko}>
         <SiteFooter />
       </NextIntlClientProvider>,
     );
     const hrefs = screen.getAllByRole("link").map((a) => a.getAttribute("href"));
-    expect(hrefs).not.toContain("/orders");
     expect(hrefs).toEqual(
-      expect.arrayContaining(["/legal/refund", "/legal/terms", "/legal/privacy"]),
+      expect.arrayContaining(["/orders", "/legal/refund", "/legal/terms", "/legal/privacy"]),
     );
     expect(screen.getByText("hello@takesuaci.com")).toBeTruthy();
   });

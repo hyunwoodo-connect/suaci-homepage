@@ -1,16 +1,14 @@
 import BuyBar from "@/components/home/BuyBar";
 import Hero from "@/components/home/Hero";
-import LaunchBar from "@/components/home/LaunchBar";
 import Moments from "@/components/home/Moments";
 import ProductSection from "@/components/home/ProductSection";
 import SiteFooter from "@/components/home/SiteFooter";
 import SiteHeader from "@/components/home/SiteHeader";
 import Story from "@/components/home/Story";
-import { SALES_OPEN } from "@/constants/checkout";
 
 /**
  * Home v5 — white studio. 단일 SKU(라임바질 페이셜 세럼 미스트 · take-01) 원페이지.
- * 히어로 영상 → 브랜드 스토리 → 무드 갤러리 → 제품 → 푸터, 하단 원클릭 바(판매 전에는 출시 알림 바).
+ * 히어로 영상 → 브랜드 스토리 → 무드 갤러리 → 제품 → 푸터, 하단 원클릭 바.
  */
 export default function Home() {
   return (
@@ -21,7 +19,7 @@ export default function Home() {
       <Moments />
       <ProductSection />
       <SiteFooter />
-      {SALES_OPEN ? <BuyBar /> : <LaunchBar />}
+      <BuyBar />
     </main>
   );
 }
