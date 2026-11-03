@@ -27,15 +27,13 @@ export async function generateMetadata({
       siteName: SITE.name,
       locale,
       type: "website",
+      // 여기서 openGraph를 새로 정의하면 루트 `app/opengraph-image.png`가 이어지지 않아 직접 건다
+      images: [{ url: "/opengraph-image.png", width: 1200, height: 630, alt: SITE.wordmark }],
     },
     twitter: {
       card: "summary_large_image",
       title: t("title"),
       description: t("description"),
-    },
-    icons: {
-      icon: "/logo.png",
-      apple: "/logo.png",
     },
     alternates: {
       canonical: canonicalPath || "/",

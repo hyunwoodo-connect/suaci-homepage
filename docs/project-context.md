@@ -27,7 +27,8 @@
 - 흰 바탕, 넓은 여백, 풀블리드 사진. 스튜디오 그레이(#d3d4d8) 룩북 사진 + **키컬러 하나**.
 - 팔레트: **키컬러 `lime #A9FF39`**(10/27 확정 · 점·띠·블록 하나로만) · `ink #141414` · `paper #ffffff` · `studio #d3d4d8` · `grey #5f5f5c` · `line #e4e5e8`. 매우 밝아 **글자색으로 쓰지 않는다**(흰 바탕 위 라임 글자·라임 위 흰 글자 모두 안 읽힘) — 라임 위 글자는 ink.
 - 폰트: Geist + Zen Kaku Gothic New(일본어) + Noto Sans KR(한국어). 소문자 본문엔 자간 금지.
-- 로고는 헤더·푸터 모두 **검정**. SVG(`public/brand/logo-black.svg`, `logo-white.svg`).
+- 로고는 헤더·푸터 모두 **검정**. SVG(`public/brand/logo-black.svg`, `logo-white.svg`) — 서랍 `브랜드/에셋/suaci_logo.zip`(PNG 01·02)과 같은 모양. 옛 손글씨 대문자 로고(`logo.png`)는 지웠다.
+- 파비콘·아이콘은 워드마크의 `s`를 라임 바탕에 ink로(`src/app/favicon.ico`·`apple-icon.png`, 매니페스트 `public/brand/icon-{192,512}.png`). 공유 미리보기(OG)는 paper `#FAFAF7` 위 워드마크 + 아래 라임 띠(`src/app/opengraph-image.png`).
 - 모델: 20대 중후반 동아시아 여성, 밝고 행복한 표정(무표정 X), 포즈 반복 X. 히어로 모델(라임 니트 카디건) 컷을 레퍼런스로 유지.
 - 배경색은 스튜디오 그레이로 통일. 라임이 매번 등장하는 건 지양, 라임 **색**을 쓰는 쪽.
 

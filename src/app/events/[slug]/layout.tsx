@@ -5,7 +5,6 @@ import Analytics from "@/components/analytics/Analytics";
 
 export const metadata: Metadata = {
   title: "suaci — 이벤트",
-  icons: { icon: "/logo.png", apple: "/logo.png" },
 };
 
 // 이벤트 놀이(take four.) 글꼴. 변수로만 달고, 쓰는 쪽(놀이 모듈)이 골라 쓴다

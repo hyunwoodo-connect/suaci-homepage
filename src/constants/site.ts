@@ -1,6 +1,6 @@
 /** 사이트 전역 상수 */
 export const SITE = {
-  name: "SUACI",
+  name: "suaci",
   wordmark: "suaci",
   url: process.env.NEXT_PUBLIC_SITE_URL || "https://suaci.com",
   title: "suaci — take suaci.",

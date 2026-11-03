@@ -20,7 +20,7 @@ Run these in parallel on first activation in any thread:
 What's true right now (verify, don't assume — code changes):
 
 - **Stack**: Next.js 16 App Router, React 19, Tailwind v4, next-intl v4 (`en` default, `ja`)
-- **Single-SKU one-page shop** (brume no.1). Commerce flows (auth, checkout, orders) run on the `@/lib/api` mock seam; the real backend lives in `../suaci-official-backend`. Stripe, social login, and guest checkout are still TODO.
+- **Single-SKU one-page shop** (라임바질 페이셜 세럼 미스트 · take-01). Commerce flows (auth, checkout, orders) run on the `@/lib/api` mock seam; the real backend lives in `../suaci-official-backend`. Stripe, social login, and guest checkout are still TODO.
 - **Current surface**: home (SiteHeader/Hero/Story/Moments/ProductSection/SiteFooter/BuyBar), checkout, orders, account, auth pages. See `CLAUDE.md` §1.
 - **Removed on 2026-05-10**: skin-check/personal color feature was a temporary experiment — gone. Don't propose reviving AI/diagnosis features.
 
