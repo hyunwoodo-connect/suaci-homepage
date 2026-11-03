@@ -135,8 +135,6 @@
     "addAddress": "配送先を登録",
     "defaultBadge": "既定",
     "selectAddress": "配送先を選択してください",
-    "subtotal": "小計",
-    "discount": "割引",
     "shipping": "送料",
     "freeShipping": "無料",
     "grandTotal": "お支払い予定金額",
@@ -315,8 +313,7 @@
       "continue": "続ける",
       "done": "注文しました。",
       "doneSub": "届いたら一度シュッとしてみて。",
-      "doneFirst": "次は2タップで終わります。",
-      "soldOut": "いまは売り切れです。"
+      "doneFirst": "次は2タップで終わります。"
     },
     "consent": {
       "title": "同意して続ける",

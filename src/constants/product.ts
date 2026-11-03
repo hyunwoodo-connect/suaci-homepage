@@ -8,9 +8,7 @@ import { CHECKOUT_PRICING } from "./checkout";
 export const PRODUCT = {
   productId: "prod_daily_mist",
   variantId: "var_daily_80",
-  slug: "daily-calming-mist",
   name: "라임바질 페이셜 세럼 미스트 · take-01",
-  volume: "100 ml",
   /** KRW 정가 — 한 곳(constants/checkout)의 임시 값을 그대로 쓴다 */
   price: CHECKOUT_PRICING.price,
   maxQuantity: 9,
@@ -31,5 +29,4 @@ export const HOME_MEDIA = {
   basket: "/image/v5/moment-basket.webp",
   earrings: "/image/v5/moment-earrings.webp",
   logoBlack: "/brand/logo-black.svg",
-  logoWhite: "/brand/logo-white.svg",
 } as const;

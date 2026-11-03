@@ -7,7 +7,6 @@ export const SITE = {
   description:
     "lime & basil facial serum mist · take-01. a quick, playful refresh for the days your mind gets sensitive before your skin does.",
   copyright: "© 2026 suaci",
-  tagline: "take suaci.",
 } as const;
 
 /** 이벤트 페이지가 서는 운영 주소의 호스트. QR 옆 안내·스토리 주소·밖으로 넘기는 링크의 기준 */

@@ -135,8 +135,6 @@
     "addAddress": "배송지 추가",
     "defaultBadge": "기본",
     "selectAddress": "배송지를 골라 주세요",
-    "subtotal": "상품 금액",
-    "discount": "할인",
     "shipping": "배송비",
     "freeShipping": "무료",
     "grandTotal": "결제 금액",
@@ -315,8 +313,7 @@
       "continue": "이어서 하기",
       "done": "주문했어요.",
       "doneSub": "도착하면 한 번 뿌려 봐요.",
-      "doneFirst": "다음엔 두 번이면 끝나요.",
-      "soldOut": "지금은 다 나갔어요."
+      "doneFirst": "다음엔 두 번이면 끝나요."
     },
     "consent": {
       "title": "동의하고 계속",
