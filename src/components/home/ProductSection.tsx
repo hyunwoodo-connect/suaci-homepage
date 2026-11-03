@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 
+import PhotoSoon from "@/components/home/PhotoSoon";
 import ReturnNotice from "@/components/legal/ReturnNotice";
 import { PRODUCT } from "@/constants/product";
 import { formatKRW } from "@/lib/format";
@@ -50,26 +51,6 @@ export default function ProductSection() {
 }
 
 /* ─── 하위 컴포넌트 ─────────────────────────── */
-
-interface PhotoSoonProps {
-  label: string;
-  className: string;
-}
-
-/** 제품 사진 자리. 스튜디오 그레이 4:5 안에 '준비 중' 한 줄 */
-function PhotoSoon({ label, className }: PhotoSoonProps) {
-  return (
-    <div
-      role="img"
-      aria-label={label}
-      className={`flex aspect-[4/5] items-center justify-center bg-studio ${className}`}
-    >
-      <span aria-hidden="true" className="text-[13px] text-grey">
-        {label}
-      </span>
-    </div>
-  );
-}
 
 function Detail({ title, body }: { title: string; body: string }) {
   return (

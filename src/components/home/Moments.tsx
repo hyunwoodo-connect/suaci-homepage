@@ -1,5 +1,7 @@
 import Image from "next/image";
 import { useTranslations } from "next-intl";
+
+import PhotoSoon from "@/components/home/PhotoSoon";
 import { HOME_MEDIA } from "@/constants/product";
 
 /**
@@ -59,14 +61,8 @@ export default function Moments() {
           className="mt-[clamp(0px,6vw,96px)] w-[max(21%,min(100%,220px))]"
           sizes="(max-width: 767px) 60vw, 21vw"
         />
-        <Shot
-          src={HOME_MEDIA.bottle}
-          alt={t("bottleAlt")}
-          w={1200}
-          h={1500}
-          className="ml-auto w-[max(25%,min(100%,260px))]"
-          sizes="(max-width: 767px) 70vw, 25vw"
-        />
+        {/* 모델+보틀 컷은 AI 시안 병(실제 용기와 모양이 다르다)이라 실제 제품 컷이 나올 때까지 비워 둔다 */}
+        <PhotoSoon label={t("bottleSoon")} className="ml-auto w-[max(25%,min(100%,260px))]" />
         <Shot
           src={HOME_MEDIA.basket}
           alt={t("basketAlt")}

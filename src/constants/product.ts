@@ -25,7 +25,6 @@ export const HOME_MEDIA = {
   waterWebm: "/video/v5/water.webm",
   waterMp4: "/video/v5/water.mp4",
   turntable: "/image/v5/moment-turntable.webp",
-  bottle: "/image/v5/moment-bottle.webp",
   basket: "/image/v5/moment-basket.webp",
   earrings: "/image/v5/moment-earrings.webp",
   logoBlack: "/brand/logo-black.svg",

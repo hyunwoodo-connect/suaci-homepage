@@ -34,7 +34,7 @@
 
 ## 홈 구성 (v5 "white studio")
 
-헤더(로고 / en·jp·kr / 계정 아이콘, 구매 버튼 없음) → 히어로(룩북 루프 영상 5초, 무음 자동재생, 포스터 = 첫 프레임, 캡션 "take suaci. — lime & basil facial serum mist") → 브랜드 스토리(작은 글씨, 점+our story, take ~~a break~~ suaci.) → 무드 갤러리 7컷 엇갈림(소파 "3pm. inbox full." / 스마일 종이 "after the meeting." / 물결 풀블리드 / 턴테이블 라임 / 모델+보틀 / 메탈 바구니 라임 / 라임 귀걸이) → 제품 섹션(큰 컷+텍스트, 디테일 컷 2장, 접이식 how to use·ingredients·shipping) → 푸터(슬로건, 링크, 법적 표기, 하단에 잘려 나가는 대형 로고) → **하단 원클릭 바 = 유일한 구매 CTA**(구매 시트: 수량, apple pay / google pay / 카드).
+헤더(로고 / en·jp·kr / 계정 아이콘, 구매 버튼 없음) → 히어로(룩북 루프 영상 5초, 무음 자동재생, 포스터 = 첫 프레임, 캡션 "take suaci. — lime & basil facial serum mist") → 브랜드 스토리(작은 글씨, 점+our story, take ~~a break~~ suaci.) → 무드 갤러리 7컷 엇갈림(소파 "3pm. inbox full." / 스마일 종이 "after the meeting." / 물결 풀블리드 / 턴테이블 라임 / 모델+보틀(→ '제품 사진 준비 중' 자리) / 메탈 바구니 라임 / 라임 귀걸이) → 제품 섹션(큰 컷 자리+텍스트, 접이식 how to use·ingredients·shipping) → 푸터(슬로건, 링크, 법적 표기, 하단에 잘려 나가는 대형 로고) → **하단 원클릭 바 = 유일한 구매 CTA**(구매 시트: 수량, apple pay / google pay / 카드).
 
 ## 저장소 `suaci-official` 상태
 
@@ -48,6 +48,7 @@
 - 어댑터 모드(소셜·결제 공통): 클라 키 있으면 **live** / 없고 mock 모드거나 개발이면 **mock**(앱 안 목업 동의·즉시 성공 결제) / 운영+http 면 **off**(버튼 대신 준비 중 한 줄). 실키 오면 env 만 넣으면 전환. 미정 값(판매가 28,000·배송비 3,000·"suaci 바로결제" 가칭)은 `src/constants/checkout.ts` 한 곳.
 - UX 스펙: `docs/superpowers/specs/2026-10-26-payment-ux.md`(결제 UX 설계 — 두 번 누르면 끝).
 - 제품 섹션 사진: 다른 브랜드(퓨리토) 레퍼런스 3장은 2026-11-03 지웠다(사이트 잠금을 풀며 공개 금지). 실제 제품 컷이 나올 때까지 '제품 사진 준비 중' 자리.
+- 무드 갤러리 모델+보틀 컷(`moment-bottle.webp`, AI 시안 병 — 실제 용기와 모양이 다름)도 같은 날 지우고 같은 자리(`components/home/PhotoSoon`)로.
 - 출시 전 잠금(2026-11-03~): 주문·결제·주문 내역(`/checkout`·`/pay/*`·`/orders*`)만 잠근다. 나머지는 공개. 하단 바는 `SALES_OPEN`(constants/checkout) 이 false 인 동안 '출시 준비 중 · 출시 알림 받기'.
 - 최근 커밋: v5 리디자인 → 코드 점검 → 히어로 v2 영상(크로스페이드 제거) → 제품 섹션 재구성.
 
