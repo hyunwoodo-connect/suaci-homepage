@@ -155,7 +155,7 @@
     "goLogin": "sign in / join",
     "name": "name",
     "email": "email",
-    "memberSince": "member since",
+    "memberSince": "joined",
     "addresses": "addresses",
     "addressesNone": "none yet",
     "orders": "orders",

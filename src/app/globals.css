@@ -81,9 +81,13 @@ video {
   font-weight: 400;
   letter-spacing: -0.035em;
   text-transform: lowercase;
+  text-wrap: balance; /* 폰에서 두 줄이 되면 마지막 줄에 한두 글자만 남지 않게 */
 }
 :lang(ko) .sec__ti {
   letter-spacing: -0.02em; /* 한글은 라틴만큼 조이면 글자가 붙는다 */
+}
+:lang(ja) .sec__ti {
+  word-break: auto-phrase; /* 일본어는 낱말 사이 공백이 없어 줄바꿈이 낱말 가운데로 들어간다 */
 }
 /* 모바일은 제목 바로 아래 왼쪽 한 줄, 넓은 화면은 제목 오른쪽 끝 */
 .sec__me {

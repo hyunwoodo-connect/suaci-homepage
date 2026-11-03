@@ -93,7 +93,7 @@ export default function BuyBar() {
       />
       {/* 바 높이(66+16px)만큼 끌어올려 푸터 아래에 빈 띠가 생기지 않게 한다. */}
       <div className="pointer-events-none sticky bottom-0 z-20 -mt-[82px] flex flex-col items-center gap-[6px] px-[16px] pb-[16px]">
-        <p className="pointer-events-none m-0 text-[11px] text-grey">
+        <p className="pointer-events-none m-0 rounded-full bg-paper/90 px-[10px] py-[2px] text-[11px] text-grey">
           {note ?? t("shippingIncluded")}
         </p>
         <div className="pointer-events-auto flex h-[52px] items-center gap-[10px] rounded-full bg-ink pl-[10px] pr-[8px] text-paper shadow-[0_6px_24px_rgba(17,17,17,0.18)]">
