@@ -1,4 +1,5 @@
 import { useTranslations } from "next-intl";
+
 import ReturnNotice from "@/components/legal/ReturnNotice";
 import { PRODUCT } from "@/constants/product";
 import { formatKRW } from "@/lib/format";

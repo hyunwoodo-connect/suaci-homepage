@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
+
 import { useTranslations } from "next-intl";
 import { notFound, useParams, useSearchParams } from "next/navigation";
 

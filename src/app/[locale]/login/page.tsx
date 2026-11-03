@@ -1,8 +1,10 @@
 "use client";
 
 import { Suspense, useState } from "react";
+
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
+
 import { Link, useRouter } from "@/i18n/navigation";
 import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";

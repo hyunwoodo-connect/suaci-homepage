@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { useTranslations } from "next-intl";
+
 import { Link } from "@/i18n/navigation";
 import { HOME_MEDIA } from "@/constants/product";
 import { BUSINESS, SITE } from "@/constants/site";

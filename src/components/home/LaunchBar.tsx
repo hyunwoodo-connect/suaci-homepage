@@ -1,4 +1,5 @@
 import { useTranslations } from "next-intl";
+
 import { Link } from "@/i18n/navigation";
 import { PRODUCT } from "@/constants/product";
 import { formatKRW } from "@/lib/format";

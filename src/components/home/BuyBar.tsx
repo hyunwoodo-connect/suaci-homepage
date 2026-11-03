@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
+
 import { useRouter } from "@/i18n/navigation";
 import { displayTotal } from "@/constants/checkout";
 import { PRODUCT } from "@/constants/product";

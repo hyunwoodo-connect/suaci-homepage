@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import { useTranslations } from "next-intl";
+
 import { useRouter } from "@/i18n/navigation";
 import PageShell from "@/components/shell/PageShell";
 import ConsentForm, { SIGNUP_STASH_KEY, type SignupStash } from "@/components/auth/ConsentForm";

@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations } from "next-intl/server";
+
 import Analytics from "@/components/analytics/Analytics";
 import { routing } from "@/i18n/routing";
 import { SITE } from "@/constants/site";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { CartProvider } from "@/lib/cart/cart-context";
+
 import "../globals.css";
 
 export async function generateMetadata({

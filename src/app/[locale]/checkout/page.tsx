@@ -1,8 +1,10 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useState } from "react";
+
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
+
 import { useRouter } from "@/i18n/navigation";
 import PageShell from "@/components/shell/PageShell";
 import ReturnNotice from "@/components/legal/ReturnNotice";

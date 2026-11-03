@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Fraunces, Gowun_Batang } from "next/font/google";
-import "../../globals.css";
+
 import Analytics from "@/components/analytics/Analytics";
+
+import "../../globals.css";
 
 export const metadata: Metadata = {
   title: "suaci — 이벤트",
