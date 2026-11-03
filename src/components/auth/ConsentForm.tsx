@@ -98,7 +98,7 @@ export default function ConsentForm({ stash }: ConsentFormProps) {
         <ConsentCheck label={t("marketing")} checked={marketing} onChange={setMarketing} />
       </fieldset>
       {error === "required" && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-alert">
           {t("required")}
         </p>
       )}

@@ -120,7 +120,7 @@ export default function WaitlistForm({ locale, source }: WaitlistFormProps) {
         <span>{t("marketingConsent")}</span>
       </label>
       {error && (
-        <div role="alert" className="flex items-center gap-[12px] text-[12px] text-[#c0392b]">
+        <div role="alert" className="flex items-center gap-[12px] text-[12px] text-alert">
           <span>{error.message}</span>
           {error.canRetry && (
             <button

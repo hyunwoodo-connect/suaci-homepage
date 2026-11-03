@@ -94,7 +94,7 @@ function ResetForm() {
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
         />
-        {error && <p className="font-sans text-[11px] text-[#c0392b] m-0">✕ {error}</p>}
+        {error && <p className="font-sans text-[11px] text-alert m-0">✕ {error}</p>}
         <Button type="submit" disabled={busy} className="mt-[6px]">
           {busy ? "..." : t("submitReset")}
         </Button>

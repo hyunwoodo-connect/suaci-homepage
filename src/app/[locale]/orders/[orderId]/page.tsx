@@ -570,5 +570,5 @@ function TotalRow({ label, value }: { label: string; value: string }) {
 }
 
 function ErrorNote({ text }: { text: string }) {
-  return <p className="font-sans text-[11px] text-[#c0392b] m-0">✕ {text}</p>;
+  return <p className="font-sans text-[11px] text-alert m-0">✕ {text}</p>;
 }

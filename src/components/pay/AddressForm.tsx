@@ -178,7 +178,7 @@ export default function AddressForm({ onSubmit, submitLabel, initialRecipient }:
       </label>
 
       {error && (
-        <p role="alert" className="m-0 text-[13px] text-red-600">
+        <p role="alert" className="m-0 text-[13px] text-alert">
           {error === "detail" ? t("detailRequired") : t("phoneInvalid")}
         </p>
       )}
