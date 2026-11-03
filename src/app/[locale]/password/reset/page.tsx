@@ -12,7 +12,7 @@ import PageShell from "@/components/shell/PageShell";
 import { api } from "@/lib/api";
 
 /**
- * 비밀번호 재설정 — mock ApiClient 계약(resetPassword) 호출.
+ * 비밀번호 재설정(resetPassword).
  * 이메일·인증코드·새 비밀번호 → 성공 시 로그인으로 이동.
  * ?email= 쿼리로 이메일 프리필. useSearchParams는 Suspense로 감싼다.
  */

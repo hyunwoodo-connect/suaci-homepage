@@ -6,7 +6,7 @@ import { formatKRW } from "@/lib/format";
 
 /**
  * 판매를 열기 전 하단 바(`SALES_OPEN` false). 사기 바와 같은 자리·모양으로 가격을 보여 주고,
- * 구매 대신 출시 알림 받기로 보낸다 — 커머스 API 가 아직 목업이라 손님이 주문할 수 있으면 안 된다.
+ * 구매 대신 출시 알림 받기로 보낸다 — 판매를 열기 전에는 손님이 주문할 수 있으면 안 된다(주문·결제 화면도 잠근다).
  */
 export default function LaunchBar() {
   const t = useTranslations("pay.bar");

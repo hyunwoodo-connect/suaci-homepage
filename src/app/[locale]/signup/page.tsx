@@ -14,7 +14,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 type Step = "form" | "confirm";
 
 /**
- * 회원가입 — mock ApiClient 계약 2단계 플로우.
+ * 이메일 회원가입 — 2단계.
  * signup(이메일·비밀번호·이름·동의) → confirm(인증코드) → login.
  */
 export default function SignupPage() {

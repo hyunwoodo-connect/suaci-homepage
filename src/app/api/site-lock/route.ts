@@ -1,3 +1,4 @@
+/** 잠금 화면 비번 폼이 보내는 곳. 맞으면 잠금 쿠키를 심고 원래 가던 곳으로 */
 import { NextResponse } from "next/server";
 
 import {

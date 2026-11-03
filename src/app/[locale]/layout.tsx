@@ -1,3 +1,7 @@
+/**
+ * 언어별 사이트의 <html> — 메타데이터(제목·OG·hreflang)와 번역·로그인·카트 컨텍스트.
+ * 이벤트 페이지(/events)는 [locale] 밖이라 자기 레이아웃을 쓴다.
+ */
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider, hasLocale } from "next-intl";

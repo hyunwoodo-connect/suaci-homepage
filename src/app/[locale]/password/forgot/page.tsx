@@ -11,7 +11,7 @@ import PageShell from "@/components/shell/PageShell";
 import { api } from "@/lib/api";
 
 /**
- * 비밀번호 찾기 — mock ApiClient 계약(forgotPassword) 호출.
+ * 비밀번호 찾기(forgotPassword).
  * 이메일 입력 → 인증코드 발송 → 성공 안내에서 재설정 페이지로 유도.
  */
 export default function ForgotPasswordPage() {

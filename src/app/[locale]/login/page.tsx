@@ -14,9 +14,8 @@ import { safeNextPath } from "@/lib/auth/social";
 import { useAuth } from "@/lib/auth/auth-context";
 
 /**
- * 로그인 — mock ApiClient 계약(login → getMe) 호출.
- * ?next= 파라미터가 있으면 로그인 후 해당 경로로 복귀(PDP 담기 게이트 등).
- * 백엔드 연결 시 NEXT_PUBLIC_API_MODE 스위칭 외 수정 불필요.
+ * 로그인 — 소셜 버튼이 먼저, 이메일·비밀번호(login → getMe)는 접어 둔다.
+ * ?next= 가 있으면 로그인 뒤 그 경로로 돌아간다(같은 사이트 경로만).
  */
 export default function LoginPage() {
   return (

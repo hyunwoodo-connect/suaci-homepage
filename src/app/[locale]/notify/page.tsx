@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: NotifyPageProps): Promise<Met
 }
 
 /**
- * 출시 알림 받기(대기 명단). 출시 전 잠금 밖에 있는 유일한 화면이다(12월 티저 링크가 여기로 온다).
+ * 출시 알림 받기(대기 명단). 판매 전 하단 바와 12월 티저 링크가 여기로 온다.
  * 유입은 ?utm_source= 또는 ?ref= 로 받아 그대로 넘긴다
  */
 export default async function NotifyPage({ params, searchParams }: NotifyPageProps) {

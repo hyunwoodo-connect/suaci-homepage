@@ -1,3 +1,7 @@
+/**
+ * 모든 페이지 요청의 입구. 이벤트 페이지(/events/{slug})는 공개 여부·미리보기 토큰으로 열고,
+ * 그 밖은 출시 전 잠금(주문·결제 화면)을 거친 뒤 next-intl 로 언어를 붙인다.
+ */
 import createMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -16,7 +20,7 @@ const intl = createMiddleware(routing);
 const EVENT_PREVIEW_MAX_AGE_S = 7 * 24 * 60 * 60;
 
 export default async function middleware(req: NextRequest) {
-  // 이벤트 페이지(/events/{slug})만 출시 전 잠금에서 뺀다 — 공개 이벤트이거나 미리보기 토큰이 맞을 때.
+  // 이벤트 페이지는 공개 이벤트이거나 미리보기 토큰이 맞으면 연다. 아니면 사이트 비번(테스터)으로만.
   // [locale] 밖이라 next-intl을 태우지 않는다(언어 접두사가 붙으면 안 된다).
   const slug = eventSlugFromPath(req.nextUrl.pathname);
   if (slug) {
@@ -47,7 +51,7 @@ export default async function middleware(req: NextRequest) {
       }
       return res;
     }
-    // 공개 전 이벤트는 사이트를 연 뒤에도 잠근다 — 비번(테스터)으로만 연다
+    // 공개 전 이벤트는 판매를 연 뒤에도 잠근다 — 비번(테스터)으로만 연다
     if (!(await isUnlocked(req.cookies.get(SITE_LOCK_COOKIE)?.value, process.env.SITE_LOCK_PIN))) {
       return gateResponse(req.nextUrl.pathname + req.nextUrl.search, false);
     }

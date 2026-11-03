@@ -1,3 +1,4 @@
+/** 웹 앱 매니페스트 — 홈 화면에 추가했을 때의 이름·아이콘 */
 import type { MetadataRoute } from "next";
 
 import { SITE } from "@/constants/site";

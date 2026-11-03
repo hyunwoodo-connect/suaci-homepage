@@ -1,7 +1,7 @@
 /**
- * 출시 전 잠금. 숫자 비번(SITE_LOCK_PIN, Amplify 환경 변수 — 저장소가 공개라 코드에 두지 않는다)을
- * 넣으면 쿠키로 30일 열어 둔다. 비번이 설정 안 됐으면 아무도 못 들어간다(잘못 열리는 쪽보다 낫다).
- * 2026-11-03부터 잠그는 곳은 주문·결제 화면뿐이다(`isLockedBeforeLaunch`).
+ * 출시 전 잠금 — 주문·결제 화면(`isLockedBeforeLaunch`)과 공개 전 이벤트를 숫자 비번 뒤에 둔다.
+ * 비번(SITE_LOCK_PIN)은 Amplify 환경 변수 — 저장소가 공개라 코드에 두지 않는다. 맞히면 쿠키로 30일 열어 둔다.
+ * 비번이 설정 안 됐으면 아무도 못 들어간다(잘못 열리는 쪽보다 낫다).
  */
 export const SITE_LOCK_COOKIE = "suaci_preview";
 export const SITE_LOCK_MAX_AGE_S = 60 * 60 * 24 * 30;
@@ -15,14 +15,15 @@ export async function lockToken(pin: string): Promise<string> {
   return Array.from(new Uint8Array(bytes), (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/** 잠금 쿠키가 지금 비번으로 만든 값인가 */
 export async function isUnlocked(cookie: string | undefined, pin: string | undefined) {
   if (!pin || !cookie) return false;
   return cookie === (await lockToken(pin));
 }
 
-// 출시 전에 잠그는 화면: 주문·결제·주문 내역뿐(2026-11-03 오너 "락을 풀어"). 커머스 API 가 아직 목업이라
-// 손님이 실제로 주문한 줄 알면 안 된다. 홈·상품·가격·정책·사업자 정보·로그인·가입은 연다(카카오 동의항목 심사·PG 카드 심사).
-// 테스터는 비번으로 지금처럼 열 수 있다. 판매를 열면(`SALES_OPEN`) 이 잠금도 같이 빠진다.
+// 판매를 열기 전(`SALES_OPEN` false)에는 주문이 실제 주문이 아니다 — 손님이 주문했다고 믿을 화면만 잠근다.
+// 홈·상품·가격·정책·사업자 정보·로그인·가입은 연다(카카오 동의항목·PG 카드 심사가 이 화면들을 본다).
+// 판매를 열면 middleware 가 이 검사를 건너뛴다.
 const LOCKED_BEFORE_LAUNCH = /^\/(?:(?:en|ja|ko)\/)?(?:checkout|pay|orders)(?:\/.*)?$/;
 
 /** 출시 전 잠금 대상인가(주문·결제·주문 내역). 언어 접두사(en·ja·ko)는 있어도 없어도 된다 */
@@ -79,14 +80,7 @@ export function gateHtml({ next, wrong }: { next: string; wrong: boolean }): str
 </html>`;
 }
 
-function escapeAttr(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
+/** 잠금 화면 응답 — 401, 검색·캐시 제외 */
 export function gateResponse(next: string, wrong: boolean): Response {
   return new Response(gateHtml({ next, wrong }), {
     status: 401,
@@ -96,4 +90,14 @@ export function gateResponse(next: string, wrong: boolean): Response {
       "x-robots-tag": "noindex, nofollow",
     },
   });
+}
+
+/* ─── 내부 ─────────────────────────── */
+
+function escapeAttr(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
