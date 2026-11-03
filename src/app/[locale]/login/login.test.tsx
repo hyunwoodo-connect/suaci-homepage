@@ -76,6 +76,16 @@ describe("로그인 페이지", () => {
     expect(screen.getByLabelText("이메일")).toBeTruthy();
   });
 
+  it("이미 로그인했어도 next 가 다른 사이트로 새는 값(/\\evil.com)이면 → 내 계정으로", async () => {
+    tokenStore.save({ idToken: "i", accessToken: "a", refreshToken: "r", expiresIn: 60 });
+    getMe.mockResolvedValue({ userId: "u1", name: "미나" });
+    searchParams.value = new URLSearchParams({ next: "/\\evil.com" });
+    await renderPage();
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/account"));
+    expect(replace).not.toHaveBeenCalledWith("/\\evil.com");
+    tokenStore.clear();
+  });
+
   it("이미 로그인한 회원 → 로그인 화면 대신 next 로", async () => {
     tokenStore.save({ idToken: "i", accessToken: "a", refreshToken: "r", expiresIn: 60 });
     getMe.mockResolvedValue({ userId: "u1", name: "미나" });

@@ -31,9 +31,17 @@ export function isLockedBeforeLaunch(pathname: string): boolean {
   return LOCKED_BEFORE_LAUNCH.test(pathname);
 }
 
-/** 들어간 뒤 돌아갈 곳. 같은 사이트 경로만(//evil.com 같은 건 /) */
+/**
+ * 들어간 뒤 돌아갈 곳. 같은 사이트 경로만 — `//evil.com`·`/\\evil.com`(브라우저가 `//` 로 읽음)·제어 문자(CR·LF 가
+ * location 헤더에 들어가면 500)가 든 값은 `/`
+ */
 export function safeNext(next: unknown): string {
-  return typeof next === "string" && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+  return typeof next === "string" &&
+    next.startsWith("/") &&
+    !next.startsWith("//") &&
+    !/[\\\u0000-\u001f\u007f]/.test(next)
+    ? next
+    : "/";
 }
 
 /** 잠금 화면 언어. 사이트 로케일과 같다 */

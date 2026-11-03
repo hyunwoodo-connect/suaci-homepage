@@ -58,7 +58,7 @@ function CheckoutBody() {
   const tc = useTranslations("common");
   const router = useRouter();
   const search = useSearchParams();
-  const { status, user } = useAuth();
+  const { status, user, refresh } = useAuth();
   const { clear, add } = useCart();
 
   // 수량: 쿼리 > 보류 주문(이어가기 — "적은 건 그대로") > 1
@@ -199,7 +199,8 @@ function CheckoutBody() {
       if (e instanceof ApiClientError) {
         const known = (KNOWN_ERROR_CODES as readonly string[]).includes(e.code);
         setNote(known ? t(`error.${e.code}`) : t("error.GENERIC"));
-        if (e.code === "AUTH_REQUIRED") router.replace("/login?next=/checkout");
+        // 토큰이 풀렸는데 화면 상태만 남은 경우 — 상태를 다시 확인하면 로그인으로 보내는 효과가 수량까지 붙여 보낸다
+        if (e.code === "AUTH_REQUIRED") void refresh();
       } else {
         setNote(t("error.GENERIC"));
       }

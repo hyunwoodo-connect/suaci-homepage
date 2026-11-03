@@ -160,7 +160,8 @@
     "addressesNone": "none yet",
     "orders": "orders",
     "ordersSoon": "you'll see them here after launch.",
-    "logout": "sign out"
+    "logout": "sign out",
+    "helloNoName": "hi there."
   },
   "addresses": {
     "title": "addresses",

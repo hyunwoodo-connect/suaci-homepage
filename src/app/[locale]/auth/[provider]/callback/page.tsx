@@ -21,6 +21,15 @@ import {
 import type { SocialProvider } from "@/types";
 
 /**
+ * 안 된 경우 셋 — 손님이 동의 화면에서 취소(declined) / 프로바이더가 다른 이유로 돌려보냄(refused,
+ * 예: 검수 전 네이버 앱에 멤버가 아닌 사람) / 우리 쪽 왕복이 끊김(broken: state 불일치·코드 없음·교환 실패).
+ */
+type Phase = { kind: "working" } | { kind: "declined" | "refused" | "broken"; next: string };
+
+/** 어디서 왔는지 모를 때 다시 로그인하면 갈 곳 — 로그인 화면의 기본값과 같다 */
+const FALLBACK_NEXT = "/account";
+
+/**
  * 소셜 로그인 콜백 — 프로바이더(또는 목업 동의 화면)가 code·state 를 들고 돌아오는 곳.
  * state 가 저장된 nonce 와 다르면 교환 없이 안내만(위조 방지). 처음 온 사람은 /auth/consent 로.
  * 모르는 프로바이더 경로는 404.
@@ -37,15 +46,6 @@ export default function CallbackPage() {
 }
 
 /* ─── 하위 컴포넌트 ─────────────────────────── */
-
-/**
- * 안 된 경우 셋 — 손님이 동의 화면에서 취소(declined) / 프로바이더가 다른 이유로 돌려보냄(refused,
- * 예: 검수 전 네이버 앱에 멤버가 아닌 사람) / 우리 쪽 왕복이 끊김(broken: state 불일치·코드 없음·교환 실패).
- */
-type Phase = { kind: "working" } | { kind: "declined" | "refused" | "broken"; next: string };
-
-/** 어디서 왔는지 모를 때 다시 로그인하면 갈 곳 — 로그인 화면의 기본값과 같다 */
-const FALLBACK_NEXT = "/account";
 
 interface CallbackBodyProps {
   provider: SocialProvider;

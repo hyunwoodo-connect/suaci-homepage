@@ -160,7 +160,8 @@
     "addressesNone": "아직 없어요",
     "orders": "주문 내역",
     "ordersSoon": "출시하면 여기서 볼 수 있어요.",
-    "logout": "로그아웃"
+    "logout": "로그아웃",
+    "helloNoName": "반가워요."
   },
   "addresses": {
     "title": "배송지",

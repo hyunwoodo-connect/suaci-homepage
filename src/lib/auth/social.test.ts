@@ -138,6 +138,17 @@ describe("safeNextPath / safeRedirectTarget — 오픈 리다이렉트 차단", 
   it("next 는 같은 사이트 경로만 — //evil.com·절대 URL 은 /", () => {
     expect(safeNextPath("/?buy=1")).toBe("/?buy=1");
     expect(safeNextPath("//evil.com")).toBe("/");
+    // 브라우저는 `\` 를 `/` 로 읽고 탭·줄바꿈을 지운다 — 모두 `//evil.com` 이 된다
+    for (const evil of [
+      "/\\evil.com",
+      "/\\/evil.com",
+      "/\t/evil.com",
+      "/\n/evil.com",
+      "/\r/evil.com",
+    ]) {
+      expect(safeNextPath(evil), JSON.stringify(evil)).toBe("/");
+      expect(safeRedirectTarget(evil, "https://takesuaci.com"), JSON.stringify(evil)).toBeNull();
+    }
     expect(safeNextPath("https://evil.com")).toBe("/");
     expect(safeNextPath(null)).toBe("/");
   });

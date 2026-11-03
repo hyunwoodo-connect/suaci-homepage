@@ -48,6 +48,9 @@ describe("site-lock", () => {
   it("safeNext: 같은 사이트 경로만", () => {
     expect(safeNext("/ja?x=1")).toBe("/ja?x=1");
     expect(safeNext("//evil.com")).toBe("/");
+    for (const evil of ["/\\evil.com", "/\t/evil.com", "/\r\nSet-Cookie: x=1"]) {
+      expect(safeNext(evil), JSON.stringify(evil)).toBe("/");
+    }
     expect(safeNext("https://evil.com")).toBe("/");
     expect(safeNext(null)).toBe("/");
   });

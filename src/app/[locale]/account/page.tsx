@@ -50,7 +50,10 @@ export default function AccountPage() {
   }
 
   return (
-    <PageShell title={t("title")} meta={t("hello", { name: user.name })}>
+    <PageShell
+      title={t("title")}
+      meta={user.name ? t("hello", { name: user.name }) : t("helloNoName")}
+    >
       <div className="flex max-w-[560px] flex-col">
         <dl className="m-0 flex flex-col gap-[12px]">
           <InfoRow label={t("name")} value={user.name} />

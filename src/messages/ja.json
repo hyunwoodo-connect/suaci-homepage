@@ -160,7 +160,8 @@
     "addressesNone": "まだありません",
     "orders": "注文履歴",
     "ordersSoon": "発売後、ここで確認できます。",
-    "logout": "ログアウト"
+    "logout": "ログアウト",
+    "helloNoName": "こんにちは。"
   },
   "addresses": {
     "title": "お届け先",

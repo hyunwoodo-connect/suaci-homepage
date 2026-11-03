@@ -17,6 +17,7 @@ import {
   visibleProviders,
 } from "@/lib/auth/social";
 import { useAuth } from "@/lib/auth/auth-context";
+import { tokenStore } from "@/lib/auth/token-store";
 import type { SocialProvider } from "@/types";
 
 /**
@@ -38,7 +39,7 @@ function LoginBody() {
   const tp = useTranslations("pay.login");
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, status } = useAuth();
+  const { login, status, refresh } = useAuth();
 
   const justReset = searchParams.get("reset") === "1";
   const next = afterLoginPath(searchParams.get("next"));
@@ -51,8 +52,15 @@ function LoginBody() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (status === "authenticated") router.replace(next);
-  }, [status, router, next]);
+    if (status !== "authenticated") return;
+    // 다른 탭에서 로그아웃했거나 토큰이 만료돼 지워졌는데 화면 상태만 남은 경우 — 바로 보내면 주문서와 여기를 왔다 갔다 한다.
+    // 토큰이 없으면 상태를 다시 확인해(로그인 풀림) 폼을 보여 준다
+    if (!tokenStore.getAccessToken()) {
+      void refresh();
+      return;
+    }
+    router.replace(next);
+  }, [status, router, next, refresh]);
 
   // 다른 버튼으로 들어오면 계정이 하나 더 생긴다 — 지난번 버튼을 알려 준다(지금 보이는 버튼일 때만)
   useEffect(() => {

@@ -108,9 +108,15 @@ export function takeLoginState(state: string | null): { next: string } | null {
   }
 }
 
-/** 로그인 뒤 돌아갈 곳 — 같은 사이트 경로만(`//evil.com`·절대 URL 은 `/`, 오픈 리다이렉트 차단) */
+/** 같은 사이트 경로인가 — `/` 로 시작하고 `//` 가 아니며, 브라우저가 `/` 로 읽는 `\\`·지워 버리는 제어 문자(탭·줄바꿈)가 없다 */
+export function isSameSitePath(path: string): boolean {
+  // `/\evil.com`·`/\t/evil.com` 은 브라우저 URL 파서에서 `//evil.com` 이 된다(다른 사이트로 나간다)
+  return path.startsWith("/") && !path.startsWith("//") && !/[\\\u0000-\u001f\u007f]/.test(path);
+}
+
+/** 로그인 뒤 돌아갈 곳 — 같은 사이트 경로만(`//evil.com`·`/\\evil.com`·절대 URL 은 `/`, 오픈 리다이렉트 차단) */
 export function safeNextPath(next: string | null | undefined): string {
-  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+  return next && isSameSitePath(next) ? next : "/";
 }
 
 /** 로그인·가입 화면의 `?next=` → 끝나고 갈 곳. 없거나 막힌 주소면 내 계정, 일부러 준 `/` 는 홈 */
@@ -125,7 +131,7 @@ export function afterLoginPath(raw: string | null): string {
  */
 export function safeRedirectTarget(uri: string | null, origin: string): string | null {
   if (!uri) return null;
-  if (uri.startsWith("/") && !uri.startsWith("//")) return uri;
+  if (isSameSitePath(uri)) return uri;
   if (uri === origin || uri.startsWith(`${origin}/`)) return uri;
   return null;
 }
