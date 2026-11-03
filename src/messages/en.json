@@ -257,7 +257,9 @@
     "current": "current version",
     "pastVersion": "this is a past version.",
     "koOnly": "this page is currently available in korean only.",
-    "more": "other policies"
+    "more": "other policies",
+    "returnNotice": "cosmetics can't be returned for a change of mind once the seal is opened or the product is used.",
+    "seeMore": "details:"
   },
   "pay": {
     "bar": {

@@ -34,6 +34,9 @@ vi.mock("@/lib/cart/cart-context", () => ({
 }));
 vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push, replace: vi.fn() }),
+  Link: ({ href, children }: { href: string; children: React.ReactNode }) => (
+    <a href={href}>{children}</a>
+  ),
 }));
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
@@ -131,6 +134,17 @@ describe("재구매 시트", () => {
     expect(screen.getByText(/서울 중구 세종대로 110/)).toBeTruthy();
     expect(screen.getByText("suaci 바로결제")).toBeTruthy();
     expect(screen.getByText("문 앞")).toBeTruthy();
+  });
+
+  it("반품 제한 고지(개봉·사용 후 단순 변심 불가) + 배송·교환·환불 안내 링크", async () => {
+    await openSheet();
+    expect(
+      screen.getByText(/화장품은 밀봉을 뜯거나 사용하면 단순 변심으로 반품할 수 없어요\./),
+    ).toBeTruthy();
+    expect(screen.getByRole("link", { name: "배송·교환·환불 안내" })).toHaveAttribute(
+      "href",
+      "/legal/refund",
+    );
   });
 
   it("결제하기 → createOrder(메타데이터) → pending 저장 → 목업 결제창 이동", async () => {

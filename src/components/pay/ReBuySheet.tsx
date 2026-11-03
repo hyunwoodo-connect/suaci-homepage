@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { DELIVERY_MEMOS, displayTotal } from "@/constants/checkout";
 import { PRODUCT } from "@/constants/product";
+import ReturnNotice from "@/components/legal/ReturnNotice";
 import MethodPicker from "@/components/pay/MethodPicker";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { api } from "@/lib/api";
@@ -247,6 +248,8 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
         )}
 
         {method === "BRANDPAY" && <p className="m-0 text-[12px] text-grey">{tc("brandpayHint")}</p>}
+
+        <ReturnNotice />
 
         <button
           type="button"

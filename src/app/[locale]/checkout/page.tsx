@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
 import PageShell from "@/components/shell/PageShell";
+import ReturnNotice from "@/components/legal/ReturnNotice";
 import AddressForm from "@/components/pay/AddressForm";
 import MethodPicker from "@/components/pay/MethodPicker";
 import { CHECKOUT_PRICING, DELIVERY_MEMOS, displayTotal } from "@/constants/checkout";
@@ -382,6 +383,7 @@ function CheckoutBody() {
               <b className="num font-sans text-[20px]">{formatKRW(total)}</b>
             </div>
           </div>
+          <ReturnNotice className="mb-[14px]" />
           {note && <p className="mb-[14px] font-sans text-[11px] text-[#c0392b]">✕ {note}</p>}
           <button
             type="button"

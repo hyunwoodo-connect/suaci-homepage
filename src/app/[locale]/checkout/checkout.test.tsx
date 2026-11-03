@@ -127,6 +127,24 @@ describe("주문서(첫 구매)", () => {
   });
 });
 
+describe("주문서 — 반품 제한 고지(전자상거래법 제17조제6항)", () => {
+  it("결제 버튼 위에 개봉·사용 후 단순 변심 반품 불가 + 배송·교환·환불 안내 링크", async () => {
+    vi.clearAllMocks();
+    searchParams.value = new URLSearchParams("qty=1");
+    listAddresses.mockResolvedValue([ADDRESS]);
+    await act(async () => {
+      renderPage();
+    });
+    expect(
+      await screen.findByText(/화장품은 밀봉을 뜯거나 사용하면 단순 변심으로 반품할 수 없어요\./),
+    ).toBeTruthy();
+    expect(screen.getByRole("link", { name: "배송·교환·환불 안내" })).toHaveAttribute(
+      "href",
+      "/legal/refund",
+    );
+  });
+});
+
 describe("주문서 — 이어가기 수량", () => {
   it("qty 쿼리가 없으면 pending.qty 로 — '적은 건 그대로'", async () => {
     sessionStorage.clear();

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { useTranslations } from "next-intl";
+import ReturnNotice from "@/components/legal/ReturnNotice";
 import { HOME_MEDIA, PRODUCT } from "@/constants/product";
 import { formatKRW } from "@/lib/format";
 
@@ -49,6 +50,8 @@ export default function ProductSection() {
             <Detail title={t("ingredients")} body={t("ingredientsBody")} />
             <Detail title={t("shipping")} body={t("shippingBody")} />
           </div>
+          {/* 접힌 배송·반품 안에 두지 않는다 — 펼치지 않아도 보여야 한다 */}
+          <ReturnNotice className="-mt-[12px]" />
         </div>
 
         {/* 디테일 컷 2장 — 한 줄을 강제로 차지해 큰 컷/텍스트 아래에서 엇갈린다. */}
