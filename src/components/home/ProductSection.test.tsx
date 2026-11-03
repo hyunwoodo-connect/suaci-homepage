@@ -43,6 +43,19 @@ describe("ProductSection — 반품 제한 고지(전자상거래법 제17조제
     );
   });
 
+  it("배송·반품 → 배송·교환·환불 안내 2판 요약(배송비·무료 기준은 주문서와 같은 상수)", () => {
+    render(
+      <NextIntlClientProvider locale="ko" messages={ko}>
+        <ProductSection />
+      </NextIntlClientProvider>,
+    );
+    const body = screen.getByText(/국내에만 택배로 보내요\./);
+    expect(body.closest("details")).not.toBeNull();
+    expect(body.textContent).toContain("배송비는 ₩3,000이고 ₩50,000 이상 주문은 무료예요.");
+    expect(body.textContent).toContain("받은 날부터 7일 안에 반품을 신청할 수 있어요.");
+    expect(body.textContent).not.toContain("준비 중");
+  });
+
   it("다른 브랜드 사진 없이 '제품 사진 준비 중' 자리만", () => {
     const { container } = render(
       <NextIntlClientProvider locale="ko" messages={ko}>

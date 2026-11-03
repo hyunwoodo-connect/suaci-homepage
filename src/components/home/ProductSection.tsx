@@ -2,6 +2,7 @@ import { useTranslations } from "next-intl";
 
 import PhotoSoon from "@/components/home/PhotoSoon";
 import ReturnNotice from "@/components/legal/ReturnNotice";
+import { CHECKOUT_PRICING } from "@/constants/checkout";
 import { PRODUCT } from "@/constants/product";
 import { formatKRW } from "@/lib/format";
 
@@ -40,7 +41,14 @@ export default function ProductSection() {
           <div className="border-t border-line">
             <Detail title={t("howToUse")} body={t("howToUseBody")} />
             <Detail title={t("ingredients")} body={t("ingredientsBody")} />
-            <Detail title={t("shipping")} body={t("shippingBody")} />
+            {/* 배송·교환·환불 안내 2판의 요약. 금액은 주문서와 같은 상수에서 — 바뀌면 정책 문서(관리 툴)도 같이 */}
+            <Detail
+              title={t("shipping")}
+              body={t("shippingBody", {
+                fee: formatKRW(CHECKOUT_PRICING.shippingFee),
+                freeOver: formatKRW(CHECKOUT_PRICING.freeShippingOver),
+              })}
+            />
           </div>
           {/* 접힌 배송·반품 안에 두지 않는다 — 펼치지 않아도 보여야 한다 */}
           <ReturnNotice className="-mt-[12px]" />
