@@ -79,8 +79,15 @@ export default function SiteHeader({ overlay = false }: SiteHeaderProps) {
         <Link
           href={accountHref}
           aria-label={status === "authenticated" ? t("account") : t("signIn")}
-          className="flex h-[32px] w-[32px] items-center justify-center rounded-full text-ink hover:bg-ink/5"
+          className="relative flex h-[32px] w-[32px] items-center justify-center rounded-full text-ink hover:bg-ink/5"
         >
+          {/* 로그인해 있으면 라임 점 하나 — 들어와 있다는 표시 */}
+          {status === "authenticated" && (
+            <span
+              aria-hidden="true"
+              className="absolute right-[4px] top-[4px] size-[7px] rounded-full bg-lime ring-2 ring-paper"
+            />
+          )}
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <circle cx="12" cy="8.5" r="3.75" stroke="currentColor" strokeWidth="1.5" />
             <path

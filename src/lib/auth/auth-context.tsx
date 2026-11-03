@@ -18,10 +18,13 @@ export type AuthStatus = "loading" | "authenticated" | "anonymous";
 export interface AuthContextValue {
   user: User | null;
   status: AuthStatus;
+  /** 로그인해 있던 세션이 끝났다(토큰 만료 등) — '로그인이 풀렸어요' 안내용. 다시 로그인하거나 로그아웃하면 false */
+  sessionEnded: boolean;
   login(email: string, password: string): Promise<void>;
   /** 소셜 로그인이 받아 온 토큰을 입양 — 저장하고 내 정보를 불러 authenticated 로 */
   adoptTokens(tokens: TokenResponse): Promise<void>;
   logout(): Promise<void>;
+  /** 세션을 다시 확인한다. 로그인 중에 API 가 AUTH_REQUIRED 를 주면 부른다 — 토큰이 없거나 안 맞으면 세션 끝 */
   refresh(): Promise<void>;
 }
 
@@ -30,11 +33,18 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<AuthStatus>("loading");
+  const [sessionEnded, setSessionEnded] = useState(false);
+
+  const endSession = useCallback(() => {
+    tokenStore.clear();
+    setUser(null);
+    setStatus("anonymous");
+    setSessionEnded(true);
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!tokenStore.getAccessToken()) {
-      setUser(null);
-      setStatus("anonymous");
+      endSession();
       return;
     }
     try {
@@ -42,11 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(me);
       setStatus("authenticated");
     } catch {
-      tokenStore.clear();
-      setUser(null);
-      setStatus("anonymous");
+      endSession();
     }
-  }, []);
+  }, [endSession]);
 
   useEffect(() => {
     let active = true;
@@ -62,15 +70,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setStatus("authenticated");
         }
       } catch {
-        tokenStore.clear();
-        if (active) setStatus("anonymous");
+        // 저장된 토큰이 있었는데 안 맞는다 = 지난 로그인이 풀렸다
+        if (active) endSession();
+        else tokenStore.clear();
       }
     };
     void restore();
     return () => {
       active = false;
     };
-  }, []);
+  }, [endSession]);
 
   const login = useCallback(async (email: string, password: string) => {
     const tokens = await api.login({ email, password });
@@ -78,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const me = await api.getMe();
     setUser(me);
     setStatus("authenticated");
+    setSessionEnded(false);
   }, []);
 
   const adoptTokens = useCallback(async (tokens: TokenResponse) => {
@@ -85,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const me = await api.getMe();
     setUser(me);
     setStatus("authenticated");
+    setSessionEnded(false);
   }, []);
 
   const logout = useCallback(async () => {
@@ -92,11 +103,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     tokenStore.clear();
     setUser(null);
     setStatus("anonymous");
+    setSessionEnded(false);
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, status, login, adoptTokens, logout, refresh }),
-    [user, status, login, adoptTokens, logout, refresh],
+    () => ({ user, status, sessionEnded, login, adoptTokens, logout, refresh }),
+    [user, status, sessionEnded, login, adoptTokens, logout, refresh],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

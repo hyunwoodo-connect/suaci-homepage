@@ -21,7 +21,11 @@ interface DaumPostcodeData {
 declare global {
   interface Window {
     daum?: {
-      Postcode: new (opts: { oncomplete: (d: DaumPostcodeData) => void }) => {
+      Postcode: new (opts: {
+        oncomplete: (d: DaumPostcodeData) => void;
+        width?: string;
+        height?: string;
+      }) => {
         embed: (el: HTMLElement) => void;
       };
     };
@@ -53,6 +57,9 @@ export default function AddressForm({ onSubmit, submitLabel, initialRecipient }:
     const mount = () => {
       if (cancelled || !layerRef.current || !window.daum) return;
       new window.daum.Postcode({
+        // 기본값은 폭 500px — 폰(390px)에서 화면이 옆으로 밀린다. 감싼 칸에 맞춘다
+        width: "100%",
+        height: "100%",
         oncomplete: (d) => {
           setZipcode(d.zonecode);
           setAddr1(d.roadAddress);

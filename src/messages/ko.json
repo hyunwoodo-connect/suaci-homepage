@@ -6,7 +6,8 @@
   "common": {
     "loading": "불러오는 중…",
     "home": "홈으로",
-    "close": "닫기"
+    "close": "닫기",
+    "retry": "다시 시도"
   },
   "home": {
     "header": {
@@ -143,32 +144,39 @@
     }
   },
   "account": {
-    "needLogin": "로그인이 필요해요",
-    "goLogin": "로그인하러 가기",
+    "title": "내 계정",
+    "hello": "{name}님, 반가워요.",
+    "needLogin": "로그인하면 배송지와 주문을 여기서 볼 수 있어요.",
+    "sessionEnded": "로그인이 풀렸어요. 다시 들어와 주세요.",
+    "goLogin": "로그인 / 가입",
     "name": "이름",
     "email": "이메일",
     "memberSince": "가입일",
-    "status": "상태",
+    "addresses": "배송지",
+    "addressesNone": "아직 없어요",
+    "orders": "주문 내역",
+    "ordersSoon": "출시하면 여기서 볼 수 있어요.",
     "logout": "로그아웃"
   },
   "addresses": {
-    "meta": "칙— 이 도착할 곳",
-    "needLogin": "로그인이 필요해요",
-    "empty": "아직 배송지가 없어요",
-    "defaultBadge": "기본",
-    "setDefault": "기본으로",
-    "delete": "삭제",
+    "title": "배송지",
+    "meta": "넣어 두면 주문이 빨라져요.",
+    "needLogin": "로그인하면 배송지를 넣어 둘 수 있어요.",
+    "empty": "아직 배송지가 없어요.",
+    "add": "배송지 추가",
     "addTitle": "새 배송지",
-    "recipient": "받는 분",
-    "phone": "연락처",
-    "zipcode": "우편번호",
-    "addr1": "주소",
-    "addr2": "상세 주소",
-    "label": "이름표",
-    "labelPlaceholder": "집, 회사 …",
-    "submitAdd": "추가"
+    "save": "이 주소로 저장",
+    "defaultBadge": "기본",
+    "setDefault": "기본 배송지로",
+    "delete": "삭제",
+    "deleteConfirm": "이 배송지를 지울까요?",
+    "deleteYes": "지우기",
+    "deleteNo": "그대로 두기",
+    "loadError": "배송지를 불러오지 못했어요.",
+    "saveError": "저장하지 못했어요. 다시 한 번 눌러 주세요."
   },
   "checkout": {
+    "title": "주문서",
     "meta": "마지막 한 단계",
     "addressTitle": "배송지",
     "addAddress": "배송지 추가",
@@ -187,9 +195,12 @@
     }
   },
   "orders": {
-    "meta": "지금까지의 쉼",
-    "needLogin": "로그인이 필요해요",
-    "empty": "아직 주문이 없어요",
+    "title": "주문 내역",
+    "detailTitle": "주문 상세",
+    "needLogin": "로그인하면 주문 내역을 볼 수 있어요.",
+    "empty": "아직 주문이 없어요.",
+    "emptyCta": "take-01 보러 가기",
+    "loadError": "주문 내역을 불러오지 못했어요.",
     "payment": "결제",
     "subtotal": "상품 금액",
     "shipping": "배송비",
@@ -207,18 +218,18 @@
     "cancelNo": "그대로 두기",
     "requestRefund": "환불 요청",
     "orderStatus": {
-      "pending": "대기",
+      "pending": "결제 대기",
       "open": "처리 중",
       "completed": "완료",
       "cancelled": "취소됨"
     },
     "paymentStatus": {
-      "pending": "대기",
+      "pending": "결제 대기",
       "authorized": "승인됨",
       "paid": "결제 완료",
       "partially_refunded": "부분 환불",
       "refunded": "환불 완료",
-      "voided": "무효",
+      "voided": "결제 취소",
       "refunding": "환불 중"
     },
     "fulfillmentStatus": {

@@ -1,48 +1,48 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import { useTranslations } from "next-intl";
+
 import { Link, useRouter } from "@/i18n/navigation";
 import Button from "@/components/ui/Button";
 import PageShell from "@/components/shell/PageShell";
+import { SALES_OPEN } from "@/constants/checkout";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
+import { formatDateKST } from "@/lib/format";
+import type { Address } from "@/types";
 
 /**
- * 계정 — getMe 결과 표시 + 하위 메뉴(배송지/주문/장바구니) + 로그아웃.
+ * 내 계정 — 이름·이메일(있을 때만)·가입일, 배송지·주문 내역 줄, 로그아웃.
+ * 판매 전에는 주문 내역 화면이 잠겨 있어(비번 화면) 링크 대신 '출시하면 여기서' 안내 + 출시 알림 받기.
  */
 export default function AccountPage() {
   const t = useTranslations("account");
+  const tc = useTranslations("common");
   const router = useRouter();
-  const { user, status, logout } = useAuth();
+  const { user, status, sessionEnded, logout } = useAuth();
 
   if (status === "loading") {
     return (
-      <PageShell
-        title={
-          <>
-            My <em>account</em>
-          </>
-        }
-        meta=""
-      >
-        <p className="font-sans text-[11px] text-grey">…</p>
+      <PageShell title={t("title")}>
+        <p className="m-0 text-[14px] text-grey">{tc("loading")}</p>
       </PageShell>
     );
   }
 
   if (status !== "authenticated" || !user) {
     return (
-      <PageShell
-        title={
-          <>
-            My <em>account</em>
-          </>
-        }
-        meta={t("needLogin")}
-      >
-        <div className="max-w-[440px] flex flex-col gap-[18px]">
-          <p className="text-[15px] text-ink m-0">{t("needLogin")}</p>
-          <Link href="/login">
-            <Button>{t("goLogin")}</Button>
+      <PageShell title={t("title")}>
+        <div className="flex max-w-[400px] flex-col gap-[20px]">
+          <p className="m-0 text-[15px] text-ink">
+            {sessionEnded ? t("sessionEnded") : t("needLogin")}
+          </p>
+          <Link
+            href={{ pathname: "/login", query: { next: "/account" } }}
+            className="inline-flex h-[52px] items-center justify-center rounded-full bg-ink px-[24px] text-[15px] font-medium text-paper transition-colors hover:bg-ink-soft"
+          >
+            {t("goLogin")}
           </Link>
         </div>
       </PageShell>
@@ -50,30 +50,31 @@ export default function AccountPage() {
   }
 
   return (
-    <PageShell
-      title={
-        <>
-          My <em>account</em>
-        </>
-      }
-      meta={user.email}
-    >
-      <div className="max-w-[720px]">
-        <div className="border border-line mb-[28px]">
-          <SpecRow label={t("name")} value={user.name} />
-          <SpecRow label={t("email")} value={user.email} />
-          <SpecRow label={t("memberSince")} value={user.createdDtm.slice(0, 10)} />
-          <SpecRow label={t("status")} value={user.status.toUpperCase()} last />
-        </div>
+    <PageShell title={t("title")} meta={t("hello", { name: user.name })}>
+      <div className="flex max-w-[560px] flex-col">
+        <dl className="m-0 flex flex-col gap-[12px]">
+          <InfoRow label={t("name")} value={user.name} />
+          {/* 카카오가 이메일을 안 주면 비어 있다 — 빈 줄을 그리지 않는다 */}
+          {user.email && <InfoRow label={t("email")} value={user.email} />}
+          <InfoRow label={t("memberSince")} value={formatDateKST(user.createdAt)} />
+        </dl>
 
-        {/* 메뉴 */}
-        <div className="grid grid-cols-2 gap-[12px] max-sm:grid-cols-1 mb-[28px]">
-          <MenuCard href="/account/addresses" label="addresses" />
-          <MenuCard href="/orders" label="orders" />
-        </div>
+        <ul className="m-0 mt-[40px] list-none border-t border-line p-0">
+          <li className="border-b border-line">
+            <AddressesRow label={t("addresses")} none={t("addressesNone")} />
+          </li>
+          <li className="border-b border-line">
+            {SALES_OPEN ? (
+              <MenuLink href="/orders" label={t("orders")} />
+            ) : (
+              <OrdersSoonRow label={t("orders")} hint={t("ordersSoon")} />
+            )}
+          </li>
+        </ul>
 
         <Button
           variant="outline"
+          className="mt-[40px] self-start"
           onClick={async () => {
             await logout();
             router.push("/");
@@ -88,24 +89,73 @@ export default function AccountPage() {
 
 /* ─── 하위 컴포넌트 ─────────────────────────── */
 
-function SpecRow({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
+function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div
-      className={`flex items-baseline gap-[16px] px-[16px] py-[13px] ${last ? "" : "border-b border-line"}`}
-    >
-      <span className="font-sans text-[10px] text-grey w-[120px] shrink-0">{label}</span>
-      <b className="font-sans text-[15px]">{value}</b>
+    <div className="flex items-baseline gap-[16px]">
+      <dt className="w-[72px] shrink-0 text-[13px] text-grey">{label}</dt>
+      <dd className="m-0 min-w-0 break-all text-[15px] text-ink">{value}</dd>
     </div>
   );
 }
 
-function MenuCard({ href, label }: { href: string; label: string }) {
+/** 배송지 줄 — 기본 배송지 한 줄(없으면 '아직 없어요')을 같이 보여 준다. 못 불러오면 이름만 */
+function AddressesRow({ label, none }: { label: string; none: string }) {
+  const [summary, setSummary] = useState<string | null>(null);
+
+  useEffect(() => {
+    void api
+      .listAddresses()
+      .then((list: Address[]) => {
+        const main = list.find((a) => a.isDefault) ?? list[0];
+        setSummary(main ? main.addr1 : none);
+      })
+      .catch(() => {});
+  }, [none]);
+
+  return <MenuLink href="/account/addresses" label={label} sub={summary} />;
+}
+
+function MenuLink({ href, label, sub }: { href: string; label: string; sub?: string | null }) {
   return (
-    <Link
-      href={href}
-      className="border border-line px-[16px] py-[18px] font-sans text-[12px] text-ink hover:bg-ink hover:text-lime transition-colors"
-    >
-      {label} →
+    <Link href={href} className="flex min-h-[68px] items-center gap-[16px] py-[12px]">
+      <span className="flex min-w-0 flex-1 flex-col gap-[2px]">
+        <span className="text-[16px] text-ink">{label}</span>
+        {sub && <span className="truncate text-[13px] text-grey">{sub}</span>}
+      </span>
+      <Chevron />
     </Link>
+  );
+}
+
+function OrdersSoonRow({ label, hint }: { label: string; hint: string }) {
+  const tb = useTranslations("pay.bar");
+  return (
+    <div className="flex min-h-[68px] items-center gap-[16px] py-[12px]">
+      <span className="flex min-w-0 flex-1 flex-col gap-[2px]">
+        <span className="text-[16px] text-grey">{label}</span>
+        <span className="text-[13px] text-grey">{hint}</span>
+      </span>
+      <Link
+        href="/notify"
+        className="shrink-0 text-[13px] text-ink underline underline-offset-[3px]"
+      >
+        {tb("notify")}
+      </Link>
+    </div>
+  );
+}
+
+function Chevron() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M6 3.5 10.5 8 6 12.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="text-grey"
+      />
+    </svg>
   );
 }

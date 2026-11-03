@@ -55,6 +55,7 @@ export default function CheckoutPage() {
 function CheckoutBody() {
   const t = useTranslations("checkout");
   const tp = useTranslations("pay");
+  const tc = useTranslations("common");
   const router = useRouter();
   const search = useSearchParams();
   const { status, user } = useAuth();
@@ -208,28 +209,14 @@ function CheckoutBody() {
 
   if (status !== "authenticated") {
     return (
-      <PageShell
-        title={
-          <>
-            Check <em>out</em>
-          </>
-        }
-        meta=""
-      >
-        <p className="font-sans text-[11px] text-grey">…</p>
+      <PageShell title={t("title")}>
+        <p className="m-0 text-[14px] text-grey">{tc("loading")}</p>
       </PageShell>
     );
   }
 
   return (
-    <PageShell
-      title={
-        <>
-          Check <em>out</em>
-        </>
-      }
-      meta={t("meta")}
-    >
+    <PageShell title={t("title")} meta={t("meta")}>
       <div className="flex max-w-[480px] flex-col gap-[28px]">
         {/* ── 배송지 ── */}
         <section>
@@ -386,7 +373,9 @@ function CheckoutBody() {
             </div>
           </div>
           <ReturnNotice className="mb-[14px]" />
-          {note && <p className="mb-[14px] font-sans text-[11px] text-alert">✕ {note}</p>}
+          {note && <p role="alert" className="mb-[14px] text-[13px] text-alert">
+              {note}
+            </p>}
           <button
             type="button"
             onClick={() => {

@@ -6,7 +6,8 @@
   "common": {
     "loading": "loading…",
     "home": "home",
-    "close": "close"
+    "close": "close",
+    "retry": "try again"
   },
   "home": {
     "header": {
@@ -143,32 +144,39 @@
     }
   },
   "account": {
-    "needLogin": "you need to sign in",
-    "goLogin": "go to sign in",
+    "title": "my account",
+    "hello": "hi, {name}.",
+    "needLogin": "sign in to see your addresses and orders here.",
+    "sessionEnded": "you've been signed out. come back in anytime.",
+    "goLogin": "sign in / join",
     "name": "name",
     "email": "email",
     "memberSince": "member since",
-    "status": "status",
+    "addresses": "addresses",
+    "addressesNone": "none yet",
+    "orders": "orders",
+    "ordersSoon": "you'll see them here after launch.",
     "logout": "sign out"
   },
   "addresses": {
-    "meta": "where the psst— arrives",
-    "needLogin": "sign in required",
-    "empty": "no addresses yet",
+    "title": "addresses",
+    "meta": "save one and checkout gets quicker.",
+    "needLogin": "sign in to save an address.",
+    "empty": "no addresses yet.",
+    "add": "add address",
+    "addTitle": "new address",
+    "save": "save address",
     "defaultBadge": "default",
     "setDefault": "make default",
     "delete": "delete",
-    "addTitle": "new address",
-    "recipient": "recipient",
-    "phone": "phone",
-    "zipcode": "zip",
-    "addr1": "address",
-    "addr2": "address 2",
-    "label": "label",
-    "labelPlaceholder": "home, office …",
-    "submitAdd": "add"
+    "deleteConfirm": "delete this address?",
+    "deleteYes": "delete",
+    "deleteNo": "keep it",
+    "loadError": "couldn't load your addresses.",
+    "saveError": "couldn't save. tap once more."
   },
   "checkout": {
+    "title": "checkout",
     "meta": "one last step",
     "addressTitle": "shipping address",
     "addAddress": "add address",
@@ -187,9 +195,12 @@
     }
   },
   "orders": {
-    "meta": "your breaks so far",
-    "needLogin": "sign in required",
-    "empty": "no orders yet",
+    "title": "orders",
+    "detailTitle": "order detail",
+    "needLogin": "sign in to see your orders.",
+    "empty": "no orders yet.",
+    "emptyCta": "see take-01",
+    "loadError": "couldn't load your orders.",
     "payment": "payment",
     "subtotal": "subtotal",
     "shipping": "shipping",
@@ -207,24 +218,24 @@
     "cancelNo": "keep it",
     "requestRefund": "request refund",
     "orderStatus": {
-      "pending": "pending",
+      "pending": "awaiting payment",
       "open": "processing",
       "completed": "completed",
       "cancelled": "cancelled"
     },
     "paymentStatus": {
-      "pending": "pending",
+      "pending": "awaiting payment",
       "authorized": "authorized",
       "paid": "paid",
       "partially_refunded": "partially refunded",
       "refunded": "refunded",
-      "voided": "voided",
+      "voided": "cancelled",
       "refunding": "refunding"
     },
     "fulfillmentStatus": {
-      "unfulfilled": "unfulfilled",
+      "unfulfilled": "not shipped yet",
       "partially_fulfilled": "partially shipped",
-      "fulfilled": "fulfilled",
+      "fulfilled": "delivered",
       "returned": "returned"
     }
   },

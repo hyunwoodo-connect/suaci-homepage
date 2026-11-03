@@ -1,199 +1,261 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+
 import { useTranslations } from "next-intl";
+
 import { Link } from "@/i18n/navigation";
 import Button from "@/components/ui/Button";
-import InputField from "@/components/ui/InputField";
 import PageShell from "@/components/shell/PageShell";
-import { api } from "@/lib/api";
+import AddressForm from "@/components/pay/AddressForm";
+import { api, ApiClientError } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
-import type { Address } from "@/types";
+import type { Address, CreateAddressRequest } from "@/types";
 
 /**
- * 배송지 — listAddresses / createAddress / updateAddress(isDefault) / deleteAddress 계약 호출.
+ * 배송지 — 목록·기본 지정·삭제(한 번 더 묻는다)·추가. 추가는 주문서와 같은 Daum 주소 찾기 폼.
+ * 없으면 안내 + '배송지 추가' 하나로 시작한다. 중간에 로그인이 풀리면(AUTH_REQUIRED) 세션을 다시 확인한다.
  */
 export default function AddressesPage() {
   const t = useTranslations("addresses");
-  const { status } = useAuth();
+  const tc = useTranslations("common");
+  const ta = useTranslations("account");
+  const { status, user, sessionEnded, refresh: recheckSession } = useAuth();
 
-  const [items, setItems] = useState<Address[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [items, setItems] = useState<Address[] | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
 
-  const [recipient, setRecipient] = useState("");
-  const [phone, setPhone] = useState("");
-  const [zipcode, setZipcode] = useState("");
-  const [addr1, setAddr1] = useState("");
-  const [addr2, setAddr2] = useState("");
-  const [label, setLabel] = useState("");
+  const handleError = useCallback(
+    (err: unknown, message: string) => {
+      if (err instanceof ApiClientError && err.code === "AUTH_REQUIRED") {
+        void recheckSession();
+        return;
+      }
+      setNote(message);
+    },
+    [recheckSession],
+  );
 
-  const refresh = useCallback(async () => {
-    setItems(await api.listAddresses());
-    setLoaded(true);
-  }, []);
+  const load = useCallback(async () => {
+    try {
+      setItems(await api.listAddresses());
+      setLoadFailed(false);
+    } catch (err) {
+      setLoadFailed(true);
+      handleError(err, t("loadError"));
+    }
+  }, [handleError, t]);
 
   useEffect(() => {
-    if (status === "authenticated") void refresh();
-  }, [status, refresh]);
+    if (status === "authenticated") void load();
+  }, [status, load]);
 
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
+  const save = async (r: CreateAddressRequest) => {
+    setNote(null);
     try {
-      await api.createAddress({
-        recipient,
-        phone,
-        zipcode,
-        addr1,
-        addr2: addr2 || undefined,
-        label: label || undefined,
-        isDefault: items.length === 0,
-      });
-      setRecipient("");
-      setPhone("");
-      setZipcode("");
-      setAddr1("");
-      setAddr2("");
-      setLabel("");
-      await refresh();
-    } finally {
-      setBusy(false);
+      await api.createAddress(r);
+      setAdding(false);
+      await load();
+      // 폼이 접히면 화면이 푸터에 걸려 있다 — 방금 넣은 배송지가 보이게 위로
+      window.scrollTo({ top: 0 });
+    } catch (err) {
+      handleError(err, t("saveError"));
     }
   };
 
-  if (status !== "authenticated") {
+  const mutate = async (addressId: string, run: () => Promise<unknown>) => {
+    setBusyId(addressId);
+    setNote(null);
+    try {
+      await run();
+      setConfirmingId(null);
+      await load();
+    } catch (err) {
+      handleError(err, t("saveError"));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  if (status === "loading") {
     return (
-      <PageShell
-        title={
-          <>
-            Ship <em>to</em>
-          </>
-        }
-        meta=""
-      >
-        <Link
-          href="/login"
-          className="font-sans text-[12px] text-ink underline underline-offset-[3px]"
-        >
-          {t("needLogin")} →
-        </Link>
+      <PageShell title={t("title")}>
+        <p className="m-0 text-[14px] text-grey">{tc("loading")}</p>
       </PageShell>
     );
   }
 
+  if (status !== "authenticated") {
+    return (
+      <PageShell title={t("title")}>
+        <div className="flex max-w-[400px] flex-col gap-[20px]">
+          <p className="m-0 text-[15px] text-ink">
+            {sessionEnded ? ta("sessionEnded") : t("needLogin")}
+          </p>
+          <Link
+            href={{ pathname: "/login", query: { next: "/account/addresses" } }}
+            className="inline-flex h-[52px] items-center justify-center rounded-full bg-ink px-[24px] text-[15px] font-medium text-paper transition-colors hover:bg-ink-soft"
+          >
+            {ta("goLogin")}
+          </Link>
+        </div>
+      </PageShell>
+    );
+  }
+
+  const isEmpty = items !== null && items.length === 0;
+
   return (
-    <PageShell
-      title={
-        <>
-          Ship <em>to</em>
-        </>
-      }
-      meta={t("meta")}
-    >
-      <div className="grid grid-cols-[1.2fr_1fr] gap-[40px] max-lg:grid-cols-1 max-w-[1040px]">
-        {/* 목록 */}
-        <div>
-          {loaded && items.length === 0 && (
-            <p className="font-sans text-[11px] text-grey">{t("empty")}</p>
-          )}
-          <ul className="list-none m-0 p-0 flex flex-col gap-[14px]">
+    <PageShell title={t("title")} meta={t("meta")}>
+      <div className="flex max-w-[480px] flex-col gap-[24px]">
+        {note && (
+          <p role="alert" className="m-0 text-[13px] text-alert">
+            {note}
+          </p>
+        )}
+
+        {items === null && !loadFailed && (
+          <p className="m-0 text-[14px] text-grey">{tc("loading")}</p>
+        )}
+        {loadFailed && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="self-start"
+            onClick={() => {
+              setNote(null);
+              void load();
+            }}
+          >
+            {tc("retry")}
+          </Button>
+        )}
+
+        {isEmpty && !adding && (
+          <div className="flex flex-col gap-[20px]">
+            <p className="m-0 text-[15px] text-ink">{t("empty")}</p>
+            <Button
+              onClick={() => {
+                setAdding(true);
+              }}
+            >
+              {t("add")}
+            </Button>
+          </div>
+        )}
+
+        {items !== null && items.length > 0 && (
+          <ul className="m-0 flex list-none flex-col gap-[12px] p-0">
             {items.map((a) => (
               <li key={a.addressId} className="border border-line p-[16px]">
-                <div className="flex items-center gap-[10px] mb-[8px]">
-                  <b className="font-sans text-[15px]">{a.recipient}</b>
-                  {a.label && <span className="font-sans text-[10px] text-grey">{a.label}</span>}
+                <div className="mb-[6px] flex flex-wrap items-center gap-[8px]">
+                  <b className="text-[15px] font-medium">{a.recipient}</b>
+                  {a.label && <span className="text-[13px] text-grey">{a.label}</span>}
                   {a.isDefault && (
-                    <span className="font-sans text-[10px] bg-ink text-lime px-[7px] py-[2px]">
+                    <span className="rounded-full bg-lime px-[8px] py-[1px] text-[12px] text-ink">
                       {t("defaultBadge")}
                     </span>
                   )}
                 </div>
-                <p className="text-[13.5px] text-ink-soft m-0 leading-[1.6]">
-                  ({a.zipcode}) {a.addr1} {a.addr2 ?? ""}
+                <p className="m-0 text-[14px] leading-[1.6] text-ink-soft">
+                  <span className="num">({a.zipcode})</span> {a.addr1} {a.addr2 ?? ""}
                   <br />
-                  {a.phone}
+                  <span className="num">{a.phone}</span>
                 </p>
-                <div className="flex gap-[8px] mt-[12px]">
-                  {!a.isDefault && (
+
+                {confirmingId === a.addressId ? (
+                  <div className="mt-[14px] flex flex-wrap items-center gap-[8px]">
+                    <span className="mr-[4px] text-[13px] text-ink">{t("deleteConfirm")}</span>
                     <Button
-                      variant="outline"
-                      className="!px-[12px] !py-[8px] !text-[10px]"
-                      onClick={async () => {
-                        await api.updateAddress(a.addressId, { isDefault: true });
-                        await refresh();
+                      variant="danger"
+                      size="sm"
+                      disabled={busyId === a.addressId}
+                      onClick={() => {
+                        void mutate(a.addressId, () => api.deleteAddress(a.addressId));
                       }}
                     >
-                      {t("setDefault")}
+                      {t("deleteYes")}
                     </Button>
-                  )}
-                  <Button
-                    variant="danger"
-                    className="!px-[12px] !py-[8px] !text-[10px]"
-                    onClick={async () => {
-                      await api.deleteAddress(a.addressId);
-                      await refresh();
-                    }}
-                  >
-                    {t("delete")}
-                  </Button>
-                </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setConfirmingId(null);
+                      }}
+                    >
+                      {t("deleteNo")}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="mt-[14px] flex gap-[8px]">
+                    {!a.isDefault && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={busyId === a.addressId}
+                        onClick={() => {
+                          void mutate(a.addressId, () =>
+                            api.updateAddress(a.addressId, { isDefault: true }),
+                          );
+                        }}
+                      >
+                        {t("setDefault")}
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setConfirmingId(a.addressId);
+                      }}
+                    >
+                      {t("delete")}
+                    </Button>
+                  </div>
+                )}
               </li>
             ))}
           </ul>
-        </div>
+        )}
 
-        {/* 추가 폼 */}
-        <form onSubmit={handleAdd} className="flex flex-col gap-[14px]">
-          <h3 className="font-sans text-[11px] text-grey m-0">{t("addTitle")}</h3>
-          <InputField
-            label={t("recipient")}
-            required
-            value={recipient}
-            onChange={(e) => setRecipient(e.target.value)}
-          />
-          <InputField
-            label={t("phone")}
-            required
-            inputMode="tel"
-            placeholder="010-0000-0000"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-          />
-          <div className="grid grid-cols-[120px_1fr] gap-[10px]">
-            <InputField
-              label={t("zipcode")}
-              required
-              inputMode="numeric"
-              value={zipcode}
-              onChange={(e) => setZipcode(e.target.value)}
-            />
-            <InputField
-              label={t("addr1")}
-              required
-              value={addr1}
-              onChange={(e) => setAddr1(e.target.value)}
-            />
-          </div>
-          <InputField label={t("addr2")} value={addr2} onChange={(e) => setAddr2(e.target.value)} />
-          <InputField
-            label={t("label")}
-            placeholder={t("labelPlaceholder")}
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-          />
-          <Button type="submit" disabled={busy} className="mt-[4px]">
-            {busy ? "..." : t("submitAdd")}
+        {items !== null && items.length > 0 && !adding && (
+          <Button
+            variant="outline"
+            className="self-start"
+            onClick={() => {
+              setAdding(true);
+            }}
+          >
+            {t("add")}
           </Button>
-        </form>
-      </div>
+        )}
 
-      <Link
-        href="/account"
-        className="inline-block mt-[36px] font-sans text-[11px] text-grey hover:text-ink"
-      >
-        ← Account
-      </Link>
+        {adding && (
+          <section className="flex flex-col gap-[14px]">
+            <div className="flex items-baseline justify-between gap-[12px]">
+              <h2 className="m-0 text-[16px] font-medium">{t("addTitle")}</h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setAdding(false);
+                }}
+                className="cursor-pointer text-[13px] text-grey underline underline-offset-[3px] hover:text-ink"
+              >
+                {tc("close")}
+              </button>
+            </div>
+            <AddressForm onSubmit={save} submitLabel={t("save")} initialRecipient={user?.name} />
+          </section>
+        )}
+
+        <Link href="/account" className="self-start text-[13px] text-grey hover:text-ink">
+          ← {ta("title")}
+        </Link>
+      </div>
     </PageShell>
   );
 }

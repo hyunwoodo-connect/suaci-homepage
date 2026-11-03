@@ -6,7 +6,8 @@
   "common": {
     "loading": "読み込み中…",
     "home": "ホームへ",
-    "close": "閉じる"
+    "close": "閉じる",
+    "retry": "もう一度"
   },
   "home": {
     "header": {
@@ -143,32 +144,39 @@
     }
   },
   "account": {
-    "needLogin": "ログインが必要です",
-    "goLogin": "ログインへ",
+    "title": "アカウント",
+    "hello": "{name}さん、こんにちは。",
+    "needLogin": "ログインすると、お届け先と注文をここで確認できます。",
+    "sessionEnded": "ログインが切れました。もう一度どうぞ。",
+    "goLogin": "ログイン / 登録",
     "name": "名前",
     "email": "メール",
     "memberSince": "登録日",
-    "status": "ステータス",
+    "addresses": "お届け先",
+    "addressesNone": "まだありません",
+    "orders": "注文履歴",
+    "ordersSoon": "発売後、ここで確認できます。",
     "logout": "ログアウト"
   },
   "addresses": {
-    "meta": "シュッ—が届く場所",
-    "needLogin": "ログインが必要です",
-    "empty": "配送先がまだありません",
+    "title": "お届け先",
+    "meta": "登録しておくと、注文がもっと早く。",
+    "needLogin": "ログインすると、お届け先を登録できます。",
+    "empty": "お届け先がまだありません。",
+    "add": "お届け先を追加",
+    "addTitle": "新しいお届け先",
+    "save": "この住所で保存",
     "defaultBadge": "既定",
     "setDefault": "既定にする",
     "delete": "削除",
-    "addTitle": "新しい配送先",
-    "recipient": "受取人",
-    "phone": "電話番号",
-    "zipcode": "郵便番号",
-    "addr1": "住所",
-    "addr2": "住所2",
-    "label": "ラベル",
-    "labelPlaceholder": "自宅、会社 …",
-    "submitAdd": "追加"
+    "deleteConfirm": "このお届け先を削除しますか？",
+    "deleteYes": "削除する",
+    "deleteNo": "そのままにする",
+    "loadError": "お届け先を読み込めませんでした。",
+    "saveError": "保存できませんでした。もう一度押してください。"
   },
   "checkout": {
+    "title": "ご注文手続き",
     "meta": "最後のひと手間",
     "addressTitle": "配送先",
     "addAddress": "配送先を登録",
@@ -187,9 +195,12 @@
     }
   },
   "orders": {
-    "meta": "これまでのひと休み",
-    "needLogin": "ログインが必要です",
-    "empty": "注文はまだありません",
+    "title": "注文履歴",
+    "detailTitle": "注文詳細",
+    "needLogin": "ログインすると、注文履歴を確認できます。",
+    "empty": "注文はまだありません。",
+    "emptyCta": "take-01を見る",
+    "loadError": "注文履歴を読み込めませんでした。",
     "payment": "支払い",
     "subtotal": "小計",
     "shipping": "送料",

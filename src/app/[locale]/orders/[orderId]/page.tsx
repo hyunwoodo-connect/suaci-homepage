@@ -54,6 +54,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ orderId:
 function OrderDetail({ orderId }: { orderId: string }) {
   const t = useTranslations("orders");
   const tp = useTranslations("pay.result");
+  const tc = useTranslations("common");
   const { status } = useAuth();
   const searchParams = useSearchParams();
   const welcome = searchParams.get("welcome") === "1";
@@ -86,16 +87,9 @@ function OrderDetail({ orderId }: { orderId: string }) {
   }, [status, orderId]);
 
   return (
-    <PageShell
-      title={
-        <>
-          Order <em>detail</em>
-        </>
-      }
-      meta={order?.orderNo ?? ""}
-    >
+    <PageShell title={t("detailTitle")} meta={order?.orderNo ?? ""}>
       {!order ? (
-        <p className="font-sans text-[11px] text-grey">…</p>
+        <p className="m-0 text-[14px] text-grey">{tc("loading")}</p>
       ) : (
         <div className="max-w-[860px]">
           {welcome && (
@@ -179,8 +173,8 @@ function OrderDetail({ orderId }: { orderId: string }) {
           {/* 환불 내역 */}
           <ClaimsList claims={claims} />
 
-          <Link href="/orders" className="font-sans text-[11px] text-grey hover:text-ink">
-            ← All orders
+          <Link href="/orders" className="text-[13px] text-grey hover:text-ink">
+            ← {t("title")}
           </Link>
         </div>
       )}
