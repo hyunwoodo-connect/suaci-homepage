@@ -2,6 +2,7 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
+import { SALES_OPEN } from "@/constants/checkout";
 import { HOME_MEDIA } from "@/constants/product";
 import { BUSINESS, SITE } from "@/constants/site";
 
@@ -30,9 +31,12 @@ export default function SiteFooter() {
           </div>
           <div className="grid grid-cols-2 gap-x-[48px] gap-y-[12px] text-[14px] md:gap-x-[72px]">
             <nav className="flex flex-col gap-[12px]">
-              <Link href="/orders" className={LINK}>
-                {t("orderLookup")}
-              </Link>
+              {/* 판매 전에는 주문 내역 화면이 잠겨 있어(비번 화면) 링크를 두지 않는다 */}
+              {SALES_OPEN && (
+                <Link href="/orders" className={LINK}>
+                  {t("orderLookup")}
+                </Link>
+              )}
               <Link href="/legal/refund" className={LINK}>
                 {t("shipping")}
               </Link>
