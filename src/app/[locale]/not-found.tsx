@@ -1,15 +1,19 @@
-import { Link } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 
+import { Link } from "@/i18n/navigation";
+import PageShell from "@/components/shell/PageShell";
+
+/** 없는 주소(모르는 소셜 콜백 포함) — 다른 화면과 같은 셸, 다음 행동은 홈으로 하나 */
 export default function NotFound() {
+  const t = useTranslations("common");
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-7xl font-bold">404</h1>
-        <p className="mt-4 text-lg text-grey">페이지를 찾을 수 없습니다</p>
-        <Link href="/" className="mt-6 inline-block underline">
-          홈으로 돌아가기
-        </Link>
-      </div>
-    </div>
+    <PageShell title={t("notFoundTitle")} meta={t("notFoundBody")}>
+      <Link
+        href="/"
+        className="inline-flex h-[52px] items-center justify-center rounded-full bg-ink px-[24px] text-[15px] font-medium text-paper transition-colors hover:bg-ink-soft"
+      >
+        {t("home")}
+      </Link>
+    </PageShell>
   );
 }

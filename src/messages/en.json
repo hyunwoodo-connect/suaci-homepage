@@ -7,7 +7,11 @@
     "loading": "loading…",
     "home": "home",
     "close": "close",
-    "retry": "try again"
+    "retry": "try again",
+    "notFoundTitle": "this page isn't here",
+    "notFoundBody": "the link may have changed, or the page is gone.",
+    "errorTitle": "something went wrong",
+    "errorBody": "try again, or start over from home."
   },
   "home": {
     "header": {

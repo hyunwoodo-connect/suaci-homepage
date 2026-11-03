@@ -7,7 +7,11 @@
     "loading": "読み込み中…",
     "home": "ホームへ",
     "close": "閉じる",
-    "retry": "もう一度"
+    "retry": "もう一度",
+    "notFoundTitle": "ページが見つかりません",
+    "notFoundBody": "アドレスが変わったか、ページがなくなりました。",
+    "errorTitle": "問題が発生しました",
+    "errorBody": "もう一度試すか、ホームからやり直してください。"
   },
   "home": {
     "header": {

@@ -7,7 +7,11 @@
     "loading": "불러오는 중…",
     "home": "홈으로",
     "close": "닫기",
-    "retry": "다시 시도"
+    "retry": "다시 시도",
+    "notFoundTitle": "찾는 페이지가 없어요",
+    "notFoundBody": "주소가 바뀌었거나 없어진 페이지예요.",
+    "errorTitle": "잠깐 문제가 생겼어요",
+    "errorBody": "다시 시도하거나 홈에서 다시 시작해 주세요."
   },
   "home": {
     "header": {
