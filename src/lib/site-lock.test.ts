@@ -7,6 +7,7 @@ import { POST } from "@/app/api/site-lock/route";
 import {
   SITE_LOCK_COOKIE,
   gateHtml,
+  gateLocale,
   isLockedBeforeLaunch,
   isUnlocked,
   lockToken,
@@ -52,18 +53,52 @@ describe("site-lock", () => {
   });
 
   it("잠금 화면: 검색에 안 잡히고, 돌아갈 곳을 이스케이프한다", () => {
-    const html = gateHtml({ next: '/"><script>', wrong: true });
+    const html = gateHtml({ next: '/"><script>', wrong: true, locale: "en" });
     expect(html).toContain('content="noindex, nofollow"');
     expect(html).not.toContain("<script>");
     expect(html).toContain("wrong code.");
-    expect(gateHtml({ next: "/", wrong: false })).not.toContain("wrong code.");
+    expect(gateHtml({ next: "/", wrong: false, locale: "en" })).not.toContain("wrong code.");
+  });
+
+  it("잠금 화면(주문): 손님 안내가 먼저 — 출시 때 열린다 + 출시 알림·홈, 비번 칸은 접혀 있다", () => {
+    const html = gateHtml({ next: "/orders", wrong: false, locale: "ko" });
+    expect(html).toContain('<html lang="ko">');
+    expect(html).toContain("주문은 출시하는 날 열려요.");
+    expect(html).toContain('href="/notify"');
+    expect(html).toContain('href="/"');
+    expect(html).toMatch(/<details>\s*<summary>테스터 입장<\/summary>/);
+  });
+
+  it("잠금 화면: 비번이 틀리면 테스터 칸을 연 채로 안내", () => {
+    const html = gateHtml({ next: "/ja/checkout", wrong: true, locale: "ja" });
+    expect(html).toContain("<details open>");
+    expect(html).toContain("コードが違います。");
+    expect(html).toContain('href="/ja/notify"');
+  });
+
+  it("잠금 화면(이벤트 등 그 밖): 주문 문구·출시 알림 없이 홈으로", () => {
+    const html = gateHtml({ next: "/events/secret", wrong: false, locale: "ko" });
+    expect(html).toContain("아직 열리지 않은 페이지예요.");
+    expect(html).not.toContain("/notify");
+  });
+
+  it("gateLocale: 주소 접두사 > NEXT_LOCALE 쿠키 > Accept-Language(q 순) > ko", () => {
+    expect(gateLocale("/en/orders", { cookie: "ja" })).toBe("en");
+    expect(gateLocale("/ko/checkout", { acceptLanguage: "en-US" })).toBe("ko");
+    expect(gateLocale("/orders", { cookie: "ja", acceptLanguage: "en" })).toBe("ja");
+    expect(gateLocale("/orders", { acceptLanguage: "fr-FR,en;q=0.8,ko;q=0.9" })).toBe("ko");
+    expect(gateLocale("/orders", { acceptLanguage: "ja-JP,ja;q=0.9" })).toBe("ja");
+    expect(gateLocale("/orders", { acceptLanguage: "fr" })).toBe("ko");
+    expect(gateLocale("/events/x")).toBe("ko");
   });
 
   it("middleware: 주문·결제 화면은 쿠키 없으면 잠금 화면(401), 맞는 쿠키면 통과", async () => {
     vi.stubEnv("SITE_LOCK_PIN", "1234");
     const locked = await middleware(new NextRequest("https://takesuaci.com/ja/checkout"));
     expect(locked.status).toBe(401);
-    expect(await locked.text()).toContain('name="next" value="/ja/checkout"');
+    const body = await locked.text();
+    expect(body).toContain('name="next" value="/ja/checkout"');
+    expect(body).toContain('<html lang="ja">');
 
     const req = new NextRequest("https://takesuaci.com/ja/checkout");
     req.cookies.set(SITE_LOCK_COOKIE, await lockToken("1234"));

@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import {
   SITE_LOCK_COOKIE,
   SITE_LOCK_MAX_AGE_S,
+  gateLocale,
   gateResponse,
   lockToken,
   safeNext,
@@ -18,7 +19,11 @@ export async function POST(req: Request) {
   if (!pin || typeof tried !== "string" || tried !== pin) {
     // 하나씩 맞혀 보기 어렵게 틀리면 잠깐 늦춘다
     await new Promise((r) => setTimeout(r, 800));
-    return gateResponse(next, true);
+    const locale = gateLocale(next, {
+      cookie: /(?:^|;\s*)NEXT_LOCALE=([^;]+)/.exec(req.headers.get("cookie") ?? "")?.[1],
+      acceptLanguage: req.headers.get("accept-language"),
+    });
+    return gateResponse(next, true, locale);
   }
 
   // Amplify 안에서 req.url은 내부 주소(localhost:3000)라 상대 경로로 보낸다

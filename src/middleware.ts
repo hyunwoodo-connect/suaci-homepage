@@ -13,7 +13,13 @@ import {
   validPreviewToken,
 } from "./lib/event-access";
 import { SALES_OPEN } from "./constants/checkout";
-import { SITE_LOCK_COOKIE, gateResponse, isLockedBeforeLaunch, isUnlocked } from "./lib/site-lock";
+import {
+  SITE_LOCK_COOKIE,
+  gateLocale,
+  gateResponse,
+  isLockedBeforeLaunch,
+  isUnlocked,
+} from "./lib/site-lock";
 
 const intl = createMiddleware(routing);
 
@@ -53,7 +59,7 @@ export default async function middleware(req: NextRequest) {
     }
     // 공개 전 이벤트는 판매를 연 뒤에도 잠근다 — 비번(테스터)으로만 연다
     if (!(await isUnlocked(req.cookies.get(SITE_LOCK_COOKIE)?.value, process.env.SITE_LOCK_PIN))) {
-      return gateResponse(req.nextUrl.pathname + req.nextUrl.search, false);
+      return gate(req);
     }
     return NextResponse.next();
   }
@@ -64,9 +70,18 @@ export default async function middleware(req: NextRequest) {
     isLockedBeforeLaunch(req.nextUrl.pathname) &&
     !(await isUnlocked(req.cookies.get(SITE_LOCK_COOKIE)?.value, process.env.SITE_LOCK_PIN))
   ) {
-    return gateResponse(req.nextUrl.pathname + req.nextUrl.search, false);
+    return gate(req);
   }
   return intl(req);
+}
+
+/** 잠금 화면 — 손님 언어로(주소 접두사 > 기억한 언어 > 브라우저 언어) */
+function gate(req: NextRequest): Response {
+  const locale = gateLocale(req.nextUrl.pathname, {
+    cookie: req.cookies.get("NEXT_LOCALE")?.value,
+    acceptLanguage: req.headers.get("accept-language"),
+  });
+  return gateResponse(req.nextUrl.pathname + req.nextUrl.search, false, locale);
 }
 
 export const config = {
