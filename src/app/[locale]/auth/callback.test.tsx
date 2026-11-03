@@ -114,23 +114,18 @@ describe("소셜 콜백", () => {
     tokenStore.clear();
   });
 
-  it("access_denied(kakao) → '괜찮아요. 네이버로 해도 돼요.'", async () => {
-    searchParams.value = new URLSearchParams({ error: "access_denied", state: "x" });
-    await act(async () => {
-      renderPage();
-    });
-    expect(socialSignIn).not.toHaveBeenCalled();
-    expect(screen.getByText("괜찮아요. 네이버로 해도 돼요.")).toBeTruthy();
-  });
-
-  it("access_denied(naver) → '괜찮아요. 카카오로 해도 돼요.'", async () => {
-    routeParams.value = { provider: "naver" };
-    searchParams.value = new URLSearchParams({ error: "access_denied", state: "x" });
-    await act(async () => {
-      renderPage();
-    });
-    expect(screen.getByText("괜찮아요. 카카오로 해도 돼요.")).toBeTruthy();
-  });
+  it.each(["kakao", "naver"])(
+    "access_denied(%s) → 프로바이더를 권하지 않는 한 문장, 교환을 부르지 않는다",
+    async (provider) => {
+      routeParams.value = { provider };
+      searchParams.value = new URLSearchParams({ error: "access_denied", state: "x" });
+      await act(async () => {
+        renderPage();
+      });
+      expect(socialSignIn).not.toHaveBeenCalled();
+      expect(screen.getByText("괜찮아요. 다른 방법으로도 들어올 수 있어요.")).toBeTruthy();
+    },
+  );
 
   it("모르는 프로바이더(/auth/google/callback) → notFound, 교환을 부르지 않는다", () => {
     // 렌더 중 던진 notFound 를 React 가 console.error 로 한 번 더 찍는다 — 소리만 끈다

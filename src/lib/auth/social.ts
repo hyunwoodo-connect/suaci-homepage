@@ -10,6 +10,8 @@ import { SOCIAL_PROVIDERS, type SocialProvider } from "@/types";
 const STATE_KEY = "suaci.auth.state";
 /** localStorage — 마지막으로 로그인한 프로바이더. 결제 기본 수단(그 프로바이더의 페이)을 고르는 데 쓴다 */
 const LAST_PROVIDER_KEY = "suaci.auth.lastProvider";
+/** sessionStorage — 콜백이 담고 동의 페이지가 꺼내는 가입 표. 가입을 마치면 지운다 */
+const SIGNUP_STASH_KEY = "suaci.auth.signup";
 
 interface SocialProviderConfig {
   /** 프로바이더의 동의(인가) 화면 주소 */
@@ -25,7 +27,8 @@ interface SocialProviderConfig {
 
 /**
  * 프로바이더별 설정 한 곳. 새 프로바이더(구글·애플·라인…)는 `SOCIAL_PROVIDERS` 에 이름을 넣고
- * 여기 한 칸과 메시지 `pay.login.{id}`(버튼)·`pay.login.declined.{id}`(동의 취소 안내)를 채운다.
+ * 여기 한 칸과 메시지 `pay.login.{id}`(버튼 문구)를 채운다. 동의 취소 안내는 프로바이더와 상관없는 한 문장이다
+ * (어떤 다른 로그인이 켜져 있는지는 환경마다 달라서 특정 프로바이더를 권하지 않는다).
  * 버튼·콜백·목업 동의 화면은 이 목록을 따라간다.
  */
 export const SOCIAL_PROVIDER_CONFIG: Record<SocialProvider, SocialProviderConfig> = {
@@ -156,4 +159,53 @@ export function readLastProvider(): SocialProvider | null {
   } catch {
     return null;
   }
+}
+
+/** 처음 온 사람의 가입 표 — 콜백이 담고 동의 화면이 꺼낸다(10분 안에 써야 하는 서버 표 + 돌아갈 곳) */
+export interface SignupStash {
+  signupToken: string;
+  provider: SocialProvider;
+  email?: string;
+  name?: string;
+  next: string;
+}
+
+/** 가입 표를 담는다. 저장소가 막혀 있으면 동의 화면이 로그인으로 돌려보낸다 */
+export function stashSignup(stash: SignupStash): void {
+  try {
+    sessionStorage.setItem(SIGNUP_STASH_KEY, JSON.stringify(stash));
+  } catch {}
+}
+
+/** 담아 둔 가입 표. 없거나 모양이 틀리면(옛 값·손댄 값) null */
+export function readSignupStash(): SignupStash | null {
+  try {
+    const raw = sessionStorage.getItem(SIGNUP_STASH_KEY);
+    if (!raw) return null;
+    const v: unknown = JSON.parse(raw);
+    if (typeof v !== "object" || v === null) return null;
+    const o = v as Record<string, unknown>;
+    if (
+      typeof o.signupToken !== "string" ||
+      typeof o.next !== "string" ||
+      !isSocialProvider(o.provider)
+    )
+      return null;
+    return {
+      signupToken: o.signupToken,
+      provider: o.provider,
+      next: o.next,
+      ...(typeof o.email === "string" ? { email: o.email } : {}),
+      ...(typeof o.name === "string" ? { name: o.name } : {}),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** 가입을 마치면 지운다 */
+export function clearSignupStash(): void {
+  try {
+    sessionStorage.removeItem(SIGNUP_STASH_KEY);
+  } catch {}
 }

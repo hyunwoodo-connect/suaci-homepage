@@ -5,7 +5,6 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { notFound, useParams, useSearchParams } from "next/navigation";
 
-import { SIGNUP_STASH_KEY, type SignupStash } from "@/components/auth/ConsentForm";
 import { Link, useRouter } from "@/i18n/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -14,6 +13,7 @@ import {
   rememberLastProvider,
   safeNextPath,
   socialRedirectUri,
+  stashSignup,
   takeLoginState,
 } from "@/lib/auth/social";
 import type { SocialProvider } from "@/types";
@@ -79,16 +79,13 @@ function CallbackBody({ provider }: CallbackBodyProps) {
           router.replace(next);
           return;
         }
-        const stash: SignupStash = {
+        stashSignup({
           signupToken: result.signupToken,
           provider,
-          email: result.email,
-          name: result.name,
+          ...(result.email ? { email: result.email } : {}),
+          ...(result.name ? { name: result.name } : {}),
           next,
-        };
-        try {
-          sessionStorage.setItem(SIGNUP_STASH_KEY, JSON.stringify(stash));
-        } catch {}
+        });
         router.replace("/auth/consent");
       })
       .catch(() => {
@@ -102,7 +99,7 @@ function CallbackBody({ provider }: CallbackBodyProps) {
         {phase === "working" && <p className="text-sm text-grey">{t("result.confirming")}</p>}
         {phase === "declined" && (
           <>
-            <p className="text-sm">{t(`login.declined.${provider}`)}</p>
+            <p className="text-sm">{t("login.declined")}</p>
             <Link href="/login" className="text-sm underline">
               {t("consent.toLogin")}
             </Link>

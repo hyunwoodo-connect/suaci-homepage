@@ -44,7 +44,7 @@
 - 홈 컴포넌트 `src/components/home/`: SiteHeader, Hero, Story, Moments, ProductSection, SiteFooter, BuyBar(판매 중 하단 바), LaunchBar(판매 전 하단 바). 상수 `src/constants/product.ts`.
 - 에셋: `public/image/v5/`, `public/video/v5/hero.{mp4,webm}`, `public/brand/`.
 - 결제·로그인(2026-10-26, feat/two-click-checkout): **두 번 클릭 구매** — 바(수량+`총액 · 사기`) → 로그인 시트(카카오·네이버만, 이메일은 접힘) → 재구매 시트(주소·수단·메모 미리 채움) → 결제창 → `/pay/complete`(승인) → 완료. 첫 구매·주소 변경은 `/checkout` 한 화면(Daum 우편번호 레이어). 게스트 주문 없음(결정 1). 라우트 추가: `/auth/[provider]/callback` · `/auth/consent` · `/auth/mock/[provider]`(개발 대역) · `/pay/complete` · `/pay/fail`.
-- 소셜 프로바이더 추가(구글·애플·라인 등): `SOCIAL_PROVIDERS`(`src/types/auth.ts`) 에 이름 → `SOCIAL_PROVIDER_CONFIG`(`src/lib/auth/social.ts`: 인가 주소·클라 ID env·버튼 색) 한 칸 → 메시지 `pay.login.{id}`·`pay.login.declined.{id}`(ko·en·ja) → 결제 기본 수단 짝 `LOGIN_PAY_METHOD`(`src/lib/payment/providers.ts`, 없으면 null). 버튼·콜백·목업 동의 화면은 목록을 따라간다. 백엔드 `POST /auth/social/{provider}` 도 같이 늘려야 한다.
+- 소셜 프로바이더 추가(구글·애플·라인 등): `SOCIAL_PROVIDERS`(`src/types/auth.ts`) 에 이름 → `SOCIAL_PROVIDER_CONFIG`(`src/lib/auth/social.ts`: 인가 주소·클라 ID env·버튼 색) 한 칸 → 메시지 `pay.login.{id}`(ko·en·ja, 버튼 문구) → 결제 기본 수단 짝 `LOGIN_PAY_METHOD`(`src/lib/payment/providers.ts`, 없으면 null). 버튼·콜백·목업 동의 화면은 목록을 따라간다. 백엔드 `POST /auth/social/{provider}` 도 같이 늘려야 한다.
 - 어댑터 모드(소셜·결제 공통): 클라 키 있으면 **live** / 없고 mock 모드거나 개발이면 **mock**(앱 안 목업 동의·즉시 성공 결제) / 운영+http 면 **off**(버튼 대신 준비 중 한 줄). 실키 오면 env 만 넣으면 전환. 미정 값(판매가 28,000·배송비 3,000·"suaci 바로결제" 가칭)은 `src/constants/checkout.ts` 한 곳.
 - UX 스펙: `docs/superpowers/specs/2026-10-26-payment-ux.md`(결제 UX 설계 — 두 번 누르면 끝).
 - 제품 섹션 사진: 다른 브랜드(퓨리토) 레퍼런스 3장은 2026-11-03 지웠다(사이트 잠금을 풀며 공개 금지). 실제 제품 컷이 나올 때까지 '제품 사진 준비 중' 자리.

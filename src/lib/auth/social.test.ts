@@ -6,15 +6,18 @@ import { SOCIAL_PROVIDERS } from "@/types";
 import {
   SOCIAL_PROVIDER_CONFIG,
   authorizeUrl,
+  clearSignupStash,
   createLoginState,
   envSocialMode,
   isSocialProvider,
   readLastProvider,
+  readSignupStash,
   rememberLastProvider,
   safeNextPath,
   safeRedirectTarget,
   socialMode,
   socialRedirectUri,
+  stashSignup,
   takeLoginState,
 } from "./social";
 
@@ -43,13 +46,13 @@ describe("SOCIAL_PROVIDER_CONFIG", () => {
       expect(config.colors.fg, p).toMatch(/^#[0-9a-f]{6}$/i);
     }
   });
-  it("프로바이더마다 버튼 문구·동의 취소 안내가 있다(ko — en·ja 는 messages.test 가 키를 맞춘다)", () => {
+  it("프로바이더마다 버튼 문구가 있다(ko — en·ja 는 messages.test 가 키를 맞춘다), 동의 취소 안내는 한 문장", () => {
     const login = ko.pay.login as Record<string, unknown>;
-    const declined = ko.pay.login.declined as Record<string, unknown>;
     for (const p of SOCIAL_PROVIDERS) {
       expect(typeof login[p], p).toBe("string");
-      expect(typeof declined[p], p).toBe("string");
     }
+    // 켜진 다른 로그인이 환경마다 달라서 특정 프로바이더를 권하지 않는다
+    expect(ko.pay.login.declined).not.toMatch(/카카오|네이버/);
   });
   it("클라 ID 는 프로바이더별 환경변수에서 — 카카오만 있으면 카카오만 live", () => {
     vi.stubEnv("NEXT_PUBLIC_API_MODE", "http");
@@ -141,5 +144,36 @@ describe("safeNextPath / safeRedirectTarget — 오픈 리다이렉트 차단", 
     expect(safeRedirectTarget("https://evil.com/cb", origin)).toBeNull();
     expect(safeRedirectTarget("//evil.com/cb", origin)).toBeNull();
     expect(safeRedirectTarget("https://takesuaci.com.evil.com/cb", origin)).toBeNull();
+  });
+});
+
+describe("stashSignup / readSignupStash / clearSignupStash", () => {
+  afterEach(() => sessionStorage.clear());
+  it("담은 가입 표를 그대로 꺼내고, 지우면 null", () => {
+    stashSignup({ signupToken: "t1", provider: "kakao", name: "미나", next: "/?buy=1" });
+    expect(readSignupStash()).toEqual({
+      signupToken: "t1",
+      provider: "kakao",
+      name: "미나",
+      next: "/?buy=1",
+    });
+    clearSignupStash();
+    expect(readSignupStash()).toBeNull();
+  });
+  it("옛 키 그대로 읽는다(배포 전에 담긴 표도 이어서 쓴다)", () => {
+    sessionStorage.setItem(
+      "suaci.auth.signup",
+      JSON.stringify({ signupToken: "t2", provider: "naver", next: "/" }),
+    );
+    expect(readSignupStash()).toEqual({ signupToken: "t2", provider: "naver", next: "/" });
+  });
+  it.each([
+    ["깨진 JSON", "{"],
+    ["모르는 프로바이더", JSON.stringify({ signupToken: "t", provider: "google", next: "/" })],
+    ["표 번호 없음", JSON.stringify({ provider: "kakao", next: "/" })],
+    ["객체가 아님", JSON.stringify("x")],
+  ])("%s → null", (_label, raw) => {
+    sessionStorage.setItem("suaci.auth.signup", raw);
+    expect(readSignupStash()).toBeNull();
   });
 });

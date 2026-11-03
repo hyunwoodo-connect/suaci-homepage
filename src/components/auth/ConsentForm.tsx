@@ -10,20 +10,12 @@ import InputField from "@/components/ui/InputField";
 import { api } from "@/lib/api";
 import { ApiClientError } from "@/lib/api/errors";
 import { useAuth } from "@/lib/auth/auth-context";
-import { rememberLastProvider, safeNextPath } from "@/lib/auth/social";
-import type { SocialProvider } from "@/types";
-
-/** sessionStorage — 콜백이 담고 동의 페이지가 꺼내는 가입 표. 가입을 마치면 지운다 */
-export const SIGNUP_STASH_KEY = "suaci.auth.signup";
-
-/** 콜백이 sessionStorage 에 담아 둔 가입 표 */
-export interface SignupStash {
-  signupToken: string;
-  provider: SocialProvider;
-  email?: string;
-  name?: string;
-  next: string;
-}
+import {
+  clearSignupStash,
+  rememberLastProvider,
+  safeNextPath,
+  type SignupStash,
+} from "@/lib/auth/social";
 
 interface ConsentFormProps {
   stash: SignupStash;
@@ -62,9 +54,7 @@ export default function ConsentForm({ stash }: ConsentFormProps) {
       });
       await adoptTokens(tokens);
       rememberLastProvider(stash.provider);
-      try {
-        sessionStorage.removeItem(SIGNUP_STASH_KEY);
-      } catch {}
+      clearSignupStash();
       router.replace(safeNextPath(stash.next));
     } catch (err) {
       setError(
