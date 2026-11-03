@@ -41,7 +41,7 @@
 - Next.js 16 · React 19 · Tailwind v4 · next-intl · pnpm. AWS Amplify 호스팅(main 푸시 시 자동 배포), GitHub `hyunwoodo-connect/suaci-homepage`.
 - 라우팅 `ko`(기본, 접두사 없음 — 2026-10-26 #93) + `en` + `ja`. 카탈로그 키 일치는 `src/messages/messages.test.ts`가 지킨다.
 - 라우트: `/` · `/checkout` · `/orders` · `/orders/[id]` · `/account` · `/account/addresses` · `/login` · `/signup` · `/password/*` · `/legal/[slug]`(terms·privacy·refund·business, 백엔드 `GET /legal/{slug}` 마크다운을 react-markdown으로, 원시 HTML 차단) · `/legal/[slug]/[version]`(개정 이력). 정책 본문은 코드에 없고 관리 툴(admin.takesuaci.com)에서 판(버전)으로 고친다. 2026-10-23. 상품목록·브랜드·장바구니는 **제거**(단일 SKU). `@/lib/api` seam은 지금 쓰는 메서드만 둔다(YAGNI).
-- 홈 컴포넌트 `src/components/home/`: SiteHeader, Hero, Story, Moments, ProductSection, SiteFooter, BuyBar(판매 중 하단 바), LaunchBar(판매 전 하단 바). 상수 `src/constants/product.ts`.
+- 홈 컴포넌트 `src/components/home/`: SiteHeader, Hero, Story, Moments, ProductSection, SiteFooter, BuyBar(하단 사기 바). 상수 `src/constants/product.ts`.
 - 에셋: `public/image/v5/`, `public/video/v5/hero.{mp4,webm}`, `public/brand/`.
 - 결제·로그인(2026-10-26, feat/two-click-checkout): **두 번 클릭 구매** — 바(수량+`총액 · 사기`) → 로그인 시트(카카오·네이버만, 이메일은 접힘) → 재구매 시트(주소·수단·메모 미리 채움) → 결제창 → `/pay/complete`(승인) → 완료. 첫 구매·주소 변경은 `/checkout` 한 화면(Daum 우편번호 레이어). 게스트 주문 없음(결정 1). 라우트 추가: `/auth/[provider]/callback` · `/auth/consent` · `/auth/mock/[provider]`(개발 대역) · `/pay/complete` · `/pay/fail`.
 - 출시 전 숨긴 소셜 로그인: `NEXT_PUBLIC_SOCIAL_HIDDEN`(예: `naver` — 네이버 검수 전, 앱 멤버만 로그인됨). 그 버튼은 `?with=naver` 로 연 탭에서만 보인다(`/login?with=naver`). 검수가 끝나면 값을 비운다.
@@ -50,7 +50,7 @@
 - UX 스펙: `docs/superpowers/specs/2026-10-26-payment-ux.md`(결제 UX 설계 — 두 번 누르면 끝).
 - 제품 섹션 사진: 다른 브랜드(퓨리토) 레퍼런스 3장은 2026-11-03 지웠다(사이트 잠금을 풀며 공개 금지). 실제 제품 컷이 나올 때까지 '제품 사진 준비 중' 자리.
 - 무드 갤러리 모델+보틀 컷(`moment-bottle.webp`, AI 시안 병 — 실제 용기와 모양이 다름)도 같은 날 지우고 같은 자리(`components/home/PhotoSoon`)로.
-- 출시 전 잠금(2026-11-03~): 주문·결제·주문 내역(`/checkout`·`/pay/*`·`/orders*`)만 잠근다. 나머지는 공개. 하단 바는 `SALES_OPEN`(constants/checkout) 이 false 인 동안 '출시 준비 중 · 출시 알림 받기'.
+- 구매 흐름은 출시 전에도 연다(2026-11-03 오너, 토스 카드 심사): 사기 바 → 로그인 → 주문서·재구매 시트까지 누구나 간다. 결제를 받을 수 있는지는 결제창(어댑터)이 있는지로만 정한다(`canTakePayment`, `lib/payment/providers`). 없으면(운영 + 토스 키 전) 결제 버튼이 '결제 준비 중'으로 멈추고 주문을 만들지 않는다. 사기 바 위 안내는 '출시 준비 중 · 출시 알림 받기'. 사이트 비번 잠금은 공개 전 이벤트에만 남았다.
 - 최근 커밋: v5 리디자인 → 코드 점검 → 히어로 v2 영상(크로스페이드 제거) → 제품 섹션 재구성.
 
 ## 디자인 캔버스
