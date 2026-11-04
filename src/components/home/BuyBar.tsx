@@ -96,13 +96,14 @@ export default function BuyBar() {
       />
       {/* 바 높이(66+16px)만큼 끌어올려 푸터 아래에 빈 띠가 생기지 않게 한다. */}
       <div className="pointer-events-none sticky bottom-0 z-20 -mt-[82px] flex flex-col items-center gap-[6px] px-[16px] pb-[16px]">
+        {/* 본문 큰 제목 위에 떠도 읽히게 — 반투명·얇은 띠는 아래 글자가 비쳐 섞인다 */}
         {note || paymentsOpen ? (
-          <p className="pointer-events-none m-0 rounded-full bg-paper/90 px-[10px] py-[2px] text-[11px] text-grey">
+          <p className="pointer-events-none m-0 rounded-full bg-paper px-[12px] py-[5px] text-[11px] text-grey shadow-[0_2px_10px_rgba(20,20,20,0.10)]">
             {note ?? t("shippingIncluded")}
           </p>
         ) : (
           // 결제를 열기 전에도 사기는 결제 직전까지 간다(카드 심사) — 출시 알림 길은 여기 남긴다
-          <p className="pointer-events-auto m-0 rounded-full bg-paper/90 px-[10px] py-[2px] text-[11px] text-grey">
+          <p className="pointer-events-auto m-0 rounded-full bg-paper px-[12px] py-[5px] text-[11px] text-grey shadow-[0_2px_10px_rgba(20,20,20,0.10)]">
             {t("soon")}{" "}
             <Link
               href="/notify"
