@@ -101,6 +101,8 @@ function Shot({ src, alt, w, h, caption, className, sizes }: ShotProps) {
         width={w}
         height={h}
         sizes={sizes}
+        // 첫 화면 아래 사진 — 느린 망에선 lazy 범위가 넓어 바로 받기 시작한다. 히어로 포스터보다 뒤로
+        fetchPriority="low"
         className="h-auto w-full bg-studio"
       />
       {caption && <figcaption className="mt-[12px] text-[13px] text-grey">{caption}</figcaption>}

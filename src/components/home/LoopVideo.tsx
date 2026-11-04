@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface LoopVideoProps {
   webm: string;
@@ -19,6 +19,26 @@ interface LoopVideoProps {
  */
 export default function LoopVideo({ webm, mp4, label, poster, className }: LoopVideoProps) {
   const ref = useRef<HTMLVideoElement>(null);
+  // poster 도 화면 근처에 와서야 단다 — video poster 는 lazy 가 없어 첫 화면 아래여도 바로 받는다
+  const [isNear, setIsNear] = useState(false);
+
+  useEffect(() => {
+    const video = ref.current;
+    if (!video || !poster) return;
+    const near = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setIsNear(true);
+          near.disconnect();
+        }
+      },
+      { rootMargin: "600px 0px" },
+    );
+    near.observe(video);
+    return () => {
+      near.disconnect();
+    };
+  }, [poster]);
 
   useEffect(() => {
     const video = ref.current;
@@ -54,7 +74,7 @@ export default function LoopVideo({ webm, mp4, label, poster, className }: LoopV
       loop
       playsInline
       preload="none"
-      poster={poster}
+      poster={isNear ? poster : undefined}
       aria-label={label}
       className={className}
     >

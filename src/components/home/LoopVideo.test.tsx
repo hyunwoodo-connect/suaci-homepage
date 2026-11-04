@@ -3,7 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import LoopVideo from "./LoopVideo";
 
-let observed: ((entries: Array<{ isIntersecting: boolean }>) => void) | null = null;
+type ObserverCallback = (entries: Array<{ isIntersecting: boolean }>) => void;
+let observed: ObserverCallback | null = null;
+let observers: ObserverCallback[] = [];
 
 function stubEnv({ reducedMotion }: { reducedMotion: boolean }) {
   vi.stubGlobal(
@@ -13,8 +15,9 @@ function stubEnv({ reducedMotion }: { reducedMotion: boolean }) {
   vi.stubGlobal(
     "IntersectionObserver",
     class {
-      constructor(cb: (entries: Array<{ isIntersecting: boolean }>) => void) {
+      constructor(cb: ObserverCallback) {
         observed = cb;
+        observers.push(cb);
       }
       observe() {}
       disconnect() {}
@@ -32,6 +35,7 @@ function renderVideo() {
 describe("LoopVideo", () => {
   beforeEach(() => {
     observed = null;
+    observers = [];
     vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
     vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
   });
@@ -56,6 +60,17 @@ describe("LoopVideo", () => {
     expect(video.play).toHaveBeenCalledTimes(1);
     act(() => observed?.([{ isIntersecting: false }]));
     expect(video.pause).toHaveBeenCalledTimes(1);
+  });
+
+  it("포스터는 화면 근처에 와서야 단다(첫 화면 아래 그림을 미리 받지 않게)", () => {
+    stubEnv({ reducedMotion: true });
+    const { container } = render(
+      <LoopVideo webm="/v.webm" mp4="/v.mp4" poster="/p.webp" label="물결" className="x" />,
+    );
+    const video = container.querySelector("video") as HTMLVideoElement;
+    expect(video.getAttribute("poster")).toBeNull();
+    act(() => observers[0]?.([{ isIntersecting: true }]));
+    expect(video.getAttribute("poster")).toBe("/p.webp");
   });
 
   it("움직임 줄이기를 켰으면 돌리지 않는다", () => {
