@@ -47,7 +47,10 @@ export default function Moments() {
             poster={HOME_MEDIA.waterPoster}
             label={t("waterAlt")}
             className="aspect-[21/9] h-auto w-full bg-studio object-cover"
-            toggleLabels={{ pause: tv("pause"), play: tv("play") }}
+            toggleLabels={{
+              pause: tv("pause", { name: tv("water") }),
+              play: tv("play", { name: tv("water") }),
+            }}
             toggleClassName="bottom-[4px] right-[4px] md:bottom-[16px] md:right-[16px]"
           />
         </div>

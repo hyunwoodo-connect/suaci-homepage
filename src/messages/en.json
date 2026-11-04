@@ -26,8 +26,10 @@
       "videoLabel": "a woman in a lime-green knit cardigan sitting cross-legged on a studio floor beside a mesh bag of limes, tilting her head with a soft smile"
     },
     "video": {
-      "pause": "pause video",
-      "play": "play video"
+      "pause": "pause {name}",
+      "play": "play {name}",
+      "hero": "the intro video",
+      "water": "the water video"
     },
     "story": {
       "label": "our story",

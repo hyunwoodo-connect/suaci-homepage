@@ -48,12 +48,16 @@ export default function Hero() {
         mp4={HOME_MEDIA.heroMp4}
         label={t("videoLabel")}
         className="absolute inset-0 h-full w-full object-cover object-[62%_50%]"
-        toggleLabels={{ pause: tv("pause"), play: tv("play") }}
+        toggleLabels={{
+          pause: tv("pause", { name: tv("hero") }),
+          play: tv("play", { name: tv("hero") }),
+        }}
         // 캡션 줄 오른쪽 끝 — 넓은 화면에서도 본문 최대 폭(1344)의 오른쪽 선에 맞춘다
         toggleClassName="bottom-[14px] right-[6px] md:bottom-[28px] md:right-[max(38px,calc((100%-1344px)/2-10px))]"
       />
 
-      <div className="absolute inset-x-0 bottom-0 px-[16px] pb-[24px] md:px-[48px] md:pb-[40px]">
+      {/* 캡션 칸이 멈춤 버튼 위에 겹쳐 있어 누름은 아래로 흘려보낸다(캡션엔 링크가 없다) */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 px-[16px] pb-[24px] md:px-[48px] md:pb-[40px]">
         {/* 헤더 로고·본문과 같은 최대 폭 — 넓은 화면에서도 캡션 왼쪽 선이 로고와 맞는다 */}
         <h1 className="m-0 mx-auto flex max-w-[1344px] pr-[44px] flex-wrap items-baseline gap-x-[16px] gap-y-[4px] text-[clamp(22px,2.4vw,32px)] font-normal leading-[1.15] tracking-[-0.03em]">
           {t("title")}
