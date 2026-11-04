@@ -25,6 +25,10 @@
       "product": "lime & basil facial serum mist · take-01",
       "videoLabel": "a woman in a lime-green knit cardigan sitting cross-legged on a studio floor beside a mesh bag of limes, tilting her head with a soft smile"
     },
+    "video": {
+      "pause": "pause video",
+      "play": "play video"
+    },
     "story": {
       "label": "our story",
       "headline": "for the days your mind gets sensitive before your skin does.",

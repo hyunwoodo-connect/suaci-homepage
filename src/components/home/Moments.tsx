@@ -12,6 +12,7 @@ import { HOME_MEDIA } from "@/constants/product";
  */
 export default function Moments() {
   const t = useTranslations("home.moments");
+  const tv = useTranslations("home.video");
 
   return (
     <section
@@ -38,7 +39,7 @@ export default function Moments() {
           className="ml-auto mr-[4%] mt-[clamp(0px,14vw,220px)] w-[max(30%,min(100%,250px))]"
           sizes="(max-width: 767px) 70vw, 30vw"
         />
-        <div className="ml-[calc(50%-50vw)] w-screen shrink-0">
+        <div className="relative ml-[calc(50%-50vw)] w-screen shrink-0">
           {/* 물결 루프 영상(첫·끝 프레임 동일, 무음). 로딩 전엔 poster(첫 프레임). */}
           <LoopVideo
             webm={HOME_MEDIA.waterWebm}
@@ -46,6 +47,8 @@ export default function Moments() {
             poster={HOME_MEDIA.waterPoster}
             label={t("waterAlt")}
             className="aspect-[21/9] h-auto w-full bg-studio object-cover"
+            toggleLabels={{ pause: tv("pause"), play: tv("play") }}
+            toggleClassName="bottom-[4px] right-[4px] md:bottom-[16px] md:right-[16px]"
           />
         </div>
         <Shot

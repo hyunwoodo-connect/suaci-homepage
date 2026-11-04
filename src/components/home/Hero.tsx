@@ -14,6 +14,7 @@ const MOBILE_POSTER_MEDIA = "(max-width: 458px)";
  */
 export default function Hero() {
   const t = useTranslations("home.hero");
+  const tv = useTranslations("home.video");
   // 첫 화면에서 가장 큰 그림이 포스터다 — HTML 을 읽자마자 화면 폭에 맞는 한 장만 받기 시작한다
   preload(HOME_MEDIA.heroPosterMobile, {
     as: "image",
@@ -47,11 +48,14 @@ export default function Hero() {
         mp4={HOME_MEDIA.heroMp4}
         label={t("videoLabel")}
         className="absolute inset-0 h-full w-full object-cover object-[62%_50%]"
+        toggleLabels={{ pause: tv("pause"), play: tv("play") }}
+        // 캡션 줄 오른쪽 끝 — 넓은 화면에서도 본문 최대 폭(1344)의 오른쪽 선에 맞춘다
+        toggleClassName="bottom-[14px] right-[6px] md:bottom-[28px] md:right-[max(38px,calc((100%-1344px)/2-10px))]"
       />
 
       <div className="absolute inset-x-0 bottom-0 px-[16px] pb-[24px] md:px-[48px] md:pb-[40px]">
         {/* 헤더 로고·본문과 같은 최대 폭 — 넓은 화면에서도 캡션 왼쪽 선이 로고와 맞는다 */}
-        <h1 className="m-0 mx-auto flex max-w-[1344px] flex-wrap items-baseline gap-x-[16px] gap-y-[4px] text-[clamp(22px,2.4vw,32px)] font-normal leading-[1.15] tracking-[-0.03em]">
+        <h1 className="m-0 mx-auto flex max-w-[1344px] pr-[44px] flex-wrap items-baseline gap-x-[16px] gap-y-[4px] text-[clamp(22px,2.4vw,32px)] font-normal leading-[1.15] tracking-[-0.03em]">
           {t("title")}
           <span className="text-[13px] tracking-normal text-ink-soft">{t("product")}</span>
         </h1>
