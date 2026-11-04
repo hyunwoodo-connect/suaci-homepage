@@ -10,7 +10,7 @@ import { CHECKOUT_PRICING } from "@/constants/checkout";
 import { PRODUCT } from "@/constants/product";
 import LoginSheet from "@/components/pay/LoginSheet";
 import ReBuySheet from "@/components/pay/ReBuySheet";
-import ResumeStrip from "@/components/pay/ResumeStrip";
+import ResumePrompt from "@/components/pay/ResumePrompt";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useCart } from "@/lib/cart/cart-context";
@@ -93,83 +93,89 @@ export default function BuyBar() {
 
   return (
     <>
-      <ResumeStrip
-        onResume={(pending) => {
-          // 아까 하던 주문 그대로 — 수량까지 들고 시트를 연다
-          void buy(Math.min(pending.qty, PRODUCT.maxQuantity));
-        }}
-      />
-      {/* 바 높이(66+16px)만큼 끌어올려 푸터 아래에 빈 띠가 생기지 않게 한다. */}
-      <div className="pointer-events-none sticky bottom-0 z-20 -mt-[82px] flex flex-col items-center gap-[6px] px-[16px] pb-[16px]">
-        {/* 본문 큰 제목 위에 떠도 읽히게 — 반투명·얇은 띠는 아래 글자가 비쳐 섞인다 */}
-        {note || paymentsOpen ? (
-          <p className="pointer-events-none m-0 rounded-full bg-paper px-[12px] py-[5px] text-[11px] text-grey shadow-[0_2px_10px_rgba(20,20,20,0.10)]">
-            {note ?? shippingLine}
-          </p>
-        ) : (
-          // 결제를 열기 전에도 사기는 결제 직전까지 간다(카드 심사) — 출시 알림 길은 여기 남긴다
-          <p className="pointer-events-auto m-0 rounded-[14px] bg-paper px-[14px] py-[5px] text-center text-[11px] leading-[1.6] text-grey shadow-[0_2px_10px_rgba(20,20,20,0.10)]">
-            <span className="num">{shippingLine}</span>
-            <br />
-            {t("soon")}{" "}
-            <Link
-              href="/notify"
-              className="text-ink underline underline-offset-[3px] hover:text-grey"
+      {/* 높이 0 의 sticky 받침 위로 띄운다 — 위 안내 줄 수가 바뀌어도 푸터 아래에 빈 띠가 생기지 않는다 */}
+      <div className="pointer-events-none sticky bottom-0 z-20 h-0">
+        <div className="absolute inset-x-0 bottom-[16px] flex flex-col items-center gap-[6px] px-[8px] min-[390px]:px-[16px]">
+          <ResumePrompt
+            onResume={(resumeQty) => {
+              // 아까 하던 주문·담아 둔 수량 그대로 시트를 연다
+              void buy(resumeQty);
+            }}
+          />
+          {/* 본문 큰 제목 위에 떠도 읽히게 — 반투명·얇은 띠는 아래 글자가 비쳐 섞인다 */}
+          {note || paymentsOpen ? (
+            <p className="pointer-events-none m-0 rounded-full bg-paper px-[12px] py-[5px] text-[12px] text-grey shadow-[0_2px_10px_rgba(20,20,20,0.10)]">
+              {note ?? shippingLine}
+            </p>
+          ) : (
+            // 결제를 열기 전에도 사기는 결제 직전까지 간다(카드 심사) — 출시 알림 길은 여기 남긴다.
+            // 아래 줄 전체가 링크(누르는 자리 44px 안팎)
+            <div className="pointer-events-auto flex flex-col items-center rounded-[16px] bg-paper text-center text-[12px] leading-[1.5] text-grey shadow-[0_2px_10px_rgba(20,20,20,0.10)]">
+              <span className="num px-[14px] pt-[6px]">{shippingLine}</span>
+              <Link
+                href="/notify"
+                className="flex min-h-[36px] items-center gap-[4px] px-[14px] pb-[4px] hover:text-ink"
+              >
+                {t("soon")}
+                <span className="text-ink underline underline-offset-[3px]">{t("notify")}</span>
+              </Link>
+            </div>
+          )}
+          <div className="pointer-events-auto flex h-[56px] items-center gap-[2px] rounded-full bg-ink px-[6px] text-paper shadow-[0_6px_24px_rgba(17,17,17,0.18)]">
+            <div
+              role="group"
+              aria-label={t("buy")}
+              className="flex items-center rounded-full border border-paper/25"
             >
-              {t("notify")}
-            </Link>
-          </p>
-        )}
-        <div className="pointer-events-auto flex h-[52px] items-center gap-[10px] rounded-full bg-ink pl-[10px] pr-[8px] text-paper shadow-[0_6px_24px_rgba(17,17,17,0.18)]">
-          <div
-            role="group"
-            aria-label={t("buy")}
-            className="flex items-center rounded-full border border-paper/25"
-          >
+              <button
+                type="button"
+                aria-label={t("decrease")}
+                disabled={qty <= 1}
+                onClick={() => setQty((q) => Math.max(1, q - 1))}
+                className="h-[44px] w-[34px] cursor-pointer text-[17px] disabled:opacity-30 min-[360px]:w-[38px] min-[390px]:w-[42px]"
+              >
+                −
+              </button>
+              <span className="num w-[18px] text-center text-[15px] font-medium" aria-live="polite">
+                {qty}
+              </span>
+              <button
+                type="button"
+                aria-label={t("increase")}
+                disabled={qty >= PRODUCT.maxQuantity}
+                onClick={() => setQty((q) => Math.min(PRODUCT.maxQuantity, q + 1))}
+                className="h-[44px] w-[34px] cursor-pointer text-[17px] disabled:opacity-30 min-[360px]:w-[38px] min-[390px]:w-[42px]"
+              >
+                +
+              </button>
+            </div>
             <button
               type="button"
-              aria-label={t("decrease")}
-              disabled={qty <= 1}
-              onClick={() => setQty((q) => Math.max(1, q - 1))}
-              className="h-[36px] w-[34px] cursor-pointer text-[16px] disabled:opacity-30"
+              onClick={() => {
+                void buy();
+              }}
+              aria-haspopup="dialog"
+              className="ml-[4px] flex h-[44px] cursor-pointer items-center gap-[8px] whitespace-nowrap rounded-full bg-paper px-[10px] text-[14px] font-semibold text-ink min-[360px]:px-[14px] min-[390px]:px-[18px]"
             >
-              −
+              {/* 320px 폰에선 점을 빼 바가 화면 안에 든다 */}
+              <span
+                aria-hidden="true"
+                className="hidden h-[7px] w-[7px] rounded-full bg-lime min-[360px]:block"
+              />
+              <span className="num">
+                {formatKRW(price)} · {t("buy")}
+              </span>
             </button>
-            <span className="num w-[20px] text-center text-[14px] font-medium" aria-live="polite">
-              {qty}
-            </span>
             <button
               type="button"
-              aria-label={t("increase")}
-              disabled={qty >= PRODUCT.maxQuantity}
-              onClick={() => setQty((q) => Math.min(PRODUCT.maxQuantity, q + 1))}
-              className="h-[36px] w-[34px] cursor-pointer text-[16px] disabled:opacity-30"
+              onClick={() => {
+                void keep();
+              }}
+              className="flex h-[44px] cursor-pointer items-center whitespace-nowrap px-[4px] text-[13px] min-[360px]:px-[8px] text-paper/80 underline underline-offset-[3px] hover:text-paper min-[390px]:px-[12px]"
             >
-              +
+              {t("keep")}
             </button>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              void buy();
-            }}
-            aria-haspopup="dialog"
-            className="flex h-[40px] cursor-pointer items-center gap-[8px] rounded-full bg-paper px-[18px] text-[14px] font-semibold text-ink"
-          >
-            <span aria-hidden="true" className="h-[7px] w-[7px] rounded-full bg-lime" />
-            <span className="num">
-              {formatKRW(price)} · {t("buy")}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              void keep();
-            }}
-            className="cursor-pointer pr-[10px] text-[12px] text-paper/70 underline underline-offset-[3px] hover:text-paper"
-          >
-            {t("keep")}
-          </button>
         </div>
       </div>
       {sheet === "login" && (

@@ -120,10 +120,10 @@ describe("사기 바", () => {
     selectMock.value = false;
     getCheckoutDefaults.mockResolvedValue({ address: null, lastPaymentMethod: null });
     renderBar();
-    expect(screen.getByText(/출시 준비 중이에요\./)).toBeTruthy();
-    expect(screen.getByRole("link", { name: "출시 알림 받기" }).getAttribute("href")).toBe(
-      "/notify",
-    );
+    // 안내 줄 전체가 출시 알림 링크(누르는 자리를 넓게)
+    expect(
+      screen.getByRole("link", { name: "출시 준비 중이에요. 출시 알림 받기" }).getAttribute("href"),
+    ).toBe("/notify");
     expect(screen.getByText("배송비 ₩3,000 · ₩50,000 이상 무료")).toBeTruthy();
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "₩28,000 · 사기" }));
@@ -253,7 +253,7 @@ describe("재구매 시트", () => {
   });
 });
 
-describe("ResumeStrip", () => {
+describe("이어서 줄(사기 바 위)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
@@ -283,9 +283,20 @@ describe("ResumeStrip", () => {
     expect(await screen.findByRole("button", { name: "₩56,000 결제하기" })).toBeTruthy();
   });
 
-  it("pending 없고 카트에 있으면 '담아 둔 게 있어요.'", () => {
-    cartState.value = { items: [{ lineId: "l1" }] };
+  it("pending 없고 카트에 있으면 '담아 둔 게 있어요.' — 바로 사기는 담은 수량으로 시트를 연다", async () => {
+    cartState.value = { items: [{ lineId: "l1", quantity: 3 }] };
+    getCheckoutDefaults.mockResolvedValue({ address: ADDRESS, lastPaymentMethod: null });
     renderBar();
     expect(screen.getByText("담아 둔 게 있어요.")).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "바로 사기" }));
+    });
+    expect(await screen.findByRole("button", { name: "₩84,000 결제하기" })).toBeTruthy();
+  });
+
+  it("pending 도 카트도 없으면 이어서 줄이 없다", () => {
+    renderBar();
+    expect(screen.queryByText("담아 둔 게 있어요.")).toBeNull();
+    expect(screen.queryByText("아까 하던 주문, 이어서 할까요?")).toBeNull();
   });
 });
