@@ -17,10 +17,19 @@
   --color-line: #e4e5e8;
   --color-alert: #b42318; /* 에러 글자 — 흰 바탕 대비 6.5:1 */
 
-  /* ── 폰트 ── 브랜드 기준 Geist(라틴) + Pretendard(한글). 일본어 화면은 Pretendard JP(아래 :lang(ja)) */
-  --font-sans:
-    var(--font-geist), "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
-    "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  /* ── 폰트 ── 브랜드 기준 Geist(라틴) + Pretendard(한글·일본어). 한중일 글꼴은 언어마다 --font-cjk 로 바뀐다(아래) */
+  --font-sans: var(--font-geist), var(--font-cjk), sans-serif;
+}
+
+/* font-sans 유틸리티가 글꼴 목록을 그대로 박아 넣어서(@theme inline), 언어별로 바뀌는 부분은 변수로 둔다 —
+   일본어 화면의 font-sans 칸도 Pretendard JP 로 그린다 */
+:root {
+  --font-cjk:
+    "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+    "Malgun Gothic";
+}
+:root:lang(ja) {
+  --font-cjk: "Pretendard JP Variable", "Pretendard Variable", "Hiragino Sans", "Yu Gothic";
 }
 
 html {
@@ -40,9 +49,6 @@ body {
 }
 
 :lang(ja) body {
-  font-family:
-    var(--font-geist), "Pretendard JP Variable", "Pretendard Variable", "Hiragino Sans",
-    "Yu Gothic", sans-serif;
   line-height: 1.75;
   /* 가나를 글자 폭대로 붙인다 — 전각 그대로면 글자 사이가 벌어져 보인다(일본 웹 관례) */
   font-feature-settings: "palt";

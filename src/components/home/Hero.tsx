@@ -4,8 +4,8 @@ import { useTranslations } from "next-intl";
 
 import { HOME_MEDIA } from "@/constants/product";
 
-/** 폰 포스터를 쓰는 폭 — 잘라 둔 폰 포스터(가로 1100)가 화면을 덮는 데까지 */
-const MOBILE_POSTER_MEDIA = "(max-width: 480px)";
+/** 폰 포스터를 쓰는 폭 — 잘라 둔 폰 포스터(1100×1440)가 높이 600 칸을 늘리지 않고 덮는 데까지(458px) */
+const MOBILE_POSTER_MEDIA = "(max-width: 458px)";
 
 /**
  * v5 히어로 — 풀블리드 룩북 루프 영상(무음·자동재생) + 하단 소문자 캡션.
@@ -22,7 +22,7 @@ export default function Hero() {
   preload(HOME_MEDIA.heroPoster, {
     as: "image",
     fetchPriority: "high",
-    media: "(min-width: 481px)",
+    media: "(min-width: 459px)",
   });
 
   return (
@@ -38,7 +38,7 @@ export default function Hero() {
           src={HOME_MEDIA.heroPoster}
           alt=""
           fetchPriority="high"
-          className="absolute inset-0 h-full w-full object-cover object-[62%_50%] max-[480px]:object-center"
+          className="absolute inset-0 h-full w-full object-cover object-[62%_50%] max-[458px]:object-center"
         />
       </picture>
       <video
@@ -55,7 +55,8 @@ export default function Hero() {
       </video>
 
       <div className="absolute inset-x-0 bottom-0 px-[16px] pb-[24px] md:px-[48px] md:pb-[40px]">
-        <h1 className="m-0 flex flex-wrap items-baseline gap-x-[16px] gap-y-[4px] text-[clamp(22px,2.4vw,32px)] font-normal leading-[1.15] tracking-[-0.03em]">
+        {/* 헤더 로고·본문과 같은 최대 폭 — 넓은 화면에서도 캡션 왼쪽 선이 로고와 맞는다 */}
+        <h1 className="m-0 mx-auto flex max-w-[1344px] flex-wrap items-baseline gap-x-[16px] gap-y-[4px] text-[clamp(22px,2.4vw,32px)] font-normal leading-[1.15] tracking-[-0.03em]">
           {t("title")}
           <span className="text-[13px] tracking-normal text-ink-soft">{t("product")}</span>
         </h1>

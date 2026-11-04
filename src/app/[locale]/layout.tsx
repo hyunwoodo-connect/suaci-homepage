@@ -13,7 +13,7 @@ import { SITE } from "@/constants/site";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { CartProvider } from "@/lib/cart/cart-context";
 import { PRETENDARD_CSS, PRETENDARD_JP_CSS } from "@/constants/fonts";
-import { geist } from "@/lib/fonts";
+import { GEIST } from "@/lib/fonts";
 
 import "../globals.css";
 
@@ -70,7 +70,7 @@ export default async function LocaleLayout({
   }
 
   return (
-    <html lang={locale} className={geist.variable}>
+    <html lang={locale} className={GEIST.variable}>
       <head>
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
         <link rel="stylesheet" href={PRETENDARD_CSS} crossOrigin="anonymous" />

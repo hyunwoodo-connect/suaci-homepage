@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: "suaci — 이벤트",
 };
 
-// 사이트 기본 글꼴(--font-sans 가 쓰는 --font-geist). [locale] 레이아웃과 모듈을 나눠 쓰면
+// 사이트 기본 글꼴(--font-sans 가 쓰는 --font-geist). [locale] 레이아웃(lib/fonts)과 같은 모듈을 쓰거나 같은 호출을 레이아웃에 두면
 // 두 레이아웃의 글꼴 CSS 가 한 묶음이 돼 홈에서도 이벤트 글꼴(Gowun Batang 조각 수십 개)을 미리 받는다
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist", display: "swap" });
 
