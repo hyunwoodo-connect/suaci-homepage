@@ -12,6 +12,8 @@ import { routing } from "@/i18n/routing";
 import { SITE } from "@/constants/site";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { CartProvider } from "@/lib/cart/cart-context";
+import { PRETENDARD_CSS, PRETENDARD_JP_CSS } from "@/constants/fonts";
+import { geist } from "@/lib/fonts";
 
 import "../globals.css";
 
@@ -68,10 +70,13 @@ export default async function LocaleLayout({
   }
 
   return (
-    <html lang={locale}>
+    <html lang={locale} className={geist.variable}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        <link rel="stylesheet" href={PRETENDARD_CSS} crossOrigin="anonymous" />
+        {locale === "ja" && (
+          <link rel="stylesheet" href={PRETENDARD_JP_CSS} crossOrigin="anonymous" />
+        )}
       </head>
       <body className="antialiased">
         <NextIntlClientProvider>

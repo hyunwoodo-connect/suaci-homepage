@@ -3,6 +3,8 @@
  * 비번(SITE_LOCK_PIN)은 Amplify 환경 변수 — 저장소가 공개라 코드에 두지 않는다. 맞히면 쿠키로 30일 열어 둔다.
  * 비번이 설정 안 됐으면 아무도 못 들어간다(잘못 열리는 쪽보다 낫다).
  */
+import { PRETENDARD_CSS, PRETENDARD_JP_CSS } from "@/constants/fonts";
+
 export const SITE_LOCK_COOKIE = "suaci_preview";
 export const SITE_LOCK_MAX_AGE_S = 60 * 60 * 24 * 30;
 
@@ -75,10 +77,11 @@ const GATE_COPY = {
   },
 } as const;
 
-const GATE_FONTS: Record<GateLocale, string> = {
-  ko: "family=Geist:wght@400;500;600&family=Noto+Sans+KR:wght@400;500",
-  en: "family=Geist:wght@400;500;600",
-  ja: "family=Geist:wght@400;500;600&family=Zen+Kaku+Gothic+New:wght@400;500",
+/** 잠금 화면은 next/font 밖(미들웨어가 그리는 HTML)이라 Geist 는 구글 폰트로, 한글·일본어는 사이트와 같은 Pretendard 로 */
+const GATE_FONT_CSS: Record<GateLocale, string> = {
+  ko: PRETENDARD_CSS,
+  en: PRETENDARD_CSS,
+  ja: PRETENDARD_JP_CSS,
 };
 
 /**
@@ -128,11 +131,12 @@ export function gateHtml({
 <title>${c.title}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?${GATE_FONTS[locale]}&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="${GATE_FONT_CSS[locale]}" rel="stylesheet" crossorigin>
 <style>
   *{box-sizing:border-box}
   html,body{margin:0;min-height:100%;background:#fff;color:#141414}
-  body{display:flex;min-height:100dvh;padding:24px 16px;font-family:Geist,"Noto Sans KR","Zen Kaku Gothic New","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased;word-break:keep-all}
+  body{display:flex;min-height:100dvh;padding:24px 16px;font-family:Geist,"Pretendard JP Variable","Pretendard Variable",-apple-system,"Apple SD Gothic Neo",sans-serif;-webkit-font-smoothing:antialiased;word-break:keep-all}
   main{width:100%;max-width:360px;margin:auto;display:flex;flex-direction:column}
   .logo{height:20px;width:auto;align-self:flex-start;margin-bottom:40px}
   h1{margin:0;font-size:24px;line-height:1.35;font-weight:500;letter-spacing:-0.02em}
