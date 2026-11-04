@@ -8,6 +8,7 @@ import { useRouter } from "@/i18n/navigation";
 import { DELIVERY_MEMOS, displayTotal } from "@/constants/checkout";
 import { PRODUCT } from "@/constants/product";
 import ReturnNotice from "@/components/legal/ReturnNotice";
+import MemoPicker, { memoLabel } from "@/components/pay/MemoPicker";
 import MethodPicker from "@/components/pay/MethodPicker";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { api } from "@/lib/api";
@@ -20,12 +21,12 @@ import {
   adapterFor,
   availableMethods,
   defaultMethod,
-  PAY_METHOD_LABEL,
   paymentEnv,
   selectPaymentAdapters,
   type PayMethodId,
 } from "@/lib/payment/providers";
 import type { CheckoutDefaults } from "@/types";
+import Button from "@/components/ui/Button";
 
 interface ReBuySheetProps {
   qty: number;
@@ -43,6 +44,7 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
   const t = useTranslations("pay.sheet");
   const tc = useTranslations("pay.checkout");
   const tCommon = useTranslations("common");
+  const tPay = useTranslations("pay");
   const router = useRouter();
   const { user } = useAuth();
   const { clear, add } = useCart();
@@ -196,7 +198,7 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
           }
           changeLabel={t("change")}
         >
-          {PAY_METHOD_LABEL[method]}
+          {tPay(`method.${method}`)}
         </SheetRow>
         {pickMethod && <MethodPicker methods={methods} value={method} onChange={setMethod} />}
 
@@ -207,66 +209,38 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
           }}
           changeLabel={t("change")}
         >
-          {memo}
+          {memoLabel(memo, tPay)}
         </SheetRow>
         {pickMemo && (
-          <div className="flex flex-wrap items-center gap-[8px]">
-            {DELIVERY_MEMOS.map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => {
-                  setMemo(m);
-                  setCustomMemo(false);
-                }}
-                className={`cursor-pointer rounded-full border px-[14px] py-[8px] text-[13px] ${
-                  memo === m && !customMemo ? "border-ink bg-ink text-paper" : "border-line"
-                }`}
-              >
-                {m}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => {
-                setCustomMemo(true);
-                setMemo("");
-              }}
-              className={`cursor-pointer rounded-full border px-[14px] py-[8px] text-[13px] ${
-                customMemo ? "border-ink bg-ink text-paper" : "border-line"
-              }`}
-            >
-              {t("customMemo")}
-            </button>
-            {customMemo && (
-              <input
-                value={memo}
-                onChange={(e) => {
-                  setMemo(e.target.value);
-                }}
-                maxLength={40}
-                className="w-full border border-line px-[12px] py-[10px] text-[16px]"
-                autoFocus
-              />
-            )}
-          </div>
+          <MemoPicker
+            memo={memo}
+            isCustom={customMemo}
+            onPick={(m) => {
+              setMemo(m);
+              setCustomMemo(false);
+            }}
+            onCustom={() => {
+              setCustomMemo(true);
+              setMemo("");
+            }}
+            onType={setMemo}
+          />
         )}
 
-        {method === "BRANDPAY" && <p className="m-0 text-[12px] text-grey">{tc("brandpayHint")}</p>}
+        {method === "BRANDPAY" && <p className="m-0 text-[13px] text-grey">{tc("brandpayHint")}</p>}
 
         <ReturnNotice />
 
-        <button
+        <Button
           type="button"
           onClick={() => {
             void pay();
           }}
           disabled={busy || !ready}
-          className="h-[52px] cursor-pointer rounded-full bg-ink text-[15px] font-medium text-paper disabled:opacity-50"
         >
           {ready ? t("payCta", { total: formatKRW(total) }) : t("preparingCta")}
-        </button>
-        <p role="status" className="m-0 min-h-[18px] text-center text-[12px] text-grey">
+        </Button>
+        <p role="status" className="m-0 min-h-[20px] text-center text-[13px] text-grey">
           {note ?? (!ready ? t("preparing") : "")}
         </p>
       </div>
@@ -289,16 +263,16 @@ function SheetRow({
   changeLabel: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-[12px] border-b border-line pb-[12px]">
+    <div className="flex items-center justify-between gap-[12px] border-b border-line pb-[10px]">
       <div className="min-w-0">
-        <p className="m-0 text-[11px] text-grey">{label}</p>
-        <p className="m-0 truncate text-[14px]">{children}</p>
+        <p className="m-0 text-[13px] text-grey">{label}</p>
+        <p className="m-0 truncate text-[15px]">{children}</p>
       </div>
       {onChange && (
         <button
           type="button"
           onClick={onChange}
-          className="shrink-0 cursor-pointer text-[12px] text-grey underline underline-offset-[3px] hover:text-ink"
+          className="-mr-[8px] flex h-[44px] shrink-0 cursor-pointer items-center px-[8px] text-[14px] text-grey underline underline-offset-[3px] hover:text-ink"
         >
           {changeLabel}
         </button>

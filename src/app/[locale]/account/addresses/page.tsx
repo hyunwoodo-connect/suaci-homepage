@@ -12,6 +12,7 @@ import { addressName } from "@/lib/checkout/address";
 import { api, ApiClientError } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import type { Address, CreateAddressRequest } from "@/types";
+import ButtonLink from "@/components/ui/ButtonLink";
 
 /**
  * 배송지 — 목록·기본 지정·삭제(한 번 더 묻는다)·추가. 추가는 주문서와 같은 Daum 주소 찾기 폼.
@@ -97,12 +98,9 @@ export default function AddressesPage() {
           <p className="m-0 text-[15px] text-ink">
             {sessionEnded ? ta("sessionEnded") : t("needLogin")}
           </p>
-          <Link
-            href={{ pathname: "/login", query: { next: "/account/addresses" } }}
-            className="inline-flex h-[52px] items-center justify-center rounded-full bg-ink px-[24px] text-[15px] font-medium text-paper transition-colors hover:bg-ink-soft"
-          >
+          <ButtonLink href={{ pathname: "/login", query: { next: "/account/addresses" } }}>
             {ta("goLogin")}
-          </Link>
+          </ButtonLink>
         </div>
       </PageShell>
     );

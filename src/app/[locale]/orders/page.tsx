@@ -10,6 +10,7 @@ import { api, ApiClientError } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { formatDateKST, formatKRW } from "@/lib/format";
 import type { OrderSummary } from "@/types";
+import ButtonLink from "@/components/ui/ButtonLink";
 
 /**
  * 주문 내역 — listOrders. 상태는 손님 말(orders.orderStatus.*)로. 없으면 제품으로 가는 길 하나.
@@ -53,12 +54,9 @@ export default function OrdersPage() {
           <p className="m-0 text-[15px] text-ink">
             {sessionEnded ? ta("sessionEnded") : t("needLogin")}
           </p>
-          <Link
-            href={{ pathname: "/login", query: { next: "/orders" } }}
-            className="inline-flex h-[52px] items-center justify-center rounded-full bg-ink px-[24px] text-[15px] font-medium text-paper transition-colors hover:bg-ink-soft"
-          >
+          <ButtonLink href={{ pathname: "/login", query: { next: "/orders" } }}>
             {ta("goLogin")}
-          </Link>
+          </ButtonLink>
         </div>
       </PageShell>
     );
@@ -79,12 +77,7 @@ export default function OrdersPage() {
         {items !== null && items.length === 0 && (
           <div className="flex flex-col gap-[20px]">
             <p className="m-0 text-[15px] text-ink">{t("empty")}</p>
-            <Link
-              href={{ pathname: "/", hash: "product" }}
-              className="inline-flex h-[52px] items-center justify-center rounded-full bg-ink px-[24px] text-[15px] font-medium text-paper transition-colors hover:bg-ink-soft"
-            >
-              {t("emptyCta")}
-            </Link>
+            <ButtonLink href={{ pathname: "/", hash: "product" }}>{t("emptyCta")}</ButtonLink>
           </div>
         )}
 

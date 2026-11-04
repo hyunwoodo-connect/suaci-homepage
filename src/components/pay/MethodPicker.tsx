@@ -1,6 +1,10 @@
 "use client";
 
-import { PAY_METHOD_LABEL, type PayMethodId } from "@/lib/payment/providers";
+import { useTranslations } from "next-intl";
+
+import type { PayMethodId } from "@/lib/payment/providers";
+
+import { CHIP, CHIP_OFF, CHIP_ON } from "./chip";
 
 interface MethodPickerProps {
   methods: PayMethodId[];
@@ -10,6 +14,7 @@ interface MethodPickerProps {
 
 /** 결제수단 고르기 — 어댑터가 다루는 수단만 칩으로 */
 export default function MethodPicker({ methods, value, onChange }: MethodPickerProps) {
+  const t = useTranslations("pay.method");
   return (
     <div role="radiogroup" className="flex flex-wrap gap-[8px]">
       {methods.map((m) => (
@@ -21,11 +26,9 @@ export default function MethodPicker({ methods, value, onChange }: MethodPickerP
           onClick={() => {
             onChange(m);
           }}
-          className={`cursor-pointer rounded-full border px-[14px] py-[8px] text-[13px] ${
-            value === m ? "border-ink bg-ink text-paper" : "border-line text-ink"
-          }`}
+          className={`${CHIP} ${value === m ? CHIP_ON : CHIP_OFF}`}
         >
-          {PAY_METHOD_LABEL[m]}
+          {t(m)}
         </button>
       ))}
     </div>

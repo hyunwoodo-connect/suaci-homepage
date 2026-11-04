@@ -2,7 +2,8 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
+import PayResult from "@/components/pay/PayResult";
+import ButtonLink from "@/components/ui/ButtonLink";
 import { readPendingOrder } from "@/lib/payment/pending";
 
 /**
@@ -28,16 +29,10 @@ function PayFailBody() {
     });
   }, []);
   return (
-    <main>
-      <div className="mx-auto flex min-h-[60vh] max-w-[480px] flex-col items-center justify-center gap-4 px-4 text-center">
-        <p className="text-sm">{t("stopped")}</p>
-        <Link
-          href={qty ? `/checkout?qty=${String(qty)}` : "/checkout"}
-          className="text-sm underline"
-        >
-          {t("continue")}
-        </Link>
-      </div>
-    </main>
+    <PayResult message={t("stopped")}>
+      <ButtonLink href={qty ? `/checkout?qty=${String(qty)}` : "/checkout"}>
+        {t("continue")}
+      </ButtonLink>
+    </PayResult>
   );
 }

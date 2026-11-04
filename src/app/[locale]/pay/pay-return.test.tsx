@@ -19,11 +19,14 @@ vi.mock("@/lib/cart/cart-context", () => ({
 }));
 vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ replace, push: vi.fn() }),
+  usePathname: () => "/pay/complete",
   Link: ({ href, children }: { href: string; children: React.ReactNode }) => (
     <a href={href}>{children}</a>
   ),
 }));
 vi.mock("next/navigation", () => ({ useSearchParams: () => searchParams.value }));
+// 결과 화면 머리의 헤더(계정 아이콘)가 로그인 상태를 읽는다
+vi.mock("@/lib/auth/auth-context", () => ({ useAuth: () => ({ status: "anonymous" }) }));
 
 import CompletePage from "./complete/page";
 import FailPage from "./fail/page";

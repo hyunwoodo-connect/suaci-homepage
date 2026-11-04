@@ -11,6 +11,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { formatDateKST } from "@/lib/format";
 import type { Address } from "@/types";
+import ButtonLink from "@/components/ui/ButtonLink";
 
 /**
  * 내 계정 — 이름·이메일(있을 때만)·가입일, 배송지·주문 내역 줄, 로그아웃.
@@ -36,12 +37,9 @@ export default function AccountPage() {
           <p className="m-0 text-[15px] text-ink">
             {sessionEnded ? t("sessionEnded") : t("needLogin")}
           </p>
-          <Link
-            href={{ pathname: "/login", query: { next: "/account" } }}
-            className="inline-flex h-[52px] items-center justify-center rounded-full bg-ink px-[24px] text-[15px] font-medium text-paper transition-colors hover:bg-ink-soft"
-          >
+          <ButtonLink href={{ pathname: "/login", query: { next: "/account" } }}>
             {t("goLogin")}
-          </Link>
+          </ButtonLink>
         </div>
       </PageShell>
     );

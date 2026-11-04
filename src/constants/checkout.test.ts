@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { BRANDPAY_LABEL, CHECKOUT_PRICING, DELIVERY_MEMOS, displayTotal } from "./checkout";
+import ko from "@/messages/ko.json";
+
+import { CHECKOUT_PRICING, DELIVERY_MEMOS, DELIVERY_MEMO_KEYS, displayTotal } from "./checkout";
 import { PRODUCT } from "./product";
 
 describe("CHECKOUT_PRICING / displayTotal", () => {
@@ -11,8 +13,9 @@ describe("CHECKOUT_PRICING / displayTotal", () => {
   it("판매가는 한 곳: PRODUCT.price 가 CHECKOUT_PRICING.price 를 그대로 쓴다", () => {
     expect(PRODUCT.price).toBe(CHECKOUT_PRICING.price);
   });
-  it("가칭·칩 상수", () => {
-    expect(BRANDPAY_LABEL).toBe("suaci 바로결제");
+  it("배송 메모 칩: 값은 택배 기사에게 가는 한국어, 한국어 화면 이름은 값과 같다", () => {
     expect(DELIVERY_MEMOS).toEqual(["문 앞", "경비실", "택배함"]);
+    const memo: Record<string, string> = ko.pay.memo;
+    for (const m of DELIVERY_MEMOS) expect(memo[DELIVERY_MEMO_KEYS[m]]).toBe(m);
   });
 });

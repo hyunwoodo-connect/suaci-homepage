@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { BRANDPAY_LABEL } from "@/constants/checkout";
 import {
   adapterFor,
   availableMethods,
@@ -8,7 +7,6 @@ import {
   defaultMethod,
   methodFromLabel,
   parsePaymentReturn,
-  PAY_METHOD_LABEL,
   canTakePayment,
   selectPaymentAdapters,
 } from "./providers";
@@ -103,8 +101,5 @@ describe("methodFromLabel / defaultMethod / 라벨", () => {
     expect(defaultMethod({ lastPaymentMethod: null, loginProvider: "kakao" })).toBe("KAKAOPAY");
     expect(defaultMethod({ lastPaymentMethod: null, loginProvider: "naver" })).toBe("NAVERPAY");
     expect(defaultMethod({ lastPaymentMethod: null, loginProvider: null })).toBe("CARD");
-  });
-  it("BRANDPAY 라벨은 가칭 상수를 그대로", () => {
-    expect(PAY_METHOD_LABEL.BRANDPAY).toBe(BRANDPAY_LABEL);
   });
 });

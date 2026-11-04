@@ -15,7 +15,7 @@ export default function ReturnNotice({ className = "" }: ReturnNoticeProps) {
   const t = useTranslations("legal");
 
   return (
-    <p className={`m-0 text-[12px] leading-[1.6] text-grey ${className}`}>
+    <p className={`m-0 text-[13px] leading-[1.6] text-grey ${className}`}>
       {t("returnNotice")} {t("seeMore")}{" "}
       <Link href="/legal/refund" className="underline underline-offset-[3px] hover:text-ink">
         {t("refund")}

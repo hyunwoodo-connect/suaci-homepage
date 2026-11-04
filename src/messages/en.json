@@ -315,6 +315,7 @@
       "decrease": "decrease quantity",
       "increase": "increase quantity",
       "kept_note": "you kept something.",
+      "keptCta": "buy now",
       "resume": "pick up where you left off?",
       "resumeCta": "continue",
       "soon": "coming soon.",
@@ -374,6 +375,18 @@
       "name": "name",
       "agree": "agree & continue",
       "cancel": "cancel"
+    },
+    "method": {
+      "BRANDPAY": "suaci quick pay",
+      "KAKAOPAY": "kakao pay",
+      "NAVERPAY": "naver pay",
+      "CARD": "card",
+      "TOSSPAY": "toss pay"
+    },
+    "memo": {
+      "door": "front door",
+      "guard": "security office",
+      "box": "parcel locker"
     }
   },
   "waitlist": {

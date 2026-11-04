@@ -3,24 +3,16 @@
  * 실키가 오면 같은 모양의 토스 위젯/직가맹 어댑터를 꽂는다(두 형태 다 수용 — 어댑터 목록이라서).
  * 운영(main) + 실서버(http) 조합에서 목업은 절대 켜지지 않는다 — 그동안 운영은 결제 직전까지만 보여 준다.
  */
-import { BRANDPAY_LABEL } from "@/constants/checkout";
 import type { SocialProvider } from "@/types";
 
 export type PayMethodId = "BRANDPAY" | "KAKAOPAY" | "NAVERPAY" | "CARD";
 
-/** 화면에 보이는 수단 이름. BRANDPAY 는 가칭(시우 결정 전) */
-export const PAY_METHOD_LABEL: Record<PayMethodId, string> = {
-  BRANDPAY: BRANDPAY_LABEL,
-  KAKAOPAY: "카카오페이",
-  NAVERPAY: "네이버페이",
-  CARD: "카드",
-};
-
 /**
  * 결제를 열기 전 주문서에 흐리게 보여 주는 수단 — 카드 심사자가 어떤 수단을 받을지 보게 한다.
- * 실제 고르는 수단(PayMethodId)과 따로 둔다: 토스페이처럼 결제창이 붙으면 생길 수단도 미리 보인다
+ * 실제 고르는 수단(PayMethodId)과 따로 둔다: 토스페이처럼 결제창이 붙으면 생길 수단도 미리 보인다.
+ * 화면 이름은 메시지 `pay.method.{id}`(BRANDPAY 는 가칭)
  */
-export const PREVIEW_METHOD_LABELS = ["카드", "카카오페이", "네이버페이", "토스페이"] as const;
+export const PREVIEW_METHODS = ["CARD", "KAKAOPAY", "NAVERPAY", "TOSSPAY"] as const;
 
 /** 수단 노출 순서 — 스펙 §3(브랜드페이 먼저) */
 const METHOD_ORDER: readonly PayMethodId[] = ["BRANDPAY", "KAKAOPAY", "NAVERPAY", "CARD"];

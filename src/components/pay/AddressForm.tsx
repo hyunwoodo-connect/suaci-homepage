@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { formatPhoneInput, isValidPhone } from "@/lib/checkout/phone";
 import type { CreateAddressRequest } from "@/types";
+import Button from "@/components/ui/Button";
 
 interface AddressFormProps {
   onSubmit: (r: CreateAddressRequest) => Promise<void>;
@@ -176,7 +177,7 @@ export default function AddressForm({
       {/* 주소 찾기 — 레이어가 항상 보인다(고르면 값이 채워진다) */}
       {!picked && (
         <div>
-          <p className="m-0 mb-[6px] text-[12px] text-grey">{t("searchHint")}</p>
+          <p className="m-0 mb-[6px] text-[13px] text-grey">{t("searchHint")}</p>
           <div ref={layerRef} className="h-[380px] w-full border border-line" />
         </div>
       )}
@@ -201,14 +202,14 @@ export default function AddressForm({
         )}
       </Field>
 
-      <label className="flex items-center gap-2 text-[13px]">
+      <label className="flex min-h-[44px] cursor-pointer items-center gap-[10px] text-[14px]">
         <input
           type="checkbox"
           checked={isDefault}
           onChange={(e) => {
             setIsDefault(e.target.checked);
           }}
-          className="size-4 accent-ink"
+          className="size-[18px] accent-ink"
         />
         {t("saveDefault")}
       </label>
@@ -218,13 +219,9 @@ export default function AddressForm({
           {error === "detail" ? t("detailRequired") : t("phoneInvalid")}
         </p>
       )}
-      <button
-        type="submit"
-        disabled={busy || !picked}
-        className="h-[52px] cursor-pointer rounded-full bg-ink text-[15px] font-medium text-paper disabled:opacity-50"
-      >
+      <Button type="submit" disabled={busy || !picked}>
         {submitLabel}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -237,7 +234,7 @@ function Field({ label, children }: { label: string; children: (id: string) => R
   const [id] = useState(() => `af-${String(++fieldSeq)}`);
   return (
     <div>
-      <label htmlFor={id} className="mb-[6px] block text-[12px] text-grey">
+      <label htmlFor={id} className="mb-[6px] block text-[13px] text-grey">
         {label}
       </label>
       {children(id)}

@@ -20,7 +20,7 @@ export default function InputField({
   const inputId = id ?? autoId;
   return (
     <div>
-      <label htmlFor={inputId} className="mb-[6px] block text-[12px] text-grey">
+      <label htmlFor={inputId} className="mb-[6px] block text-[13px] text-grey">
         {label}
       </label>
       <input

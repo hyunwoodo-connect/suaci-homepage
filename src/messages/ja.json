@@ -315,6 +315,7 @@
       "decrease": "数量を減らす",
       "increase": "数量を増やす",
       "kept_note": "とっておいたものがあります。",
+      "keptCta": "すぐ買う",
       "resume": "さっきの注文、続けますか？",
       "resumeCta": "続ける",
       "soon": "発売準備中です。",
@@ -374,6 +375,18 @@
       "name": "名前",
       "agree": "同意して続ける",
       "cancel": "キャンセル"
+    },
+    "method": {
+      "BRANDPAY": "suaci クイック決済",
+      "KAKAOPAY": "カカオペイ",
+      "NAVERPAY": "ネイバーペイ",
+      "CARD": "カード",
+      "TOSSPAY": "トスペイ"
+    },
+    "memo": {
+      "door": "玄関前",
+      "guard": "管理人室",
+      "box": "宅配ボックス"
     }
   },
   "waitlist": {

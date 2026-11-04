@@ -1,5 +1,6 @@
 /**
- * 구매 흐름의 미정 값 — 전부 임시. 판매가·배송비는 오너가, 브랜드페이 이름은 시우가 정하면 여기만 바꾼다.
+ * 구매 흐름의 미정 값 — 전부 임시. 판매가·배송비는 오너가 정하면 여기만 바꾼다.
+ * 브랜드페이 표시 이름(가칭 'suaci 바로결제')은 언어별로 메시지 `pay.method.BRANDPAY` 에 있다.
  * 버튼 총액은 이 식으로 그리고, 최종 금액의 권위는 서버 totals 다(mock 서버도 같은 상수를 쓴다).
  */
 export const CHECKOUT_PRICING = {
@@ -18,8 +19,15 @@ export function displayTotal(qty: number): number {
   return subtotal + shipping;
 }
 
-/** 브랜드페이 표시 이름 — 가칭. 시우 결정 전(UX "오너에게 남긴 것") */
-export const BRANDPAY_LABEL = "suaci 바로결제";
-
-/** 배송 메모 칩(기본 첫 번째). 화면에는 "직접 쓸게요"가 하나 더 붙는다 */
+/**
+ * 배송 메모 칩(기본 첫 번째). 값은 택배 기사에게 그대로 가는 한국어 — 화면 이름만 언어별(`pay.memo.*`).
+ * 화면에는 "직접 쓸게요"가 하나 더 붙는다
+ */
 export const DELIVERY_MEMOS = ["문 앞", "경비실", "택배함"] as const;
+
+/** 배송 메모 값 → 화면 이름 메시지 키(`pay.memo.{key}`) */
+export const DELIVERY_MEMO_KEYS: Record<(typeof DELIVERY_MEMOS)[number], string> = {
+  "문 앞": "door",
+  경비실: "guard",
+  택배함: "box",
+};

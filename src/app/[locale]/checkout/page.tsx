@@ -9,7 +9,9 @@ import { Link, useRouter } from "@/i18n/navigation";
 import PageShell from "@/components/shell/PageShell";
 import ReturnNotice from "@/components/legal/ReturnNotice";
 import AddressForm from "@/components/pay/AddressForm";
+import MemoPicker from "@/components/pay/MemoPicker";
 import MethodPicker from "@/components/pay/MethodPicker";
+import { CHIP, CHIP_OFF } from "@/components/pay/chip";
 import { CHECKOUT_PRICING, DELIVERY_MEMOS, displayTotal } from "@/constants/checkout";
 import { PRODUCT } from "@/constants/product";
 import { api, ApiClientError } from "@/lib/api";
@@ -25,10 +27,11 @@ import {
   defaultMethod,
   paymentEnv,
   selectPaymentAdapters,
-  PREVIEW_METHOD_LABELS,
+  PREVIEW_METHODS,
   type PayMethodId,
 } from "@/lib/payment/providers";
 import type { Address, CreateAddressRequest } from "@/types";
+import Button from "@/components/ui/Button";
 
 /** 처리 가능한 주문 에러 코드 → 메시지 키. 그 외는 GENERIC. */
 const KNOWN_ERROR_CODES = [
@@ -59,6 +62,7 @@ function CheckoutBody() {
   const t = useTranslations("checkout");
   const tp = useTranslations("pay");
   const tc = useTranslations("common");
+  const tProduct = useTranslations("home.product");
   const router = useRouter();
   const search = useSearchParams();
   const { status, user, refresh } = useAuth();
@@ -232,7 +236,7 @@ function CheckoutBody() {
         <section>
           <SectionLabel>{t("addressTitle")}</SectionLabel>
           {!addrLoaded ? (
-            <p className="m-0 font-sans text-[11px] text-grey">…</p>
+            <p className="m-0 text-[14px] text-grey">{tc("loading")}</p>
           ) : addresses.length === 0 || showForm ? (
             <div>
               <h3 className="m-0 mb-[14px] text-[16px] font-medium">{tp("checkout.whereTo")}</h3>
@@ -254,29 +258,28 @@ function CheckoutBody() {
                         setOverrideId(a.addressId);
                       }}
                       aria-pressed={active}
-                      className={`w-full cursor-pointer border border-line p-[16px] text-left transition-colors ${
-                        active ? "bg-ink text-paper" : "bg-transparent text-ink hover:bg-[#f0f0ea]"
+                      className={`w-full cursor-pointer border p-[16px] text-left transition-colors ${
+                        active
+                          ? "border-ink bg-ink text-paper"
+                          : "border-line bg-transparent text-ink hover:border-ink"
                       }`}
                     >
-                      <div className="mb-[6px] flex items-center gap-[10px]">
-                        <b className="font-sans text-[15px]">{addressName(a)}</b>
+                      <div className="mb-[6px] flex flex-wrap items-center gap-x-[10px] gap-y-[2px]">
+                        <b className="text-[15px] font-medium">{addressName(a)}</b>
                         <span
-                          className={`num font-sans text-[11px] ${active ? "text-paper/70" : "text-grey"}`}
+                          className={`num text-[13px] ${active ? "text-paper/80" : "text-grey"}`}
                         >
                           {addressName(a) === a.recipient ? a.phone : `${a.recipient} · ${a.phone}`}
                         </span>
+                        {/* 라임 위 글자는 먹색 — 고른 칸(검정)·안 고른 칸(흰색) 어디서나 같은 표 */}
                         {a.isDefault && (
-                          <span
-                            className={`px-[7px] py-[2px] font-sans text-[10px] ${
-                              active ? "bg-lime text-ink" : "bg-ink text-lime"
-                            }`}
-                          >
+                          <span className="rounded-full bg-lime px-[8px] py-[1px] text-[12px] text-ink">
                             {t("defaultBadge")}
                           </span>
                         )}
                       </div>
                       <p
-                        className={`m-0 text-[13.5px] leading-[1.6] ${active ? "text-paper/90" : ""}`}
+                        className={`m-0 text-[14px] leading-[1.6] ${active ? "text-paper/90" : ""}`}
                       >
                         ({a.zipcode}) {a.addr1}
                         <br />
@@ -292,7 +295,7 @@ function CheckoutBody() {
                   onClick={() => {
                     setShowForm(true);
                   }}
-                  className="mt-[2px] cursor-pointer font-sans text-[11px] text-grey underline underline-offset-[3px] hover:text-ink"
+                  className="flex min-h-[44px] cursor-pointer items-center text-[14px] text-ink underline underline-offset-[3px] hover:text-grey"
                 >
                   + {t("addAddress")}
                 </button>
@@ -304,46 +307,19 @@ function CheckoutBody() {
         {/* ── 배송 메모 ── */}
         <section>
           <SectionLabel>{tp("sheet.memo")}</SectionLabel>
-          <div className="flex flex-wrap items-center gap-[8px]">
-            {DELIVERY_MEMOS.map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => {
-                  setMemo(m);
-                  setCustomMemo(false);
-                }}
-                className={`cursor-pointer rounded-full border px-[14px] py-[8px] text-[13px] ${
-                  memo === m && !customMemo ? "border-ink bg-ink text-paper" : "border-line"
-                }`}
-              >
-                {m}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => {
-                setCustomMemo(true);
-                setMemo("");
-              }}
-              className={`cursor-pointer rounded-full border px-[14px] py-[8px] text-[13px] ${
-                customMemo ? "border-ink bg-ink text-paper" : "border-line"
-              }`}
-            >
-              {tp("sheet.customMemo")}
-            </button>
-            {customMemo && (
-              <input
-                value={memo}
-                onChange={(e) => {
-                  setMemo(e.target.value);
-                }}
-                maxLength={40}
-                className="w-full border border-line px-[12px] py-[10px] text-[16px]"
-                autoFocus
-              />
-            )}
-          </div>
+          <MemoPicker
+            memo={memo}
+            isCustom={customMemo}
+            onPick={(m) => {
+              setMemo(m);
+              setCustomMemo(false);
+            }}
+            onCustom={() => {
+              setCustomMemo(true);
+              setMemo("");
+            }}
+            onType={setMemo}
+          />
         </section>
 
         {/* ── 결제수단 ── */}
@@ -353,20 +329,20 @@ function CheckoutBody() {
             <>
               <MethodPicker methods={methods} value={method} onChange={setMethod} />
               {method === "BRANDPAY" && (
-                <p className="m-0 mt-[8px] text-[12px] text-grey">{tp("checkout.brandpayHint")}</p>
+                <p className="m-0 mt-[8px] text-[13px] text-grey">{tp("checkout.brandpayHint")}</p>
               )}
             </>
           ) : (
             <>
               <div className="flex flex-wrap gap-[8px]">
-                {PREVIEW_METHOD_LABELS.map((label) => (
+                {PREVIEW_METHODS.map((id) => (
                   <button
-                    key={label}
+                    key={id}
                     type="button"
                     disabled
-                    className="rounded-full border border-line px-[14px] py-[8px] text-[13px] text-grey opacity-60"
+                    className={`${CHIP} ${CHIP_OFF} cursor-default text-grey opacity-60`}
                   >
-                    {label}
+                    {tp(`method.${id}`)}
                   </button>
                 ))}
               </div>
@@ -379,7 +355,7 @@ function CheckoutBody() {
         <section>
           <div className="mb-[16px] border border-line p-[16px]">
             <TotalRow
-              label={`${PRODUCT.name} × ${String(qty)}`}
+              label={`${tProduct("name")} × ${String(qty)}`}
               value={formatKRW(CHECKOUT_PRICING.price * qty)}
             />
             <TotalRow
@@ -392,8 +368,8 @@ function CheckoutBody() {
               muted
             />
             <div className="mt-[12px] flex items-baseline justify-between border-t border-line pt-[12px]">
-              <span className="font-sans text-[10px]">{t("grandTotal")}</span>
-              <b className="num font-sans text-[20px]">{formatKRW(total)}</b>
+              <span className="text-[15px] font-medium">{t("grandTotal")}</span>
+              <b className="num text-[20px] font-medium">{formatKRW(total)}</b>
             </div>
           </div>
           <ReturnNotice className="mb-[14px]" />
@@ -402,25 +378,25 @@ function CheckoutBody() {
               {note}
             </p>
           )}
-          <button
+          <Button
             type="button"
             onClick={() => {
               void pay();
             }}
             disabled={busy || !ready || !selected}
-            className="h-[52px] w-full cursor-pointer rounded-full bg-ink text-[15px] font-medium text-paper disabled:opacity-50"
+            className="w-full"
           >
             {!ready
               ? tp("sheet.preparingCta")
               : busy
                 ? tp("sheet.paying")
                 : tp("sheet.payCta", { total: formatKRW(total) })}
-          </button>
+          </Button>
           {/* 결제를 열기 전(카드 심사 중)에는 여기까지가 끝 — 주문은 만들지 않고 출시 알림으로 보낸다 */}
           {!ready && (
             <Link
               href="/notify"
-              className="mt-[14px] block text-center text-[13px] text-grey underline underline-offset-[3px] hover:text-ink"
+              className="mt-[6px] flex min-h-[44px] items-center justify-center text-[14px] text-grey underline underline-offset-[3px] hover:text-ink"
             >
               {tp("bar.notify")}
             </Link>
@@ -432,14 +408,14 @@ function CheckoutBody() {
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <h2 className="mb-[14px] mt-0 font-sans text-[11px] text-grey">{children}</h2>;
+  return <h2 className="mb-[12px] mt-0 text-[14px] font-medium text-ink">{children}</h2>;
 }
 
 function TotalRow({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
   return (
-    <div className="flex items-baseline justify-between py-[3px]">
-      <span className="font-sans text-[10px] text-grey">{label}</span>
-      <span className={`num font-sans text-[12px] ${muted ? "text-grey" : "text-ink"}`}>
+    <div className="flex items-baseline justify-between gap-[12px] py-[4px]">
+      <span className="text-[14px] text-grey">{label}</span>
+      <span className={`num shrink-0 text-[14px] ${muted ? "text-grey" : "text-ink"}`}>
         {value}
       </span>
     </div>

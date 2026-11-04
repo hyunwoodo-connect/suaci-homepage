@@ -9,6 +9,7 @@ import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
 import PageShell from "@/components/shell/PageShell";
 import { api } from "@/lib/api";
+import ButtonLink from "@/components/ui/ButtonLink";
 
 /**
  * 비밀번호 찾기(forgotPassword).
@@ -44,12 +45,9 @@ export default function ForgotPasswordPage() {
             <p role="status" className="m-0 text-[15px] text-ink">
               {t("forgotSent", { email })}
             </p>
-            <Link
-              href={{ pathname: "/password/reset", query: { email } }}
-              className="inline-flex h-[52px] items-center justify-center rounded-full bg-ink px-[24px] text-[15px] font-medium text-paper transition-colors hover:bg-ink-soft"
-            >
+            <ButtonLink href={{ pathname: "/password/reset", query: { email } }}>
               {t("goReset")}
-            </Link>
+            </ButtonLink>
             <Link href="/login" className="self-start text-[13px] text-grey hover:text-ink">
               {t("backToLogin")}
             </Link>

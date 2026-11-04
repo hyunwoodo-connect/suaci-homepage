@@ -3,7 +3,10 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
-import { Link, useRouter } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
+import PayResult from "@/components/pay/PayResult";
+import Button from "@/components/ui/Button";
+import ButtonLink from "@/components/ui/ButtonLink";
 import { api } from "@/lib/api";
 import { ApiClientError } from "@/lib/api/errors";
 import { useCart } from "@/lib/cart/cart-context";
@@ -73,44 +76,34 @@ function PayCompleteBody() {
     });
   }, [confirm, orderId, parsed]);
 
-  return (
-    <main>
-      <div className="mx-auto flex min-h-[60vh] max-w-[480px] flex-col items-center justify-center gap-4 px-4 text-center">
-        {phase === "confirming" && <p className="text-sm text-grey">{t("confirming")}</p>}
-        {phase === "badLink" && (
-          <>
-            <p className="text-sm">{t("badLink")}</p>
-            <Link href="/" className="text-sm underline">
-              {t("home")}
-            </Link>
-          </>
-        )}
-        {phase === "declined" && (
-          <>
-            <p className="text-sm">{t("declined")}</p>
-            <Link
-              href={pendingQty ? `/checkout?qty=${String(pendingQty)}` : "/checkout"}
-              className="text-sm underline"
-            >
-              {t("backToCheckout")}
-            </Link>
-          </>
-        )}
-        {phase === "hiccup" && (
-          <>
-            <p className="text-sm">{t("hiccup")}</p>
-            <button
-              type="button"
-              onClick={() => {
-                void confirm();
-              }}
-              className="cursor-pointer text-sm underline"
-            >
-              {t("retry")}
-            </button>
-          </>
-        )}
-      </div>
-    </main>
-  );
+  if (phase === "badLink") {
+    return (
+      <PayResult message={t("badLink")}>
+        <ButtonLink href="/">{t("home")}</ButtonLink>
+      </PayResult>
+    );
+  }
+  if (phase === "declined") {
+    return (
+      <PayResult message={t("declined")}>
+        <ButtonLink href={pendingQty ? `/checkout?qty=${String(pendingQty)}` : "/checkout"}>
+          {t("backToCheckout")}
+        </ButtonLink>
+      </PayResult>
+    );
+  }
+  if (phase === "hiccup") {
+    return (
+      <PayResult message={t("hiccup")}>
+        <Button
+          onClick={() => {
+            void confirm();
+          }}
+        >
+          {t("retry")}
+        </Button>
+      </PayResult>
+    );
+  }
+  return <PayResult message={t("confirming")} />;
 }

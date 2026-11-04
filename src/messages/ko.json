@@ -315,6 +315,7 @@
       "decrease": "수량 줄이기",
       "increase": "수량 늘리기",
       "kept_note": "담아 둔 게 있어요.",
+      "keptCta": "바로 사기",
       "resume": "아까 하던 주문, 이어서 할까요?",
       "resumeCta": "이어서",
       "soon": "출시 준비 중이에요.",
@@ -374,6 +375,18 @@
       "name": "이름",
       "agree": "동의하고 계속",
       "cancel": "취소"
+    },
+    "method": {
+      "BRANDPAY": "suaci 바로결제",
+      "KAKAOPAY": "카카오페이",
+      "NAVERPAY": "네이버페이",
+      "CARD": "카드",
+      "TOSSPAY": "토스페이"
+    },
+    "memo": {
+      "door": "문 앞",
+      "guard": "경비실",
+      "box": "택배함"
     }
   },
   "waitlist": {
