@@ -98,7 +98,10 @@ function ResetForm() {
         </Button>
       </form>
 
-      <Link href="/login" className="mt-[24px] inline-block text-[13px] text-grey hover:text-ink">
+      <Link
+        href="/login"
+        className="mt-[16px] inline-flex min-h-[44px] items-center text-[14px] text-grey hover:text-ink"
+      >
         {t("backToLogin")}
       </Link>
     </>

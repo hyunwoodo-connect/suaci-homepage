@@ -133,7 +133,7 @@ function CallbackBody({ provider }: CallbackBodyProps) {
         <SocialLoginButtons next={phase.next} />
         <Link
           href="/"
-          className="self-start text-[14px] text-grey underline underline-offset-[3px]"
+          className="inline-flex min-h-[44px] items-center self-start text-[14px] text-grey underline underline-offset-[3px]"
         >
           {tc("home")}
         </Link>

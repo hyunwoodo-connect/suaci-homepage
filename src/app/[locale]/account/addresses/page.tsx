@@ -244,7 +244,7 @@ export default function AddressesPage() {
                 onClick={() => {
                   setAdding(false);
                 }}
-                className="cursor-pointer text-[13px] text-grey underline underline-offset-[3px] hover:text-ink"
+                className="-my-[12px] inline-flex min-h-[44px] cursor-pointer items-center text-[14px] text-grey underline underline-offset-[3px] hover:text-ink"
               >
                 {tc("close")}
               </button>
@@ -258,7 +258,10 @@ export default function AddressesPage() {
           </section>
         )}
 
-        <Link href="/account" className="self-start text-[13px] text-grey hover:text-ink">
+        <Link
+          href="/account"
+          className="inline-flex min-h-[44px] items-center self-start text-[14px] text-grey hover:text-ink"
+        >
           ← {ta("title")}
         </Link>
       </div>

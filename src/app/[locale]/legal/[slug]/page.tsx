@@ -56,18 +56,21 @@ export default async function LegalPage({ params }: LegalPageProps) {
         )}
         <LegalMarkdown source={doc.current.body} />
         {doc.history.length > 1 && (
-          <section className="flex flex-col gap-[8px] text-[13px] text-grey">
-            <h2 className="m-0 text-[13px] font-medium text-ink">{t("history")}</h2>
-            <ul className="m-0 flex list-none flex-col gap-[4px] p-0">
+          <section className="flex flex-col gap-[4px] text-[14px] text-grey">
+            <h2 className="m-0 text-[14px] font-medium text-ink">{t("history")}</h2>
+            <ul className="m-0 flex list-none flex-col p-0">
               {doc.history.map((h) => (
                 <li key={h.version}>
                   {h.version === doc.current.version ? (
-                    <span>
+                    <span className="inline-flex min-h-[44px] items-center">
                       {t("version", { n: h.version })} · {h.effectiveDtm.slice(0, 10)} ·{" "}
                       {t("current")}
                     </span>
                   ) : (
-                    <Link href={`/legal/${doc.slug}/${h.version}`} className="hover:text-ink">
+                    <Link
+                      href={`/legal/${doc.slug}/${h.version}`}
+                      className="inline-flex min-h-[44px] items-center underline underline-offset-[3px] hover:text-ink"
+                    >
                       {t("version", { n: h.version })} · {h.effectiveDtm.slice(0, 10)}
                     </Link>
                   )}
@@ -76,9 +79,16 @@ export default async function LegalPage({ params }: LegalPageProps) {
             </ul>
           </section>
         )}
-        <nav aria-label={t("more")} className="flex flex-wrap gap-x-[20px] gap-y-[8px] text-[13px]">
+        <nav
+          aria-label={t("more")}
+          className="flex flex-wrap gap-x-[20px] border-t border-line pt-[8px] text-[14px]"
+        >
           {others.map((s) => (
-            <Link key={s} href={`/legal/${s}`} className="text-grey hover:text-ink">
+            <Link
+              key={s}
+              href={`/legal/${s}`}
+              className="inline-flex min-h-[44px] items-center text-grey hover:text-ink"
+            >
               {t(s)}
             </Link>
           ))}

@@ -68,7 +68,7 @@ export default function WaitlistForm({ locale, source }: WaitlistFormProps) {
             setMarketing(false);
             setStatus("idle");
           }}
-          className="cursor-pointer text-[12px] text-grey underline underline-offset-[3px] hover:text-ink"
+          className="inline-flex min-h-[44px] cursor-pointer items-center text-[14px] text-grey underline underline-offset-[3px] hover:text-ink"
         >
           {t("again")}
         </button>
@@ -82,7 +82,7 @@ export default function WaitlistForm({ locale, source }: WaitlistFormProps) {
         e.preventDefault();
         void send();
       }}
-      className="flex max-w-[440px] flex-col gap-[18px]"
+      className="flex max-w-[440px] flex-col gap-[12px]"
     >
       <p className="m-0 text-[14px] text-ink">{t("lead")}</p>
       <InputField
@@ -97,36 +97,39 @@ export default function WaitlistForm({ locale, source }: WaitlistFormProps) {
         onChange={(e) => setEmail(e.target.value)}
         disabled={status === "sending"}
       />
-      <label className="flex cursor-pointer items-start gap-[10px] text-[12px] text-ink">
+      <label className="flex min-h-[44px] cursor-pointer items-start gap-[10px] py-[10px] text-[14px] leading-[1.5] text-ink">
         <input
           type="checkbox"
           checked={privacy}
           onChange={(e) => setPrivacy(e.target.checked)}
           aria-describedby={detailId}
-          className="mt-[2px] size-[16px] shrink-0"
+          className="mt-[1px] size-[20px] shrink-0 accent-ink"
         />
         <span>{t("privacyConsent")}</span>
       </label>
-      <p id={detailId} className="m-0 -mt-[10px] pl-[26px] text-[11px] text-grey">
+      <p id={detailId} className="m-0 -mt-[18px] pl-[30px] text-[13px] leading-[1.5] text-grey">
         {t("privacyDetail")}
       </p>
-      <label className="flex cursor-pointer items-start gap-[10px] text-[12px] text-ink">
+      <label className="flex min-h-[44px] cursor-pointer items-start gap-[10px] py-[10px] text-[14px] leading-[1.5] text-ink">
         <input
           type="checkbox"
           checked={marketing}
           onChange={(e) => setMarketing(e.target.checked)}
-          className="mt-[2px] size-[16px] shrink-0"
+          className="mt-[1px] size-[20px] shrink-0 accent-ink"
         />
         <span>{t("marketingConsent")}</span>
       </label>
       {error && (
-        <div role="alert" className="flex items-center gap-[12px] text-[12px] text-alert">
+        <div
+          role="alert"
+          className="flex flex-wrap items-center gap-x-[12px] text-[14px] text-alert"
+        >
           <span>{error.message}</span>
           {error.canRetry && (
             <button
               type="button"
               onClick={() => void send()}
-              className="cursor-pointer text-ink underline underline-offset-[3px]"
+              className="inline-flex min-h-[44px] cursor-pointer items-center text-ink underline underline-offset-[3px]"
             >
               {t("retry")}
             </button>

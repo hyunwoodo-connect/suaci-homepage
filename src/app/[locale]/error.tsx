@@ -20,7 +20,7 @@ export default function ErrorPage({ reset }: ErrorPageProps) {
         <Button onClick={reset}>{t("retry")}</Button>
         <Link
           href="/"
-          className="self-start text-[14px] text-grey underline underline-offset-[3px]"
+          className="inline-flex min-h-[44px] items-center self-start text-[14px] text-grey underline underline-offset-[3px]"
         >
           {t("home")}
         </Link>

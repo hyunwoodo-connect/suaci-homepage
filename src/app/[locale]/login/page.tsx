@@ -111,7 +111,7 @@ function LoginBody() {
               onClick={() => {
                 setShowEmail(true);
               }}
-              className="cursor-pointer text-[14px] text-grey underline underline-offset-[3px] hover:text-ink"
+              className="-my-[10px] inline-flex min-h-[44px] cursor-pointer items-center text-[14px] text-grey underline underline-offset-[3px] hover:text-ink"
             >
               {t("emailLogin")}
             </button>
@@ -151,7 +151,10 @@ function LoginBody() {
                 </Button>
               </form>
               <div className="mt-[20px] flex flex-col gap-[10px] text-[13px] text-grey">
-                <Link href="/password/forgot" className="self-start hover:text-ink">
+                <Link
+                  href="/password/forgot"
+                  className="-mb-[8px] inline-flex min-h-[44px] items-center self-start hover:text-ink"
+                >
                   {t("forgotPassword")}
                 </Link>
                 <p className="m-0">

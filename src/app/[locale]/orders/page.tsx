@@ -103,7 +103,10 @@ export default function OrdersPage() {
           </ul>
         )}
 
-        <Link href="/account" className="self-start text-[13px] text-grey hover:text-ink">
+        <Link
+          href="/account"
+          className="inline-flex min-h-[44px] items-center self-start text-[14px] text-grey hover:text-ink"
+        >
           ← {ta("title")}
         </Link>
       </div>

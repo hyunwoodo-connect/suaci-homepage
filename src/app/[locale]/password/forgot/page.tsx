@@ -48,7 +48,10 @@ export default function ForgotPasswordPage() {
             <ButtonLink href={{ pathname: "/password/reset", query: { email } }}>
               {t("goReset")}
             </ButtonLink>
-            <Link href="/login" className="self-start text-[13px] text-grey hover:text-ink">
+            <Link
+              href="/login"
+              className="inline-flex min-h-[44px] items-center self-start text-[14px] text-grey hover:text-ink"
+            >
               {t("backToLogin")}
             </Link>
           </div>
@@ -76,7 +79,7 @@ export default function ForgotPasswordPage() {
 
             <Link
               href="/login"
-              className="mt-[24px] inline-block text-[13px] text-grey hover:text-ink"
+              className="mt-[16px] inline-flex min-h-[44px] items-center text-[14px] text-grey hover:text-ink"
             >
               {t("backToLogin")}
             </Link>
