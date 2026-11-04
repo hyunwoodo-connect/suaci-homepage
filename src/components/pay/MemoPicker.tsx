@@ -61,6 +61,7 @@ export default function MemoPicker({ memo, isCustom, onPick, onCustom, onType }:
 
 /** 배송 메모를 화면 이름으로 — 고른 칩이면 그 언어의 이름, 직접 쓴 메모는 쓴 그대로 */
 export function memoLabel(memo: string, t: (key: string) => string): string {
-  const key = (DELIVERY_MEMO_KEYS as Record<string, string>)[memo];
-  return key ? t(`memo.${key}`) : memo;
+  // 직접 쓴 메모가 'constructor' 같은 이름이어도 객체 기본 속성을 집지 않게
+  if (!Object.hasOwn(DELIVERY_MEMO_KEYS, memo)) return memo;
+  return t(`memo.${(DELIVERY_MEMO_KEYS as Record<string, string>)[memo]}`);
 }

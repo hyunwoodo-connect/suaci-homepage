@@ -93,9 +93,10 @@ export default function BuyBar() {
 
   return (
     <>
-      {/* 높이 0 의 sticky 받침 위로 띄운다 — 위 안내 줄 수가 바뀌어도 푸터 아래에 빈 띠가 생기지 않는다 */}
-      <div className="pointer-events-none sticky bottom-0 z-20 h-0">
-        <div className="absolute inset-x-0 bottom-[16px] flex flex-col items-center gap-[6px] px-[8px] min-[390px]:px-[16px]">
+      {/* 페이지 끝에선 푸터 아래 제자리(자기 높이만큼 띠)에 선다 — 푸터 맨 아래 줄(개인정보처리방침)을 가리지 않게.
+          스크롤 중에는 화면 아래에 붙는다 */}
+      <div className="pointer-events-none sticky bottom-0 z-20">
+        <div className="flex flex-col items-center gap-[6px] px-[8px] pb-[16px] min-[390px]:px-[16px]">
           <ResumePrompt
             onResume={(resumeQty) => {
               // 아까 하던 주문·담아 둔 수량 그대로 시트를 연다

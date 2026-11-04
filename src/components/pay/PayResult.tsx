@@ -10,13 +10,13 @@ interface PayResultProps {
 }
 
 /**
- * 결제창에서 돌아온 자리(확인 중·멈춤·거절·잠깐 막힘) — 헤더는 두고(나갈 길), 가운데 한 문장 + 엄지 자리 버튼 하나.
+ * 결제창에서 돌아온 자리(확인 중·멈춤·거절·잠깐 막힘) — 로고만 있는 헤더(나갈 길), 가운데 한 문장 + 엄지 자리 버튼 하나.
  * 결제 흐름 한가운데라 푸터·큰 제목은 두지 않는다.
  */
 export default function PayResult({ message, children }: PayResultProps) {
   return (
     <main className="flex min-h-dvh flex-col bg-paper">
-      <SiteHeader />
+      <SiteHeader minimal />
       <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col items-stretch justify-center gap-[24px] px-[16px] pb-[96px] text-center">
         <p role="status" className="m-0 text-[17px] leading-[1.55] text-ink">
           {message}
