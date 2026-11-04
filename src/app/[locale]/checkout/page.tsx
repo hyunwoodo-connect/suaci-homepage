@@ -25,6 +25,7 @@ import {
   defaultMethod,
   paymentEnv,
   selectPaymentAdapters,
+  PREVIEW_METHOD_LABELS,
   type PayMethodId,
 } from "@/lib/payment/providers";
 import type { Address, CreateAddressRequest } from "@/types";
@@ -217,6 +218,16 @@ function CheckoutBody() {
   return (
     <PageShell title={t("title")} meta={t("meta")}>
       <div className="flex max-w-[480px] flex-col gap-[28px]">
+        {/* 출시 전엔 주소를 다 쓰고 나서야 막히지 않게 — 맨 위에서 먼저 알린다 */}
+        {!ready && (
+          <p className="m-0 flex items-start gap-[10px] border border-line px-[14px] py-[12px] text-[13px] leading-[1.6] text-ink">
+            <span
+              aria-hidden="true"
+              className="mt-[7px] size-[7px] shrink-0 rounded-full bg-lime"
+            />
+            {tp("checkout.closedNotice")}
+          </p>
+        )}
         {/* ── 배송지 ── */}
         <section>
           <SectionLabel>{t("addressTitle")}</SectionLabel>
@@ -346,7 +357,21 @@ function CheckoutBody() {
               )}
             </>
           ) : (
-            <p className="m-0 text-[13px] text-grey">{tp("sheet.preparing")}</p>
+            <>
+              <div className="flex flex-wrap gap-[8px]">
+                {PREVIEW_METHOD_LABELS.map((label) => (
+                  <button
+                    key={label}
+                    type="button"
+                    disabled
+                    className="rounded-full border border-line px-[14px] py-[8px] text-[13px] text-grey opacity-60"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p className="m-0 mt-[10px] text-[13px] text-grey">{tp("checkout.methodsClosed")}</p>
+            </>
           )}
         </section>
 

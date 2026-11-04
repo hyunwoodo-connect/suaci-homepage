@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 
 import { Link, useRouter } from "@/i18n/navigation";
-import { displayTotal } from "@/constants/checkout";
+import { CHECKOUT_PRICING } from "@/constants/checkout";
 import { PRODUCT } from "@/constants/product";
 import LoginSheet from "@/components/pay/LoginSheet";
 import ReBuySheet from "@/components/pay/ReBuySheet";
@@ -36,7 +36,12 @@ export default function BuyBar() {
   const [busy, setBusy] = useState(false);
   const [autoOpened, setAutoOpened] = useState(false);
 
-  const total = displayTotal(qty);
+  // 버튼엔 상품가만(국내 쇼핑몰 관례) — 배송비는 위 작은 줄, 총액은 주문서·재구매 시트에서 더한다
+  const price = CHECKOUT_PRICING.price * qty;
+  const shippingLine = t("shipping", {
+    fee: formatKRW(CHECKOUT_PRICING.shippingFee),
+    freeOver: formatKRW(CHECKOUT_PRICING.freeShippingOver),
+  });
   const paymentsOpen = canTakePayment(paymentEnv());
 
   const buy = useCallback(
@@ -99,11 +104,13 @@ export default function BuyBar() {
         {/* 본문 큰 제목 위에 떠도 읽히게 — 반투명·얇은 띠는 아래 글자가 비쳐 섞인다 */}
         {note || paymentsOpen ? (
           <p className="pointer-events-none m-0 rounded-full bg-paper px-[12px] py-[5px] text-[11px] text-grey shadow-[0_2px_10px_rgba(20,20,20,0.10)]">
-            {note ?? t("shippingIncluded")}
+            {note ?? shippingLine}
           </p>
         ) : (
           // 결제를 열기 전에도 사기는 결제 직전까지 간다(카드 심사) — 출시 알림 길은 여기 남긴다
-          <p className="pointer-events-auto m-0 rounded-full bg-paper px-[12px] py-[5px] text-[11px] text-grey shadow-[0_2px_10px_rgba(20,20,20,0.10)]">
+          <p className="pointer-events-auto m-0 rounded-[14px] bg-paper px-[14px] py-[5px] text-center text-[11px] leading-[1.6] text-grey shadow-[0_2px_10px_rgba(20,20,20,0.10)]">
+            <span className="num">{shippingLine}</span>
+            <br />
             {t("soon")}{" "}
             <Link
               href="/notify"
@@ -151,7 +158,7 @@ export default function BuyBar() {
           >
             <span aria-hidden="true" className="h-[7px] w-[7px] rounded-full bg-lime" />
             <span className="num">
-              {formatKRW(total)} · {t("buy")}
+              {formatKRW(price)} · {t("buy")}
             </span>
           </button>
           <button

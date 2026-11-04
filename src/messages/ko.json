@@ -310,7 +310,7 @@
   "pay": {
     "bar": {
       "buy": "사기",
-      "shippingIncluded": "배송비 포함이에요.",
+      "shipping": "배송비 {fee} · {freeOver} 이상 무료",
       "keep": "담아 두기",
       "kept": "담아 뒀어요",
       "decrease": "수량 줄이기",
@@ -352,7 +352,9 @@
       "saveDefault": "다음에도 여기로",
       "brandpayHint": "한 번 등록하면 다음부턴 바로 결제돼요.",
       "phone": "전화",
-      "detail": "상세주소"
+      "detail": "상세주소",
+      "closedNotice": "출시 전이라 결제는 아직 안 돼요. 배송지는 미리 저장해 둘 수 있어요.",
+      "methodsClosed": "출시 전이라 아직 결제할 수 없어요."
     },
     "result": {
       "confirming": "결제를 확인하는 중…",

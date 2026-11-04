@@ -11,7 +11,7 @@ export const CHECKOUT_PRICING = {
   freeShippingOver: 50000,
 } as const;
 
-/** 상품 페이지 버튼에 쓰는 배송비 포함 총액 — UX §5 "총액이 늦게 보이면 이탈 1위" */
+/** 배송비까지 더한 결제 금액 — 주문서·재구매 시트의 합계(사기 바엔 상품가만) */
 export function displayTotal(qty: number): number {
   const subtotal = CHECKOUT_PRICING.price * qty;
   const shipping = subtotal >= CHECKOUT_PRICING.freeShippingOver ? 0 : CHECKOUT_PRICING.shippingFee;

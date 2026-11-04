@@ -102,7 +102,15 @@ describe("주문서(첫 구매)", () => {
       renderPage();
     });
     expect(await screen.findByText(/서울 중구 세종대로 110/)).toBeTruthy();
-    expect(screen.getByText("아직 결제를 준비 중이에요.")).toBeTruthy();
+    // 맨 위 한 줄 + 결제수단은 흐리게 보이고 왜 안 되는지 붙는다(카드 심사자·손님이 헷갈리지 않게)
+    expect(
+      screen.getByText("출시 전이라 결제는 아직 안 돼요. 배송지는 미리 저장해 둘 수 있어요."),
+    ).toBeTruthy();
+    for (const m of ["카드", "카카오페이", "네이버페이", "토스페이"]) {
+      expect((screen.getByRole("button", { name: m }) as HTMLButtonElement).disabled).toBe(true);
+    }
+    expect(screen.queryByRole("radio")).toBeNull();
+    expect(screen.getByText("출시 전이라 아직 결제할 수 없어요.")).toBeTruthy();
     expect(screen.getByText("₩31,000")).toBeTruthy();
     const cta = screen.getByRole("button", { name: "결제 준비 중" }) as HTMLButtonElement;
     expect(cta.disabled).toBe(true);

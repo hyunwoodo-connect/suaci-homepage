@@ -16,6 +16,12 @@ export const PAY_METHOD_LABEL: Record<PayMethodId, string> = {
   CARD: "카드",
 };
 
+/**
+ * 결제를 열기 전 주문서에 흐리게 보여 주는 수단 — 카드 심사자가 어떤 수단을 받을지 보게 한다.
+ * 실제 고르는 수단(PayMethodId)과 따로 둔다: 토스페이처럼 결제창이 붙으면 생길 수단도 미리 보인다
+ */
+export const PREVIEW_METHOD_LABELS = ["카드", "카카오페이", "네이버페이", "토스페이"] as const;
+
 /** 수단 노출 순서 — 스펙 §3(브랜드페이 먼저) */
 const METHOD_ORDER: readonly PayMethodId[] = ["BRANDPAY", "KAKAOPAY", "NAVERPAY", "CARD"];
 

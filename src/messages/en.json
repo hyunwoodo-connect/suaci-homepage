@@ -310,7 +310,7 @@
   "pay": {
     "bar": {
       "buy": "buy",
-      "shippingIncluded": "shipping included.",
+      "shipping": "shipping {fee} · free over {freeOver}",
       "keep": "keep it",
       "kept": "kept.",
       "decrease": "decrease quantity",
@@ -352,7 +352,9 @@
       "saveDefault": "use this next time",
       "brandpayHint": "register once, pay instantly next time.",
       "phone": "phone",
-      "detail": "unit / detail"
+      "detail": "unit / detail",
+      "closedNotice": "we haven't launched yet, so you can't pay just yet. you can save your address ahead of time.",
+      "methodsClosed": "you can't pay until launch."
     },
     "result": {
       "confirming": "confirming your payment…",

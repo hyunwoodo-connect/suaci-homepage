@@ -85,18 +85,23 @@ describe("사기 바", () => {
     selectMock.value = true;
   });
 
-  it("수량 2 → 버튼이 ₩56,000 · 사기 (배송비 포함: 5만 넘어 무료)", () => {
+  it("버튼은 상품가(배송비 빼고), 배송비는 위에 작게 — 국내 쇼핑몰 관례", () => {
+    renderBar();
+    expect(screen.getByRole("button", { name: "₩28,000 · 사기" })).toBeTruthy();
+    expect(screen.getByText("배송비 ₩3,000 · ₩50,000 이상 무료")).toBeTruthy();
+  });
+
+  it("수량 2 → 버튼이 ₩56,000 · 사기 (상품가 × 수량)", () => {
     renderBar();
     fireEvent.click(screen.getByRole("button", { name: "수량 늘리기" }));
     expect(screen.getByRole("button", { name: "₩56,000 · 사기" })).toBeTruthy();
-    expect(screen.getByText("배송비 포함이에요.")).toBeTruthy();
   });
 
   it("미로그인 사기 → LoginSheet(누군지만 알려 주세요.)", async () => {
     authState.value = { status: "anonymous", user: null };
     renderBar();
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "₩31,000 · 사기" }));
+      fireEvent.click(screen.getByRole("button", { name: "₩28,000 · 사기" }));
     });
     expect(screen.getByText("누군지만 알려 주세요.")).toBeTruthy();
     expect(getCheckoutDefaults).not.toHaveBeenCalled();
@@ -106,7 +111,7 @@ describe("사기 바", () => {
     getCheckoutDefaults.mockResolvedValue({ address: null, lastPaymentMethod: null });
     renderBar();
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "₩31,000 · 사기" }));
+      fireEvent.click(screen.getByRole("button", { name: "₩28,000 · 사기" }));
     });
     await waitFor(() => expect(push).toHaveBeenCalledWith("/checkout?qty=1&first=1"));
   });
@@ -119,9 +124,9 @@ describe("사기 바", () => {
     expect(screen.getByRole("link", { name: "출시 알림 받기" }).getAttribute("href")).toBe(
       "/notify",
     );
-    expect(screen.queryByText("배송비 포함이에요.")).toBeNull();
+    expect(screen.getByText("배송비 ₩3,000 · ₩50,000 이상 무료")).toBeTruthy();
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "₩31,000 · 사기" }));
+      fireEvent.click(screen.getByRole("button", { name: "₩28,000 · 사기" }));
     });
     await waitFor(() => expect(push).toHaveBeenCalledWith("/checkout?qty=1&first=1"));
   });
@@ -140,7 +145,7 @@ describe("재구매 시트", () => {
   async function openSheet() {
     renderBar();
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "₩31,000 · 사기" }));
+      fireEvent.click(screen.getByRole("button", { name: "₩28,000 · 사기" }));
     });
     await screen.findByText("지난번처럼 보낼게요.");
   }

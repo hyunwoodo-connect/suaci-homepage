@@ -310,7 +310,7 @@
   "pay": {
     "bar": {
       "buy": "買う",
-      "shippingIncluded": "送料込みです。",
+      "shipping": "送料 {fee}・{freeOver}以上で無料",
       "keep": "とっておく",
       "kept": "とっておきました",
       "decrease": "数量を減らす",
@@ -352,7 +352,9 @@
       "saveDefault": "次回もここへ",
       "brandpayHint": "一度登録すれば次からすぐ決済できます。",
       "phone": "電話",
-      "detail": "詳細住所"
+      "detail": "詳細住所",
+      "closedNotice": "発売前のため、まだお支払いはできません。配送先は先に保存しておけます。",
+      "methodsClosed": "発売前のため、まだお支払いできません。"
     },
     "result": {
       "confirming": "決済を確認しています…",
