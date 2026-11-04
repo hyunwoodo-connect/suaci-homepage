@@ -104,7 +104,13 @@ function OrderDetail({ orderId }: { orderId: string }) {
           <p className="m-0 text-[15px] text-ink">
             {sessionEnded ? ta("sessionEnded") : t("needLogin")}
           </p>
-          <ButtonLink href={{ pathname: "/login", query: { next: `/orders/${orderId}` } }}>
+          {/* 결제 직후(?welcome=1) 로그인이 풀렸어도 다시 들어오면 완료 띠까지 그대로 */}
+          <ButtonLink
+            href={{
+              pathname: "/login",
+              query: { next: `/orders/${orderId}${searchParams.size ? `?${searchParams}` : ""}` },
+            }}
+          >
             {ta("goLogin")}
           </ButtonLink>
         </div>
