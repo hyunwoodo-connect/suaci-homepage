@@ -4,7 +4,9 @@ import { Suspense, use, useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { Link } from "@/i18n/navigation";
+import { CHIP, CHIP_OFF, CHIP_ON } from "@/components/pay/chip";
 import Button from "@/components/ui/Button";
+import ButtonLink from "@/components/ui/ButtonLink";
 import PageShell from "@/components/shell/PageShell";
 import { api, ApiClientError } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -55,13 +57,16 @@ function OrderDetail({ orderId }: { orderId: string }) {
   const t = useTranslations("orders");
   const tp = useTranslations("pay.result");
   const tc = useTranslations("common");
-  const { status } = useAuth();
+  const ta = useTranslations("account");
+  const { status, sessionEnded, refresh: recheckSession } = useAuth();
   const searchParams = useSearchParams();
   const welcome = searchParams.get("welcome") === "1";
   const firstPurchase = searchParams.get("first") === "1";
 
   const [order, setOrder] = useState<Order | null>(null);
   const [claims, setClaims] = useState<Claim[]>([]);
+  // 못 불러오면 '불러오는 중'에 멈추지 않고 이유와 돌아갈 길을 보여 준다
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const refresh = useCallback(async () => {
     const [o, cs] = await Promise.all([
@@ -79,12 +84,48 @@ function OrderDetail({ orderId }: { orderId: string }) {
     void api
       .getOrder(orderId)
       .then(setOrder)
-      .catch(() => setOrder(null));
+      .catch((err: unknown) => {
+        if (err instanceof ApiClientError && err.code === "AUTH_REQUIRED") {
+          void recheckSession();
+          return;
+        }
+        setLoadFailed(true);
+      });
     void api
       .listClaims(orderId)
       .then(setClaims)
       .catch(() => setClaims([]));
-  }, [status, orderId]);
+  }, [status, orderId, recheckSession]);
+
+  if (status === "anonymous") {
+    return (
+      <PageShell title={t("detailTitle")}>
+        <div className="flex max-w-[400px] flex-col gap-[20px]">
+          <p className="m-0 text-[15px] text-ink">
+            {sessionEnded ? ta("sessionEnded") : t("needLogin")}
+          </p>
+          <ButtonLink href={{ pathname: "/login", query: { next: `/orders/${orderId}` } }}>
+            {ta("goLogin")}
+          </ButtonLink>
+        </div>
+      </PageShell>
+    );
+  }
+
+  if (loadFailed) {
+    return (
+      <PageShell title={t("detailTitle")}>
+        <div className="flex max-w-[400px] flex-col gap-[20px]">
+          <p role="alert" className="m-0 text-[15px] text-ink">
+            {t("detailLoadError")}
+          </p>
+          <ButtonLink href="/orders" variant="outline">
+            {t("backToList")}
+          </ButtonLink>
+        </div>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell title={t("detailTitle")} meta={order?.orderNo ?? ""}>
@@ -93,21 +134,22 @@ function OrderDetail({ orderId }: { orderId: string }) {
       ) : (
         <div className="max-w-[860px]">
           {welcome && (
-            <div className="border border-line bg-lime px-[16px] py-[13px] mb-[20px] flex items-baseline justify-between gap-[12px] flex-wrap">
+            // 이 화면의 라임은 이 띠 하나 — 위 글자는 먹색
+            <div className="mb-[24px] flex flex-wrap items-baseline justify-between gap-[8px_16px] bg-lime px-[16px] py-[14px] text-ink">
               <div>
-                <b className="font-sans text-[15px] text-ink block">{tp("done")}</b>
-                <span className="font-sans text-[12px] text-ink">
+                <b className="block text-[17px] font-medium">{tp("done")}</b>
+                <span className="text-[14px]">
                   {firstPurchase ? tp("doneFirst") : tp("doneSub")}
                 </span>
               </div>
-              <span className="font-sans text-[10px] text-ink num">
+              <span className="num text-[13px]">
                 {t("welcomeOrderNo", { orderNo: order.orderNo })}
               </span>
             </div>
           )}
 
           {/* 상태 라인 */}
-          <div className="flex gap-[8px] flex-wrap mb-[20px]">
+          <div className="mb-[24px] flex flex-wrap gap-[8px]">
             <StatusBadge
               label={t("statusLabel")}
               value={t(`orderStatus.${order.status}`)}
@@ -126,38 +168,40 @@ function OrderDetail({ orderId }: { orderId: string }) {
           </div>
 
           {/* 품목 */}
-          <ul className="list-none m-0 p-0 border border-line mb-[20px]">
+          <ul className="m-0 mb-[24px] list-none border-y border-line p-0">
             {order.items.map((item) => (
               <li
                 key={item.lineId}
-                className="flex items-center gap-[16px] px-[16px] py-[13px] border-b border-line last:border-b-0"
+                className="flex items-center gap-[16px] border-b border-line py-[14px] last:border-b-0"
               >
-                <div className="flex-1">
-                  <b className="font-sans text-[15px] block">{item.productName}</b>
-                  <span className="font-sans text-[10px] text-grey">
+                <div className="min-w-0 flex-1">
+                  <b className="block text-[15px] font-medium">{item.productName}</b>
+                  <span className="num text-[13px] text-grey">
                     {item.optionName} × {item.quantity}
                   </span>
                 </div>
-                <b className="font-sans text-[15px] num">{formatKRW(item.lineSubtotal)}</b>
+                <b className="num shrink-0 text-[15px] font-medium">
+                  {formatKRW(item.lineSubtotal)}
+                </b>
               </li>
             ))}
           </ul>
 
           {/* 합계 + 배송지 */}
-          <div className="grid grid-cols-2 gap-[20px] max-sm:grid-cols-1 mb-[28px]">
+          <div className="mb-[28px] grid grid-cols-2 gap-[20px] max-sm:grid-cols-1">
             <div className="border border-line p-[16px]">
-              <h3 className="font-sans text-[10px] text-grey mt-0 mb-[12px]">{t("payment")}</h3>
+              <SectionTitle>{t("payment")}</SectionTitle>
               <TotalRow label={t("subtotal")} value={formatKRW(order.totals.itemsSubtotal)} />
               <TotalRow label={t("shipping")} value={formatKRW(order.totals.shippingFee)} />
               <TotalRow label={t("discount")} value={`−${formatKRW(order.totals.discountTotal)}`} />
-              <div className="flex justify-between items-baseline border-t border-line mt-[10px] pt-[10px]">
-                <span className="font-sans text-[10px]">{t("grandTotal")}</span>
-                <b className="font-sans text-[20px] num">{formatKRW(order.totals.grandTotal)}</b>
+              <div className="mt-[10px] flex items-baseline justify-between border-t border-line pt-[10px]">
+                <span className="text-[15px] font-medium">{t("grandTotal")}</span>
+                <b className="num text-[20px] font-medium">{formatKRW(order.totals.grandTotal)}</b>
               </div>
             </div>
             <div className="border border-line p-[16px]">
-              <h3 className="font-sans text-[10px] text-grey mt-0 mb-[12px]">{t("shippingTo")}</h3>
-              <p className="text-[13.5px] text-ink m-0 leading-[1.7]">
+              <SectionTitle>{t("shippingTo")}</SectionTitle>
+              <p className="m-0 text-[14px] leading-[1.7] text-ink">
                 <b>{order.shippingAddress.recipient}</b>
                 <br />({order.shippingAddress.zipcode}) {order.shippingAddress.addr1}{" "}
                 {order.shippingAddress.addr2 ?? ""}
@@ -173,7 +217,10 @@ function OrderDetail({ orderId }: { orderId: string }) {
           {/* 환불 내역 */}
           <ClaimsList claims={claims} />
 
-          <Link href="/orders" className="text-[13px] text-grey hover:text-ink">
+          <Link
+            href="/orders"
+            className="inline-flex min-h-[44px] items-center text-[14px] text-grey hover:text-ink"
+          >
             ← {t("title")}
           </Link>
         </div>
@@ -222,12 +269,10 @@ function OrderActions({ order, onDone }: { order: Order; onDone: () => Promise<v
   };
 
   return (
-    <section className="border border-line mb-[28px]">
-      <h3 className="font-sans text-[10px] text-grey m-0 px-[16px] py-[12px] border-b border-line">
-        {t("manage")}
-      </h3>
+    <section className="mb-[28px] border border-line p-[16px]">
+      <SectionTitle>{t("manage")}</SectionTitle>
 
-      <div className="p-[16px] flex flex-col gap-[16px]">
+      <div className="flex flex-col gap-[16px]">
         {error && <ErrorNote text={error} />}
 
         {/* 주문 취소 */}
@@ -246,7 +291,7 @@ function OrderActions({ order, onDone }: { order: Order; onDone: () => Promise<v
               </Button>
             ) : (
               <>
-                <span className="font-sans text-[11px] text-ink">{t("cancelConfirm")}</span>
+                <span className="w-full text-[15px] text-ink">{t("cancelConfirm")}</span>
                 <Button variant="danger" disabled={busy} onClick={handleCancel}>
                   {busy ? "…" : t("cancelYes")}
                 </Button>
@@ -343,12 +388,15 @@ function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="border border-line p-[16px] flex flex-col gap-[18px]">
-      <b className="font-sans text-[16px] text-ink">{tc("formTitle")}</b>
+    <form
+      onSubmit={handleSubmit}
+      className="flex flex-col gap-[20px] border-t border-line pt-[16px]"
+    >
+      <b className="text-[16px] font-medium text-ink">{tc("formTitle")}</b>
 
       {/* 사유 */}
       <fieldset className="border-0 p-0 m-0">
-        <legend className="font-sans text-[10px] text-grey mb-[8px] p-0">{tc("reason")}</legend>
+        <legend className="mb-[10px] p-0 text-[13px] text-grey">{tc("reason")}</legend>
         <div className="flex flex-wrap gap-[8px]">
           {REASON_CODES.map((code) => {
             const active = reasonCode === code;
@@ -358,9 +406,7 @@ function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }
                 type="button"
                 aria-pressed={active}
                 onClick={() => setReasonCode(code)}
-                className={`font-sans text-[11px] px-[12px] py-[8px] border border-line transition-colors cursor-pointer ${
-                  active ? "bg-ink text-lime" : "bg-transparent text-ink hover:bg-paper"
-                }`}
+                className={`${CHIP} ${active ? CHIP_ON : CHIP_OFF}`}
               >
                 {tc(`reasonCode.${code}`)}
               </button>
@@ -371,19 +417,22 @@ function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }
 
       {/* 상세 (선택) */}
       <div>
-        <label className="block font-sans text-[10px] text-grey mb-[6px]">{tc("detail")}</label>
+        <label htmlFor="refund-detail" className="mb-[6px] block text-[13px] text-grey">
+          {tc("detail")}
+        </label>
         <textarea
+          id="refund-detail"
           value={reasonDetail}
           onChange={(e) => setReasonDetail(e.target.value)}
           rows={3}
           placeholder={tc("detailPlaceholder")}
-          className="w-full border border-line bg-transparent px-[14px] py-[12px] font-sans text-[13px] text-ink outline-none focus:bg-paper transition-colors resize-y"
+          className="w-full resize-y border border-line bg-paper px-[12px] py-[11px] text-[16px] text-ink outline-none transition-colors focus:border-ink"
         />
       </div>
 
       {/* 범위 토글 */}
       <fieldset className="border-0 p-0 m-0">
-        <legend className="font-sans text-[10px] text-grey mb-[8px] p-0">{tc("scope")}</legend>
+        <legend className="mb-[10px] p-0 text-[13px] text-grey">{tc("scope")}</legend>
         <div className="flex gap-[8px]">
           {(["full", "partial"] as const).map((s) => {
             const active = scope === s;
@@ -393,9 +442,7 @@ function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }
                 type="button"
                 aria-pressed={active}
                 onClick={() => setScope(s)}
-                className={`flex-1 font-sans text-[11px] px-[12px] py-[10px] border border-line transition-colors cursor-pointer ${
-                  active ? "bg-ink text-lime" : "bg-transparent text-ink hover:bg-paper"
-                }`}
+                className={`${CHIP} flex-1 justify-center ${active ? CHIP_ON : CHIP_OFF}`}
               >
                 {tc(s === "full" ? "scopeFull" : "scopePartial")}
               </button>
@@ -415,29 +462,27 @@ function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }
                 className="flex items-center gap-[12px] px-[14px] py-[12px] border-b border-line last:border-b-0 flex-wrap"
               >
                 <div className="flex-1 min-w-[140px]">
-                  <b className="font-sans text-[14px] block">{item.productName}</b>
-                  <span className="font-sans text-[10px] text-grey">
+                  <b className="block text-[15px] font-medium">{item.productName}</b>
+                  <span className="text-[13px] text-grey">
                     {item.optionName} · {tc("ownedQty", { n: item.quantity })}
                   </span>
                 </div>
-                <div className="flex items-center border border-line">
+                <div className="flex items-center rounded-full border border-line">
                   <button
                     type="button"
                     aria-label={tc("decrease")}
                     onClick={() => setLineQty(item, value - 1)}
-                    className="font-sans text-[13px] px-[12px] py-[6px] text-ink hover:bg-ink hover:text-lime transition-colors cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+                    className="size-[44px] cursor-pointer text-[17px] text-ink disabled:pointer-events-none disabled:opacity-30"
                     disabled={value <= 0}
                   >
                     −
                   </button>
-                  <span className="font-sans text-[13px] num min-w-[28px] text-center border-x-[1.5px] border-line py-[6px]">
-                    {value}
-                  </span>
+                  <span className="num min-w-[24px] text-center text-[15px]">{value}</span>
                   <button
                     type="button"
                     aria-label={tc("increase")}
                     onClick={() => setLineQty(item, value + 1)}
-                    className="font-sans text-[13px] px-[12px] py-[6px] text-ink hover:bg-ink hover:text-lime transition-colors cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+                    className="size-[44px] cursor-pointer text-[17px] text-ink disabled:pointer-events-none disabled:opacity-30"
                     disabled={value >= item.quantity}
                   >
                     +
@@ -449,9 +494,9 @@ function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }
         </ul>
       )}
 
-      {partialInvalid && <p className="font-sans text-[10px] text-grey m-0">{tc("partialHint")}</p>}
+      {partialInvalid && <p className="m-0 text-[13px] text-grey">{tc("partialHint")}</p>}
 
-      <div className="flex gap-[8px]">
+      <div className="flex flex-wrap gap-[8px]">
         <Button type="submit" disabled={busy || partialInvalid}>
           {busy ? "…" : tc("submit")}
         </Button>
@@ -471,24 +516,22 @@ function ClaimsList({ claims }: { claims: Claim[] }) {
   if (claims.length === 0) return null;
 
   return (
-    <section className="border border-line mb-[28px]">
-      <h3 className="font-sans text-[10px] text-grey m-0 px-[16px] py-[12px] border-b border-line">
-        {tc("historyTitle")}
-      </h3>
-      <ul className="list-none m-0 p-0">
+    <section className="mb-[28px] border border-line p-[16px] pb-0">
+      <SectionTitle>{tc("historyTitle")}</SectionTitle>
+      <ul className="m-0 list-none p-0">
         {claims.map((c) => (
-          <li key={c.claimId} className="px-[16px] py-[14px] border-b border-line last:border-b-0">
+          <li key={c.claimId} className="border-t border-line py-[14px]">
             <div className="flex items-center gap-[10px] flex-wrap mb-[6px]">
-              <b className="font-sans text-[15px]">{tc(`reasonCode.${c.reasonCode}`)}</b>
+              <b className="text-[15px] font-medium">{tc(`reasonCode.${c.reasonCode}`)}</b>
               <ClaimStatusBadge status={c.status} label={tc(`status.${c.status}`)} />
-              <b className="font-sans text-[15px] num ml-auto">{formatKRW(c.refundAmount)}</b>
+              <b className="num ml-auto text-[15px] font-medium">{formatKRW(c.refundAmount)}</b>
             </div>
             {c.reasonDetail && (
               <p className="text-[13px] text-ink-soft m-0 mb-[6px] leading-[1.6]">
                 {c.reasonDetail}
               </p>
             )}
-            <div className="flex gap-[16px] flex-wrap font-sans text-[10px] text-grey">
+            <div className="flex flex-wrap gap-x-[16px] gap-y-[2px] text-[13px] text-grey">
               <span>{tc("refundDue", { date: formatDateKST(c.refundDueAt) })}</span>
               <span>{tc("requestedAt", { date: c.createdDtm.slice(0, 10) })}</span>
             </div>
@@ -501,68 +544,75 @@ function ClaimsList({ claims }: { claims: Claim[] }) {
 
 /* ─── 상태 뱃지 & 톤 ─────────────────────────── */
 
-type Tone = "solid" | "acid" | "muted" | "outline";
+/** 끝난 것(채움) · 진행 중(선) · 꺼진 것(흐림). 라임은 쓰지 않는다 — 이 화면의 라임은 완료 띠 하나 */
+type Tone = "done" | "active" | "muted";
 
 function orderTone(s: OrderStatus): Tone {
-  if (s === "pending") return "outline";
+  if (s === "completed") return "done";
   if (s === "cancelled") return "muted";
-  return "solid";
+  return "active";
 }
 function paymentTone(s: PaymentStatus): Tone {
-  if (s === "paid") return "acid";
+  if (s === "paid") return "done";
   if (s === "refunded" || s === "voided") return "muted";
-  if (s === "pending") return "outline";
-  return "solid";
+  return "active";
 }
 function fulfillmentTone(s: FulfillmentStatus): Tone {
-  if (s === "fulfilled") return "acid";
+  if (s === "fulfilled") return "done";
   if (s === "returned") return "muted";
-  return "solid";
+  return "active";
 }
 
 const TONE_CLASSES: Record<Tone, string> = {
-  solid: "bg-ink text-lime",
-  acid: "bg-lime text-ink border border-line",
-  muted: "bg-transparent text-grey border border-grey",
-  outline: "bg-transparent text-ink border border-line",
+  done: "border-ink bg-ink text-paper",
+  active: "border-ink text-ink",
+  muted: "border-line text-grey",
 };
 
 function StatusBadge({ label, value, tone }: { label: string; value: string; tone: Tone }) {
   return (
     <span
-      className={`inline-flex items-baseline gap-[6px] font-sans text-[10px] px-[8px] py-[3px] ${TONE_CLASSES[tone]}`}
+      className={`inline-flex items-baseline gap-[6px] rounded-full border px-[12px] py-[5px] text-[13px] ${TONE_CLASSES[tone]}`}
     >
-      <span className="opacity-60">{label}</span>
-      <span>{value}</span>
+      <span className="opacity-70">{label}</span>
+      <span className="font-medium">{value}</span>
     </span>
   );
 }
 
 function claimStatusTone(s: ClaimStatus): Tone {
-  if (s === "completed" || s === "approved") return "acid";
+  if (s === "completed" || s === "approved") return "done";
   if (s === "rejected" || s === "failed") return "muted";
-  return "outline";
+  return "active";
 }
 
 function ClaimStatusBadge({ status, label }: { status: ClaimStatus; label: string }) {
   return (
     <span
-      className={`font-sans text-[10px] px-[8px] py-[3px] ${TONE_CLASSES[claimStatusTone(status)]}`}
+      className={`rounded-full border px-[10px] py-[2px] text-[13px] ${TONE_CLASSES[claimStatusTone(status)]}`}
     >
       {label}
     </span>
   );
 }
 
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <h2 className="m-0 mb-[12px] text-[14px] font-medium text-ink">{children}</h2>;
+}
+
 function TotalRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between items-baseline py-[3px]">
-      <span className="font-sans text-[10px] text-grey">{label}</span>
-      <span className="font-sans text-[12px] num">{value}</span>
+    <div className="flex items-baseline justify-between gap-[12px] py-[4px]">
+      <span className="text-[14px] text-grey">{label}</span>
+      <span className="num shrink-0 text-[14px]">{value}</span>
     </div>
   );
 }
 
 function ErrorNote({ text }: { text: string }) {
-  return <p className="font-sans text-[11px] text-alert m-0">✕ {text}</p>;
+  return (
+    <p role="alert" className="m-0 text-[14px] text-alert">
+      {text}
+    </p>
+  );
 }
