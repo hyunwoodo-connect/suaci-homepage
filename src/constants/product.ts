@@ -17,6 +17,8 @@ export const PRODUCT = {
 /** v5 홈 에셋 경로 */
 export const HOME_MEDIA = {
   heroPoster: "/image/v5/hero-poster.webp",
+  /** 폰 화면에 보이는 가운데 부분만 자른 포스터(1100×1440) — 폰은 큰 포스터의 3분의 1만 보여서 */
+  heroPosterMobile: "/image/v5/hero-poster-m.webp",
   heroWebm: "/video/v5/hero.webm",
   heroMp4: "/video/v5/hero.mp4",
   chair: "/image/v5/moment-chair.webp",
