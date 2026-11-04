@@ -26,7 +26,7 @@
 
 - 흰 바탕, 넓은 여백, 풀블리드 사진. 스튜디오 그레이(#d3d4d8) 룩북 사진 + **키컬러 하나**.
 - 팔레트: **키컬러 `lime #A9FF39`**(10/27 확정 · 점·띠·블록 하나로만) · `ink #141414` · `paper #ffffff` · `studio #d3d4d8` · `grey #5f5f5c` · `line #e4e5e8`. 매우 밝아 **글자색으로 쓰지 않는다**(흰 바탕 위 라임 글자·라임 위 흰 글자 모두 안 읽힘) — 라임 위 글자는 ink.
-- 폰트: Geist + Zen Kaku Gothic New(일본어) + Noto Sans KR(한국어). 소문자 본문엔 자간 금지.
+- 폰트(브랜드 기준 Geist·Pretendard, 2026-11-04): Geist 는 next/font(`src/lib/fonts.ts`, [locale] 전용 — 이벤트 레이아웃은 자기 파일에서 따로 부른다. 같은 호출을 두 레이아웃에 두면 글꼴 CSS 가 합쳐져 홈이 이벤트 글꼴 조각을 미리 받는다). 한글은 Pretendard, 일본어 화면은 Pretendard JP — 둘 다 jsdelivr 동적 조각판(`src/constants/fonts.ts`). 언어별 한중일 글꼴은 `--font-cjk` 변수(globals.css). 일본어는 `palt`. 소문자 본문엔 자간 금지.
 - 로고는 헤더·푸터 모두 **검정**. SVG(`public/brand/logo-black.svg`, `logo-white.svg`) — 서랍 `브랜드/에셋/suaci_logo.zip`(PNG 01·02)과 같은 모양. 옛 손글씨 대문자 로고(`logo.png`)는 지웠다.
 - 파비콘·아이콘은 워드마크의 `s`를 라임 바탕에 ink로(`src/app/favicon.ico`·`apple-icon.png`, 매니페스트 `public/brand/icon-{192,512}.png`). 공유 미리보기(OG)는 paper `#FAFAF7` 위 워드마크 + 아래 라임 띠(`src/app/opengraph-image.png`).
 - 모델: 20대 중후반 동아시아 여성, 밝고 행복한 표정(무표정 X), 포즈 반복 X. 히어로 모델(라임 니트 카디건) 컷을 레퍼런스로 유지.
@@ -34,7 +34,7 @@
 
 ## 홈 구성 (v5 "white studio")
 
-헤더(로고 / en·jp·kr / 계정 아이콘, 구매 버튼 없음) → 히어로(룩북 루프 영상 5초, 무음 자동재생, 포스터 = 첫 프레임, 캡션 "take suaci. — lime & basil facial serum mist") → 브랜드 스토리(작은 글씨, 점+our story, take ~~a break~~ suaci.) → 무드 갤러리 7컷 엇갈림(소파 "3pm. inbox full." / 스마일 종이 "after the meeting." / 물결 풀블리드 / 턴테이블 라임 / 모델+보틀(→ '제품 사진 준비 중' 자리) / 메탈 바구니 라임 / 라임 귀걸이) → 제품 섹션(큰 컷 자리+텍스트, 접이식 how to use·ingredients·shipping) → 푸터(슬로건, 링크, 법적 표기, 하단에 잘려 나가는 대형 로고) → **하단 원클릭 바 = 유일한 구매 CTA**(구매 시트: 수량, apple pay / google pay / 카드).
+헤더(로고 / en·jp·kr / 계정 아이콘, 구매 버튼 없음. 누르는 칸 44px) → 히어로(룩북 루프 영상 5초, 무음 자동재생, 포스터 = 첫 프레임 — 영상 뒤 picture 로, 458px 이하 폰은 가운데만 자른 `hero-poster-m.webp`, 캡션 "take suaci. — lime & basil facial serum mist") → 브랜드 스토리(작은 글씨, 점+our story, take ~~a break~~ suaci.) → 무드 갤러리 7컷 엇갈림(소파 "3pm. inbox full." / 스마일 종이 "after the meeting." / 물결 풀블리드 / 턴테이블 라임 / 모델+보틀(→ '제품 사진 준비 중' 자리) / 메탈 바구니 라임 / 라임 귀걸이) → 제품 섹션(큰 컷 자리+텍스트, 접이식 how to use·ingredients·shipping) → 푸터(슬로건, 링크, 법적 표기, 하단에 잘려 나가는 대형 로고) → **하단 원클릭 바 = 유일한 구매 CTA**(구매 시트: 수량, apple pay / google pay / 카드).
 
 ## 저장소 `suaci-official` 상태
 
@@ -46,10 +46,11 @@
 - 결제·로그인(2026-10-26, feat/two-click-checkout): **두 번 클릭 구매** — 바(수량+`총액 · 사기`) → 로그인 시트(카카오·네이버만, 이메일은 접힘) → 재구매 시트(주소·수단·메모 미리 채움) → 결제창 → `/pay/complete`(승인) → 완료. 첫 구매·주소 변경은 `/checkout` 한 화면(Daum 우편번호 레이어). 게스트 주문 없음(결정 1). 라우트 추가: `/auth/[provider]/callback` · `/auth/consent` · `/auth/mock/[provider]`(개발 대역) · `/pay/complete` · `/pay/fail`.
 - 출시 전 숨긴 소셜 로그인: `NEXT_PUBLIC_SOCIAL_HIDDEN`(예: `naver` — 네이버 검수 전, 앱 멤버만 로그인됨). 그 버튼은 `?with=naver` 로 연 탭에서만 보인다(`/login?with=naver`). 검수가 끝나면 값을 비운다.
 - 소셜 프로바이더 추가(구글·애플·라인 등): `SOCIAL_PROVIDERS`(`src/types/auth.ts`) 에 이름 → `SOCIAL_PROVIDER_CONFIG`(`src/lib/auth/social.ts`: 인가 주소·클라 ID env·버튼 색) 한 칸 → 메시지 `pay.login.{id}`(ko·en·ja, 버튼 문구) → 결제 기본 수단 짝 `LOGIN_PAY_METHOD`(`src/lib/payment/providers.ts`, 없으면 null). 버튼·콜백·목업 동의 화면은 목록을 따라간다. 백엔드 `POST /auth/social/{provider}` 도 같이 늘려야 한다.
-- 어댑터 모드(소셜·결제 공통): 클라 키 있으면 **live** / 없고 mock 모드거나 개발이면 **mock**(앱 안 목업 동의·즉시 성공 결제) / 운영+http 면 **off**(버튼 대신 준비 중 한 줄). 실키 오면 env 만 넣으면 전환. 미정 값(판매가 28,000·배송비 3,000·"suaci 바로결제" 가칭)은 `src/constants/checkout.ts` 한 곳.
+- 어댑터 모드(소셜·결제 공통): 클라 키 있으면 **live** / 없고 mock 모드거나 개발이면 **mock**(앱 안 목업 동의·즉시 성공 결제) / 운영+http 면 **off**(버튼 대신 준비 중 한 줄). 실키 오면 env 만 넣으면 전환. 미정 값(판매가 28,000·배송비 3,000)은 `src/constants/checkout.ts` 한 곳, "suaci 바로결제" 가칭은 메시지 `pay.method.BRANDPAY`(ko·en·ja).
 - UX 스펙: `docs/superpowers/specs/2026-10-26-payment-ux.md`(결제 UX 설계 — 두 번 누르면 끝).
 - 제품 섹션 사진: 다른 브랜드(퓨리토) 레퍼런스 3장은 2026-11-03 지웠다(사이트 잠금을 풀며 공개 금지). 실제 제품 컷이 나올 때까지 '제품 사진 준비 중' 자리.
 - 무드 갤러리 모델+보틀 컷(`moment-bottle.webp`, AI 시안 병 — 실제 용기와 모양이 다름)도 같은 날 지우고 같은 자리(`components/home/PhotoSoon`)로.
+- 화면 공통(2026-11-04 UX 고도화): 누르는 자리 44px, 글자 최소 12px(구역 이름·합계 13~15px). 버튼은 `ui/Button`·링크 버튼은 `ui/ButtonLink`, 고르기 칩은 `pay/chip.ts`, 배송 메모는 `pay/MemoPicker`(값은 한국어, 화면 이름만 언어별 `pay.memo.*`), 결제수단 이름 `pay.method.*`(브랜드페이 가칭 포함). 결제 결과 화면은 `pay/PayResult`. '이어서 할까요?'·'담아 둔 게 있어요 · 바로 사기'는 사기 바 바로 위 `pay/ResumePrompt`. 로딩 동그라미는 서버에서 글을 받는 약관·이벤트 목록에만(전체에 두면 404 가 200 으로 나간다). 라임 위 글자는 먹색, 라임 글자 없음.
 - 구매 흐름은 출시 전에도 연다(2026-11-03 오너, 토스 카드 심사): 사기 바 → 로그인 → 주문서·재구매 시트까지 누구나 간다. 결제를 받을 수 있는지는 결제창(어댑터)이 있는지로만 정한다(`canTakePayment`, `lib/payment/providers`). 없으면(운영 + 토스 키 전) 결제 버튼이 '결제 준비 중'으로 멈추고 주문을 만들지 않는다. 사기 바 위 안내는 '출시 준비 중 · 출시 알림 받기'. 사이트 비번 잠금은 공개 전 이벤트에만 남았다.
 - 최근 커밋: v5 리디자인 → 코드 점검 → 히어로 v2 영상(크로스페이드 제거) → 제품 섹션 재구성.
 
