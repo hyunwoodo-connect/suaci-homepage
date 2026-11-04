@@ -26,7 +26,7 @@
       "videoLabel": "라임 그린 니트 카디건을 입은 여성이 라임이 든 망 가방 옆 스튜디오 바닥에 앉아 살짝 고개를 기울이며 웃는다"
     },
     "story": {
-      "label": "our story",
+      "label": "이야기",
       "headline": "피부보다 마음이 먼저 예민해지는 날을 위해.",
       "body1": "사람, 알림, 하루 종일. 어떤 날은 피부보다 먼저 쉬어야 하는 게 따로 있다.",
       "body2": "suaci는 가볍고 유쾌한 리프레시. 고요함도, 명상도 아니다. 한 번 뿌리고, 살짝 웃고, 다시 하루로.",
@@ -35,7 +35,7 @@
       "suaci": "suaci."
     },
     "moments": {
-      "label": "moments",
+      "label": "하루의 장면들",
       "paper": "회의 끝나고.",
       "paperAlt": "얼굴에 스마일 종이를 대고 스튜디오 바닥에 앉은 여성",
       "waterAlt": "라임빛으로 일렁이는 물결",
@@ -52,19 +52,19 @@
       "descriptor": "take-01 · 100 ml",
       "note": "라임과 바질의 곱고 시원한 미스트. 뿌리고, 숨 쉬고, 다시 하루로. 메이크업 위에 뿌려도 된다.",
       "howToUse": "사용법",
-      "howToUseBody": "[사용법 — 준비 중]",
+      "howToUseBody": "사용법은 출시 전에 여기 적어 둘게요.",
       "ingredients": "전성분",
-      "ingredientsBody": "[전성분 — 제조사에서 받을 예정]",
+      "ingredientsBody": "전성분은 제조사에서 받는 대로 여기 올릴게요.",
       "shipping": "배송·반품",
       "shippingBody": "국내에만 택배로 보내요. 결제한 날부터 3영업일 안에 보내고, 보통 1~3일 안에 도착해요. 배송비는 {fee}이고 {freeOver} 이상 주문은 무료예요. 받은 날부터 7일 안에 반품을 신청할 수 있어요. 단순 변심 반품의 배송비는 고객이 내고, 파손·누액·오배송은 저희가 비용을 내고 교환하거나 환불해 드려요.",
-      "label": "the product",
+      "label": "제품",
       "photoSoon": "제품 사진 준비 중"
     },
     "footer": {
       "orderLookup": "주문 조회",
       "shipping": "배송·반품",
       "contact": "문의",
-      "instagram": "instagram",
+      "instagram": "인스타그램",
       "business": {
         "name": "상호",
         "representatives": "대표",
@@ -78,8 +78,7 @@
         "privacyOfficer": "개인정보 보호책임자"
       },
       "terms": "이용약관",
-      "privacy": "개인정보처리방침",
-      "tokushoho": "特定商取引法に基づく表記"
+      "privacy": "개인정보처리방침"
     }
   },
   "auth": {

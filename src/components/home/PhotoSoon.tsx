@@ -15,7 +15,7 @@ export default function PhotoSoon({ label, className }: PhotoSoonProps) {
       aria-label={label}
       className={`flex aspect-[4/5] items-center justify-center bg-studio ${className}`}
     >
-      <span aria-hidden="true" className="text-[13px] text-grey">
+      <span aria-hidden="true" className="text-[13px] text-ink-soft">
         {label}
       </span>
     </div>

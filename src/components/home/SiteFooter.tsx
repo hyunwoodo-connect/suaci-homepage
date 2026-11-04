@@ -5,13 +5,15 @@ import { Link } from "@/i18n/navigation";
 import { HOME_MEDIA } from "@/constants/product";
 import { BUSINESS, SITE } from "@/constants/site";
 
-const LINK = "transition-colors hover:text-grey";
-const SMALL_LINK = "transition-colors hover:text-ink";
+// 누르는 자리는 44px — 줄 사이 여백 대신 칸 높이로 띄운다
+const LINK = "flex min-h-[44px] items-center transition-colors hover:text-grey";
+const SMALL_LINK =
+  "inline-flex min-h-[44px] min-w-[44px] items-center transition-colors hover:text-ink";
 
 /**
  * v5 푸터 — 흰 바탕. 위: 슬로건(라임 점 하나)·제품 한 줄 / 오른쪽 링크 두 묶음,
  * 가는 선 아래: 사업자 정보(전자상거래법 표시사항)·정책, 맨 아래 잘려 나가는 대형 로고.
- * 정책 링크는 /legal/* 로. 特定商取引法 페이지는 아직 없다(2차 일본).
+ * 정책 링크는 /legal/* 로.
  */
 export default function SiteFooter() {
   const t = useTranslations("home.footer");
@@ -28,8 +30,8 @@ export default function SiteFooter() {
             </p>
             <p className="m-0 text-[14px] text-grey">{tp("product")}</p>
           </div>
-          <div className="grid grid-cols-2 gap-x-[48px] gap-y-[12px] text-[14px] md:gap-x-[72px]">
-            <nav className="flex flex-col gap-[12px]">
+          <div className="grid grid-cols-2 gap-x-[48px] text-[14px] md:gap-x-[72px]">
+            <nav className="flex flex-col">
               <Link href="/orders" className={LINK}>
                 {t("orderLookup")}
               </Link>
@@ -40,12 +42,12 @@ export default function SiteFooter() {
                 {t("contact")}
               </Link>
             </nav>
-            <nav className="flex flex-col gap-[12px]">
+            <nav className="flex flex-col">
               <a
                 href="https://www.instagram.com/suaci_/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`${LINK} inline-flex items-center gap-[4px]`}
+                className={`${LINK} gap-[4px]`}
               >
                 {t("instagram")}
                 <span aria-hidden="true" className="text-[12px]">
@@ -56,9 +58,9 @@ export default function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-[clamp(48px,6vw,80px)] flex flex-col gap-[20px] border-t border-line pt-[20px] text-[12px] text-grey md:flex-row md:items-start md:justify-between md:gap-[48px]">
+        <div className="mt-[clamp(48px,6vw,80px)] flex flex-col gap-[12px] border-t border-line pt-[20px] text-[12px] text-grey md:flex-row md:items-start md:justify-between md:gap-[48px]">
           <BusinessInfo />
-          <div className="flex shrink-0 flex-wrap items-center gap-x-[20px] gap-y-[8px]">
+          <div className="flex shrink-0 flex-wrap items-center gap-x-[20px]">
             <Link href="/legal/terms" className={SMALL_LINK}>
               {t("terms")}
             </Link>
@@ -66,10 +68,6 @@ export default function SiteFooter() {
             <Link href="/legal/privacy" className={`${SMALL_LINK} font-medium text-ink-soft`}>
               {t("privacy")}
             </Link>
-            {/* TODO(일본): 特定商取引法に基づく表記 페이지는 2차 일본 진출 때 */}
-            <a href="#" className={SMALL_LINK}>
-              {t("tokushoho")}
-            </a>
             <span>{SITE.copyright}</span>
           </div>
         </div>

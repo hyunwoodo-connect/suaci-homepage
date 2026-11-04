@@ -26,7 +26,7 @@
       "videoLabel": "ライムグリーンのニットを着た女性が、ライムの入ったネットバッグの横で床に座り、小さく首をかしげて微笑む"
     },
     "story": {
-      "label": "our story",
+      "label": "ストーリー",
       "headline": "肌より先に、心がゆらぐ日のために。",
       "body1": "人と、通知と、一日じゅう。肌より先に、ひと息が必要な日がある。",
       "body2": "suaciは、軽くて愉快なリフレッシュ。静けさでも、瞑想でもない。ひと吹きして、ちょっと笑って、また一日へ。",
@@ -35,7 +35,7 @@
       "suaci": "suaci."
     },
     "moments": {
-      "label": "moments",
+      "label": "ある日の場面",
       "paper": "会議のあとで。",
       "paperAlt": "顔にスマイルの紙を貼って床に座る女性",
       "waterAlt": "ライム色にゆらめく水面",
@@ -52,19 +52,19 @@
       "descriptor": "take-01 · 100 ml",
       "note": "ライムとバジルの、細かくてひんやりしたミスト。ひと吹きして、深呼吸して、また一日へ。メイクの上からでも。",
       "howToUse": "使い方",
-      "howToUseBody": "[使い方 — 準備中]",
+      "howToUseBody": "使い方は発売前にここに載せます。",
       "ingredients": "全成分",
-      "ingredientsBody": "[全成分 — メーカーより受領予定]",
+      "ingredientsBody": "全成分はメーカーから届きしだい、ここに載せます。",
       "shipping": "配送・返品",
       "shippingBody": "配送は韓国国内のみです。決済日から3営業日以内に発送し、通常1〜3日で届きます。送料は{fee}、{freeOver}以上のご注文は無料です。返品は受け取りから7日以内に申請できます。お客様都合の返品送料はお客様のご負担、破損・液漏れ・誤配送は当社負担で交換または返金します。",
-      "label": "the product",
+      "label": "製品",
       "photoSoon": "製品写真は準備中です"
     },
     "footer": {
       "orderLookup": "注文照会",
       "shipping": "配送・返品",
       "contact": "お問い合わせ",
-      "instagram": "instagram",
+      "instagram": "インスタグラム",
       "business": {
         "name": "商号",
         "representatives": "代表者",
@@ -78,8 +78,7 @@
         "privacyOfficer": "個人情報保護責任者"
       },
       "terms": "利用規約",
-      "privacy": "プライバシー",
-      "tokushoho": "特定商取引法に基づく表記"
+      "privacy": "プライバシー"
     }
   },
   "auth": {
