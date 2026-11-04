@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 
+import LoopVideo from "@/components/home/LoopVideo";
 import PhotoSoon from "@/components/home/PhotoSoon";
 import { HOME_MEDIA } from "@/constants/product";
 
@@ -39,19 +40,13 @@ export default function Moments() {
         />
         <div className="ml-[calc(50%-50vw)] w-screen shrink-0">
           {/* 물결 루프 영상(첫·끝 프레임 동일, 무음). 로딩 전엔 poster(첫 프레임). */}
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
+          <LoopVideo
+            webm={HOME_MEDIA.waterWebm}
+            mp4={HOME_MEDIA.waterMp4}
             poster={HOME_MEDIA.waterPoster}
-            aria-label={t("waterAlt")}
+            label={t("waterAlt")}
             className="aspect-[21/9] h-auto w-full bg-studio object-cover"
-          >
-            <source src={HOME_MEDIA.waterWebm} type="video/webm" />
-            <source src={HOME_MEDIA.waterMp4} type="video/mp4" />
-          </video>
+          />
         </div>
         <Shot
           src={HOME_MEDIA.turntable}
