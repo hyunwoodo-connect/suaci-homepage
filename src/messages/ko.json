@@ -346,7 +346,8 @@
       "address": "배송지",
       "preparing": "아직 결제를 준비 중이에요.",
       "preparingCta": "결제 준비 중",
-      "paying": "결제로 가는 중…"
+      "paying": "결제로 가는 중…",
+      "testNotice": "시험 결제예요. 돈이 나가지 않고 상품도 보내지 않아요."
     },
     "checkout": {
       "whereTo": "어디로 보낼까요?",

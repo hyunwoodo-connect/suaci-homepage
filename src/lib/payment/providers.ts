@@ -1,9 +1,11 @@
 /**
- * 결제 어댑터 포트 — 오너 지시(심사를 기다리지 않는다): 지금은 목업 어댑터가 결제창을 흉내 내고,
- * 실키가 오면 같은 모양의 토스 위젯/직가맹 어댑터를 꽂는다(두 형태 다 수용 — 어댑터 목록이라서).
- * 운영(main) + 실서버(http) 조합에서 목업은 절대 켜지지 않는다 — 그동안 운영은 결제 직전까지만 보여 준다.
+ * 결제 어댑터 포트 — 토스 클라이언트 키(NEXT_PUBLIC_TOSS_CLIENT_KEY)가 있으면 토스 결제창(`./toss`),
+ * 없으면 목업 어댑터가 결제창을 흉내 낸다(개발·목업 API).
+ * 운영(main) + 실서버(http) 조합에서 목업은 절대 켜지지 않는다 — 키가 없으면 운영은 결제 직전까지만 보여 준다.
  */
 import type { SocialProvider } from "@/types";
+
+import { createTossAdapter } from "./toss";
 
 export type PayMethodId = "BRANDPAY" | "KAKAOPAY" | "NAVERPAY" | "CARD";
 
@@ -36,14 +38,15 @@ export interface PaymentAdapter {
   request(method: PayMethodId, input: PaymentRequestInput): Promise<void>;
 }
 
-interface MockAdapterDeps {
+/** 결제창을 여는 데 필요한 브라우저 쪽 값(서버 렌더에선 없다) */
+interface AdapterDeps {
   origin: string;
   navigate(url: string): void;
   newKey?(): string;
 }
 
 /** 목업 결제창 — 결제창 대신 곧장 성공 리다이렉트(키 모양은 백엔드 목업 게이트웨이 계약) */
-export function createMockAdapter(deps: MockAdapterDeps): PaymentAdapter {
+export function createMockAdapter(deps: AdapterDeps): PaymentAdapter {
   const newKey = deps.newKey ?? (() => crypto.randomUUID().replaceAll("-", ""));
   return {
     id: "mock",
@@ -77,15 +80,15 @@ export function paymentEnv(): PaymentEnv {
  * false 면 구매 흐름은 결제 직전까지 열려 있고, 결제 버튼 자리에 '결제 준비 중'이 서며 주문은 만들지 않는다.
  */
 export function canTakePayment(env: PaymentEnv): boolean {
-  // TODO(키): 토스 위젯 어댑터가 생기면 키가 있을 때 true
-  if (env.tossClientKey) return false;
+  if (env.tossClientKey) return true;
   return env.apiMode === "mock" || env.nodeEnv !== "production";
 }
 
 /** 환경에 맞는 어댑터 목록. 운영(main) + 실서버(http)에서는 목업이 절대 켜지지 않는다 */
-export function selectPaymentAdapters(env: PaymentEnv, deps?: MockAdapterDeps): PaymentAdapter[] {
+export function selectPaymentAdapters(env: PaymentEnv, deps?: AdapterDeps): PaymentAdapter[] {
   if (!canTakePayment(env) || !deps) return [];
-  // TODO(키): 토스 키가 있으면 토스 위젯 어댑터를 돌려준다
+  if (env.tossClientKey)
+    return [createTossAdapter({ clientKey: env.tossClientKey, origin: deps.origin })];
   return [createMockAdapter(deps)];
 }
 

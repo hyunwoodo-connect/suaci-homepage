@@ -30,6 +30,7 @@ import {
   PREVIEW_METHODS,
   type PayMethodId,
 } from "@/lib/payment/providers";
+import { isTestClientKey } from "@/lib/payment/toss";
 import type { Address, CreateAddressRequest } from "@/types";
 import Button from "@/components/ui/Button";
 
@@ -143,6 +144,8 @@ function CheckoutBody() {
   );
   const methods = availableMethods(adapters);
   const ready = adapters.length > 0;
+  // 카드 심사 동안 운영도 토스 테스트 키로 연다 — 손님이 실제로 산 줄 알지 않게 알린다
+  const isTestPayment = isTestClientKey(paymentEnv().tossClientKey);
 
   const defaultId = (addresses.find((a) => a.isDefault) ?? addresses[0])?.addressId ?? null;
   const selectedId =
@@ -198,6 +201,8 @@ function CheckoutBody() {
         successPath: `/pay/complete?o=${order.orderId}${first ? "&first=1" : ""}`,
         failPath: `/pay/fail?o=${order.orderId}`,
       });
+      // 여기까지 오면 손님이 결제창을 닫은 것(결제되면 토스가 다른 주소로 보낸다) — 다시 누를 수 있게
+      setBusy(false);
     } catch (e) {
       if (e instanceof ApiClientError) {
         const known = (KNOWN_ERROR_CODES as readonly string[]).includes(e.code);
@@ -392,6 +397,11 @@ function CheckoutBody() {
                 ? tp("sheet.paying")
                 : tp("sheet.payCta", { total: formatKRW(total) })}
           </Button>
+          {ready && isTestPayment && (
+            <p className="m-0 mt-[8px] text-center text-[13px] text-grey">
+              {tp("sheet.testNotice")}
+            </p>
+          )}
           {/* 결제를 열기 전(카드 심사 중)에는 여기까지가 끝 — 주문은 만들지 않고 출시 알림으로 보낸다 */}
           {!ready && (
             <Link

@@ -25,6 +25,7 @@ import {
   selectPaymentAdapters,
   type PayMethodId,
 } from "@/lib/payment/providers";
+import { isTestClientKey } from "@/lib/payment/toss";
 import type { CheckoutDefaults } from "@/types";
 import Button from "@/components/ui/Button";
 
@@ -73,6 +74,8 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
   );
   const methods = useMemo(() => availableMethods(adapters), [adapters]);
   const ready = adapters.length > 0;
+  // 카드 심사 동안 운영도 토스 테스트 키로 연다 — 손님이 실제로 산 줄 알지 않게 알린다
+  const isTestPayment = isTestClientKey(paymentEnv().tossClientKey);
 
   // 저장된 메모·기본 수단은 마운트 뒤에 읽는다(렌더 중 storage 접근 금지, setState 는 .then 안 — 린트)
   useEffect(() => {
@@ -149,6 +152,9 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
         successPath: `/pay/complete?o=${order.orderId}`,
         failPath: `/pay/fail?o=${order.orderId}`,
       });
+      // 여기까지 오면 손님이 결제창을 닫은 것(결제되면 토스가 다른 주소로 보낸다) — 다시 누를 수 있게
+      setNote(null);
+      setBusy(false);
     } catch {
       setNote(null);
       setBusy(false);
@@ -241,7 +247,7 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
           {ready ? t("payCta", { total: formatKRW(total) }) : t("preparingCta")}
         </Button>
         <p role="status" className="m-0 min-h-[20px] text-center text-[13px] text-grey">
-          {note ?? (!ready ? t("preparing") : "")}
+          {note ?? (!ready ? t("preparing") : isTestPayment ? t("testNotice") : "")}
         </p>
       </div>
     </div>

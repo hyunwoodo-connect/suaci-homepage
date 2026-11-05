@@ -346,7 +346,8 @@
       "address": "ship to",
       "preparing": "payments are coming soon.",
       "preparingCta": "payments coming soon",
-      "paying": "heading to payment…"
+      "paying": "heading to payment…",
+      "testNotice": "this is a test payment. no money moves and nothing ships."
     },
     "checkout": {
       "whereTo": "where should we send it?",

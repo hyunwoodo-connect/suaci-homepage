@@ -346,7 +346,8 @@
       "address": "お届け先",
       "preparing": "決済はまだ準備中です。",
       "preparingCta": "決済準備中",
-      "paying": "決済へ移動中…"
+      "paying": "決済へ移動中…",
+      "testNotice": "テスト決済です。お金は動かず、商品も届きません。"
     },
     "checkout": {
       "whereTo": "どこへ送りますか？",

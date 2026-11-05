@@ -22,11 +22,14 @@ const input = {
 };
 
 describe("selectPaymentAdapters", () => {
-  it("토스 키 있으면 아직 [](위젯 어댑터 전) / 운영+http 면 [] / 그 외 목업 1개(수단 4)", () => {
+  it("토스 키 있으면 토스 결제창 1개(카카오·네이버·카드) / 운영+http 면 [] / 그 외 목업 1개(수단 4)", () => {
     const deps = { origin: "https://x", navigate: vi.fn() };
-    expect(
-      selectPaymentAdapters({ tossClientKey: "ck", apiMode: "http", nodeEnv: "production" }, deps),
-    ).toEqual([]);
+    const toss = selectPaymentAdapters(
+      { tossClientKey: "test_ck_x", apiMode: "http", nodeEnv: "production" },
+      deps,
+    );
+    expect(toss.map((a) => a.id)).toEqual(["toss"]);
+    expect(availableMethods(toss)).toEqual(["KAKAOPAY", "NAVERPAY", "CARD"]);
     expect(selectPaymentAdapters({ apiMode: "http", nodeEnv: "production" }, deps)).toEqual([]);
     const mock = selectPaymentAdapters({ apiMode: "mock", nodeEnv: "production" }, deps);
     expect(mock).toHaveLength(1);
@@ -41,10 +44,10 @@ describe("canTakePayment", () => {
     expect(canTakePayment({ apiMode: "http", nodeEnv: "production" })).toBe(false);
   });
 
-  it("토스 키만 있고 위젯 어댑터 전 → false", () => {
-    expect(canTakePayment({ tossClientKey: "ck", apiMode: "http", nodeEnv: "production" })).toBe(
-      false,
-    );
+  it("토스 키가 있으면 → true(운영에서도 토스 결제창)", () => {
+    expect(
+      canTakePayment({ tossClientKey: "test_ck_x", apiMode: "http", nodeEnv: "production" }),
+    ).toBe(true);
   });
 
   it("목업 API 이거나 개발 빌드 → true(목업 결제창)", () => {
