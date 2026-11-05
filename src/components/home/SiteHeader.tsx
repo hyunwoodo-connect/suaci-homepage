@@ -1,13 +1,13 @@
 "use client";
 
-import { Fragment } from "react";
-
 import Image from "next/image";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
+
 import { Link, usePathname } from "@/i18n/navigation";
-import type { Locale } from "@/i18n/routing";
 import { HOME_MEDIA } from "@/constants/product";
 import { useAuth } from "@/lib/auth/auth-context";
+
+import LanguageMenu from "./LanguageMenu";
 
 interface SiteHeaderProps {
   /** true면 히어로 위에 투명하게 겹친다(홈). false면 흰 바탕 위 일반 흐름(서브페이지). */
@@ -16,28 +16,22 @@ interface SiteHeaderProps {
   minimal?: boolean;
 }
 
-/** 언어 전환 표기. 로케일 코드와 화면에 보이는 짧은 이름이 다르다(ja→jp, ko→kr) */
-const LANGS: ReadonlyArray<readonly [Locale, string]> = [
-  ["en", "en"],
-  ["ja", "jp"],
-  ["ko", "kr"],
-] as const;
-
 /**
- * v5 헤더 — 로고 / en·jp·kr / 계정 아이콘.
+ * v5 헤더 — 로고 / 이벤트 · 언어(지구본 + 지금 언어, 눌러서 고름) · 계정 아이콘.
+ * 폰도 같은 헤더(따로 접는 메뉴 없음).
  * 구매 CTA는 두지 않는다(원클릭 바 하나만 남긴다).
  */
 export default function SiteHeader({ overlay = false, minimal = false }: SiteHeaderProps) {
   const t = useTranslations("home.header");
-  const locale = useLocale();
   const pathname = usePathname();
   const { status } = useAuth();
   const isEventsActive = pathname === "/events" || pathname.startsWith("/events/");
   const accountHref = status === "authenticated" ? "/account" : "/login";
 
   return (
+    // z-30: 사기 바(z-20)보다 위 — 가로로 눕힌 폰처럼 낮은 화면에서 펼친 언어 목록을 바가 덮지 않게. 시트(z-50)보단 아래
     <header
-      className={`${overlay ? "absolute inset-x-0 top-0" : "relative"} z-10 px-[16px] py-[6px] md:px-[48px] md:py-[13px]`}
+      className={`${overlay ? "absolute inset-x-0 top-0" : "relative"} z-30 px-[16px] py-[6px] md:px-[48px] md:py-[13px]`}
     >
       {/* 본문(.sec·홈 섹션)과 같은 최대 폭 — 넓은 화면에서 로고가 본문 왼쪽 선에 맞는다 */}
       <div className="mx-auto flex max-w-[1344px] items-center justify-between">
@@ -63,25 +57,7 @@ export default function SiteHeader({ overlay = false, minimal = false }: SiteHea
             >
               {t("events")}
             </Link>
-            <nav aria-label={t("lang")} className="flex items-center">
-              {LANGS.map(([code, label], i) => (
-                <Fragment key={code}>
-                  {i > 0 && (
-                    <span aria-hidden="true" className="-mx-[4px] text-grey">
-                      /
-                    </span>
-                  )}
-                  <Link
-                    href={pathname}
-                    locale={code}
-                    aria-current={locale === code ? "true" : undefined}
-                    className={`flex h-[44px] min-w-[34px] items-center justify-center min-[360px]:min-w-[44px] ${locale === code ? "text-ink" : "text-grey hover:text-ink"}`}
-                  >
-                    {label}
-                  </Link>
-                </Fragment>
-              ))}
-            </nav>
+            <LanguageMenu />
             <Link
               href={accountHref}
               aria-label={status === "authenticated" ? t("account") : t("signIn")}
