@@ -8,7 +8,9 @@ import Story from "@/components/home/Story";
 
 /**
  * Home v5 — white studio. 단일 SKU(라임바질 페이셜 세럼 미스트 · take-01) 원페이지.
- * 히어로 영상 → 브랜드 스토리 → 무드 갤러리 → 제품 → 푸터, 하단 원클릭 바.
+ * 히어로 영상 → 브랜드 스토리 → 무드 갤러리 → 제품 → 하단 원클릭 바 → 푸터.
+ * 바는 푸터 앞에 둔다 — 스크롤 중엔 화면 아래에 붙고, 끝에선 제품 바로 밑에 내려앉아
+ * 푸터(맨 아래 잘려 나가는 로고)가 페이지 끝이 된다. 푸터 뒤에 두면 로고 아래에 바 자리만큼 빈 띠가 생긴다.
  */
 export default function Home() {
   return (
@@ -18,8 +20,8 @@ export default function Home() {
       <Story />
       <Moments />
       <ProductSection />
-      <SiteFooter />
       <BuyBar />
+      <SiteFooter />
     </main>
   );
 }

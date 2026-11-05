@@ -93,8 +93,8 @@ export default function BuyBar() {
 
   return (
     <>
-      {/* 페이지 끝에선 푸터 아래 제자리(자기 높이만큼 띠)에 선다 — 푸터 맨 아래 줄(개인정보처리방침)을 가리지 않게.
-          스크롤 중에는 화면 아래에 붙는다 */}
+      {/* 흐름 안의 sticky — 스크롤 중엔 화면 아래에 붙고, 끝에선 제자리(홈에서 푸터 바로 위)에 내려앉는다.
+          푸터 위로 띄우지 않으니 맨 아래 줄(개인정보처리방침)을 가리지 않는다 */}
       <div className="pointer-events-none sticky bottom-0 z-20">
         <div className="flex flex-col items-center gap-[6px] px-[8px] pb-[16px] min-[390px]:px-[16px]">
           <ResumePrompt
