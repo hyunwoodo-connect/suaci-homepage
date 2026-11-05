@@ -32,9 +32,29 @@
   --font-cjk: "Pretendard JP Variable", "Pretendard Variable", "Hiragino Sans", "Yu Gothic";
 }
 
+/* 폰 확대 — 화면 확대 자체는 막지 않는다(손가락 두 개로 벌리기는 그대로, 웹 접근성 1.4.4·안드로이드는 막으면 정말 못 키운다).
+   막는 건 iOS 의 '두 번 톡 확대'뿐(touch-action: manipulation) — 수량 −/+ 처럼 빨리 두 번 누르면 화면이 커지고 저절로 안 돌아온다.
+   html·body 둘 다에 둔다: Safari 는 스크롤 칸(overflow auto)에서 touch-action 을 새로 센다. body 는 아래 overflow-x: hidden 때문에
+   스크롤 칸이 되어서, html 에만 두면 body 안쪽에 닿지 않는다.
+   입력칸 초점 확대는 글자를 16px 아래로 내리지 않아서 생기지 않는다(입력칸은 모두 16px, 우편번호 찾기 칸은 18px) */
 html {
   background: #ffffff;
   scroll-behavior: smooth;
+  touch-action: manipulation;
+}
+
+/* 누르는 것들과 입력칸(textarea 는 자기도 스크롤 칸)에도 직접 둔다. 유틸리티(touch-none 등)가 이기게 base 층에 */
+@layer base {
+  a,
+  button,
+  input,
+  label,
+  select,
+  summary,
+  textarea,
+  [role="button"] {
+    touch-action: manipulation;
+  }
 }
 
 body {
@@ -46,6 +66,7 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  touch-action: manipulation;
 }
 
 :lang(ja) body {

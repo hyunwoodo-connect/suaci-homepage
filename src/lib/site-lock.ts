@@ -135,7 +135,7 @@ export function gateHtml({
 <link href="${GATE_FONT_CSS[locale]}" rel="stylesheet" crossorigin>
 <style>
   *{box-sizing:border-box}
-  html,body{margin:0;min-height:100%;background:#fff;color:#141414}
+  html,body{margin:0;min-height:100%;background:#fff;color:#141414;touch-action:manipulation}
   body{display:flex;min-height:100dvh;padding:24px 16px;font-family:Geist,"Pretendard JP Variable","Pretendard Variable",-apple-system,"Apple SD Gothic Neo",sans-serif;-webkit-font-smoothing:antialiased;word-break:keep-all}
   main{width:100%;max-width:360px;margin:auto;display:flex;flex-direction:column}
   .logo{height:20px;width:auto;align-self:flex-start;margin-bottom:40px}
