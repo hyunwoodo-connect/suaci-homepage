@@ -54,7 +54,8 @@ export function createMockAdapter(deps: AdapterDeps): PaymentAdapter {
     request(method, input) {
       const q = `paymentKey=mock_${method}_${newKey()}&orderId=${encodeURIComponent(input.orderNo)}&amount=${String(input.amount)}`;
       deps.navigate(`${deps.origin}${input.successPath}&${q}`);
-      return Promise.resolve();
+      // 토스처럼 페이지가 떠나는 동안 끝나지 않는다 — 끝나면 부르는 쪽은 '결제창을 닫음'으로 읽고 버튼을 다시 연다
+      return new Promise<void>(() => {});
     },
   };
 }
@@ -126,11 +127,13 @@ const LOGIN_PAY_METHOD: Record<SocialProvider, PayMethodId | null> = {
 export function defaultMethod(opts: {
   lastPaymentMethod: string | null;
   loginProvider?: SocialProvider | null;
+  /** 지금 결제창이 다루는 수단 — 기본이 여기 없으면 첫째로(목업 시절 브랜드페이 기록 등) */
+  available?: readonly PayMethodId[];
 }): PayMethodId {
-  const last = methodFromLabel(opts.lastPaymentMethod);
-  if (last) return last;
   const loginPay = opts.loginProvider ? LOGIN_PAY_METHOD[opts.loginProvider] : null;
-  return loginPay ?? "CARD";
+  const picked = methodFromLabel(opts.lastPaymentMethod) ?? loginPay ?? "CARD";
+  const available = opts.available ?? [];
+  return available.length === 0 || available.includes(picked) ? picked : available[0];
 }
 
 /** 결제 복귀 쿼리 해석 — 셋 다 있고 amount 가 정수일 때만. 아니면 null(변조·잘못 들어옴) */

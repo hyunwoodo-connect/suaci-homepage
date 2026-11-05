@@ -57,10 +57,14 @@ describe("canTakePayment", () => {
 });
 
 describe("createMockAdapter", () => {
-  it("request → success 경로로 mock_{수단}_{키} 를 붙여 navigate", async () => {
+  it("request → success 경로로 mock_{수단}_{키} 를 붙여 navigate, 끝나지 않는다(토스처럼 페이지가 떠난다)", async () => {
     const navigate = vi.fn();
     const adapter = createMockAdapter({ origin: "https://x", navigate, newKey: () => "k1234567" });
-    await adapter.request("BRANDPAY", input);
+    const settled = vi.fn();
+    void adapter.request("BRANDPAY", input).then(settled, settled);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(settled).not.toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith(
       "https://x/pay/complete?o=o1&paymentKey=mock_BRANDPAY_k1234567&orderId=20261026-ABC123&amount=31000",
     );
@@ -104,5 +108,23 @@ describe("methodFromLabel / defaultMethod / 라벨", () => {
     expect(defaultMethod({ lastPaymentMethod: null, loginProvider: "kakao" })).toBe("KAKAOPAY");
     expect(defaultMethod({ lastPaymentMethod: null, loginProvider: "naver" })).toBe("NAVERPAY");
     expect(defaultMethod({ lastPaymentMethod: null, loginProvider: null })).toBe("CARD");
+  });
+});
+
+describe("defaultMethod 고를 수 있는 수단 안에서", () => {
+  it("기본이 지금 결제창에 없는 수단(예: 목업 시절 브랜드페이) → 있는 것 중 첫째", () => {
+    expect(
+      defaultMethod({
+        lastPaymentMethod: "suaci 바로결제(브랜드페이)",
+        available: ["KAKAOPAY", "NAVERPAY", "CARD"],
+      }),
+    ).toBe("KAKAOPAY");
+  });
+
+  it("있는 수단이면 그대로, 목록이 비면 원래 기본", () => {
+    expect(defaultMethod({ lastPaymentMethod: null, available: ["KAKAOPAY", "CARD"] })).toBe(
+      "CARD",
+    );
+    expect(defaultMethod({ lastPaymentMethod: null, available: [] })).toBe("CARD");
   });
 });

@@ -10,7 +10,7 @@ import type { PayMethodId, PaymentAdapter, PaymentRequestInput } from "./provide
 const TOSS_METHODS: readonly PayMethodId[] = ["KAKAOPAY", "NAVERPAY", "CARD"];
 
 /** SDK 에서 쓰는 만큼만 — 테스트는 가짜 로더를 꽂는다 */
-export interface TossPaymentRequest {
+interface TossPaymentRequest {
   method: "CARD";
   amount: { currency: "KRW"; value: number };
   orderId: string;
@@ -72,8 +72,7 @@ export function isTestClientKey(clientKey: string | undefined): boolean {
 
 async function loadSdk(clientKey: string): Promise<TossPaymentsLike> {
   const { loadTossPayments } = await import("@tosspayments/tosspayments-sdk");
-  // SDK 의 requestPayment 는 수단별 겹친 시그니처라 우리가 쓰는 카드 모양 하나로 좁혀 본다
-  return (await loadTossPayments(clientKey)) as unknown as TossPaymentsLike;
+  return loadTossPayments(clientKey);
 }
 
 function errorCode(e: unknown): string | undefined {

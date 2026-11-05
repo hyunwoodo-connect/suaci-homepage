@@ -61,7 +61,7 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
 
   useBodyScrollLock(true);
 
-  // 어댑터 목록 — 실키가 오면 selectPaymentAdapters 가 토스 위젯을 돌려준다
+  // 어댑터 목록 — 토스 클라이언트 키가 있으면 토스 결제창, 개발·목업이면 목업
   const adapters = useMemo(
     () =>
       selectPaymentAdapters(paymentEnv(), {
@@ -90,11 +90,12 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
           defaultMethod({
             lastPaymentMethod: defaults.lastPaymentMethod,
             loginProvider: readLastProvider(),
+            available: methods,
           }),
         );
       } catch {}
     });
-  }, [defaults.lastPaymentMethod]);
+  }, [defaults.lastPaymentMethod, methods]);
 
   useEffect(() => {
     panelRef.current?.focus();
