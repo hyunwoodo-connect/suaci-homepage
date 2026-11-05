@@ -34,7 +34,7 @@
 
 ## 홈 구성 (v5 "white studio")
 
-헤더(로고 / 이벤트 · 언어 · 계정 아이콘, 구매 버튼 없음. 누르는 칸 44px. 언어는 `home/LanguageMenu` — 지구본 + 지금 언어(kr·en·jp) 단추를 누르면 한국어·english·日本語 목록, 지금 언어에 라임 동그라미 체크. 폰도 같은 헤더) → 히어로(룩북 루프 영상 5초, 무음 자동재생, 포스터 = 첫 프레임 — 영상 뒤 picture 로, 458px 이하 폰은 가운데만 자른 `hero-poster-m.webp`, 영상은 `home/LoopVideo` — 첫 화면을 받은 뒤 화면에 들어올 때만 돌고 움직임 줄이기면 멈춤, 캡션 줄 오른쪽 끝 멈춤·재생 버튼(웹 접근성 2.2.2, 물결 영상도 같음), 캡션 "take suaci. — lime & basil facial serum mist") → 브랜드 스토리(작은 글씨, 점+our story, take ~~a break~~ suaci.) → 무드 갤러리 7컷 엇갈림(소파 "3pm. inbox full." / 스마일 종이 "after the meeting." / 물결 풀블리드 / 턴테이블 라임 / 모델+보틀(→ '제품 사진 준비 중' 자리) / 메탈 바구니 라임 / 라임 귀걸이) → 제품 섹션(큰 컷 자리+텍스트, 접이식 how to use·ingredients·shipping) → 푸터(슬로건, 링크, 법적 표기, 하단에 잘려 나가는 대형 로고) → **하단 원클릭 바 = 유일한 구매 CTA**(구매 시트: 수량, apple pay / google pay / 카드).
+헤더(로고 / 이벤트 · 언어 · 계정 아이콘, 구매 버튼 없음. 누르는 칸 44px. 언어는 `home/LanguageMenu` — 지구본 + 지금 언어(ko·en·ja, 주소와 같은 언어 코드) 단추를 누르면 한국어·english·日本語 목록, 지금 언어에 라임 동그라미 체크. 폰도 같은 헤더) → 히어로(룩북 루프 영상 5초, 무음 자동재생, 포스터 = 첫 프레임 — 영상 뒤 picture 로, 458px 이하 폰은 가운데만 자른 `hero-poster-m.webp`, 영상은 `home/LoopVideo` — 첫 화면을 받은 뒤 화면에 들어올 때만 돌고 움직임 줄이기면 멈춤, 캡션 줄 오른쪽 끝 멈춤·재생 버튼(웹 접근성 2.2.2, 물결 영상도 같음), 캡션 "take suaci. — lime & basil facial serum mist") → 브랜드 스토리(작은 글씨, 점+our story, take ~~a break~~ suaci.) → 무드 갤러리 7컷 엇갈림(소파 "3pm. inbox full." / 스마일 종이 "after the meeting." / 물결 풀블리드 / 턴테이블 라임 / 모델+보틀(→ '제품 사진 준비 중' 자리) / 메탈 바구니 라임 / 라임 귀걸이) → 제품 섹션(큰 컷 자리+텍스트, 접이식 how to use·ingredients·shipping) → 푸터(슬로건, 링크, 법적 표기, 하단에 잘려 나가는 대형 로고) → **하단 원클릭 바 = 유일한 구매 CTA**(구매 시트: 수량, apple pay / google pay / 카드).
 
 ## 저장소 `suaci-official` 상태
 

@@ -8,22 +8,21 @@ import { Link, usePathname } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 
 interface LanguageOption {
+  /** 단추에도 이 코드를 그대로 보인다 — 주소(/en·/ja)와 같은 언어 코드(나라 코드 kr·jp 아님) */
   code: Locale;
-  /** 단추에 보이는 짧은 이름 — 로케일 코드와 다르다(ko→kr, ja→jp) */
-  short: string;
   /** 그 언어로 쓴 이름. 영어도 사이트 규칙대로 소문자 */
   name: string;
 }
 
 /** 기본 시장(한국) 먼저 */
 const LANGUAGES: ReadonlyArray<LanguageOption> = [
-  { code: "ko", short: "kr", name: "한국어" },
-  { code: "en", short: "en", name: "english" },
-  { code: "ja", short: "jp", name: "日本語" },
+  { code: "ko", name: "한국어" },
+  { code: "en", name: "english" },
+  { code: "ja", name: "日本語" },
 ];
 
 /**
- * 헤더 언어 고르기 — 지구본 + 지금 언어(kr) 단추, 누르면 작은 목록이 펼쳐진다. 지금 언어엔 라임 동그라미 체크.
+ * 헤더 언어 고르기 — 지구본 + 지금 언어(ko) 단추, 누르면 작은 목록이 펼쳐진다. 지금 언어엔 라임 동그라미 체크.
  * 펼침 단추(disclosure) 방식: 목록은 링크라서 role="menu" 를 쓰지 않는다(WAI 사이트 길찾기 관례).
  * 닫기: 다시 누르기 · Esc(초점은 단추로) · 바깥 누르기 · Tab 으로 밖에 나가기 · 언어 고르기.
  */
@@ -100,9 +99,9 @@ export default function LanguageMenu() {
         className="flex h-[44px] cursor-pointer items-center gap-[4px] rounded-full px-[8px] text-[13px] text-ink transition-colors hover:bg-ink/5"
       >
         <GlobeIcon />
-        {/* 읽는 이름은 '언어 kr 한국어' — 보이는 글자(kr)를 이름 안에 둔다(음성 조작으로 부를 수 있게) */}
+        {/* 읽는 이름은 '언어 ko 한국어' — 보이는 글자(ko)를 이름 안에 둔다(음성 조작으로 부를 수 있게) */}
         <span className="sr-only">{t("lang")} </span>
-        <span>{current.short}</span>
+        <span>{current.code}</span>
         <span className="sr-only"> {current.name}</span>
         <ChevronIcon isOpen={isOpen} />
       </button>

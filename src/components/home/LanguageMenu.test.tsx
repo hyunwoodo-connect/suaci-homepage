@@ -39,11 +39,17 @@ function renderMenu(locale = "ko") {
 const trigger = () => screen.getByRole("button", { name: /언어/ });
 
 describe("LanguageMenu", () => {
-  it("닫힌 처음 → 단추에 지금 언어(kr·한국어)가 보이고 목록은 닫혀 있다", () => {
+  it("닫힌 처음 → 단추에 지금 언어(주소와 같은 코드 ko·한국어)가 보이고 목록은 닫혀 있다", () => {
     renderMenu();
     expect(trigger().getAttribute("aria-expanded")).toBe("false");
-    expect(trigger().textContent).toContain("kr");
+    expect(trigger().textContent).toContain("ko");
     expect(trigger().textContent).toContain("한국어");
+  });
+
+  it("일본어 화면 → 단추 코드는 ja", () => {
+    renderMenu("ja");
+    expect(trigger().textContent).toContain("ja");
+    expect(trigger().textContent).not.toContain("jp");
   });
 
   it("누르면 → 펼쳐지고, 다시 누르면 → 닫힌다", () => {
