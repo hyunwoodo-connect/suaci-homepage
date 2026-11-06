@@ -6,17 +6,9 @@ export interface Money {
 }
 export type Metadata = Record<string, string>;
 
-export interface ApiSuccess<T> {
-  data: T;
-}
 export interface ApiPage<T> {
   data: T[];
   cursor?: string;
-}
-export interface ApiErrorBody {
-  error: string;
-  message: string;
-  field?: string;
 }
 
 export interface PageParams {

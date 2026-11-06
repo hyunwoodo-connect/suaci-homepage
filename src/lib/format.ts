@@ -3,10 +3,6 @@ import type { Money } from "@/types";
 export function formatKRW(amount: number): string {
   return `₩${amount.toLocaleString("ko-KR")}`;
 }
-export function discountPercent(price: Money): number | null {
-  if (!price.sale || price.sale >= price.list) return null;
-  return Math.round((1 - price.sale / price.list) * 100);
-}
 export function effectivePrice(price: Money): number {
   return price.sale ?? price.list;
 }

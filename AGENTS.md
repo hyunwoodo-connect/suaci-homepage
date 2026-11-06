@@ -128,8 +128,8 @@ Code says **what**. Comments say **why**.
 - **Names**: `describe("<unit>")`, `it("<조건> → <기대 결과>")`. Korean is fine.
   ```ts
   describe("format", () => {
-    it("discountPercent: 할인 없으면 null", () => {
-      expect(discountPercent(money(38000))).toBeNull();
+    it("effectivePrice: 할인가 없으면 정가", () => {
+      expect(effectivePrice(money(38000))).toBe(38000);
     });
   });
   ```
