@@ -229,13 +229,13 @@
     "state": {
       "awaitingPayment": "awaiting payment",
       "paid": "paid",
-      "partiallyShipped": "partially shipped",
+      "preparing": "preparing",
       "shipping": "in transit",
+      "delivered": "delivered",
       "refunding": "refund in progress",
       "partiallyRefunded": "partially refunded",
       "refunded": "refunded",
-      "cancelled": "cancelled",
-      "returned": "returned"
+      "cancelled": "cancelled"
     }
   },
   "claims": {

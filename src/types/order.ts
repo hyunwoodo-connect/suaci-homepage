@@ -38,6 +38,11 @@ export interface Order {
   items: OrderItem[];
   /** 결제 수단 이름(백엔드가 남긴 그대로: "브랜드페이"·"간편결제(네이버페이)"…). 결제 전엔 없음 */
   paymentMethod?: string;
+  /** 발송되면 택배사 코드(cj·epost·hanjin·lotte·logen)·송장번호, 발송·도착 시각 */
+  carrier?: string;
+  trackingNumber?: string;
+  shippedAt?: number;
+  deliveredAt?: number;
   createdAt: number;
   createdDtm: string;
 }
@@ -46,6 +51,7 @@ export interface OrderSummary {
   orderNo: string;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
+  fulfillmentStatus: FulfillmentStatus;
   grandTotal: number;
   createdAt: number;
   createdDtm: string;

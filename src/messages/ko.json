@@ -229,13 +229,13 @@
     "state": {
       "awaitingPayment": "결제 대기",
       "paid": "결제완료",
-      "partiallyShipped": "부분 발송",
+      "preparing": "상품준비중",
       "shipping": "배송중",
+      "delivered": "배송완료",
       "refunding": "환불 처리 중",
       "partiallyRefunded": "부분환불",
       "refunded": "환불완료",
-      "cancelled": "주문취소",
-      "returned": "반품완료"
+      "cancelled": "주문취소"
     }
   },
   "claims": {

@@ -21,20 +21,22 @@ describe("orderState", () => {
     ).toBe("paid");
   });
 
-  it("일부만 보냄 → 부분 발송", () => {
+  it("관리 툴이 배송 준비를 시작 → 상품준비중", () => {
     expect(
-      orderState({
-        status: "open",
-        paymentStatus: "paid",
-        fulfillmentStatus: "partially_fulfilled",
-      }),
-    ).toBe("partiallyShipped");
+      orderState({ status: "open", paymentStatus: "paid", fulfillmentStatus: "preparing" }),
+    ).toBe("preparing");
   });
 
-  it("다 보냄(fulfilled) → 배송중", () => {
+  it("발송됨(shipped) → 배송중", () => {
     expect(
-      orderState({ status: "open", paymentStatus: "paid", fulfillmentStatus: "fulfilled" }),
+      orderState({ status: "open", paymentStatus: "paid", fulfillmentStatus: "shipped" }),
     ).toBe("shipping");
+  });
+
+  it("배송 완료(delivered) → 배송완료", () => {
+    expect(
+      orderState({ status: "open", paymentStatus: "paid", fulfillmentStatus: "delivered" }),
+    ).toBe("delivered");
   });
 
   it("결제 전에 취소 → 주문취소", () => {
@@ -82,7 +84,7 @@ describe("orderState", () => {
       orderState({
         status: "open",
         paymentStatus: "partially_refunded",
-        fulfillmentStatus: "fulfilled",
+        fulfillmentStatus: "shipped",
       }),
     ).toBe("shipping");
   });
@@ -93,13 +95,9 @@ describe("orderState", () => {
     ).toBe("refunding");
   });
 
-  it("반품 → 반품완료(환불 상태보다 먼저)", () => {
+  it("배송 전 결제 주문 → 결제완료", () => {
     expect(
-      orderState({ status: "cancelled", paymentStatus: "refunded", fulfillmentStatus: "returned" }),
-    ).toBe("returned");
-  });
-
-  it("목록(배송 축 없음)에서 결제했으면 → 결제완료", () => {
-    expect(orderState({ status: "open", paymentStatus: "paid" })).toBe("paid");
+      orderState({ status: "open", paymentStatus: "paid", fulfillmentStatus: "unfulfilled" }),
+    ).toBe("paid");
   });
 });

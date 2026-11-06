@@ -229,13 +229,13 @@
     "state": {
       "awaitingPayment": "支払い待ち",
       "paid": "支払い完了",
-      "partiallyShipped": "一部発送",
+      "preparing": "商品準備中",
       "shipping": "配送中",
+      "delivered": "配達完了",
       "refunding": "返金処理中",
       "partiallyRefunded": "一部返金",
       "refunded": "返金完了",
-      "cancelled": "注文キャンセル",
-      "returned": "返品完了"
+      "cancelled": "注文キャンセル"
     }
   },
   "claims": {

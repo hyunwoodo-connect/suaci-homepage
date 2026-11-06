@@ -89,6 +89,7 @@ function toOrderSummary(o: Order): OrderSummary {
     orderNo: o.orderNo,
     status: o.status,
     paymentStatus: o.paymentStatus,
+    fulfillmentStatus: o.fulfillmentStatus,
     grandTotal: o.totals.grandTotal,
     createdAt: o.createdAt,
     createdDtm: o.createdDtm,
