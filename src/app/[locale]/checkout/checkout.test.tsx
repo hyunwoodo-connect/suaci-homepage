@@ -4,16 +4,25 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ko from "@/messages/ko.json";
 
-const { listAddresses, createAddress, createOrder, navigate, push, searchParams, payReady } =
-  vi.hoisted(() => ({
-    listAddresses: vi.fn(),
-    createAddress: vi.fn(),
-    createOrder: vi.fn(),
-    navigate: vi.fn(),
-    push: vi.fn(),
-    searchParams: { value: new URLSearchParams("qty=1") },
-    payReady: { value: true },
-  }));
+const {
+  listAddresses,
+  createAddress,
+  createOrder,
+  navigate,
+  push,
+  searchParams,
+  payReady,
+  recheckSession,
+} = vi.hoisted(() => ({
+  listAddresses: vi.fn(),
+  createAddress: vi.fn(),
+  createOrder: vi.fn(),
+  navigate: vi.fn(),
+  push: vi.fn(),
+  searchParams: { value: new URLSearchParams("qty=1") },
+  payReady: { value: true },
+  recheckSession: vi.fn(),
+}));
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>();
   return {
@@ -22,7 +31,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
   };
 });
 vi.mock("@/lib/auth/auth-context", () => ({
-  useAuth: () => ({ status: "authenticated", user: { userId: "u1" } }),
+  useAuth: () => ({ status: "authenticated", user: { userId: "u1" }, recheckSession }),
 }));
 vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push, replace: vi.fn() }),
@@ -56,6 +65,7 @@ vi.stubGlobal("daum", {
   },
 });
 
+import { ApiClientError } from "@/lib/api";
 import { savePendingOrder } from "@/lib/payment/pending";
 
 import CheckoutPage from "./page";
@@ -189,5 +199,61 @@ describe("주문서 — 이어가기 수량", () => {
       renderPage();
     });
     expect(await screen.findByRole("button", { name: "₩56,000 결제하기" })).toBeTruthy();
+  });
+});
+
+describe("주문서 — 주문을 못 만들면", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+    localStorage.clear();
+    searchParams.value = new URLSearchParams("qty=1");
+    payReady.value = true;
+    listAddresses.mockResolvedValue([ADDRESS]);
+  });
+
+  async function pay() {
+    await act(async () => {
+      renderPage();
+    });
+    await screen.findByText(/서울 중구 세종대로 110/);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "₩31,000 결제하기" }));
+    });
+  }
+
+  it("품절(OUT_OF_STOCK) → '품절된 상품이에요.', 결제창은 열지 않고 다시 누를 수 있다", async () => {
+    createOrder.mockRejectedValueOnce(new ApiClientError("OUT_OF_STOCK", "재고가 부족합니다", 409));
+    await pay();
+    expect(screen.getByRole("alert").textContent).toBe("품절된 상품이에요.");
+    expect(navigate).not.toHaveBeenCalled();
+    expect(
+      (screen.getByRole("button", { name: "₩31,000 결제하기" }) as HTMLButtonElement).disabled,
+    ).toBe(false);
+  });
+
+  it("모르는 코드·네트워크 오류 → 일시적인 문제 한 줄", async () => {
+    createOrder.mockRejectedValueOnce(new ApiClientError("ITEM_NOT_PURCHASABLE", "", 400));
+    await pay();
+    expect(screen.getByRole("alert").textContent).toBe(
+      "일시적인 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
+    );
+    createOrder.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "₩31,000 결제하기" }));
+    });
+    expect(screen.getByRole("alert").textContent).toBe(
+      "일시적인 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
+    );
+    expect(recheckSession).not.toHaveBeenCalled();
+  });
+
+  it("로그인이 풀렸으면(AUTH_REQUIRED) → 안내 + 세션을 다시 확인한다(로그인으로 보내는 건 상태가 한다)", async () => {
+    createOrder.mockRejectedValueOnce(new ApiClientError("AUTH_REQUIRED", "Unauthorized", 401));
+    await pay();
+    expect(screen.getByRole("alert").textContent).toBe(
+      "로그인 시간이 지났어요. 다시 로그인해 주세요.",
+    );
+    expect(recheckSession).toHaveBeenCalledTimes(1);
   });
 });
