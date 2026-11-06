@@ -11,7 +11,7 @@ import Badge from "@/components/ui/Badge";
 import Button, { buttonClasses } from "@/components/ui/Button";
 import ButtonLink from "@/components/ui/ButtonLink";
 import Skeleton from "@/components/ui/Skeleton";
-import { api, ApiClientError } from "@/lib/api";
+import { api, ApiClientError, isAuthRequired } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { formatDateKST, formatKRW } from "@/lib/format";
 import type { Claim, Order, OrderItem, ReasonCode } from "@/types";
@@ -91,7 +91,7 @@ function OrderDetail({ orderId }: { orderId: string }) {
       fetchDetail()
         .then(setData)
         .catch((err: unknown) => {
-          if (err instanceof ApiClientError && err.code === "AUTH_REQUIRED") {
+          if (isAuthRequired(err)) {
             void recheckSession();
             return;
           }

@@ -11,7 +11,7 @@ import Button from "@/components/ui/Button";
 import ButtonLink from "@/components/ui/ButtonLink";
 import Skeleton from "@/components/ui/Skeleton";
 import { addressName } from "@/lib/checkout/address";
-import { api, ApiClientError } from "@/lib/api";
+import { api, isAuthRequired } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import type { Address, CreateAddressRequest } from "@/types";
 
@@ -38,7 +38,7 @@ export default function AddressesPage() {
 
   const handleError = useCallback(
     (err: unknown, message: string) => {
-      if (err instanceof ApiClientError && err.code === "AUTH_REQUIRED") {
+      if (isAuthRequired(err)) {
         void recheckSession();
         return;
       }

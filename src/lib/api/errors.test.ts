@@ -1,8 +1,14 @@
 import { describe, it, expect } from "vitest";
 
-import { ApiClientError, isNotFound, isRateLimited } from "./errors";
+import { ApiClientError, isAuthRequired, isNotFound, isRateLimited } from "./errors";
 
 describe("errors", () => {
+  it("isAuthRequired: 코드 AUTH_REQUIRED → true, 다른 실패·다른 에러 → false", () => {
+    expect(isAuthRequired(new ApiClientError("AUTH_REQUIRED", "", 401))).toBe(true);
+    expect(isAuthRequired(new ApiClientError("SOCIAL_CODE_INVALID", "", 401))).toBe(false);
+    expect(isAuthRequired(new Error("AUTH_REQUIRED"))).toBe(false);
+  });
+
   it("isNotFound: 404 → true, 다른 상태·다른 에러 → false", () => {
     expect(isNotFound(new ApiClientError("X_NOT_FOUND", "", 404))).toBe(true);
     expect(isNotFound(new ApiClientError("BOOM", "", 500))).toBe(false);

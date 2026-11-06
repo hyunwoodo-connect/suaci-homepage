@@ -10,6 +10,11 @@ export class ApiClientError extends Error {
   }
 }
 
+/** 로그인이 풀렸다(401) — 화면은 세션을 다시 확인해 로그인 안내로 넘어간다. */
+export function isAuthRequired(err: unknown): boolean {
+  return err instanceof ApiClientError && err.code === "AUTH_REQUIRED";
+}
+
 /** 없는 자원(404). */
 export function isNotFound(err: unknown): boolean {
   return err instanceof ApiClientError && err.status === 404;

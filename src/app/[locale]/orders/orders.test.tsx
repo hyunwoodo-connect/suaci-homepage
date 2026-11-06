@@ -3,13 +3,14 @@ import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ko from "@/messages/ko.json";
+import { ApiClientError } from "@/lib/api";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { tokenStore } from "@/lib/auth/token-store";
 
 const { getMe, listOrders } = vi.hoisted(() => ({ getMe: vi.fn(), listOrders: vi.fn() }));
-vi.mock("@/lib/api", () => ({
+vi.mock("@/lib/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/api")>()),
   api: { getMe, listOrders, logout: vi.fn() },
-  ApiClientError: class extends Error {},
 }));
 vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -86,6 +87,16 @@ describe("주문 내역", () => {
     });
     expect(listOrders).toHaveBeenCalledTimes(2);
     expect(screen.getByText("주문 내역이 없어요.")).toBeTruthy();
+  });
+
+  it("받다가 로그인이 풀리면(AUTH_REQUIRED) → '다시 시도'가 아니라 '로그인이 풀렸어요' + 로그인 버튼", async () => {
+    listOrders.mockRejectedValueOnce(new ApiClientError("AUTH_REQUIRED", "Unauthorized", 401));
+    getMe.mockResolvedValueOnce({ userId: "u1", name: "지우", email: "" });
+    getMe.mockRejectedValueOnce(new ApiClientError("AUTH_REQUIRED", "Unauthorized", 401));
+    await renderPage();
+    expect(screen.getByText("로그인이 풀렸어요. 다시 들어와 주세요.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "다시 시도" })).toBeNull();
+    expect(screen.getByRole("link", { name: "로그인" }).getAttribute("href")).toBe("/login");
   });
 
   it("로그인 안 했으면 → '로그인이 필요해요.' + 로그인 버튼", async () => {

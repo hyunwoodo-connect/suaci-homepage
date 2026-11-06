@@ -11,7 +11,7 @@ import Button from "@/components/ui/Button";
 import ButtonLink from "@/components/ui/ButtonLink";
 import Chevron from "@/components/ui/Chevron";
 import Skeleton from "@/components/ui/Skeleton";
-import { api, ApiClientError } from "@/lib/api";
+import { api, isAuthRequired } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { formatDateKST, formatKRW } from "@/lib/format";
 import type { OrderSummary } from "@/types";
@@ -39,7 +39,7 @@ export default function OrdersPage() {
         .listOrders()
         .then((page) => setItems(page.data))
         .catch((err: unknown) => {
-          if (err instanceof ApiClientError && err.code === "AUTH_REQUIRED") {
+          if (isAuthRequired(err)) {
             void recheckSession();
             return;
           }
