@@ -162,7 +162,7 @@ describe("주문 상세", () => {
     await renderPage();
     fireEvent.click(screen.getByRole("button", { name: "주문 취소 요청" }));
     expect(screen.getByText("취소 사유 선택")).toBeTruthy();
-    expect(screen.getByText(/영업일 기준 며칠이 걸릴 수 있어요/)).toBeTruthy();
+    expect(screen.getByText(/3~7영업일이 더 걸릴 수 있어요/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "상품 불량(파손·누액 포함)" }));
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "취소 요청하기" }));
@@ -185,5 +185,46 @@ describe("주문 상세", () => {
     expect(screen.getByRole("alert").textContent).toBe(
       "이 주문은 지금 취소·반품을 신청할 수 없어요. 고객센터로 문의해 주세요.",
     );
+  });
+
+  it("상품 준비 중(발송 전) → 아직 취소 요청할 수 있다", async () => {
+    signIn();
+    getOrder.mockResolvedValue({ ...ORDER, fulfillmentStatus: "preparing" });
+    await renderPage();
+    expect(screen.getByText("상품준비중")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "주문 취소 요청" })).toBeTruthy();
+  });
+
+  it("발송됨 → 택배사·송장번호와 배송 조회(새 탭), 취소 요청은 없다", async () => {
+    signIn();
+    getOrder.mockResolvedValue({
+      ...ORDER,
+      fulfillmentStatus: "shipped",
+      carrier: "cj",
+      trackingNumber: "123456789012",
+      trackingUrl: "https://trace.cjlogistics.com/next/tracking.html?wblNo=123456789012",
+    });
+    await renderPage();
+    expect(screen.getByText("CJ대한통운 123456789012")).toBeTruthy();
+    const track = screen.getByRole("link", { name: "배송 조회" });
+    expect(track.getAttribute("href")).toBe(
+      "https://trace.cjlogistics.com/next/tracking.html?wblNo=123456789012",
+    );
+    expect(track.getAttribute("target")).toBe("_blank");
+    expect(track.getAttribute("rel")).toContain("noopener");
+    expect(screen.queryByRole("button", { name: "주문 취소 요청" })).toBeNull();
+  });
+
+  it("모르는 택배사 코드·조회 링크 없음 → 코드와 송장번호만, 버튼은 없다", async () => {
+    signIn();
+    getOrder.mockResolvedValue({
+      ...ORDER,
+      fulfillmentStatus: "delivered",
+      carrier: "dhl",
+      trackingNumber: "ZX99",
+    });
+    await renderPage();
+    expect(screen.getByText("dhl ZX99")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "배송 조회" })).toBeNull();
   });
 });

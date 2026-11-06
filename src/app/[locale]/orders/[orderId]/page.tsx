@@ -8,7 +8,7 @@ import { useSearchParams } from "next/navigation";
 import { CHIP, CHIP_OFF, CHIP_ON } from "@/components/pay/chip";
 import PageShell from "@/components/shell/PageShell";
 import Badge from "@/components/ui/Badge";
-import Button from "@/components/ui/Button";
+import Button, { buttonClasses } from "@/components/ui/Button";
 import ButtonLink from "@/components/ui/ButtonLink";
 import Skeleton from "@/components/ui/Skeleton";
 import { api, ApiClientError } from "@/lib/api";
@@ -26,6 +26,12 @@ const REASON_CODES: readonly ReasonCode[] = [
   "배송지연",
   "기타",
 ];
+
+/** 이름을 아는 택배사 코드(orders.carrier.*) — 모르는 코드는 그대로 보여 준다 */
+const CARRIER_CODES: readonly string[] = ["cj", "epost", "hanjin", "lotte", "logen"];
+
+/** 손님이 취소 요청할 수 있는 배송 상태 — 발송 전까지(환불 정책 v2 '발송 전 취소는 바로 환불') */
+const BEFORE_SHIPMENT: readonly string[] = ["unfulfilled", "preparing"];
 
 /** 백엔드 에러 코드 → claims.error.* 메시지 키. 매핑에 없으면 default. */
 const ERROR_KEYS: Record<string, string> = {
@@ -161,6 +167,27 @@ function OrderDetail({ orderId }: { orderId: string }) {
           <Badge tone={ORDER_STATE_TONE[state]}>{t(`state.${state}`)}</Badge>
           {state === "awaitingPayment" && (
             <p className="m-0 text-[13px] text-grey">{t("payWithin")}</p>
+          )}
+          {order.carrier && order.trackingNumber && (
+            <div className="flex flex-wrap items-center gap-[8px_16px]">
+              <span className="num text-[13px] text-grey">
+                {CARRIER_CODES.includes(order.carrier)
+                  ? t(`carrier.${order.carrier}`)
+                  : order.carrier}{" "}
+                {order.trackingNumber}
+              </span>
+              {order.trackingUrl && (
+                // 택배사 화면이라 새 탭으로 — 주문 화면은 그대로 둔다
+                <a
+                  href={order.trackingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={buttonClasses("secondary", "sm")}
+                >
+                  {t("trackShipment")}
+                </a>
+              )}
+            </div>
           )}
         </div>
 
@@ -333,7 +360,7 @@ function OrderActions({ order, onDone }: { order: Order; onDone: () => Promise<v
   const canCancel = order.status === "pending";
   const canRequestCancel =
     (order.paymentStatus === "paid" || order.paymentStatus === "partially_refunded") &&
-    order.fulfillmentStatus === "unfulfilled";
+    BEFORE_SHIPMENT.includes(order.fulfillmentStatus);
 
   if (!canCancel && !canRequestCancel) return null;
 

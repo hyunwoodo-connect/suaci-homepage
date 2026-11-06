@@ -62,7 +62,7 @@
       "ingredients": "ingredients",
       "ingredientsBody": "",
       "shipping": "shipping & returns",
-      "shippingBody": "we ship within korea only. orders go out within 3 business days of payment and usually arrive in 1–3 days. shipping is {fee}, free on orders of {freeOver} or more. you can request a return within 7 days of delivery. for a change of mind, return shipping is on you; damaged, leaking or wrong items are on us, and we'll exchange or refund them.",
+      "shippingBody": "we ship within korea only. orders go out within 3 business days of payment and usually arrive in 1–3 days. shipping is {fee}, free on orders of {freeOver} or more. you can request a return within 7 days of delivery, but opened or used cosmetics can't be returned for a change of mind. for a change of mind, return shipping is {fee} one way, or {roundTrip} if your order shipped free (the original shipping is included). damaged, leaking, wrong or not-as-described items can be exchanged or refunded within 3 months of delivery (30 days from when you notice), even if opened, and we cover all shipping.",
       "label": "the product",
       "photoSoon": "product photo coming soon"
     },
@@ -226,6 +226,14 @@
     "goLogin": "sign in",
     "requestCancel": "request cancellation",
     "payWithin": "please pay within 30 minutes. after that, the order is cancelled automatically.",
+    "trackShipment": "track package",
+    "carrier": {
+      "cj": "cj logistics",
+      "epost": "korea post",
+      "hanjin": "hanjin express",
+      "lotte": "lotte global logistics",
+      "logen": "logen"
+    },
     "state": {
       "awaitingPayment": "awaiting payment",
       "paid": "paid",
@@ -275,7 +283,7 @@
       "OVER_REFUND": "the requested amount is more than the refundable amount.",
       "default": "we couldn't process your request. please try again in a moment."
     },
-    "cardNote": "depending on your card issuer, the refund may take a few business days to show on your card."
+    "cardNote": "depending on your card issuer, the refund may take another 3–7 business days to show on your card."
   },
   "events": {
     "title": "Events",
