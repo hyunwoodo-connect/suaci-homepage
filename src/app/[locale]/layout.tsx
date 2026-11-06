@@ -11,7 +11,6 @@ import Analytics from "@/components/analytics/Analytics";
 import { routing } from "@/i18n/routing";
 import { SITE } from "@/constants/site";
 import { AuthProvider } from "@/lib/auth/auth-context";
-import { CartProvider } from "@/lib/cart/cart-context";
 import { PRETENDARD_CSS, PRETENDARD_JP_CSS } from "@/constants/fonts";
 import { GEIST } from "@/lib/fonts";
 
@@ -81,7 +80,7 @@ export default async function LocaleLayout({
       <body className="antialiased">
         <NextIntlClientProvider>
           <AuthProvider>
-            <CartProvider>{children}</CartProvider>
+            {children}
           </AuthProvider>
         </NextIntlClientProvider>
         <Analytics />

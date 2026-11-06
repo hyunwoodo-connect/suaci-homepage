@@ -1,11 +1,7 @@
 import type {
   Address,
   CheckoutDefaults,
-  AddToCartRequest,
   ApiPage,
-  Cart,
-  CartLine,
-  CartTotals,
   Claim,
   ClaimLine,
   ConfirmPaymentRequest,
@@ -66,7 +62,8 @@ function findVariant(productId: string, variantId: string) {
   return { product, variant };
 }
 
-function enrichLine(raw: { productId: string; variantId: string; quantity: number }): CartLine {
+/** 바로 구매 라인을 카탈로그 값으로 채운다(서버처럼 가격은 여기서 정한다) */
+function priceLine(raw: { productId: string; variantId: string; quantity: number }) {
   const { product, variant } = findVariant(raw.productId, raw.variantId);
   const unitPrice = effectivePrice(variant.price);
   const compareAtPrice = variant.price.list;
@@ -83,21 +80,7 @@ function enrichLine(raw: { productId: string; variantId: string; quantity: numbe
     quantity,
     lineSubtotal: unitPrice * quantity,
     lineDiscount: (compareAtPrice - unitPrice) * quantity,
-    available: variant.available,
-    status: variant.status,
   };
-}
-
-function computeTotals(items: CartLine[]): CartTotals {
-  return {
-    itemCount: items.reduce((s, i) => s + i.quantity, 0),
-    itemsSubtotal: items.reduce((s, i) => s + i.lineSubtotal, 0),
-    discountTotal: items.reduce((s, i) => s + i.lineDiscount, 0),
-  };
-}
-
-function toCart(items: CartLine[]): Cart {
-  return { items, totals: computeTotals(items) };
 }
 
 function toOrderSummary(o: Order): OrderSummary {
@@ -238,57 +221,6 @@ export function createMockClient(): ApiClient {
       store.writeAddresses(next);
     },
 
-    // ---- cart ----
-    async getCart(): Promise<Cart> {
-      requireAuth();
-      return toCart(store.readCart());
-    },
-    async addToCart(r: AddToCartRequest): Promise<Cart> {
-      requireAuth();
-      const items = store.readCart();
-      const existing = items.find((i) => i.variantId === r.variantId);
-      if (existing) {
-        const enriched = enrichLine({
-          productId: r.productId,
-          variantId: r.variantId,
-          quantity: existing.quantity + r.quantity,
-        });
-        const next = items.map((i) => (i.variantId === r.variantId ? enriched : i));
-        store.writeCart(next);
-        return toCart(next);
-      }
-      const enriched = enrichLine({
-        productId: r.productId,
-        variantId: r.variantId,
-        quantity: r.quantity,
-      });
-      const next = [...items, enriched];
-      store.writeCart(next);
-      return toCart(next);
-    },
-    async updateCartItem(variantId: string, quantity: number): Promise<Cart> {
-      requireAuth();
-      const items = store.readCart();
-      const target = items.find((i) => i.variantId === variantId);
-      if (!target)
-        throw new ApiClientError("CART_ITEM_NOT_FOUND", "장바구니 항목을 찾을 수 없습니다", 404);
-      const enriched = enrichLine({ productId: target.productId, variantId, quantity });
-      const next = items.map((i) => (i.variantId === variantId ? enriched : i));
-      store.writeCart(next);
-      return toCart(next);
-    },
-    async removeCartItem(variantId: string): Promise<Cart> {
-      requireAuth();
-      const items = store.readCart();
-      const next = items.filter((i) => i.variantId !== variantId);
-      store.writeCart(next);
-      return toCart(next);
-    },
-    async clearCart(): Promise<Cart> {
-      requireAuth();
-      store.writeCart([]);
-      return toCart([]);
-    },
 
     // ---- order / payment ----
     async listOrders(): Promise<ApiPage<OrderSummary>> {
@@ -310,9 +242,9 @@ export function createMockClient(): ApiClient {
         const existing = store.readOrders().find((o) => o.orderId === existingId);
         if (existing) return existing;
       }
-      const cartItems = store.readCart();
-      if (cartItems.length === 0)
+      if (r.items.length === 0)
         throw new ApiClientError("CART_EMPTY", "장바구니가 비어 있습니다", 400);
+      const cartItems = r.items.map(priceLine);
       const addr = store.readAddresses().find((a) => a.addressId === r.addressId);
       if (!addr) throw new ApiClientError("ADDRESS_NOT_FOUND", "주소를 찾을 수 없습니다", 404);
 
@@ -359,7 +291,6 @@ export function createMockClient(): ApiClient {
       const orders = store.readOrders();
       orders.push(order);
       store.writeOrders(orders);
-      store.writeCart([]);
       idem[r.idempotencyKey] = order.orderId;
       store.writeIdem(idem);
       return order;

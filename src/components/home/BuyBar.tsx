@@ -13,7 +13,6 @@ import ReBuySheet from "@/components/pay/ReBuySheet";
 import ResumePrompt from "@/components/pay/ResumePrompt";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
-import { useCart } from "@/lib/cart/cart-context";
 import { formatKRW } from "@/lib/format";
 import { canTakePayment, paymentEnv } from "@/lib/payment/providers";
 import type { CheckoutDefaults } from "@/types";
@@ -28,7 +27,6 @@ export default function BuyBar() {
   const router = useRouter();
   const search = useSearchParams();
   const { status } = useAuth();
-  const { add } = useCart();
 
   const [qty, setQty] = useState(1);
   const [sheet, setSheet] = useState<"login" | CheckoutDefaults | null>(null);
@@ -77,19 +75,6 @@ export default function BuyBar() {
     setAutoOpened(true);
     void buy();
   }, [autoOpened, buy, search, status]);
-
-  const keep = async () => {
-    if (status !== "authenticated") {
-      setSheet("login");
-      return;
-    }
-    try {
-      await add({ productId: PRODUCT.productId, variantId: PRODUCT.variantId, quantity: qty });
-      setNote(t("kept"));
-    } catch {
-      setNote(null);
-    }
-  };
 
   return (
     <>
@@ -166,15 +151,6 @@ export default function BuyBar() {
               <span className="num">
                 {formatKRW(price)} · {t("buy")}
               </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                void keep();
-              }}
-              className="flex h-[44px] cursor-pointer items-center whitespace-nowrap px-[4px] text-[13px] min-[360px]:px-[8px] text-paper/80 underline underline-offset-[3px] hover:text-paper min-[390px]:px-[12px]"
-            >
-              {t("keep")}
             </button>
           </div>
         </div>

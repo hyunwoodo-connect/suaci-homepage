@@ -24,14 +24,6 @@ vi.mock("@/lib/api", async (importOriginal) => {
 vi.mock("@/lib/auth/auth-context", () => ({
   useAuth: () => ({ status: "authenticated", user: { userId: "u1" } }),
 }));
-vi.mock("@/lib/cart/cart-context", () => ({
-  useCart: () => ({
-    cart: { items: [] },
-    clear: vi.fn().mockResolvedValue(undefined),
-    add: vi.fn().mockResolvedValue(undefined),
-    refresh: vi.fn().mockResolvedValue(undefined),
-  }),
-}));
 vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push, replace: vi.fn() }),
   usePathname: () => "/checkout",
@@ -148,6 +140,7 @@ describe("주문서(첫 구매)", () => {
     await waitFor(() => expect(navigate).toHaveBeenCalledTimes(1));
     expect(createOrder.mock.calls[0]?.[0]).toMatchObject({
       addressId: "a1",
+      items: [expect.objectContaining({ quantity: 1 })],
       metadata: { deliveryMemo: "문 앞", channel: "web", screen: "checkout" },
     });
     expect((navigate.mock.calls[0] as string[])[0]).toBe(

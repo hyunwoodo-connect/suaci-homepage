@@ -13,8 +13,6 @@ import type {
   Address,
   CreateAddressRequest,
   UpdateAddressRequest,
-  Cart,
-  AddToCartRequest,
   OrderSummary,
   Order,
   CreateOrderRequest,
@@ -43,11 +41,6 @@ export interface ApiClient {
   createAddress(r: CreateAddressRequest): Promise<Address>;
   updateAddress(id: string, r: UpdateAddressRequest): Promise<Address>;
   deleteAddress(id: string): Promise<void>;
-  getCart(): Promise<Cart>;
-  addToCart(r: AddToCartRequest): Promise<Cart>;
-  updateCartItem(variantId: string, quantity: number): Promise<Cart>;
-  removeCartItem(variantId: string): Promise<Cart>;
-  clearCart(): Promise<Cart>;
   listOrders(p?: PageParams): Promise<ApiPage<OrderSummary>>;
   getOrder(orderId: string): Promise<Order>;
   createOrder(r: CreateOrderRequest): Promise<Order>;

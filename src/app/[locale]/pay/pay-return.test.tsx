@@ -12,10 +12,7 @@ const { confirmPayment, replace, searchParams } = vi.hoisted(() => ({
   searchParams: { value: new URLSearchParams() },
 }));
 vi.mock("@/lib/api", () => ({
-  api: { confirmPayment, getCart: vi.fn().mockResolvedValue({ items: [] }) },
-}));
-vi.mock("@/lib/cart/cart-context", () => ({
-  useCart: () => ({ refresh: vi.fn().mockResolvedValue(undefined) }),
+  api: { confirmPayment },
 }));
 vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ replace, push: vi.fn() }),

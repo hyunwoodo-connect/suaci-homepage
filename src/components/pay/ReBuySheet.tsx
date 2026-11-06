@@ -14,7 +14,6 @@ import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { readLastProvider } from "@/lib/auth/social";
-import { useCart } from "@/lib/cart/cart-context";
 import { formatKRW } from "@/lib/format";
 import { createOrderReusingPending, savePendingOrder } from "@/lib/payment/pending";
 import {
@@ -48,7 +47,6 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
   const tPay = useTranslations("pay");
   const router = useRouter();
   const { user } = useAuth();
-  const { clear, add } = useCart();
 
   const [method, setMethod] = useState<PayMethodId>("CARD");
   const [memo, setMemo] = useState<string>(DELIVERY_MEMOS[0]);
@@ -121,8 +119,6 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
     setBusy(true);
     setNote(t("paying"));
     try {
-      await clear();
-      await add({ productId: PRODUCT.productId, variantId: PRODUCT.variantId, quantity: qty });
       try {
         localStorage.setItem(MEMO_KEY, memo);
       } catch {}
@@ -132,6 +128,8 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
           api.createOrder({
             addressId: address.addressId,
             idempotencyKey: key,
+            // 바로 구매 — 장바구니를 거치지 않고 이 화면의 상품·수량을 주문에 싣는다
+            items: [{ productId: PRODUCT.productId, variantId: PRODUCT.variantId, quantity: qty }],
             metadata: { deliveryMemo: memo, channel: "web", screen: "rebuy-sheet" },
           }),
         { amount: total, addressId: address.addressId, memo },

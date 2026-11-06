@@ -1,9 +1,7 @@
 import type {
   Address,
   CheckoutDefaults,
-  AddToCartRequest,
   ApiPage,
-  Cart,
   Claim,
   ConfirmPaymentRequest,
   ConfirmRequest,
@@ -129,30 +127,6 @@ export function createHttpClient(baseUrl?: string): ApiClient {
     },
     async deleteAddress(id: string) {
       await authedRequest<void>(`/addresses/${id}`, { method: "DELETE" });
-    },
-
-    // ---- cart ----
-    async getCart() {
-      return unwrap(await authedRequest<Envelope<Cart>>("/cart", { method: "GET" }));
-    },
-    async addToCart(r: AddToCartRequest) {
-      return unwrap(await authedRequest<Envelope<Cart>>("/cart", { method: "POST", body: r }));
-    },
-    async updateCartItem(variantId: string, quantity: number) {
-      return unwrap(
-        await authedRequest<Envelope<Cart>>(`/cart/${variantId}`, {
-          method: "PATCH",
-          body: { quantity },
-        }),
-      );
-    },
-    async removeCartItem(variantId: string) {
-      return unwrap(
-        await authedRequest<Envelope<Cart>>(`/cart/${variantId}`, { method: "DELETE" }),
-      );
-    },
-    async clearCart() {
-      return unwrap(await authedRequest<Envelope<Cart>>("/cart", { method: "DELETE" }));
     },
 
     // ---- order / payment ----

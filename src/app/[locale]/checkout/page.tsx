@@ -18,7 +18,6 @@ import { api, ApiClientError } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { readLastProvider } from "@/lib/auth/social";
 import { addressName } from "@/lib/checkout/address";
-import { useCart } from "@/lib/cart/cart-context";
 import { formatKRW } from "@/lib/format";
 import {
   createOrderReusingPending,
@@ -71,7 +70,6 @@ function CheckoutBody() {
   const router = useRouter();
   const search = useSearchParams();
   const { status, user, refresh } = useAuth();
-  const { clear, add } = useCart();
 
   // 수량: 쿼리 > 보류 주문(이어가기 — "적은 건 그대로") > 1
   const qtyParam = Number(search.get("qty"));
@@ -173,8 +171,6 @@ function CheckoutBody() {
     setBusy(true);
     setNote(null);
     try {
-      await clear();
-      await add({ productId: PRODUCT.productId, variantId: PRODUCT.variantId, quantity: qty });
       try {
         localStorage.setItem(MEMO_KEY, memo);
       } catch {}
@@ -184,6 +180,8 @@ function CheckoutBody() {
           api.createOrder({
             addressId: selected.addressId,
             idempotencyKey: key,
+            // 바로 구매 — 장바구니를 거치지 않고 이 화면의 상품·수량을 주문에 싣는다
+            items: [{ productId: PRODUCT.productId, variantId: PRODUCT.variantId, quantity: qty }],
             metadata: { deliveryMemo: memo, channel: "web", screen: "checkout" },
           }),
         { amount: total, addressId: selected.addressId, memo },

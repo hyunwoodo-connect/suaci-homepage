@@ -50,9 +50,17 @@ export interface OrderSummary {
   createdAt: number;
   createdDtm: string;
 }
+/** 바로 구매 라인 — 가격은 서버가 정한다 */
+export interface OrderLineRequest {
+  productId: string;
+  variantId: string;
+  quantity: number;
+}
 export interface CreateOrderRequest {
   addressId: string;
   idempotencyKey: string;
+  /** 바로 구매 상품. 상품이 하나라 장바구니 없이 주문에 바로 싣는다 */
+  items: OrderLineRequest[];
   metadata?: Metadata;
 }
 export interface ConfirmPaymentRequest {

@@ -9,7 +9,6 @@ import Button from "@/components/ui/Button";
 import ButtonLink from "@/components/ui/ButtonLink";
 import { api } from "@/lib/api";
 import { ApiClientError } from "@/lib/api/errors";
-import { useCart } from "@/lib/cart/cart-context";
 import { clearPendingOrder, readPendingOrder } from "@/lib/payment/pending";
 import { parsePaymentReturn } from "@/lib/payment/providers";
 
@@ -33,7 +32,6 @@ function PayCompleteBody() {
   const t = useTranslations("pay.result");
   const router = useRouter();
   const search = useSearchParams();
-  const { refresh } = useCart();
   const [phase, setPhase] = useState<Phase>("confirming");
   const [pendingQty, setPendingQty] = useState<number | null>(null);
   const ran = useRef(false);
@@ -54,14 +52,13 @@ function PayCompleteBody() {
     try {
       await api.confirmPayment(orderId, { paymentKey: parsed.paymentKey, amount: parsed.amount });
       clearPendingOrder();
-      void refresh().catch(() => {});
       router.replace(`/orders/${orderId}?welcome=1${first ? "&first=1" : ""}`);
     } catch (err) {
       setPhase(
         err instanceof ApiClientError && err.code === "PAYMENT_DECLINED" ? "declined" : "hiccup",
       );
     }
-  }, [first, orderId, parsed, refresh, router]);
+  }, [first, orderId, parsed, router]);
 
   useEffect(() => {
     // StrictMode 이중 마운트에도 승인은 1회(서버도 멱등이지만 요청을 아낀다)

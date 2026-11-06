@@ -1,9 +1,8 @@
-import type { Address, CartLine, Claim, Order } from "@/types";
+import type { Address, Claim, Order } from "@/types";
 
 const hasWindow = (): boolean => typeof window !== "undefined";
 
 export const MOCK_KEYS = {
-  cart: "suaci.mock.cart",
   addresses: "suaci.mock.addresses",
   orders: "suaci.mock.orders",
   socialDone: "suaci.mock.social-done",
@@ -29,8 +28,6 @@ export function write<T>(key: string, value: T): void {
 }
 
 export const store = {
-  readCart: (): CartLine[] => read<CartLine[]>(MOCK_KEYS.cart, []),
-  writeCart: (v: CartLine[]): void => write(MOCK_KEYS.cart, v),
   readAddresses: (): Address[] => read<Address[]>(MOCK_KEYS.addresses, []),
   writeAddresses: (v: Address[]): void => write(MOCK_KEYS.addresses, v),
   readOrders: (): Order[] => read<Order[]>(MOCK_KEYS.orders, []),

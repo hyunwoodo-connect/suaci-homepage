@@ -2,18 +2,18 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { PRODUCT } from "@/constants/product";
 import ko from "@/messages/ko.json";
 import { createMockAdapter } from "@/lib/payment/providers";
 import { readPendingOrder, savePendingOrder } from "@/lib/payment/pending";
 
-const { getCheckoutDefaults, createOrder, authState, cartState, navigate, selectMock, push } =
+const { getCheckoutDefaults, createOrder, authState, navigate, selectMock, push } =
   vi.hoisted(() => ({
     getCheckoutDefaults: vi.fn(),
     createOrder: vi.fn(),
     authState: {
       value: { status: "authenticated", user: { userId: "u1" } } as Record<string, unknown>,
     },
-    cartState: { value: { items: [] as unknown[] } },
     navigate: vi.fn(),
     selectMock: { value: true },
     push: vi.fn(),
@@ -23,14 +23,6 @@ vi.mock("@/lib/api", () => ({
 }));
 vi.mock("@/lib/auth/auth-context", () => ({
   useAuth: () => authState.value,
-}));
-vi.mock("@/lib/cart/cart-context", () => ({
-  useCart: () => ({
-    cart: cartState.value,
-    clear: vi.fn().mockResolvedValue(undefined),
-    add: vi.fn().mockResolvedValue(undefined),
-    refresh: vi.fn().mockResolvedValue(undefined),
-  }),
 }));
 vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push, replace: vi.fn() }),
@@ -81,7 +73,6 @@ describe("사기 바", () => {
     sessionStorage.clear();
     localStorage.clear();
     authState.value = { status: "authenticated", user: { userId: "u1" } };
-    cartState.value = { items: [] };
     selectMock.value = true;
   });
 
@@ -182,6 +173,8 @@ describe("재구매 시트", () => {
     const orderArgs = createOrder.mock.calls[0]?.[0] as Record<string, unknown>;
     expect(orderArgs).toMatchObject({
       addressId: "a1",
+      // 바로 구매 — 장바구니 없이 이 시트의 상품·수량을 주문에 싣는다
+      items: [{ productId: PRODUCT.productId, variantId: PRODUCT.variantId, quantity: 1 }],
       metadata: { deliveryMemo: "문 앞", channel: "web", screen: "rebuy-sheet" },
     });
     expect(readPendingOrder()).toMatchObject({ orderId: "o1", amount: 31000, qty: 1 });
@@ -258,7 +251,6 @@ describe("이어서 줄(사기 바 위)", () => {
     vi.clearAllMocks();
     sessionStorage.clear();
     authState.value = { status: "authenticated", user: { userId: "u1" } };
-    cartState.value = { items: [] };
     selectMock.value = true;
   });
 
@@ -283,20 +275,8 @@ describe("이어서 줄(사기 바 위)", () => {
     expect(await screen.findByRole("button", { name: "₩56,000 결제하기" })).toBeTruthy();
   });
 
-  it("pending 없고 카트에 있으면 '담아 둔 게 있어요.' — 바로 사기는 담은 수량으로 시트를 연다", async () => {
-    cartState.value = { items: [{ lineId: "l1", quantity: 3 }] };
-    getCheckoutDefaults.mockResolvedValue({ address: ADDRESS, lastPaymentMethod: null });
+  it("보류 주문이 없으면 이어서 줄이 없다", () => {
     renderBar();
-    expect(screen.getByText("담아 둔 게 있어요.")).toBeTruthy();
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "바로 사기" }));
-    });
-    expect(await screen.findByRole("button", { name: "₩84,000 결제하기" })).toBeTruthy();
-  });
-
-  it("pending 도 카트도 없으면 이어서 줄이 없다", () => {
-    renderBar();
-    expect(screen.queryByText("담아 둔 게 있어요.")).toBeNull();
     expect(screen.queryByText("아까 하던 주문, 이어서 할까요?")).toBeNull();
   });
 });
