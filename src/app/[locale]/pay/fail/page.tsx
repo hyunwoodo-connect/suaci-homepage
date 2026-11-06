@@ -1,8 +1,10 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+
 import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
+
 import PayResult from "@/components/pay/PayResult";
 import ButtonLink from "@/components/ui/ButtonLink";
 import { failReason } from "@/lib/payment/fail-reason";

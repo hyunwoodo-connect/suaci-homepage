@@ -3,12 +3,15 @@ import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ko from "@/messages/ko.json";
-import { ApiClientError } from "@/lib/api/errors";
+import { ApiClientError } from "@/lib/api";
 
 import WaitlistForm from "./WaitlistForm";
 
 const { join } = vi.hoisted(() => ({ join: vi.fn() }));
-vi.mock("@/lib/api/waitlist", () => ({ waitlistApi: { join } }));
+vi.mock("@/lib/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/api")>()),
+  waitlistApi: { join },
+}));
 
 function renderForm(source?: string) {
   return render(

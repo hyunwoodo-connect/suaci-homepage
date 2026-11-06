@@ -1,14 +1,15 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
+
 import { useRouter } from "@/i18n/navigation";
 import PayResult from "@/components/pay/PayResult";
 import Button from "@/components/ui/Button";
 import ButtonLink from "@/components/ui/ButtonLink";
-import { api } from "@/lib/api";
-import { ApiClientError } from "@/lib/api/errors";
+import { api, ApiClientError } from "@/lib/api";
 import { clearPendingOrder, readPendingOrder } from "@/lib/payment/pending";
 import { parsePaymentReturn } from "@/lib/payment/providers";
 

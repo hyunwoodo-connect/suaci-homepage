@@ -3,7 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ko from "@/messages/ko.json";
-import { ApiClientError } from "@/lib/api/errors";
+import { ApiClientError } from "@/lib/api";
 import { savePendingOrder, readPendingOrder } from "@/lib/payment/pending";
 
 const { confirmPayment, replace, searchParams } = vi.hoisted(() => ({
@@ -11,7 +11,8 @@ const { confirmPayment, replace, searchParams } = vi.hoisted(() => ({
   replace: vi.fn(),
   searchParams: { value: new URLSearchParams() },
 }));
-vi.mock("@/lib/api", () => ({
+vi.mock("@/lib/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/api")>()),
   api: { confirmPayment },
 }));
 vi.mock("@/i18n/navigation", () => ({

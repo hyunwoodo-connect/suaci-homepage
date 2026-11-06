@@ -1,12 +1,13 @@
 "use client";
 
 import { useId, useState } from "react";
+
 import { useTranslations } from "next-intl";
+
 import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
-import { ApiClientError } from "@/lib/api/errors";
 import { trackLead } from "@/lib/analytics";
-import { waitlistApi } from "@/lib/api/waitlist";
+import { ApiClientError, waitlistApi } from "@/lib/api";
 
 interface WaitlistFormProps {
   locale: string;
