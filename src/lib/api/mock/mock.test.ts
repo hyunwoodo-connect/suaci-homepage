@@ -22,7 +22,12 @@ describe("mock client", () => {
     await loginDemo();
     const p = products[0];
     const v = p.variants[0];
-    const addr = await api.createAddress({ recipient: "r", phone: "01000000000", zipcode: "06000", addr1: "서울" });
+    const addr = await api.createAddress({
+      recipient: "r",
+      phone: "01000000000",
+      zipcode: "06000",
+      addr1: "서울",
+    });
     const order = await api.createOrder({
       addressId: addr.addressId,
       idempotencyKey: "direct-1",
@@ -110,7 +115,11 @@ describe("mock client", () => {
       zipcode: "06000",
       addr1: "서울",
     });
-    const order = await api.createOrder({ addressId: addr.addressId, idempotencyKey: "lr1", items });
+    const order = await api.createOrder({
+      addressId: addr.addressId,
+      idempotencyKey: "lr1",
+      items,
+    });
     await api.confirmPayment(order.orderId, { paymentKey: "k", amount: order.totals.grandTotal });
     const lineId = order.items[0].lineId;
 

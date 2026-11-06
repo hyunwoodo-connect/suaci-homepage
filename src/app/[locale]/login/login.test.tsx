@@ -51,7 +51,7 @@ describe("로그인 페이지", () => {
     await renderPage();
     expect(screen.getByRole("button", { name: "카카오 로그인" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "네이버 로그인" })).toBeTruthy();
-    expect(screen.getByText("처음이어도, 다시 왔어도 같은 버튼이에요.")).toBeTruthy();
+    expect(screen.getByText("카카오·네이버 계정으로 간편하게 시작해요.")).toBeTruthy();
     expect(screen.queryByText(/google|apple|line/)).toBeNull();
   });
 
@@ -66,13 +66,13 @@ describe("로그인 페이지", () => {
   it("지난번에 카카오로 들어왔으면 → 그 버튼을 알려 준다(다른 버튼이면 계정이 하나 더 생긴다)", async () => {
     localStorage.setItem("suaci.auth.lastProvider", "kakao");
     await renderPage();
-    await waitFor(() => expect(screen.getByText("지난번엔 카카오로 들어왔어요.")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("최근에 카카오로 로그인했어요.")).toBeTruthy());
   });
 
   it("비밀번호를 바꾸고 오면(?reset=1) → 안내 + 이메일 폼이 열려 있다", async () => {
     searchParams.value = new URLSearchParams({ reset: "1" });
     await renderPage();
-    expect(screen.getByText("비밀번호를 바꿨어요. 새 비밀번호로 로그인해 주세요.")).toBeTruthy();
+    expect(screen.getByText("비밀번호를 변경했어요. 새 비밀번호로 로그인해 주세요.")).toBeTruthy();
     expect(screen.getByLabelText("이메일")).toBeTruthy();
   });
 

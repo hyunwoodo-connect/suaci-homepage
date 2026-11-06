@@ -39,8 +39,11 @@ export default function ProductSection() {
           <p className="m-0 max-w-[340px] text-[14px] leading-[1.6] text-ink-soft">{t("note")}</p>
 
           <div className="border-t border-line">
-            <Detail title={t("howToUse")} body={t("howToUseBody")} />
-            <Detail title={t("ingredients")} body={t("ingredientsBody")} />
+            {/* 사용법·전성분은 실제 내용이 나올 때까지 메시지를 비워 두고 칸을 숨긴다(자리 표시 문구를 손님에게 보이지 않게) */}
+            {t("howToUseBody") && <Detail title={t("howToUse")} body={t("howToUseBody")} />}
+            {t("ingredientsBody") && (
+              <Detail title={t("ingredients")} body={t("ingredientsBody")} />
+            )}
             {/* 배송·교환·환불 안내 2판의 요약. 금액은 주문서와 같은 상수에서 — 바뀌면 정책 문서(관리 툴)도 같이 */}
             <Detail
               title={t("shipping")}

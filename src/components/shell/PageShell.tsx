@@ -20,7 +20,7 @@ export default function PageShell({ title, meta, children }: PageShellProps) {
       <SiteHeader />
       <div className="sec">
         <h1 className="sec__ti m-0">{title}</h1>
-        <div className="sec__me">{meta}</div>
+        {meta && <div className="sec__me">{meta}</div>}
       </div>
       <div className="page-cell flex-1">{children}</div>
       <SiteFooter />

@@ -44,7 +44,8 @@ function LoginBody() {
   const justReset = searchParams.get("reset") === "1";
   const next = afterLoginPath(searchParams.get("next"));
 
-  const [showEmail, setShowEmail] = useState(justReset);
+  // 구매 시트의 '이메일로 로그인'은 ?email=1 로 와서 폼을 펼친 채로 연다
+  const [showEmail, setShowEmail] = useState(justReset || searchParams.get("email") === "1");
   const [lastProvider, setLastProvider] = useState<SocialProvider | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

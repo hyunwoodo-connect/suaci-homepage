@@ -58,9 +58,9 @@
       "descriptor": "take-01 · 100 ml",
       "note": "ライムとバジルの、細かくてひんやりしたミスト。ひと吹きして、深呼吸して、また一日へ。メイクの上からでも。",
       "howToUse": "使い方",
-      "howToUseBody": "使い方は発売前にここに載せます。",
+      "howToUseBody": "",
       "ingredients": "全成分",
-      "ingredientsBody": "全成分はメーカーから届きしだい、ここに載せます。",
+      "ingredientsBody": "",
       "shipping": "配送・返品",
       "shippingBody": "配送は韓国国内のみです。決済日から3営業日以内に発送し、通常1〜3日で届きます。送料は{fee}、{freeOver}以上のご注文は無料です。返品は受け取りから7日以内に申請できます。お客様都合の返品送料はお客様のご負担、破損・液漏れ・誤配送は当社負担で交換または返金します。",
       "label": "製品",
@@ -186,7 +186,6 @@
   },
   "checkout": {
     "title": "ご注文手続き",
-    "meta": "最後のひと手間",
     "addressTitle": "配送先",
     "addAddress": "配送先を登録",
     "defaultBadge": "既定",
@@ -318,12 +317,8 @@
     "bar": {
       "buy": "買う",
       "shipping": "送料 {fee}・{freeOver}以上で無料",
-      "keep": "とっておく",
-      "kept": "とっておきました",
       "decrease": "数量を減らす",
       "increase": "数量を増やす",
-      "kept_note": "とっておいたものがあります。",
-      "keptCta": "すぐ買う",
       "resume": "さっきの注文、続けますか？",
       "resumeCta": "続ける",
       "soon": "発売準備中です。",
@@ -362,8 +357,7 @@
       "brandpayHint": "一度登録すれば次からすぐ決済できます。",
       "phone": "電話",
       "detail": "詳細住所",
-      "closedNotice": "発売前のため、まだお支払いはできません。配送先は先に保存しておけます。",
-      "methodsClosed": "発売前のため、まだお支払いできません。"
+      "closedNotice": "発売前のため、まだお支払いはできません。配送先は先に保存しておけます。"
     },
     "result": {
       "confirming": "決済を確認しています…",
@@ -372,12 +366,14 @@
       "declined": "カード会社に断られました。別の方法にしますか？",
       "backToCheckout": "注文書に戻る",
       "hiccup": "少し詰まりました。もう一度だけ押してください。",
+      "orders": "注文履歴",
+      "failed": "決済に失敗しました。{reason}別のお支払い方法でもう一度お試しください。",
+      "canceled": "決済をキャンセルしました。入力した注文情報はそのまま残っています。",
       "retry": "もう一度",
-      "stopped": "決済を止めました。入力はそのまま残っています。",
       "continue": "続ける",
       "done": "注文しました。",
-      "doneSub": "届いたら一度シュッとしてみて。",
-      "doneFirst": "次は2タップで終わります。"
+      "doneSub": "",
+      "doneFirst": ""
     },
     "mock": {
       "title": "{provider} ログイン（モック）",

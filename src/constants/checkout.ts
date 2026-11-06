@@ -23,11 +23,15 @@ export function displayTotal(qty: number): number {
  * 배송 메모 칩(기본 첫 번째). 값은 택배 기사에게 그대로 가는 한국어 — 화면 이름만 언어별(`pay.memo.*`).
  * 화면에는 "직접 쓸게요"가 하나 더 붙는다
  */
-export const DELIVERY_MEMOS = ["문 앞", "경비실", "택배함"] as const;
+export const DELIVERY_MEMOS = [
+  "문 앞에 놓아 주세요",
+  "경비실에 맡겨 주세요",
+  "택배함에 넣어 주세요",
+] as const;
 
 /** 배송 메모 값 → 화면 이름 메시지 키(`pay.memo.{key}`) */
 export const DELIVERY_MEMO_KEYS: Record<(typeof DELIVERY_MEMOS)[number], string> = {
-  "문 앞": "door",
-  경비실: "guard",
-  택배함: "box",
+  "문 앞에 놓아 주세요": "door",
+  "경비실에 맡겨 주세요": "guard",
+  "택배함에 넣어 주세요": "box",
 };

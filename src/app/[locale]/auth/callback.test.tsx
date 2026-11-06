@@ -101,7 +101,7 @@ describe("소셜 콜백", () => {
       renderPage();
     });
     expect(socialSignIn).not.toHaveBeenCalled();
-    expect(screen.getByRole("heading", { name: "로그인이 중간에 끊겼어요" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "로그인하지 못했어요" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "카카오 로그인" })).toBeTruthy();
   });
 
@@ -112,7 +112,7 @@ describe("소셜 콜백", () => {
     await act(async () => {
       renderPage();
     });
-    expect(screen.getByRole("heading", { name: "로그인이 중간에 끊겼어요" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "로그인하지 못했어요" })).toBeTruthy();
     expect(screen.queryByText(/결제/)).toBeNull();
   });
 
@@ -136,7 +136,7 @@ describe("소셜 콜백", () => {
       renderPage();
     });
     expect(socialSignIn).not.toHaveBeenCalled();
-    expect(screen.getByRole("heading", { name: "네이버 로그인이 안 됐어요" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "네이버로 로그인하지 못했어요" })).toBeTruthy();
   });
 
   it("next 가 //evil.com 이면 / 로 — 오픈 리다이렉트 차단", async () => {

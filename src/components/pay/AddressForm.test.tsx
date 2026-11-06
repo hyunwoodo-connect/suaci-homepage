@@ -31,8 +31,8 @@ function renderForm(withLabel = false) {
 async function fillAndSubmit() {
   await pickAddress();
   fireEvent.change(screen.getByLabelText("받는 분"), { target: { value: "미나" } });
-  fireEvent.change(screen.getByLabelText("전화"), { target: { value: "01012345678" } });
-  fireEvent.change(screen.getByLabelText("상세주소"), { target: { value: "없음" } });
+  fireEvent.change(screen.getByLabelText("휴대폰 번호"), { target: { value: "01012345678" } });
+  fireEvent.change(screen.getByLabelText("상세 주소"), { target: { value: "없음" } });
   await act(async () => {
     fireEvent.submit(screen.getByRole("button", { name: "저장" }).closest("form")!);
   });
@@ -54,33 +54,33 @@ describe("AddressForm", () => {
     renderForm();
     await pickAddress();
     fireEvent.change(screen.getByLabelText("받는 분"), { target: { value: "미나" } });
-    fireEvent.change(screen.getByLabelText("전화"), { target: { value: "01012345678" } });
+    fireEvent.change(screen.getByLabelText("휴대폰 번호"), { target: { value: "01012345678" } });
     await act(async () => {
       fireEvent.submit(screen.getByRole("button", { name: "저장" }).closest("form")!);
     });
     expect(submit).not.toHaveBeenCalled();
-    expect(screen.getByText("동·호수까지 적어 주세요. 없으면 '없음'도 돼요.")).toBeTruthy();
+    expect(screen.getByText("상세 주소를 입력해 주세요.")).toBeTruthy();
   });
 
   it("전화가 틀리면 → 숫자만 안내", async () => {
     renderForm();
     await pickAddress();
     fireEvent.change(screen.getByLabelText("받는 분"), { target: { value: "미나" } });
-    fireEvent.change(screen.getByLabelText("전화"), { target: { value: "021234" } });
-    fireEvent.change(screen.getByLabelText("상세주소"), { target: { value: "10층" } });
+    fireEvent.change(screen.getByLabelText("휴대폰 번호"), { target: { value: "021234" } });
+    fireEvent.change(screen.getByLabelText("상세 주소"), { target: { value: "10층" } });
     await act(async () => {
       fireEvent.submit(screen.getByRole("button", { name: "저장" }).closest("form")!);
     });
     expect(submit).not.toHaveBeenCalled();
-    expect(screen.getByText("숫자만 넣어 주세요. 하이픈은 알아서 넣을게요.")).toBeTruthy();
+    expect(screen.getByText("휴대폰 번호를 확인해 주세요.")).toBeTruthy();
   });
 
-  it("정상 제출 → CreateAddressRequest 모양('다음에도 여기로' 기본 켬)", async () => {
+  it("정상 제출 → CreateAddressRequest 모양('기본 배송지로 저장' 기본 켬)", async () => {
     renderForm();
     await pickAddress();
     fireEvent.change(screen.getByLabelText("받는 분"), { target: { value: "미나" } });
-    fireEvent.change(screen.getByLabelText("전화"), { target: { value: "01012345678" } });
-    fireEvent.change(screen.getByLabelText("상세주소"), { target: { value: "없음" } });
+    fireEvent.change(screen.getByLabelText("휴대폰 번호"), { target: { value: "01012345678" } });
+    fireEvent.change(screen.getByLabelText("상세 주소"), { target: { value: "없음" } });
     await act(async () => {
       fireEvent.submit(screen.getByRole("button", { name: "저장" }).closest("form")!);
     });

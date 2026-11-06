@@ -128,7 +128,7 @@ describe("site-lock", () => {
     expect((await post({ pin: "", next: "/" })).status).toBe(401);
   });
 
-  it("출시 알림 받기(/notify)는 언어 접두사 있든 없든 쿠키 없이 열린다", async () => {
+  it("출시 알림 신청(/notify)는 언어 접두사 있든 없든 쿠키 없이 열린다", async () => {
     vi.stubEnv("SITE_LOCK_PIN", "1234");
     for (const path of ["/notify", "/ko/notify", "/ja/notify", "/en/notify"]) {
       expect((await middleware(new NextRequest(`https://takesuaci.com${path}`))).status).toBe(200);

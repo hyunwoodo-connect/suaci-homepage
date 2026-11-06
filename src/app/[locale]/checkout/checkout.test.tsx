@@ -96,17 +96,20 @@ describe("주문서(첫 구매)", () => {
     expect(await screen.findByText(/서울 중구 세종대로 110/)).toBeTruthy();
     // 맨 위 한 줄 + 결제수단은 흐리게 보이고 왜 안 되는지 붙는다(카드 심사자·손님이 헷갈리지 않게)
     expect(
-      screen.getByText("출시 전이라 결제는 아직 안 돼요. 배송지는 미리 저장해 둘 수 있어요."),
+      screen.getByText(
+        "판매 시작 전이라 아직 결제할 수 없어요. 배송지는 미리 저장해 둘 수 있어요.",
+      ),
     ).toBeTruthy();
-    for (const m of ["카드", "카카오페이", "네이버페이", "토스페이"]) {
+    for (const m of ["신용·체크카드", "카카오페이", "네이버페이", "토스페이"]) {
       expect((screen.getByRole("button", { name: m }) as HTMLButtonElement).disabled).toBe(true);
     }
     expect(screen.queryByRole("radio")).toBeNull();
-    expect(screen.getByText("출시 전이라 아직 결제할 수 없어요.")).toBeTruthy();
+    // 같은 안내를 한 화면에 두 번 쓰지 않는다(위 한 줄만)
+    expect(screen.queryByText("출시 전이라 아직 결제할 수 없어요.")).toBeNull();
     expect(screen.getByText("₩31,000")).toBeTruthy();
     const cta = screen.getByRole("button", { name: "결제 준비 중" }) as HTMLButtonElement;
     expect(cta.disabled).toBe(true);
-    expect(screen.getByRole("link", { name: "출시 알림 받기" })).toHaveAttribute("href", "/notify");
+    expect(screen.getByRole("link", { name: "출시 알림 신청" })).toHaveAttribute("href", "/notify");
     await act(async () => {
       fireEvent.click(cta);
     });
@@ -114,13 +117,13 @@ describe("주문서(첫 구매)", () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it("주소 없음 → '어디로 보낼까요?' + 주소 폼", async () => {
+  it("주소 없음 → '배송지 입력' + 주소 폼", async () => {
     listAddresses.mockResolvedValue([]);
     await act(async () => {
       renderPage();
     });
-    expect(await screen.findByText("어디로 보낼까요?")).toBeTruthy();
-    expect(screen.getByText("도로명이나 건물 이름으로 찾아봐요.")).toBeTruthy();
+    expect(await screen.findByText("배송지 입력")).toBeTruthy();
+    expect(screen.getByText("도로명, 지번, 건물명으로 검색하세요.")).toBeTruthy();
   });
 
   it("주소 있으면 카드 + 결제하기 → createOrder(screen checkout) → 목업 결제창(first=1 통과)", async () => {
@@ -141,7 +144,7 @@ describe("주문서(첫 구매)", () => {
     expect(createOrder.mock.calls[0]?.[0]).toMatchObject({
       addressId: "a1",
       items: [expect.objectContaining({ quantity: 1 })],
-      metadata: { deliveryMemo: "문 앞", channel: "web", screen: "checkout" },
+      metadata: { deliveryMemo: "문 앞에 놓아 주세요", channel: "web", screen: "checkout" },
     });
     expect((navigate.mock.calls[0] as string[])[0]).toBe(
       "https://x/pay/complete?o=o1&first=1&paymentKey=mock_CARD_k1234567&orderId=20261026-A&amount=31000",
@@ -158,7 +161,7 @@ describe("주문서 — 반품 제한 고지(전자상거래법 제17조제6항)
       renderPage();
     });
     expect(
-      await screen.findByText(/화장품은 밀봉을 뜯거나 사용하면 단순 변심으로 반품할 수 없어요\./),
+      await screen.findByText(/개봉하거나 사용한 화장품은 단순 변심으로 반품할 수 없어요\./),
     ).toBeTruthy();
     expect(screen.getByRole("link", { name: "배송·교환·환불 안내" })).toHaveAttribute(
       "href",
@@ -179,7 +182,7 @@ describe("주문서 — 이어가기 수량", () => {
       idempotencyKey: "ik",
       qty: 2,
       addressId: "a1",
-      memo: "문 앞",
+      memo: "문 앞에 놓아 주세요",
     });
     listAddresses.mockResolvedValue([ADDRESS]);
     await act(async () => {

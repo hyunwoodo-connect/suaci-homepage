@@ -74,7 +74,7 @@ describe("/pay/complete", () => {
     expect(readPendingOrder()).toBeNull();
   });
 
-  it("쿼리가 깨졌으면(amount 소수) 승인 없이 '잘못 들어온 주소예요.'", async () => {
+  it("쿼리가 깨졌으면(amount 소수) 승인 없이 '잘못된 접근이에요. 홈으로 돌아가 주세요.'", async () => {
     searchParams.value = new URLSearchParams({
       o: "o1",
       paymentKey: "k",
@@ -85,10 +85,10 @@ describe("/pay/complete", () => {
       renderComplete();
     });
     expect(confirmPayment).not.toHaveBeenCalled();
-    expect(screen.getByText("잘못 들어온 주소예요.")).toBeTruthy();
+    expect(screen.getByText("잘못된 접근이에요. 홈으로 돌아가 주세요.")).toBeTruthy();
   });
 
-  it("PAYMENT_DECLINED → 카드사 문구 + 주문서로 돌아가기, 성공 이동 없음", async () => {
+  it("PAYMENT_DECLINED → 카드사 문구 + 결제수단 변경하기, 성공 이동 없음", async () => {
     searchParams.value = new URLSearchParams({
       o: "o1",
       paymentKey: "k12345678",
@@ -99,8 +99,12 @@ describe("/pay/complete", () => {
     await act(async () => {
       renderComplete();
     });
-    expect(await screen.findByText("카드사에서 안 됐대요. 다른 걸로 해 볼까요?")).toBeTruthy();
-    expect(screen.getByText("주문서로 돌아가기")).toBeTruthy();
+    expect(
+      await screen.findByText(
+        "결제가 승인되지 않았어요. 카드 한도나 잔액을 확인하거나 다른 결제수단으로 시도해 주세요.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText("결제수단 변경하기")).toBeTruthy();
     expect(replace).not.toHaveBeenCalled();
   });
 
@@ -117,9 +121,13 @@ describe("/pay/complete", () => {
     await act(async () => {
       renderComplete();
     });
-    expect(await screen.findByText("잠깐 막혔어요. 한 번만 다시 눌러 주세요.")).toBeTruthy();
+    expect(
+      await screen.findByText(
+        "결제 확인이 늦어지고 있어요. 다시 시도해도 중복 결제되지 않아요. 계속 안 되면 주문 내역을 확인하거나 고객센터로 문의해 주세요.",
+      ),
+    ).toBeTruthy();
     await act(async () => {
-      screen.getByRole("button", { name: "다시 시도" }).click();
+      screen.getByRole("button", { name: "다시 확인하기" }).click();
     });
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/orders/o1?welcome=1"));
     expect(confirmPayment).toHaveBeenCalledTimes(2);
@@ -127,7 +135,7 @@ describe("/pay/complete", () => {
 });
 
 describe("/pay/fail", () => {
-  it("멈췄다는 문구 + 이어서 하기, pending 은 지우지 않는다", async () => {
+  it("멈췄다는 문구 + 다시 결제하기, pending 은 지우지 않는다", async () => {
     savePendingOrder(pendingBase);
     searchParams.value = new URLSearchParams({ o: "o1" });
     await act(async () => {
@@ -137,8 +145,10 @@ describe("/pay/fail", () => {
         </NextIntlClientProvider>,
       );
     });
-    expect(screen.getByText("결제를 멈췄어요. 적은 건 그대로 있어요.")).toBeTruthy();
-    const cont = await screen.findByText("이어서 하기");
+    expect(
+      screen.getByText("결제에 실패했어요. 다른 결제수단으로 다시 시도해 주세요."),
+    ).toBeTruthy();
+    const cont = await screen.findByText("다시 결제하기");
     // 수량까지 들고 돌아간다 — 복귀가 1개짜리 새 주문이 되면 안 된다
     expect(cont.closest("a")?.getAttribute("href")).toBe("/checkout?qty=2");
     expect(readPendingOrder()).toMatchObject(pendingBase);

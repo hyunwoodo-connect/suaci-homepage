@@ -30,7 +30,6 @@ export default function BuyBar() {
 
   const [qty, setQty] = useState(1);
   const [sheet, setSheet] = useState<"login" | CheckoutDefaults | null>(null);
-  const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [autoOpened, setAutoOpened] = useState(false);
 
@@ -89,9 +88,9 @@ export default function BuyBar() {
             }}
           />
           {/* 본문 큰 제목 위에 떠도 읽히게 — 반투명·얇은 띠는 아래 글자가 비쳐 섞인다 */}
-          {note || paymentsOpen ? (
+          {paymentsOpen ? (
             <p className="pointer-events-none m-0 rounded-full bg-paper px-[12px] py-[5px] text-[12px] text-grey shadow-[0_2px_10px_rgba(20,20,20,0.10)]">
-              {note ?? shippingLine}
+              {shippingLine}
             </p>
           ) : (
             // 결제를 열기 전에도 사기는 결제 직전까지 간다(카드 심사) — 출시 알림 길은 여기 남긴다.

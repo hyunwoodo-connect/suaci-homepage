@@ -14,7 +14,11 @@ describe("CHECKOUT_PRICING / displayTotal", () => {
     expect(PRODUCT.price).toBe(CHECKOUT_PRICING.price);
   });
   it("배송 메모 칩: 값은 택배 기사에게 가는 한국어, 한국어 화면 이름은 값과 같다", () => {
-    expect(DELIVERY_MEMOS).toEqual(["문 앞", "경비실", "택배함"]);
+    expect(DELIVERY_MEMOS).toEqual([
+      "문 앞에 놓아 주세요",
+      "경비실에 맡겨 주세요",
+      "택배함에 넣어 주세요",
+    ]);
     const memo: Record<string, string> = ko.pay.memo;
     for (const m of DELIVERY_MEMOS) expect(memo[DELIVERY_MEMO_KEYS[m]]).toBe(m);
   });

@@ -20,9 +20,7 @@ describe("ProductSection — 반품 제한 고지(전자상거래법 제17조제
         <ProductSection />
       </NextIntlClientProvider>,
     );
-    const notice = screen.getByText(
-      /화장품은 밀봉을 뜯거나 사용하면 단순 변심으로 반품할 수 없어요\./,
-    );
+    const notice = screen.getByText(/개봉하거나 사용한 화장품은 단순 변심으로 반품할 수 없어요\./);
     expect(notice.closest("details")).toBeNull();
     expect(screen.getByRole("link", { name: "배송·교환·환불 안내" })).toHaveAttribute(
       "href",
@@ -49,9 +47,9 @@ describe("ProductSection — 반품 제한 고지(전자상거래법 제17조제
         <ProductSection />
       </NextIntlClientProvider>,
     );
-    const body = screen.getByText(/국내에만 택배로 보내요\./);
+    const body = screen.getByText(/국내 배송만 가능해요\(택배\)\./);
     expect(body.closest("details")).not.toBeNull();
-    expect(body.textContent).toContain("배송비는 ₩3,000이고 ₩50,000 이상 주문은 무료예요.");
+    expect(body.textContent).toContain("배송비는 ₩3,000이고 ₩50,000 이상 구매하면 무료예요.");
     expect(body.textContent).toContain("받은 날부터 7일 안에 반품을 신청할 수 있어요.");
     expect(body.textContent).not.toContain("준비 중");
   });

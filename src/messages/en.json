@@ -58,9 +58,9 @@
       "descriptor": "take-01 · 100 ml",
       "note": "a fine, cool mist of lime and basil. spray, breathe, back to your day. over makeup is fine.",
       "howToUse": "how to use",
-      "howToUseBody": "how to use goes here before launch.",
+      "howToUseBody": "",
       "ingredients": "ingredients",
-      "ingredientsBody": "the full ingredient list goes here once the maker sends it.",
+      "ingredientsBody": "",
       "shipping": "shipping & returns",
       "shippingBody": "we ship within korea only. orders go out within 3 business days of payment and usually arrive in 1–3 days. shipping is {fee}, free on orders of {freeOver} or more. you can request a return within 7 days of delivery. for a change of mind, return shipping is on you; damaged, leaking or wrong items are on us, and we'll exchange or refund them.",
       "label": "the product",
@@ -186,7 +186,6 @@
   },
   "checkout": {
     "title": "checkout",
-    "meta": "one last step",
     "addressTitle": "shipping address",
     "addAddress": "add address",
     "defaultBadge": "default",
@@ -318,12 +317,8 @@
     "bar": {
       "buy": "buy",
       "shipping": "shipping {fee} · free over {freeOver}",
-      "keep": "keep it",
-      "kept": "kept.",
       "decrease": "decrease quantity",
       "increase": "increase quantity",
-      "kept_note": "you kept something.",
-      "keptCta": "buy now",
       "resume": "pick up where you left off?",
       "resumeCta": "continue",
       "soon": "coming soon.",
@@ -362,8 +357,7 @@
       "brandpayHint": "register once, pay instantly next time.",
       "phone": "phone",
       "detail": "unit / detail",
-      "closedNotice": "we haven't launched yet, so you can't pay just yet. you can save your address ahead of time.",
-      "methodsClosed": "you can't pay until launch."
+      "closedNotice": "we haven't launched yet, so you can't pay just yet. you can save your address ahead of time."
     },
     "result": {
       "confirming": "confirming your payment…",
@@ -372,12 +366,14 @@
       "declined": "the card company said no. try another way?",
       "backToCheckout": "back to checkout",
       "hiccup": "a little hiccup. tap once more.",
+      "orders": "my orders",
+      "failed": "payment failed. {reason}please try another payment method.",
+      "canceled": "payment cancelled. your order details are still here.",
       "retry": "try again",
-      "stopped": "payment stopped. everything you typed is still here.",
       "continue": "continue",
       "done": "order placed.",
-      "doneSub": "give it a spray when it arrives.",
-      "doneFirst": "next time it's just two taps."
+      "doneSub": "",
+      "doneFirst": ""
     },
     "mock": {
       "title": "{provider} sign in (mock)",

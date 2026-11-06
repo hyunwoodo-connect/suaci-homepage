@@ -79,9 +79,7 @@ export default async function LocaleLayout({
       </head>
       <body className="antialiased">
         <NextIntlClientProvider>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
+          <AuthProvider>{children}</AuthProvider>
         </NextIntlClientProvider>
         <Analytics />
       </body>

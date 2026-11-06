@@ -228,7 +228,7 @@ function CheckoutBody() {
   }
 
   return (
-    <PageShell title={t("title")} meta={t("meta")}>
+    <PageShell title={t("title")}>
       <div className="flex max-w-[480px] flex-col gap-[28px]">
         {/* 출시 전엔 주소를 다 쓰고 나서야 막히지 않게 — 맨 위에서 먼저 알린다 */}
         {!ready && (
@@ -354,7 +354,6 @@ function CheckoutBody() {
                   </button>
                 ))}
               </div>
-              <p className="m-0 mt-[10px] text-[13px] text-grey">{tp("checkout.methodsClosed")}</p>
             </>
           )}
         </section>

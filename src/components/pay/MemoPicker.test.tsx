@@ -6,7 +6,7 @@ const t = (key: string) => `T(${key})`;
 
 describe("memoLabel", () => {
   it("고른 칩 값 → 그 언어의 이름", () => {
-    expect(memoLabel("문 앞", t)).toBe("T(memo.door)");
+    expect(memoLabel("문 앞에 놓아 주세요", t)).toBe("T(memo.door)");
   });
 
   it("직접 쓴 메모 → 쓴 그대로(객체 기본 속성 이름이어도)", () => {

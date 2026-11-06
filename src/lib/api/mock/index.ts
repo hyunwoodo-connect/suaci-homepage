@@ -221,7 +221,6 @@ export function createMockClient(): ApiClient {
       store.writeAddresses(next);
     },
 
-
     // ---- order / payment ----
     async listOrders(): Promise<ApiPage<OrderSummary>> {
       requireAuth();
