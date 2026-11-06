@@ -66,7 +66,6 @@ function OrderDetail({ orderId }: { orderId: string }) {
   const { status, sessionEnded, refresh: recheckSession } = useAuth();
   const searchParams = useSearchParams();
   const welcome = searchParams.get("welcome") === "1";
-  const firstPurchase = searchParams.get("first") === "1";
 
   const [data, setData] = useState<OrderDetailData | null>(null);
   // 못 불러오면 뼈대에 멈추지 않고 이유와 다시 시도할 길을 보여 준다
@@ -146,7 +145,7 @@ function OrderDetail({ orderId }: { orderId: string }) {
   }
 
   if (!data) {
-    return <OrderDetailLoading welcome={welcome} firstPurchase={firstPurchase} />;
+    return <OrderDetailLoading welcome={welcome} />;
   }
 
   const { order, claims } = data;
@@ -155,7 +154,7 @@ function OrderDetail({ orderId }: { orderId: string }) {
   return (
     <PageShell title={t("detailTitle")} meta={order.orderNo}>
       <div className="max-w-[860px]">
-        {welcome && <WelcomeBand firstPurchase={firstPurchase} orderNo={order.orderNo} />}
+        {welcome && <WelcomeBand orderNo={order.orderNo} />}
 
         {/* 상태 — 세 축을 이름 하나로 */}
         <div className="mb-[24px] flex flex-col items-start gap-[8px]">
@@ -224,14 +223,11 @@ function OrderDetail({ orderId }: { orderId: string }) {
 }
 
 /** 결제 직후 띠 — 이 화면의 라임은 이 띠 하나, 위 글자는 먹색 */
-function WelcomeBand({ firstPurchase, orderNo }: { firstPurchase: boolean; orderNo: ReactNode }) {
+function WelcomeBand({ orderNo }: { orderNo: ReactNode }) {
   const tp = useTranslations("pay.result");
   return (
     <div className="mb-[24px] flex flex-wrap items-baseline justify-between gap-[8px_16px] bg-lime px-[16px] py-[14px] text-ink">
-      <div>
-        <b className="block text-[17px] font-medium">{tp("done")}</b>
-        <span className="text-[14px]">{firstPurchase ? tp("doneFirst") : tp("doneSub")}</span>
-      </div>
+      <b className="block text-[17px] font-medium">{tp("done")}</b>
       <span className="num text-[13px]">{orderNo}</span>
     </div>
   );
@@ -241,11 +237,10 @@ function WelcomeBand({ firstPurchase, orderNo }: { firstPurchase: boolean; order
 
 interface OrderDetailLoadingProps {
   welcome?: boolean;
-  firstPurchase?: boolean;
 }
 
 /** 주문 상세 뼈대 — 상태 뱃지 / 품목 한 줄 / 결제 정보·배송지 두 상자가 실제와 같은 자리·높이 */
-function OrderDetailLoading({ welcome = false, firstPurchase = false }: OrderDetailLoadingProps) {
+function OrderDetailLoading({ welcome = false }: OrderDetailLoadingProps) {
   const t = useTranslations("orders");
   const tc = useTranslations("common");
   return (
@@ -254,7 +249,6 @@ function OrderDetailLoading({ welcome = false, firstPurchase = false }: OrderDet
         {welcome && (
           // 띠 글은 정해져 있어 그대로 그리고, 아직 모르는 주문번호만 같은 길이로 비워 둔다
           <WelcomeBand
-            firstPurchase={firstPurchase}
             orderNo={
               <span aria-hidden="true" className="invisible">
                 {t("welcomeOrderNo", { orderNo: "00000000-000000" })}

@@ -279,9 +279,9 @@ function CheckoutBody() {
                         >
                           {addressName(a) === a.recipient ? a.phone : `${a.recipient} · ${a.phone}`}
                         </span>
-                        {/* 라임 위 글자는 먹색 — 고른 칸(검정)·안 고른 칸(흰색) 어디서나 같은 표 */}
+                        {/* 상태 표시 — 버튼(알약)과 다르게 각진 작은 표. 라임 위 글자는 먹색이라 고른 칸(검정)·안 고른 칸(흰색) 어디서나 읽힌다 */}
                         {a.isDefault && (
-                          <span className="rounded-full bg-lime px-[8px] py-[1px] text-[12px] text-ink">
+                          <span className="cursor-default select-none rounded-[4px] bg-lime px-[6px] py-[1px] text-[12px] text-ink">
                             {t("defaultBadge")}
                           </span>
                         )}

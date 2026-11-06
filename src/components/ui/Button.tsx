@@ -19,13 +19,7 @@ import type { ButtonHTMLAttributes } from "react";
  *  - 흰 바탕과 라임의 대비는 1.2:1 이라 버튼 가장자리가 흐리고, 비활성(40%)이 되면 거의 사라진다.
  *  그래서 primary 는 잉크 채움(흰 바탕 대비 18:1)으로 두고, 위계는 나머지를 낮추는 쪽으로 만든다.
  */
-export type ButtonVariant =
-  | "primary"
-  | "secondary"
-  | "text"
-  | "danger"
-  /** @deprecated secondary 와 같다. 결제 완료 화면(pay/complete)이 secondary 로 바뀌면 지운다 */
-  | "outline";
+export type ButtonVariant = "primary" | "secondary" | "text" | "danger";
 export type ButtonSize = "md" | "sm";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -52,7 +46,6 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   secondary: "border border-ink/25 bg-paper text-ink hover:border-ink",
   text: "text-grey underline-offset-[4px] hover:text-ink hover:underline",
   danger: "border border-alert/35 bg-paper text-alert hover:border-alert hover:bg-alert/[0.04]",
-  outline: "border border-ink/25 bg-paper text-ink hover:border-ink",
 };
 
 /** 버튼 모양 클래스 — 링크를 버튼처럼 보여야 할 때(ButtonLink)도 같은 모양을 쓴다 */

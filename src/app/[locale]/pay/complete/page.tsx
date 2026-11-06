@@ -100,7 +100,7 @@ function PayCompleteBody() {
           {t("retry")}
         </Button>
         {/* 카드에서 돈이 빠졌을 수 있는 상태라 막다른 길이 되지 않게 주문 내역으로 가는 길을 둔다 */}
-        <ButtonLink href="/orders" variant="outline">
+        <ButtonLink href="/orders" variant="secondary">
           {t("orders")}
         </ButtonLink>
       </PayResult>
