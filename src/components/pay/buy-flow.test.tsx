@@ -143,6 +143,16 @@ describe("사기 바", () => {
     await waitFor(() => expect(push).toHaveBeenCalledWith("/checkout?qty=1"));
   });
 
+  it("기본값(배송지·지난 수단)을 못 읽어도 → 구매는 막지 않고 주문서로", async () => {
+    getCheckoutDefaults.mockRejectedValueOnce(new Error("network"));
+    renderBar();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "₩28,000 · 구매하기" }));
+    });
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/checkout?qty=1"));
+    expect(screen.queryByText("주문 정보를 확인해 주세요")).toBeNull();
+  });
+
   it("결제를 받기 전 → 사기 버튼은 그대로, 위 안내는 '출시 준비 중' + 출시 알림 링크", async () => {
     selectMock.value = false;
     getCheckoutDefaults.mockResolvedValue({ address: null, lastPaymentMethod: null });

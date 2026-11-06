@@ -88,6 +88,19 @@ describe("/pay/complete", () => {
     expect(screen.getByText("잘못된 접근이에요. 홈으로 돌아가 주세요.")).toBeTruthy();
   });
 
+  it("주문 번호(o)가 없으면 → 승인 없이 '잘못된 접근이에요'", async () => {
+    searchParams.value = new URLSearchParams({
+      paymentKey: "k12345678",
+      orderId: "n",
+      amount: "31000",
+    });
+    await act(async () => {
+      renderComplete();
+    });
+    expect(confirmPayment).not.toHaveBeenCalled();
+    expect(screen.getByText("잘못된 접근이에요. 홈으로 돌아가 주세요.")).toBeTruthy();
+  });
+
   it("PAYMENT_DECLINED → 카드사 문구 + 결제수단 변경하기, 성공 이동 없음", async () => {
     searchParams.value = new URLSearchParams({
       o: "o1",
@@ -152,5 +165,19 @@ describe("/pay/fail", () => {
     // 수량까지 들고 돌아간다 — 복귀가 1개짜리 새 주문이 되면 안 된다
     expect(cont.closest("a")?.getAttribute("href")).toBe("/checkout?qty=2");
     expect(readPendingOrder()).toMatchObject(pendingBase);
+  });
+
+  it("손님이 결제창을 닫았으면(USER_CANCEL) → 취소 문구, 보류 주문이 없으면 수량 없이 주문서로", async () => {
+    sessionStorage.clear();
+    searchParams.value = new URLSearchParams({ o: "o1", code: "USER_CANCEL" });
+    await act(async () => {
+      render(
+        <NextIntlClientProvider locale="ko" messages={ko}>
+          <FailPage />
+        </NextIntlClientProvider>,
+      );
+    });
+    expect(screen.getByText("결제를 취소했어요. 입력한 주문 정보는 그대로 있어요.")).toBeTruthy();
+    expect(screen.getByText("다시 결제하기").closest("a")?.getAttribute("href")).toBe("/checkout");
   });
 });
