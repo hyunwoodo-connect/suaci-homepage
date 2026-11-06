@@ -29,6 +29,18 @@ export const DELIVERY_MEMOS = [
   "택배함에 넣어 주세요",
 ] as const;
 
+/** 예전 칩 값(이미 손님 기기에 저장돼 있다) → 지금 칩 값. 읽을 때 바꿔 칩이 다시 골라지게 한다 */
+const LEGACY_MEMOS: Record<string, (typeof DELIVERY_MEMOS)[number]> = {
+  "문 앞": "문 앞에 놓아 주세요",
+  경비실: "경비실에 맡겨 주세요",
+  택배함: "택배함에 넣어 주세요",
+};
+
+/** 저장된 배송 메모 → 지금 쓸 값(예전 칩 값이면 새 문장, 아니면 그대로) */
+export function normalizeMemo(saved: string): string {
+  return LEGACY_MEMOS[saved] ?? saved;
+}
+
 /** 배송 메모 값 → 화면 이름 메시지 키(`pay.memo.{key}`) */
 export const DELIVERY_MEMO_KEYS: Record<(typeof DELIVERY_MEMOS)[number], string> = {
   "문 앞에 놓아 주세요": "door",

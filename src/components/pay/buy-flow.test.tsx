@@ -7,8 +7,8 @@ import ko from "@/messages/ko.json";
 import { createMockAdapter } from "@/lib/payment/providers";
 import { readPendingOrder, savePendingOrder } from "@/lib/payment/pending";
 
-const { getCheckoutDefaults, createOrder, authState, navigate, selectMock, push } = vi.hoisted(
-  () => ({
+const { getCheckoutDefaults, createOrder, authState, navigate, selectMock, push, searchState } =
+  vi.hoisted(() => ({
     getCheckoutDefaults: vi.fn(),
     createOrder: vi.fn(),
     authState: {
@@ -17,8 +17,8 @@ const { getCheckoutDefaults, createOrder, authState, navigate, selectMock, push 
     navigate: vi.fn(),
     selectMock: { value: true },
     push: vi.fn(),
-  }),
-);
+    searchState: { value: "" },
+  }));
 vi.mock("@/lib/api", () => ({
   api: { getCheckoutDefaults, createOrder },
 }));
@@ -27,12 +27,26 @@ vi.mock("@/lib/auth/auth-context", () => ({
 }));
 vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push, replace: vi.fn() }),
-  Link: ({ href, children }: { href: string; children: React.ReactNode }) => (
-    <a href={href}>{children}</a>
+  Link: ({
+    href,
+    children,
+  }: {
+    href: string | { pathname: string; query?: Record<string, string> };
+    children: React.ReactNode;
+  }) => (
+    <a
+      href={
+        typeof href === "string"
+          ? href
+          : `${href.pathname}?${new URLSearchParams(href.query).toString()}`
+      }
+    >
+      {children}
+    </a>
   ),
 }));
 vi.mock("next/navigation", () => ({
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(searchState.value),
 }));
 vi.mock("@/lib/payment/providers", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/payment/providers")>();
@@ -75,6 +89,25 @@ describe("사기 바", () => {
     localStorage.clear();
     authState.value = { status: "authenticated", user: { userId: "u1" } };
     selectMock.value = true;
+    searchState.value = "";
+  });
+
+  it("로그인에서 ?buy=1&qty=3 으로 돌아오면 → 고른 수량 3 그대로 시트를 연다", async () => {
+    searchState.value = "buy=1&qty=3";
+    getCheckoutDefaults.mockResolvedValue({ address: ADDRESS, lastPaymentMethod: null });
+    await act(async () => {
+      renderBar();
+    });
+    expect(await screen.findByRole("button", { name: "₩84,000 결제하기" })).toBeTruthy();
+  });
+
+  it("미로그인 구매하기 → 로그인 시트가 돌아올 주소에 수량을 싣는다", async () => {
+    authState.value = { status: "anonymous", user: null };
+    renderBar();
+    fireEvent.click(screen.getByRole("button", { name: "수량 더하기" }));
+    fireEvent.click(screen.getByRole("button", { name: "₩56,000 · 구매하기" }));
+    const email = await screen.findByRole("link", { name: "이메일로 로그인" });
+    expect(decodeURIComponent(email.getAttribute("href") ?? "")).toContain("/?buy=1&qty=2");
   });
 
   it("버튼은 상품가(배송비 빼고), 배송비는 위에 작게 — 국내 쇼핑몰 관례", () => {

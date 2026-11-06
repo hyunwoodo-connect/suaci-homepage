@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import ko from "@/messages/ko.json";
 
-import { CHECKOUT_PRICING, DELIVERY_MEMOS, DELIVERY_MEMO_KEYS, displayTotal } from "./checkout";
+import {
+  CHECKOUT_PRICING,
+  DELIVERY_MEMOS,
+  DELIVERY_MEMO_KEYS,
+  displayTotal,
+  normalizeMemo,
+} from "./checkout";
 import { PRODUCT } from "./product";
 
 describe("CHECKOUT_PRICING / displayTotal", () => {
@@ -21,5 +27,14 @@ describe("CHECKOUT_PRICING / displayTotal", () => {
     ]);
     const memo: Record<string, string> = ko.pay.memo;
     for (const m of DELIVERY_MEMOS) expect(memo[DELIVERY_MEMO_KEYS[m]]).toBe(m);
+  });
+});
+
+describe("normalizeMemo", () => {
+  it("예전 칩 값(기기에 저장된 것) → 새 문장, 직접 쓴 메모는 그대로", () => {
+    expect(normalizeMemo("문 앞")).toBe("문 앞에 놓아 주세요");
+    expect(normalizeMemo("경비실")).toBe("경비실에 맡겨 주세요");
+    expect(normalizeMemo("택배함")).toBe("택배함에 넣어 주세요");
+    expect(normalizeMemo("벨 누르지 말아 주세요")).toBe("벨 누르지 말아 주세요");
   });
 });

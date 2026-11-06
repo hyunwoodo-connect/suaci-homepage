@@ -68,11 +68,11 @@ export default function BuyBar() {
     [busy, qty, router, status],
   );
 
-  // 로그인에서 ?buy=1 로 돌아오면 시트를 이어서 연다
+  // 로그인에서 ?buy=1&qty=N 으로 돌아오면 고른 수량 그대로 시트를 이어서 연다
   useEffect(() => {
     if (autoOpened || status === "loading" || search.get("buy") !== "1") return;
     setAutoOpened(true);
-    void buy();
+    void buy(parseQty(search.get("qty")));
   }, [autoOpened, buy, search, status]);
 
   return (
@@ -156,7 +156,7 @@ export default function BuyBar() {
       </div>
       {sheet === "login" && (
         <LoginSheet
-          next="/?buy=1"
+          next={`/?buy=1&qty=${String(qty)}`}
           onClose={() => {
             setSheet(null);
           }}
@@ -173,4 +173,12 @@ export default function BuyBar() {
       )}
     </>
   );
+}
+
+/* ─── 내부 ─────────────────────────── */
+
+/** 돌아온 주소의 수량 — 1~최대 정수만, 아니면 undefined(지금 바의 수량) */
+function parseQty(raw: string | null): number | undefined {
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 1 && n <= PRODUCT.maxQuantity ? n : undefined;
 }

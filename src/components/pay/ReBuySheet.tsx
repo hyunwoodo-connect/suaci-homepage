@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
-import { DELIVERY_MEMOS, displayTotal } from "@/constants/checkout";
+import { DELIVERY_MEMOS, normalizeMemo, displayTotal } from "@/constants/checkout";
 import { PRODUCT } from "@/constants/product";
 import ReturnNotice from "@/components/legal/ReturnNotice";
 import MemoPicker, { memoLabel } from "@/components/pay/MemoPicker";
@@ -79,7 +79,8 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
   useEffect(() => {
     Promise.resolve().then(() => {
       try {
-        const saved = localStorage.getItem(MEMO_KEY);
+        const stored = localStorage.getItem(MEMO_KEY);
+        const saved = stored ? normalizeMemo(stored) : null;
         if (saved) {
           setMemo(saved);
           if (!(DELIVERY_MEMOS as readonly string[]).includes(saved)) setCustomMemo(true);

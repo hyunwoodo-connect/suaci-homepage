@@ -12,7 +12,12 @@ import AddressForm from "@/components/pay/AddressForm";
 import MemoPicker from "@/components/pay/MemoPicker";
 import MethodPicker from "@/components/pay/MethodPicker";
 import { CHIP, CHIP_OFF } from "@/components/pay/chip";
-import { CHECKOUT_PRICING, DELIVERY_MEMOS, displayTotal } from "@/constants/checkout";
+import {
+  CHECKOUT_PRICING,
+  DELIVERY_MEMOS,
+  normalizeMemo,
+  displayTotal,
+} from "@/constants/checkout";
 import { PRODUCT } from "@/constants/product";
 import { api, ApiClientError } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -123,7 +128,8 @@ function CheckoutBody() {
   useEffect(() => {
     Promise.resolve().then(() => {
       try {
-        const saved = localStorage.getItem(MEMO_KEY);
+        const stored = localStorage.getItem(MEMO_KEY);
+        const saved = stored ? normalizeMemo(stored) : null;
         if (saved) {
           setMemo(saved);
           if (!(DELIVERY_MEMOS as readonly string[]).includes(saved)) setCustomMemo(true);
