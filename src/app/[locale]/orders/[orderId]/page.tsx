@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 
 import { CHIP, CHIP_OFF, CHIP_ON } from "@/components/pay/chip";
+import LoginRequired from "@/components/shell/LoginRequired";
 import PageShell from "@/components/shell/PageShell";
 import Badge from "@/components/ui/Badge";
 import Button, { buttonClasses } from "@/components/ui/Button";
@@ -68,8 +69,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ orderId:
 function OrderDetail({ orderId }: { orderId: string }) {
   const t = useTranslations("orders");
   const tc = useTranslations("common");
-  const ta = useTranslations("account");
-  const { status, sessionEnded, recheckSession } = useAuth();
+  const { status, recheckSession } = useAuth();
   const searchParams = useSearchParams();
   const welcome = searchParams.get("welcome") === "1";
 
@@ -106,22 +106,13 @@ function OrderDetail({ orderId }: { orderId: string }) {
 
   if (status === "anonymous") {
     return (
-      <PageShell title={t("detailTitle")}>
-        <div className="flex max-w-[400px] flex-col gap-[20px]">
-          <p className="m-0 text-[15px] text-ink">
-            {sessionEnded ? ta("sessionEnded") : t("needLogin")}
-          </p>
-          {/* 결제 직후(?welcome=1) 로그인이 풀렸어도 다시 들어오면 완료 띠까지 그대로 */}
-          <ButtonLink
-            href={{
-              pathname: "/login",
-              query: { next: `/orders/${orderId}${searchParams.size ? `?${searchParams}` : ""}` },
-            }}
-          >
-            {t("goLogin")}
-          </ButtonLink>
-        </div>
-      </PageShell>
+      <LoginRequired
+        title={t("detailTitle")}
+        needLogin={t("needLogin")}
+        cta={t("goLogin")}
+        // 결제 직후(?welcome=1) 로그인이 풀렸어도 다시 들어오면 완료 띠까지 그대로
+        next={`/orders/${orderId}${searchParams.size ? `?${searchParams}` : ""}`}
+      />
     );
   }
 

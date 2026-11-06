@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import AddressForm from "@/components/pay/AddressForm";
+import LoginRequired from "@/components/shell/LoginRequired";
 import PageShell from "@/components/shell/PageShell";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -27,7 +28,7 @@ export default function AddressesPage() {
   const t = useTranslations("addresses");
   const tc = useTranslations("common");
   const ta = useTranslations("account");
-  const { status, user, sessionEnded, recheckSession } = useAuth();
+  const { status, user, recheckSession } = useAuth();
 
   const [items, setItems] = useState<Address[] | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -90,16 +91,12 @@ export default function AddressesPage() {
 
   if (status === "anonymous") {
     return (
-      <PageShell title={t("title")}>
-        <div className="flex max-w-[400px] flex-col gap-[20px]">
-          <p className="m-0 text-[15px] text-ink">
-            {sessionEnded ? ta("sessionEnded") : t("needLogin")}
-          </p>
-          <ButtonLink href={{ pathname: "/login", query: { next: "/account/addresses" } }}>
-            {ta("goLogin")}
-          </ButtonLink>
-        </div>
-      </PageShell>
+      <LoginRequired
+        title={t("title")}
+        needLogin={t("needLogin")}
+        cta={ta("goLogin")}
+        next="/account/addresses"
+      />
     );
   }
 

@@ -5,9 +5,9 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { Link, useRouter } from "@/i18n/navigation";
+import LoginRequired from "@/components/shell/LoginRequired";
 import PageShell from "@/components/shell/PageShell";
 import Button from "@/components/ui/Button";
-import ButtonLink from "@/components/ui/ButtonLink";
 import Chevron from "@/components/ui/Chevron";
 import Skeleton from "@/components/ui/Skeleton";
 import { api } from "@/lib/api";
@@ -25,7 +25,7 @@ export default function AccountPage() {
   const t = useTranslations("account");
   const tc = useTranslations("common");
   const router = useRouter();
-  const { user, status, sessionEnded, logout } = useAuth();
+  const { user, status, logout } = useAuth();
   // undefined = 아직 받는 중, null = 못 받음(줄 이름만 보인다)
   const [addressSummary, setAddressSummary] = useState<string | null | undefined>(undefined);
   const noneLabel = t("addressesNone");
@@ -43,16 +43,12 @@ export default function AccountPage() {
 
   if (status === "anonymous" || (status === "authenticated" && !user)) {
     return (
-      <PageShell title={t("title")}>
-        <div className="flex max-w-[400px] flex-col gap-[20px]">
-          <p className="m-0 text-[15px] text-ink">
-            {sessionEnded ? t("sessionEnded") : t("needLogin")}
-          </p>
-          <ButtonLink href={{ pathname: "/login", query: { next: "/account" } }}>
-            {t("goLogin")}
-          </ButtonLink>
-        </div>
-      </PageShell>
+      <LoginRequired
+        title={t("title")}
+        needLogin={t("needLogin")}
+        cta={t("goLogin")}
+        next="/account"
+      />
     );
   }
 
