@@ -93,6 +93,17 @@ export function selectPaymentAdapters(env: PaymentEnv, deps?: AdapterDeps): Paym
   return [createMockAdapter(deps)];
 }
 
+/** 이 브라우저 창의 결제창 목록 — 결제 주소로 이 창을 옮긴다. 서버 렌더에선 창이 없어 빈 목록 */
+export function browserPaymentAdapters(): PaymentAdapter[] {
+  if (typeof window === "undefined") return [];
+  return selectPaymentAdapters(paymentEnv(), {
+    origin: window.location.origin,
+    navigate: (url) => {
+      window.location.assign(url);
+    },
+  });
+}
+
 /** 이 수단을 다루는 어댑터(없으면 null — 버튼이 준비 중 안내) */
 export function adapterFor(adapters: PaymentAdapter[], method: PayMethodId): PaymentAdapter | null {
   return adapters.find((a) => a.methods.includes(method)) ?? null;

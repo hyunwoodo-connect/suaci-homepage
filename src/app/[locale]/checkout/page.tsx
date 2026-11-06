@@ -13,37 +13,28 @@ import MemoPicker from "@/components/pay/MemoPicker";
 import MethodPicker from "@/components/pay/MethodPicker";
 import { CHIP, CHIP_OFF } from "@/components/pay/chip";
 import { orderErrorKey } from "@/components/pay/orderError";
-import {
-  CHECKOUT_PRICING,
-  DELIVERY_MEMOS,
-  normalizeMemo,
-  displayTotal,
-} from "@/constants/checkout";
+import { CHECKOUT_PRICING, DELIVERY_MEMOS, displayTotal } from "@/constants/checkout";
 import { PRODUCT } from "@/constants/product";
 import { api, isAuthRequired } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { readLastProvider } from "@/lib/auth/social";
 import { addressName } from "@/lib/checkout/address";
+import { readSavedMemo } from "@/lib/checkout/memo";
 import { formatKRW } from "@/lib/format";
-import {
-  createOrderReusingPending,
-  readPendingOrder,
-  savePendingOrder,
-} from "@/lib/payment/pending";
+import { readPendingOrder } from "@/lib/payment/pending";
 import {
   adapterFor,
   availableMethods,
+  browserPaymentAdapters,
   defaultMethod,
   paymentEnv,
-  selectPaymentAdapters,
   PREVIEW_METHODS,
   type PayMethodId,
 } from "@/lib/payment/providers";
+import { startPayment } from "@/lib/payment/start-payment";
 import { isTestClientKey } from "@/lib/payment/toss";
 import type { Address, CreateAddressRequest } from "@/types";
 import Button from "@/components/ui/Button";
-
-const MEMO_KEY = "suaci.checkout.memo";
 
 /**
  * 주문서 — 첫 구매·배송지 변경용 한 화면(스펙 §2 C). 배송지(없으면 Daum 레이어로 바로 만들기) →
@@ -118,29 +109,16 @@ function CheckoutBody() {
   // 저장한 메모·기본 수단(지난 수단 없음 → 프로바이더 페이 → 카드)
   useEffect(() => {
     Promise.resolve().then(() => {
-      try {
-        const stored = localStorage.getItem(MEMO_KEY);
-        const saved = stored ? normalizeMemo(stored) : null;
-        if (saved) {
-          setMemo(saved);
-          if (!(DELIVERY_MEMOS as readonly string[]).includes(saved)) setCustomMemo(true);
-        }
-        setMethod(defaultMethod({ lastPaymentMethod: null, loginProvider: readLastProvider() }));
-      } catch {}
+      const saved = readSavedMemo();
+      if (saved) {
+        setMemo(saved.memo);
+        if (saved.isCustom) setCustomMemo(true);
+      }
+      setMethod(defaultMethod({ lastPaymentMethod: null, loginProvider: readLastProvider() }));
     });
   }, []);
 
-  const adapters = selectPaymentAdapters(
-    paymentEnv(),
-    typeof window === "undefined"
-      ? undefined
-      : {
-          origin: window.location.origin,
-          navigate: (url) => {
-            window.location.assign(url);
-          },
-        },
-  );
+  const adapters = browserPaymentAdapters();
   const methods = availableMethods(adapters);
   const ready = adapters.length > 0;
   // 카드 심사 동안 운영도 토스 테스트 키로 연다 — 손님이 실제로 산 줄 알지 않게 알린다
@@ -168,38 +146,14 @@ function CheckoutBody() {
     setBusy(true);
     setNote(null);
     try {
-      try {
-        localStorage.setItem(MEMO_KEY, memo);
-      } catch {}
-      // 금액·배송지·메모가 전부 같을 때만 기존 키 — 서버는 멱등 히트면 입력을 무시한다
-      const { order, idempotencyKey } = await createOrderReusingPending(
-        (key) =>
-          api.createOrder({
-            addressId: selected.addressId,
-            idempotencyKey: key,
-            // 바로 구매 — 장바구니를 거치지 않고 이 화면의 상품·수량을 주문에 싣는다
-            items: [{ productId: PRODUCT.productId, variantId: PRODUCT.variantId, quantity: qty }],
-            metadata: { deliveryMemo: memo, channel: "web", screen: "checkout" },
-          }),
-        { amount: total, addressId: selected.addressId, memo },
-      );
-      savePendingOrder({
-        orderId: order.orderId,
-        orderNo: order.orderNo,
-        amount: order.totals.grandTotal,
-        idempotencyKey,
+      await startPayment({
+        adapter,
+        method,
         qty,
         addressId: selected.addressId,
         memo,
-      });
-      await adapter.request(method, {
-        orderId: order.orderId,
-        orderNo: order.orderNo,
-        orderName: `${PRODUCT.name} ${String(qty)}`,
-        amount: order.totals.grandTotal,
+        screen: "checkout",
         customerKey: user?.userId ?? "anonymous",
-        successPath: `/pay/complete?o=${order.orderId}`,
-        failPath: `/pay/fail?o=${order.orderId}`,
       });
       // 여기까지 오면 손님이 결제창을 닫은 것(결제되면 토스가 다른 주소로 보낸다) — 다시 누를 수 있게
       setBusy(false);

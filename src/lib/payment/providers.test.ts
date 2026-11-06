@@ -1,8 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   adapterFor,
   availableMethods,
+  browserPaymentAdapters,
   createMockAdapter,
   defaultMethod,
   methodFromLabel,
@@ -36,6 +37,24 @@ describe("selectPaymentAdapters", () => {
     expect(availableMethods(mock)).toEqual(["BRANDPAY", "KAKAOPAY", "NAVERPAY", "CARD"]);
     expect(adapterFor(mock, "NAVERPAY")?.id).toBe("mock");
     expect(adapterFor([], "CARD")).toBeNull();
+  });
+});
+
+describe("browserPaymentAdapters", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("브라우저 + 토스 키 → 토스 결제창", () => {
+    vi.stubEnv("NEXT_PUBLIC_TOSS_CLIENT_KEY", "test_ck_x");
+    expect(browserPaymentAdapters().map((a) => a.id)).toEqual(["toss"]);
+  });
+
+  it("브라우저 + 키 없는 운영 실서버 → 결제창 없음('결제 준비 중')", () => {
+    vi.stubEnv("NEXT_PUBLIC_TOSS_CLIENT_KEY", "");
+    vi.stubEnv("NEXT_PUBLIC_API_MODE", "http");
+    vi.stubEnv("NODE_ENV", "production");
+    expect(browserPaymentAdapters()).toEqual([]);
   });
 });
 

@@ -47,7 +47,7 @@ vi.mock("@/lib/payment/providers", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/payment/providers")>();
   return {
     ...actual,
-    selectPaymentAdapters: () =>
+    browserPaymentAdapters: () =>
       payReady.value
         ? [actual.createMockAdapter({ origin: "https://x", navigate, newKey: () => "k1234567" })]
         : [],

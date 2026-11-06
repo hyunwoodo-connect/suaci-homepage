@@ -55,7 +55,7 @@ vi.mock("@/lib/payment/providers", async (importOriginal) => {
   return {
     ...actual,
     canTakePayment: () => selectMock.value,
-    selectPaymentAdapters: () =>
+    browserPaymentAdapters: () =>
       selectMock.value
         ? [actual.createMockAdapter({ origin: "https://x", navigate, newKey: () => "k1234567" })]
         : [],

@@ -5,26 +5,26 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
-import { DELIVERY_MEMOS, normalizeMemo, displayTotal } from "@/constants/checkout";
-import { PRODUCT } from "@/constants/product";
+import { DELIVERY_MEMOS, displayTotal } from "@/constants/checkout";
 import ReturnNotice from "@/components/legal/ReturnNotice";
 import MemoPicker, { memoLabel } from "@/components/pay/MemoPicker";
 import MethodPicker from "@/components/pay/MethodPicker";
 import { orderErrorKey } from "@/components/pay/orderError";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
-import { api, isAuthRequired } from "@/lib/api";
+import { isAuthRequired } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { readLastProvider } from "@/lib/auth/social";
+import { readSavedMemo } from "@/lib/checkout/memo";
 import { formatKRW } from "@/lib/format";
-import { createOrderReusingPending, savePendingOrder } from "@/lib/payment/pending";
 import {
   adapterFor,
   availableMethods,
+  browserPaymentAdapters,
   defaultMethod,
   paymentEnv,
-  selectPaymentAdapters,
   type PayMethodId,
 } from "@/lib/payment/providers";
+import { startPayment } from "@/lib/payment/start-payment";
 import { isTestClientKey } from "@/lib/payment/toss";
 import type { CheckoutDefaults } from "@/types";
 import Button from "@/components/ui/Button";
@@ -34,8 +34,6 @@ interface ReBuySheetProps {
   defaults: CheckoutDefaults;
   onClose: () => void;
 }
-
-const MEMO_KEY = "suaci.checkout.memo";
 
 /**
  * 재구매 시트 — "지난번처럼 보낼게요." 주소·수단·메모 세 줄을 미리 채워 결제 한 번으로 끝낸다(스펙 §2 A).
@@ -64,16 +62,7 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
   useBodyScrollLock(true);
 
   // 어댑터 목록 — 토스 클라이언트 키가 있으면 토스 결제창, 개발·목업이면 목업
-  const adapters = useMemo(
-    () =>
-      selectPaymentAdapters(paymentEnv(), {
-        origin: window.location.origin,
-        navigate: (url) => {
-          window.location.assign(url);
-        },
-      }),
-    [],
-  );
+  const adapters = useMemo(() => browserPaymentAdapters(), []);
   const methods = useMemo(() => availableMethods(adapters), [adapters]);
   const ready = adapters.length > 0;
   // 카드 심사 동안 운영도 토스 테스트 키로 연다 — 손님이 실제로 산 줄 알지 않게 알린다
@@ -82,21 +71,18 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
   // 저장된 메모·기본 수단은 마운트 뒤에 읽는다(렌더 중 storage 접근 금지, setState 는 .then 안 — 린트)
   useEffect(() => {
     Promise.resolve().then(() => {
-      try {
-        const stored = localStorage.getItem(MEMO_KEY);
-        const saved = stored ? normalizeMemo(stored) : null;
-        if (saved) {
-          setMemo(saved);
-          if (!(DELIVERY_MEMOS as readonly string[]).includes(saved)) setCustomMemo(true);
-        }
-        setMethod(
-          defaultMethod({
-            lastPaymentMethod: defaults.lastPaymentMethod,
-            loginProvider: readLastProvider(),
-            available: methods,
-          }),
-        );
-      } catch {}
+      const saved = readSavedMemo();
+      if (saved) {
+        setMemo(saved.memo);
+        if (saved.isCustom) setCustomMemo(true);
+      }
+      setMethod(
+        defaultMethod({
+          lastPaymentMethod: defaults.lastPaymentMethod,
+          loginProvider: readLastProvider(),
+          available: methods,
+        }),
+      );
     });
   }, [defaults.lastPaymentMethod, methods]);
 
@@ -125,38 +111,14 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
     setNote(t("paying"));
     setError(null);
     try {
-      try {
-        localStorage.setItem(MEMO_KEY, memo);
-      } catch {}
-      // 금액·배송지·메모가 전부 같을 때만 기존 키 — 서버는 멱등 히트면 입력을 무시한다
-      const { order, idempotencyKey } = await createOrderReusingPending(
-        (key) =>
-          api.createOrder({
-            addressId: address.addressId,
-            idempotencyKey: key,
-            // 바로 구매 — 장바구니를 거치지 않고 이 화면의 상품·수량을 주문에 싣는다
-            items: [{ productId: PRODUCT.productId, variantId: PRODUCT.variantId, quantity: qty }],
-            metadata: { deliveryMemo: memo, channel: "web", screen: "rebuy-sheet" },
-          }),
-        { amount: total, addressId: address.addressId, memo },
-      );
-      savePendingOrder({
-        orderId: order.orderId,
-        orderNo: order.orderNo,
-        amount: order.totals.grandTotal,
-        idempotencyKey,
+      await startPayment({
+        adapter,
+        method,
         qty,
         addressId: address.addressId,
         memo,
-      });
-      await adapter.request(method, {
-        orderId: order.orderId,
-        orderNo: order.orderNo,
-        orderName: `${PRODUCT.name} ${String(qty)}`,
-        amount: order.totals.grandTotal,
+        screen: "rebuy-sheet",
         customerKey: user?.userId ?? "anonymous",
-        successPath: `/pay/complete?o=${order.orderId}`,
-        failPath: `/pay/fail?o=${order.orderId}`,
       });
       // 여기까지 오면 손님이 결제창을 닫은 것(결제되면 토스가 다른 주소로 보낸다) — 다시 누를 수 있게
       setNote(null);
