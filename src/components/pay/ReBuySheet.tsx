@@ -10,8 +10,9 @@ import { PRODUCT } from "@/constants/product";
 import ReturnNotice from "@/components/legal/ReturnNotice";
 import MemoPicker, { memoLabel } from "@/components/pay/MemoPicker";
 import MethodPicker from "@/components/pay/MethodPicker";
+import { orderErrorKey } from "@/components/pay/orderError";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
-import { api } from "@/lib/api";
+import { api, isAuthRequired } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { readLastProvider } from "@/lib/auth/social";
 import { formatKRW } from "@/lib/format";
@@ -45,8 +46,9 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
   const tc = useTranslations("pay.checkout");
   const tCommon = useTranslations("common");
   const tPay = useTranslations("pay");
+  const tCheckout = useTranslations("checkout");
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, recheckSession } = useAuth();
 
   const [method, setMethod] = useState<PayMethodId>("CARD");
   const [memo, setMemo] = useState<string>(DELIVERY_MEMOS[0]);
@@ -55,6 +57,8 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
   const [pickMemo, setPickMemo] = useState(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  // 결제를 시작하지 못한 이유 — 주문서와 같은 문구
+  const [error, setError] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   useBodyScrollLock(true);
@@ -119,6 +123,7 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
     }
     setBusy(true);
     setNote(t("paying"));
+    setError(null);
     try {
       try {
         localStorage.setItem(MEMO_KEY, memo);
@@ -156,8 +161,11 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
       // 여기까지 오면 손님이 결제창을 닫은 것(결제되면 토스가 다른 주소로 보낸다) — 다시 누를 수 있게
       setNote(null);
       setBusy(false);
-    } catch {
+    } catch (e) {
       setNote(null);
+      setError(tCheckout(orderErrorKey(e)));
+      // 화면 상태만 로그인으로 남지 않게 — 다음 '구매하기'가 로그인 시트를 연다
+      if (isAuthRequired(e)) void recheckSession();
       setBusy(false);
     }
   };
@@ -247,8 +255,11 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
         >
           {ready ? t("payCta", { total: formatKRW(total) }) : t("preparingCta")}
         </Button>
-        <p role="status" className="m-0 min-h-[20px] text-center text-[13px] text-grey">
-          {note ?? (!ready ? t("preparing") : isTestPayment ? t("testNotice") : "")}
+        <p
+          role="status"
+          className={`m-0 min-h-[20px] text-center text-[13px] ${error ? "text-alert" : "text-grey"}`}
+        >
+          {error ?? note ?? (!ready ? t("preparing") : isTestPayment ? t("testNotice") : "")}
         </p>
       </div>
     </div>

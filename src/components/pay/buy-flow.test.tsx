@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PRODUCT } from "@/constants/product";
 import ko from "@/messages/ko.json";
+import { ApiClientError } from "@/lib/api";
 import { createMockAdapter } from "@/lib/payment/providers";
 import { readPendingOrder, savePendingOrder } from "@/lib/payment/pending";
 
@@ -19,7 +20,8 @@ const { getCheckoutDefaults, createOrder, authState, navigate, selectMock, push,
     push: vi.fn(),
     searchState: { value: "" },
   }));
-vi.mock("@/lib/api", () => ({
+vi.mock("@/lib/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/api")>()),
   api: { getCheckoutDefaults, createOrder },
 }));
 vi.mock("@/lib/auth/auth-context", () => ({
@@ -258,6 +260,33 @@ describe("재구매 시트", () => {
     expect((createOrder.mock.calls[0]?.[0] as { idempotencyKey: string }).idempotencyKey).not.toBe(
       "ik-prev",
     );
+  });
+
+  it("주문을 못 만들면(품절) → 시트에 이유 한 줄, 결제창은 열지 않고 다시 누를 수 있다", async () => {
+    createOrder.mockRejectedValueOnce(new ApiClientError("OUT_OF_STOCK", "재고가 부족합니다", 409));
+    await openSheet();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "₩31,000 결제하기" }));
+    });
+    expect(screen.getByRole("status").textContent).toBe("품절된 상품이에요.");
+    expect(navigate).not.toHaveBeenCalled();
+    expect(
+      (screen.getByRole("button", { name: "₩31,000 결제하기" }) as HTMLButtonElement).disabled,
+    ).toBe(false);
+  });
+
+  it("주문을 만들다 로그인이 풀리면(AUTH_REQUIRED) → 안내 한 줄 + 세션을 다시 확인한다", async () => {
+    const recheckSession = vi.fn();
+    authState.value = { status: "authenticated", user: { userId: "u1" }, recheckSession };
+    createOrder.mockRejectedValueOnce(new ApiClientError("AUTH_REQUIRED", "Unauthorized", 401));
+    await openSheet();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "₩31,000 결제하기" }));
+    });
+    expect(screen.getByRole("status").textContent).toBe(
+      "로그인 시간이 지났어요. 다시 로그인해 주세요.",
+    );
+    expect(recheckSession).toHaveBeenCalledTimes(1);
   });
 
   it("어댑터 없음 → '지금은 결제할 수 없어요.' + '결제 준비 중' 버튼 비활성, 눌러도 주문을 만들지 않는다", async () => {
