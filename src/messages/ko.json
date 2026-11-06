@@ -368,9 +368,7 @@
       "canceled": "결제를 취소했어요. 입력한 주문 정보는 그대로 있어요.",
       "retry": "다시 확인하기",
       "continue": "다시 결제하기",
-      "done": "주문이 완료됐어요.",
-      "doneSub": "",
-      "doneFirst": ""
+      "done": "주문이 완료됐어요."
     },
     "mock": {
       "title": "{provider} 로그인 (목업)",

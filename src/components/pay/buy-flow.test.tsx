@@ -132,13 +132,13 @@ describe("사기 바", () => {
     expect(getCheckoutDefaults).not.toHaveBeenCalled();
   });
 
-  it("로그인 + 기본 배송지 없음 → /checkout?qty&first=1", async () => {
+  it("로그인 + 기본 배송지 없음 → /checkout?qty", async () => {
     getCheckoutDefaults.mockResolvedValue({ address: null, lastPaymentMethod: null });
     renderBar();
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "₩28,000 · 구매하기" }));
     });
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/checkout?qty=1&first=1"));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/checkout?qty=1"));
   });
 
   it("결제를 받기 전 → 사기 버튼은 그대로, 위 안내는 '출시 준비 중' + 출시 알림 링크", async () => {
@@ -153,7 +153,7 @@ describe("사기 바", () => {
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "₩28,000 · 구매하기" }));
     });
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/checkout?qty=1&first=1"));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/checkout?qty=1"));
   });
 });
 

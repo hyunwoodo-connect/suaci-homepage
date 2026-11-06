@@ -368,9 +368,7 @@
       "canceled": "決済をキャンセルしました。入力した注文情報はそのまま残っています。",
       "retry": "もう一度",
       "continue": "続ける",
-      "done": "注文しました。",
-      "doneSub": "",
-      "doneFirst": ""
+      "done": "注文しました。"
     },
     "mock": {
       "title": "{provider} ログイン（モック）",

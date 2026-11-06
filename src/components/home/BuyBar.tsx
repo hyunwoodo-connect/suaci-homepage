@@ -54,13 +54,13 @@ export default function BuyBar() {
       try {
         const defaults = await api.getCheckoutDefaults();
         if (!defaults.address) {
-          router.push(`/checkout?qty=${String(q)}&first=1`);
+          router.push(`/checkout?qty=${String(q)}`);
           return;
         }
         setSheet(defaults);
       } catch {
         // defaults 를 못 읽어도 구매는 막지 않는다 — 주문서에서 고르면 된다
-        router.push(`/checkout?qty=${String(q)}&first=1`);
+        router.push(`/checkout?qty=${String(q)}`);
       } finally {
         setBusy(false);
       }

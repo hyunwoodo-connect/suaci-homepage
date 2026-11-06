@@ -83,7 +83,6 @@ function CheckoutBody() {
     Number.isInteger(qtyParam) && qtyParam >= 1
       ? Math.min(qtyParam, PRODUCT.maxQuantity)
       : (pendingQty ?? 1);
-  const first = search.get("first") === "1";
   const total = displayTotal(qty);
 
   useEffect(() => {
@@ -207,7 +206,7 @@ function CheckoutBody() {
         orderName: `${PRODUCT.name} ${String(qty)}`,
         amount: order.totals.grandTotal,
         customerKey: user?.userId ?? "anonymous",
-        successPath: `/pay/complete?o=${order.orderId}${first ? "&first=1" : ""}`,
+        successPath: `/pay/complete?o=${order.orderId}`,
         failPath: `/pay/fail?o=${order.orderId}`,
       });
       // 여기까지 오면 손님이 결제창을 닫은 것(결제되면 토스가 다른 주소로 보낸다) — 다시 누를 수 있게

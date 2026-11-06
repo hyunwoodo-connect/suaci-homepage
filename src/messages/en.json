@@ -368,9 +368,7 @@
       "canceled": "payment cancelled. your order details are still here.",
       "retry": "try again",
       "continue": "continue",
-      "done": "order placed.",
-      "doneSub": "",
-      "doneFirst": ""
+      "done": "order placed."
     },
     "mock": {
       "title": "{provider} sign in (mock)",

@@ -44,7 +44,6 @@ function PayCompleteBody() {
 
   const orderId = search.get("o");
   const parsed = parsePaymentReturn(search);
-  const first = search.get("first") === "1";
 
   const confirm = useCallback(async () => {
     if (!orderId || !parsed) return;
@@ -52,13 +51,13 @@ function PayCompleteBody() {
     try {
       await api.confirmPayment(orderId, { paymentKey: parsed.paymentKey, amount: parsed.amount });
       clearPendingOrder();
-      router.replace(`/orders/${orderId}?welcome=1${first ? "&first=1" : ""}`);
+      router.replace(`/orders/${orderId}?welcome=1`);
     } catch (err) {
       setPhase(
         err instanceof ApiClientError && err.code === "PAYMENT_DECLINED" ? "declined" : "hiccup",
       );
     }
-  }, [first, orderId, parsed, router]);
+  }, [orderId, parsed, router]);
 
   useEffect(() => {
     // StrictMode 이중 마운트에도 승인은 1회(서버도 멱등이지만 요청을 아낀다)

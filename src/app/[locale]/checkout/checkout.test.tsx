@@ -11,7 +11,7 @@ const { listAddresses, createAddress, createOrder, navigate, push, searchParams,
     createOrder: vi.fn(),
     navigate: vi.fn(),
     push: vi.fn(),
-    searchParams: { value: new URLSearchParams("qty=1&first=1") },
+    searchParams: { value: new URLSearchParams("qty=1") },
     payReady: { value: true },
   }));
 vi.mock("@/lib/api", async (importOriginal) => {
@@ -83,7 +83,7 @@ describe("주문서(첫 구매)", () => {
     vi.clearAllMocks();
     sessionStorage.clear();
     localStorage.clear();
-    searchParams.value = new URLSearchParams("qty=1&first=1");
+    searchParams.value = new URLSearchParams("qty=1");
     payReady.value = true;
   });
 
@@ -126,7 +126,7 @@ describe("주문서(첫 구매)", () => {
     expect(screen.getByText("도로명, 지번, 건물명으로 검색하세요.")).toBeTruthy();
   });
 
-  it("주소 있으면 카드 + 결제하기 → createOrder(screen checkout) → 목업 결제창(first=1 통과)", async () => {
+  it("주소 있으면 카드 + 결제하기 → createOrder(screen checkout) → 목업 결제창", async () => {
     listAddresses.mockResolvedValue([ADDRESS]);
     createOrder.mockResolvedValue({
       orderId: "o1",
@@ -147,7 +147,7 @@ describe("주문서(첫 구매)", () => {
       metadata: { deliveryMemo: "문 앞에 놓아 주세요", channel: "web", screen: "checkout" },
     });
     expect((navigate.mock.calls[0] as string[])[0]).toBe(
-      "https://x/pay/complete?o=o1&first=1&paymentKey=mock_CARD_k1234567&orderId=20261026-A&amount=31000",
+      "https://x/pay/complete?o=o1&paymentKey=mock_CARD_k1234567&orderId=20261026-A&amount=31000",
     );
   });
 });

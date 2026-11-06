@@ -56,7 +56,6 @@ describe("/pay/complete", () => {
     savePendingOrder(pendingBase);
     searchParams.value = new URLSearchParams({
       o: "o1",
-      first: "1",
       paymentKey: "mock_BRANDPAY_k1",
       orderId: "20261026-A",
       amount: "31000",
@@ -65,7 +64,7 @@ describe("/pay/complete", () => {
     await act(async () => {
       renderComplete();
     });
-    await waitFor(() => expect(replace).toHaveBeenCalledWith("/orders/o1?welcome=1&first=1"));
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/orders/o1?welcome=1"));
     expect(confirmPayment).toHaveBeenCalledTimes(1);
     expect(confirmPayment).toHaveBeenCalledWith("o1", {
       paymentKey: "mock_BRANDPAY_k1",
