@@ -45,6 +45,15 @@ describe("pending order (30분 재사용 — 결정 12)", () => {
     expect(readPendingOrder(Date.parse("2026-11-06T12:31:00+09:00"))).toBeNull();
   });
 
+  it("30분이 막 지난 뒤 같은 주문을 저장해도 시계를 새로 찍지 않는다(이어 쓰기를 29분 59초에 정한 경우)", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-06T12:00:00+09:00"));
+    savePendingOrder(base);
+    vi.setSystemTime(new Date("2026-11-06T12:30:01+09:00"));
+    savePendingOrder(base);
+    expect(readPendingOrder(Date.parse("2026-11-06T12:30:02+09:00"))).toBeNull();
+  });
+
   it("다른 주문을 저장하면 30분을 새로 센다", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-11-06T12:00:00+09:00"));
@@ -111,6 +120,14 @@ describe("createOrderReusingPending — 이어 쓸 주문이 닫혔으면 새로
     expect(create.mock.calls.map((c) => c[0])).toEqual(["ik1", "fresh"]);
     expect(got).toMatchObject({ idempotencyKey: "fresh", order: { orderId: "o2" } });
     expect(readPendingOrder()).toBeNull();
+  });
+
+  it("이어 쓴 주문이 이미 결제됨(paid) → 새로 만들지 않는다(두 번 결제 방지)", async () => {
+    savePendingOrder(base);
+    const create = vi.fn<(key: string) => Promise<Order>>(() => Promise.resolve(orderWith("paid")));
+    const got = await createOrderReusingPending(create, cur, () => "fresh");
+    expect(create.mock.calls.map((c) => c[0])).toEqual(["ik1"]);
+    expect(got).toMatchObject({ idempotencyKey: "ik1", order: { paymentStatus: "paid" } });
   });
 
   it("이어 쓸 주문이 없으면 → 새 키", async () => {

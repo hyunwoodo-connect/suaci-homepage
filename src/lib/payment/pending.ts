@@ -22,8 +22,9 @@ export interface PendingOrder {
 
 export function savePendingOrder(p: Omit<PendingOrder, "savedAt">): void {
   try {
-    // 같은 주문을 이어 써도 시계를 다시 돌리지 않는다 — 늘리면 서버가 이미 닫은 주문으로 결제창을 연다
-    const prev = readPendingOrder();
+    // 같은 주문을 이어 써도 시계를 다시 돌리지 않는다 — 늘리면 서버가 이미 닫은 주문으로 결제창을 연다.
+    // 30분이 막 지난 것도 그대로 읽는다(지운 뒤 새로 찍으면 30분이 다시 생긴다)
+    const prev = readRaw();
     const savedAt = prev?.orderId === p.orderId ? prev.savedAt : Date.now();
     sessionStorage.setItem(KEY, JSON.stringify({ ...p, savedAt }));
   } catch {
@@ -33,21 +34,12 @@ export function savePendingOrder(p: Omit<PendingOrder, "savedAt">): void {
 
 /** 30분 안의 보류 주문. 지났거나 깨졌으면 지우고 null */
 export function readPendingOrder(now: number = Date.now()): PendingOrder | null {
+  const p = readRaw();
+  if (p && now - p.savedAt <= TTL_MS) return p;
   try {
-    const raw = sessionStorage.getItem(KEY);
-    if (!raw) return null;
-    const p = JSON.parse(raw) as PendingOrder;
-    if (typeof p.savedAt !== "number" || now - p.savedAt > TTL_MS) {
-      sessionStorage.removeItem(KEY);
-      return null;
-    }
-    return p;
-  } catch {
-    try {
-      sessionStorage.removeItem(KEY);
-    } catch {}
-    return null;
-  }
+    sessionStorage.removeItem(KEY);
+  } catch {}
+  return null;
 }
 
 /**
@@ -71,8 +63,9 @@ export function clearPendingOrder(): void {
 }
 
 /**
- * 주문 만들기 — 이어 쓸 보류 주문이 있으면 같은 멱등키로. 서버가 그 주문을 이미 닫았으면(만료·손님 취소)
+ * 주문 만들기 — 이어 쓸 보류 주문이 있으면 같은 멱등키로. 서버가 그 주문을 결제 전에 닫았으면(voided — 만료·손님 취소)
  * 멱등 히트라 닫힌 주문이 그대로 오므로, 지우고 새 키로 한 번 더 만든다.
+ * 이미 결제된 주문(paid 등)은 새로 만들지 않고 그대로 돌려준다 — 새 주문이면 두 번 결제될 수 있고, 같은 주문번호면 토스가 두 번째 결제를 막는다.
  */
 export async function createOrderReusingPending(
   create: (idempotencyKey: string) => Promise<Order>,
@@ -82,9 +75,23 @@ export async function createOrderReusingPending(
   const reused = reuseKey(readPendingOrder(), cur);
   if (reused) {
     const order = await create(reused);
-    if (order.paymentStatus === "pending") return { order, idempotencyKey: reused };
+    if (order.paymentStatus !== "voided") return { order, idempotencyKey: reused };
     clearPendingOrder();
   }
   const idempotencyKey = newKey();
   return { order: await create(idempotencyKey), idempotencyKey };
+}
+
+/* ─── 내부 ─────────────────────────── */
+
+/** 저장된 보류 주문 그대로(30분 검사 없이). 없거나 깨졌으면 null */
+function readRaw(): PendingOrder | null {
+  try {
+    const raw = sessionStorage.getItem(KEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw) as PendingOrder;
+    return typeof p.savedAt === "number" ? p : null;
+  } catch {
+    return null;
+  }
 }
