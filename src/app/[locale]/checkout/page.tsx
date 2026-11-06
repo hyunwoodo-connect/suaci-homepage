@@ -12,6 +12,7 @@ import AddressForm from "@/components/pay/AddressForm";
 import MemoPicker from "@/components/pay/MemoPicker";
 import MethodPicker from "@/components/pay/MethodPicker";
 import { CHIP, CHIP_OFF } from "@/components/pay/chip";
+import { orderErrorKey } from "@/components/pay/orderError";
 import {
   CHECKOUT_PRICING,
   DELIVERY_MEMOS,
@@ -19,7 +20,7 @@ import {
   displayTotal,
 } from "@/constants/checkout";
 import { PRODUCT } from "@/constants/product";
-import { api, ApiClientError, isAuthRequired } from "@/lib/api";
+import { api, isAuthRequired } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { readLastProvider } from "@/lib/auth/social";
 import { addressName } from "@/lib/checkout/address";
@@ -41,14 +42,6 @@ import {
 import { isTestClientKey } from "@/lib/payment/toss";
 import type { Address, CreateAddressRequest } from "@/types";
 import Button from "@/components/ui/Button";
-
-/** 처리 가능한 주문 에러 코드 → 메시지 키. 그 외는 GENERIC. */
-const KNOWN_ERROR_CODES = [
-  "ADDRESS_NOT_FOUND",
-  "PAYMENT_AMOUNT_MISMATCH",
-  "OUT_OF_STOCK",
-  "AUTH_REQUIRED",
-] as const;
 
 const MEMO_KEY = "suaci.checkout.memo";
 
@@ -211,14 +204,9 @@ function CheckoutBody() {
       // 여기까지 오면 손님이 결제창을 닫은 것(결제되면 토스가 다른 주소로 보낸다) — 다시 누를 수 있게
       setBusy(false);
     } catch (e) {
-      if (e instanceof ApiClientError) {
-        const known = (KNOWN_ERROR_CODES as readonly string[]).includes(e.code);
-        setNote(known ? t(`error.${e.code}`) : t("error.GENERIC"));
-        // 토큰이 풀렸는데 화면 상태만 남은 경우 — 상태를 다시 확인하면 로그인으로 보내는 효과가 수량까지 붙여 보낸다
-        if (isAuthRequired(e)) void recheckSession();
-      } else {
-        setNote(t("error.GENERIC"));
-      }
+      setNote(t(orderErrorKey(e)));
+      // 토큰이 풀렸는데 화면 상태만 남은 경우 — 상태를 다시 확인하면 로그인으로 보내는 효과가 수량까지 붙여 보낸다
+      if (isAuthRequired(e)) void recheckSession();
       setBusy(false);
     }
   };
