@@ -1,7 +1,10 @@
 /**
  * 보류 주문(pending) 저장 — 결제창에서 돌아오지 않은 주문을 30분 안에 같은 멱등키로 잇는다(결정 12).
  * sessionStorage 라 탭이 닫히면 사라진다 — 서버의 pending 주문은 그대로라 다시 사면 새 주문이 된다.
+ * 30분은 주문을 처음 만든 때부터 센다. 서버는 결제 기한(주문 + 30분) + 10분 뒤 토스에서 끝난 주문을 닫는다.
  */
+import type { Order } from "@/types";
+
 const KEY = "suaci.pay.pending";
 const TTL_MS = 30 * 60_000;
 
@@ -19,7 +22,10 @@ export interface PendingOrder {
 
 export function savePendingOrder(p: Omit<PendingOrder, "savedAt">): void {
   try {
-    sessionStorage.setItem(KEY, JSON.stringify({ ...p, savedAt: Date.now() }));
+    // 같은 주문을 이어 써도 시계를 다시 돌리지 않는다 — 늘리면 서버가 이미 닫은 주문으로 결제창을 연다
+    const prev = readPendingOrder();
+    const savedAt = prev?.orderId === p.orderId ? prev.savedAt : Date.now();
+    sessionStorage.setItem(KEY, JSON.stringify({ ...p, savedAt }));
   } catch {
     // 저장 못 해도 결제는 진행 — 이어가기만 없어진다
   }
@@ -62,4 +68,23 @@ export function clearPendingOrder(): void {
   try {
     sessionStorage.removeItem(KEY);
   } catch {}
+}
+
+/**
+ * 주문 만들기 — 이어 쓸 보류 주문이 있으면 같은 멱등키로. 서버가 그 주문을 이미 닫았으면(만료·손님 취소)
+ * 멱등 히트라 닫힌 주문이 그대로 오므로, 지우고 새 키로 한 번 더 만든다.
+ */
+export async function createOrderReusingPending(
+  create: (idempotencyKey: string) => Promise<Order>,
+  cur: { amount: number; addressId: string; memo: string },
+  newKey: () => string = () => crypto.randomUUID(),
+): Promise<{ order: Order; idempotencyKey: string }> {
+  const reused = reuseKey(readPendingOrder(), cur);
+  if (reused) {
+    const order = await create(reused);
+    if (order.paymentStatus === "pending") return { order, idempotencyKey: reused };
+    clearPendingOrder();
+  }
+  const idempotencyKey = newKey();
+  return { order: await create(idempotencyKey), idempotencyKey };
 }

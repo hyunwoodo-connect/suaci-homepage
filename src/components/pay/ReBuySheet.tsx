@@ -16,7 +16,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { readLastProvider } from "@/lib/auth/social";
 import { useCart } from "@/lib/cart/cart-context";
 import { formatKRW } from "@/lib/format";
-import { readPendingOrder, reuseKey, savePendingOrder } from "@/lib/payment/pending";
+import { createOrderReusingPending, savePendingOrder } from "@/lib/payment/pending";
 import {
   adapterFor,
   availableMethods,
@@ -127,14 +127,15 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
         localStorage.setItem(MEMO_KEY, memo);
       } catch {}
       // 금액·배송지·메모가 전부 같을 때만 기존 키 — 서버는 멱등 히트면 입력을 무시한다
-      const idempotencyKey =
-        reuseKey(readPendingOrder(), { amount: total, addressId: address.addressId, memo }) ??
-        crypto.randomUUID();
-      const order = await api.createOrder({
-        addressId: address.addressId,
-        idempotencyKey,
-        metadata: { deliveryMemo: memo, channel: "web", screen: "rebuy-sheet" },
-      });
+      const { order, idempotencyKey } = await createOrderReusingPending(
+        (key) =>
+          api.createOrder({
+            addressId: address.addressId,
+            idempotencyKey: key,
+            metadata: { deliveryMemo: memo, channel: "web", screen: "rebuy-sheet" },
+          }),
+        { amount: total, addressId: address.addressId, memo },
+      );
       savePendingOrder({
         orderId: order.orderId,
         orderNo: order.orderNo,
