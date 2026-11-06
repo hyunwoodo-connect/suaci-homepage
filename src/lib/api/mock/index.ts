@@ -39,6 +39,14 @@ const now = (): { createdAt: number; createdDtm: string } => {
 
 const uuid = (): string => crypto.randomUUID();
 
+/** 목업 로그인 토큰 — 이메일·소셜·갱신 모두 같은 데모 유저 */
+const mockTokens = (): TokenResponse => ({
+  idToken: "mock.id.user_demo",
+  accessToken: "mock.access.user_demo",
+  refreshToken: "mock.refresh.user_demo",
+  expiresIn: 3600,
+});
+
 // Enforce the single-default-address invariant: if the list is non-empty but
 // no address is marked default (e.g. after deleting or demoting one), promote the first.
 function ensureSingleDefault(list: Address[]): void {
@@ -113,20 +121,10 @@ export function createMockClient(): ApiClient {
       return { confirmed: true };
     },
     async login(): Promise<TokenResponse> {
-      return {
-        idToken: "mock.id.user_demo",
-        accessToken: "mock.access.user_demo",
-        refreshToken: "mock.refresh.user_demo",
-        expiresIn: 3600,
-      };
+      return mockTokens();
     },
     async refresh(): Promise<TokenResponse> {
-      return {
-        idToken: "mock.id.user_demo",
-        accessToken: "mock.access.user_demo",
-        refreshToken: "mock.refresh.user_demo",
-        expiresIn: 3600,
-      };
+      return mockTokens();
     },
     async forgotPassword(): Promise<{ sent: boolean }> {
       return { sent: true };
@@ -150,7 +148,7 @@ export function createMockClient(): ApiClient {
     ): Promise<SocialSignInResult> {
       const name = r.code.split(":")[2] || "mina";
       if (store.readSocialDone().includes(`${provider}:${name}`)) {
-        return { status: "signed_in", tokens: await this.login({ email: "", password: "" }) };
+        return { status: "signed_in", tokens: mockTokens() };
       }
       return {
         status: "needs_consent",
@@ -163,7 +161,7 @@ export function createMockClient(): ApiClient {
       const done = store.readSocialDone();
       const key = r.signupToken.replace("mock-signup-", "");
       store.writeSocialDone(done.includes(key) ? done : [...done, key]);
-      return this.login({ email: "", password: "" });
+      return mockTokens();
     },
     async getCheckoutDefaults(): Promise<CheckoutDefaults> {
       requireAuth();

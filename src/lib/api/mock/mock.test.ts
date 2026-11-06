@@ -14,6 +14,17 @@ describe("mock client", () => {
     localStorage.clear();
   });
 
+  it("소셜(개발 대역): 처음엔 가입 표 → 동의하면 토큰, 같은 이름은 다음부터 바로 로그인", async () => {
+    const consents = { terms: true, privacy: true, age: true, marketing: false };
+    const first = await api.socialSignIn("kakao", { code: "mock:kakao:mina", redirectUri: "/" });
+    expect(first).toMatchObject({ status: "needs_consent", signupToken: "mock-signup-kakao:mina" });
+    if (first.status !== "needs_consent") return;
+    const tokens = await api.socialComplete({ signupToken: first.signupToken, consents });
+    expect(tokens.accessToken).toBe("mock.access.user_demo");
+    const again = await api.socialSignIn("kakao", { code: "mock:kakao:mina", redirectUri: "/" });
+    expect(again).toEqual({ status: "signed_in", tokens });
+  });
+
   it("보호 메서드는 미인증 시 401", async () => {
     await expect(api.listOrders()).rejects.toMatchObject({ code: "AUTH_REQUIRED", status: 401 });
   });
