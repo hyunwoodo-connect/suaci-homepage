@@ -45,7 +45,10 @@ function toApiError(status: number, text: string): ApiClientError {
   if (parsed?.error) {
     return new ApiClientError(parsed.error, parsed.message ?? text, status, parsed.field);
   }
-  const fallbackCode = status >= 500 ? "SERVER_ERROR" : "REQUEST_ERROR";
+  // API Gateway 의 Cognito authorizer 는 `{"message":"Unauthorized"}` 만 준다 — 백엔드의 401 코드와 같게 읽어야
+  // 화면이 '로그인이 풀렸어요'로 넘어간다
+  const fallbackCode =
+    status === 401 ? "AUTH_REQUIRED" : status >= 500 ? "SERVER_ERROR" : "REQUEST_ERROR";
   return new ApiClientError(
     parsed?.error ?? fallbackCode,
     parsed?.message ?? text,

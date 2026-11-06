@@ -145,4 +145,24 @@ describe("createFetcher", () => {
     await createFetcher("https://api.test").request("/x", { method: "PUT" });
     expect(fetchMock.mock.calls[0][1].method).toBe("PUT");
   });
+
+  it("본문에 error 가 없는 401(API Gateway 인증 거절) → AUTH_REQUIRED", async () => {
+    vi.stubGlobal("fetch", mockFetchOnce(401, { message: "Unauthorized" }));
+    await expect(
+      createFetcher("https://api.test").request("/orders", { auth: true }),
+    ).rejects.toMatchObject({ code: "AUTH_REQUIRED", status: 401 });
+  });
+
+  it("본문에 error 가 없는 그 밖의 실패 → 4xx 는 REQUEST_ERROR, 5xx 는 SERVER_ERROR", async () => {
+    vi.stubGlobal("fetch", mockFetchOnce(403, { message: "Forbidden" }));
+    await expect(createFetcher("https://api.test").request("/x")).rejects.toMatchObject({
+      code: "REQUEST_ERROR",
+      status: 403,
+    });
+    vi.stubGlobal("fetch", mockFetchOnce(502, { message: "Bad Gateway" }));
+    await expect(createFetcher("https://api.test").request("/x")).rejects.toMatchObject({
+      code: "SERVER_ERROR",
+      status: 502,
+    });
+  });
 });
