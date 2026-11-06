@@ -69,7 +69,7 @@ function OrderDetail({ orderId }: { orderId: string }) {
   const t = useTranslations("orders");
   const tc = useTranslations("common");
   const ta = useTranslations("account");
-  const { status, sessionEnded, refresh: recheckSession } = useAuth();
+  const { status, sessionEnded, recheckSession } = useAuth();
   const searchParams = useSearchParams();
   const welcome = searchParams.get("welcome") === "1";
 

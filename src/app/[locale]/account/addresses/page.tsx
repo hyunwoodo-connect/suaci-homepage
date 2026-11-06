@@ -27,7 +27,7 @@ export default function AddressesPage() {
   const t = useTranslations("addresses");
   const tc = useTranslations("common");
   const ta = useTranslations("account");
-  const { status, user, sessionEnded, refresh: recheckSession } = useAuth();
+  const { status, user, sessionEnded, recheckSession } = useAuth();
 
   const [items, setItems] = useState<Address[] | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);

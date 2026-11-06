@@ -25,7 +25,7 @@ export interface AuthContextValue {
   adoptTokens(tokens: TokenResponse): Promise<void>;
   logout(): Promise<void>;
   /** 세션을 다시 확인한다. 로그인 중에 API 가 AUTH_REQUIRED 를 주면 부른다 — 토큰이 없거나 안 맞으면 세션 끝 */
-  refresh(): Promise<void>;
+  recheckSession(): Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSessionEnded(true);
   }, []);
 
-  const refresh = useCallback(async () => {
+  const recheckSession = useCallback(async () => {
     if (!tokenStore.getAccessToken()) {
       endSession();
       return;
@@ -81,15 +81,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [endSession]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const tokens = await api.login({ email, password });
-    tokenStore.save(tokens);
-    const me = await api.getMe();
-    setUser(me);
-    setStatus("authenticated");
-    setSessionEnded(false);
-  }, []);
-
   const adoptTokens = useCallback(async (tokens: TokenResponse) => {
     tokenStore.save(tokens);
     const me = await api.getMe();
@@ -97,6 +88,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus("authenticated");
     setSessionEnded(false);
   }, []);
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      await adoptTokens(await api.login({ email, password }));
+    },
+    [adoptTokens],
+  );
 
   const logout = useCallback(async () => {
     await api.logout().catch(() => {});
@@ -107,8 +105,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, status, sessionEnded, login, adoptTokens, logout, refresh }),
-    [user, status, sessionEnded, login, adoptTokens, logout, refresh],
+    () => ({ user, status, sessionEnded, login, adoptTokens, logout, recheckSession }),
+    [user, status, sessionEnded, login, adoptTokens, logout, recheckSession],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
