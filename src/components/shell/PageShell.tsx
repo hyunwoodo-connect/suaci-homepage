@@ -9,8 +9,8 @@ import SiteHeader from "@/components/home/SiteHeader";
 interface PageShellProps {
   /** 페이지 타이틀 */
   title: ReactNode;
-  /** 타이틀 우측 메타 */
-  meta?: string;
+  /** 타이틀 우측 메타. 불러오는 동안에는 같은 자리에 Skeleton 을 넣어 줄 높이가 튀지 않게 한다 */
+  meta?: ReactNode;
   children: ReactNode;
 }
 

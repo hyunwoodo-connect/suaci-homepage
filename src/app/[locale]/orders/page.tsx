@@ -1,19 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
 import PageShell from "@/components/shell/PageShell";
+import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
+import ButtonLink from "@/components/ui/ButtonLink";
+import Chevron from "@/components/ui/Chevron";
+import Skeleton from "@/components/ui/Skeleton";
 import { api, ApiClientError } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { formatDateKST, formatKRW } from "@/lib/format";
 import type { OrderSummary } from "@/types";
-import ButtonLink from "@/components/ui/ButtonLink";
+
+import { ORDER_STATE_TONE, orderState } from "./orderState";
+
+/** 주문 한 줄의 틀 — 실제 줄과 뼈대 줄이 같은 높이가 되도록 한 곳에서 */
+const ROW = "flex min-h-[76px] items-center gap-[16px] py-[14px]";
 
 /**
- * 주문 내역 — listOrders. 상태는 손님 말(orders.orderStatus.*)로. 없으면 제품으로 가는 길 하나.
+ * 주문 내역 — listOrders. 로그인 토큰이 브라우저에만 있어 서버에서 미리 못 받는다:
+ * 받는 동안은 같은 크기의 빈 줄(뼈대)을 두고, 다 받으면 한 번에 그린다. '주문 내역이 없어요'는 받은 뒤에만.
  */
 export default function OrdersPage() {
   const t = useTranslations("orders");
@@ -23,31 +33,26 @@ export default function OrdersPage() {
   const [items, setItems] = useState<OrderSummary[] | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
 
+  const load = useCallback(
+    () =>
+      api
+        .listOrders()
+        .then((page) => setItems(page.data))
+        .catch((err: unknown) => {
+          if (err instanceof ApiClientError && err.code === "AUTH_REQUIRED") {
+            void recheckSession();
+            return;
+          }
+          setLoadFailed(true);
+        }),
+    [recheckSession],
+  );
+
   useEffect(() => {
-    if (status !== "authenticated") return;
-    void api
-      .listOrders()
-      .then((page) => {
-        setItems(page.data);
-      })
-      .catch((err: unknown) => {
-        if (err instanceof ApiClientError && err.code === "AUTH_REQUIRED") {
-          void recheckSession();
-          return;
-        }
-        setLoadFailed(true);
-      });
-  }, [status, recheckSession]);
+    if (status === "authenticated") void load();
+  }, [status, load]);
 
-  if (status === "loading") {
-    return (
-      <PageShell title={t("title")}>
-        <p className="m-0 text-[14px] text-grey">{tc("loading")}</p>
-      </PageShell>
-    );
-  }
-
-  if (status !== "authenticated") {
+  if (status === "anonymous") {
     return (
       <PageShell title={t("title")}>
         <div className="flex max-w-[400px] flex-col gap-[20px]">
@@ -55,7 +60,7 @@ export default function OrdersPage() {
             {sessionEnded ? ta("sessionEnded") : t("needLogin")}
           </p>
           <ButtonLink href={{ pathname: "/login", query: { next: "/orders" } }}>
-            {ta("goLogin")}
+            {t("goLogin")}
           </ButtonLink>
         </div>
       </PageShell>
@@ -65,51 +70,94 @@ export default function OrdersPage() {
   return (
     <PageShell title={t("title")}>
       <div className="flex max-w-[560px] flex-col gap-[24px]">
-        {items === null && !loadFailed && (
-          <p className="m-0 text-[14px] text-grey">{tc("loading")}</p>
-        )}
-        {loadFailed && (
-          <p role="alert" className="m-0 text-[13px] text-alert">
-            {t("loadError")}
-          </p>
-        )}
-
-        {items !== null && items.length === 0 && (
+        {loadFailed ? (
+          <div className="flex flex-col items-start gap-[16px]">
+            <p role="alert" className="m-0 text-[15px] text-ink">
+              {t("loadError")}
+            </p>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setLoadFailed(false);
+                void load();
+              }}
+            >
+              {tc("retry")}
+            </Button>
+          </div>
+        ) : items === null ? (
+          <OrdersSkeleton label={tc("loading")} />
+        ) : items.length === 0 ? (
           <div className="flex flex-col gap-[20px]">
             <p className="m-0 text-[15px] text-ink">{t("empty")}</p>
             <ButtonLink href={{ pathname: "/", hash: "product" }}>{t("emptyCta")}</ButtonLink>
           </div>
-        )}
-
-        {items !== null && items.length > 0 && (
+        ) : (
           <ul className="m-0 list-none border-t border-line p-0">
-            {items.map((o) => (
-              <li key={o.orderId} className="border-b border-line">
-                <Link
-                  href={`/orders/${o.orderId}`}
-                  className="flex min-h-[68px] items-center gap-[16px] py-[12px]"
-                >
-                  <span className="flex min-w-0 flex-1 flex-col gap-[2px]">
-                    <span className="num text-[15px] text-ink">{o.orderNo}</span>
-                    <span className="text-[13px] text-grey">
-                      <span className="num">{formatDateKST(o.createdAt)}</span> ·{" "}
-                      {t(`orderStatus.${o.status}`)}
+            {items.map((o) => {
+              const state = orderState(o);
+              return (
+                <li key={o.orderId} className="border-b border-line">
+                  <Link href={`/orders/${o.orderId}`} className={ROW}>
+                    <span className="flex min-w-0 flex-1 flex-col gap-[6px]">
+                      <span className="flex items-center gap-[10px]">
+                        <Badge tone={ORDER_STATE_TONE[state]}>{t(`state.${state}`)}</Badge>
+                        <span className="num text-[13px] leading-[22px] text-grey">
+                          {formatDateKST(o.createdAt)}
+                        </span>
+                      </span>
+                      <span className="num truncate text-[15px] leading-[22px] text-ink">
+                        {o.orderNo}
+                      </span>
                     </span>
-                  </span>
-                  <b className="num shrink-0 text-[15px] font-medium">{formatKRW(o.grandTotal)}</b>
-                </Link>
-              </li>
-            ))}
+                    <b className="num shrink-0 text-[15px] font-medium">
+                      {formatKRW(o.grandTotal)}
+                    </b>
+                    <Chevron />
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
 
-        <Link
-          href="/account"
-          className="inline-flex min-h-[44px] items-center self-start text-[14px] text-grey hover:text-ink"
-        >
+        <ButtonLink href="/account" variant="text" size="sm" className="self-start">
           ← {ta("title")}
-        </Link>
+        </ButtonLink>
       </div>
     </PageShell>
+  );
+}
+
+/* ─── 하위 컴포넌트 ─────────────────────────── */
+
+/** 주문 줄 세 개 크기의 뼈대 — 뱃지·날짜 / 주문번호 / 금액 자리가 실제 줄과 같은 위치 */
+function OrdersSkeleton({ label }: { label: string }) {
+  return (
+    <ul
+      role="status"
+      aria-label={label}
+      aria-busy="true"
+      className="m-0 list-none border-t border-line p-0"
+    >
+      {["w-[148px]", "w-[132px]", "w-[156px]"].map((w) => (
+        <li key={w} className="border-b border-line">
+          <div className={ROW}>
+            <span className="flex min-w-0 flex-1 flex-col gap-[6px]">
+              <span className="flex h-[22px] items-center gap-[10px]">
+                <Skeleton shape="badge" className="h-[22px] w-[64px]" />
+                <Skeleton className="h-[12px] w-[72px]" />
+              </span>
+              <span className="flex h-[22px] items-center">
+                <Skeleton className={`h-[14px] ${w}`} />
+              </span>
+            </span>
+            <Skeleton className="h-[14px] w-[64px]" />
+            <span className="size-[16px] shrink-0" />
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }

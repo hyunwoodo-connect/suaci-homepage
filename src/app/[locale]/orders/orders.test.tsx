@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -66,7 +66,32 @@ describe("주문 내역", () => {
   it("없으면 → 안내 + 제품으로 가는 길", async () => {
     listOrders.mockResolvedValue({ data: [] });
     await renderPage();
-    expect(screen.getByText("아직 주문이 없어요.")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "take-01 보러 가기" })).toBeTruthy();
+    expect(screen.getByText("주문 내역이 없어요.")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "상품 보러 가기" })).toBeTruthy();
+  });
+
+  it("받는 중에는 → 뼈대만, '주문 내역이 없어요'를 먼저 띄우지 않는다", async () => {
+    listOrders.mockReturnValue(new Promise(() => {}));
+    await renderPage();
+    expect(screen.getByRole("status", { name: "불러오는 중…" })).toBeTruthy();
+    expect(screen.queryByText("주문 내역이 없어요.")).toBeNull();
+  });
+
+  it("못 불러오면 → '다시 시도'로 다시 받는다", async () => {
+    listOrders.mockRejectedValueOnce(new Error("boom")).mockResolvedValueOnce({ data: [] });
+    await renderPage();
+    expect(screen.getByRole("alert").textContent).toBe("주문 내역을 불러오지 못했어요.");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    });
+    expect(listOrders).toHaveBeenCalledTimes(2);
+    expect(screen.getByText("주문 내역이 없어요.")).toBeTruthy();
+  });
+
+  it("로그인 안 했으면 → '로그인이 필요해요.' + 로그인 버튼", async () => {
+    tokenStore.clear();
+    await renderPage();
+    expect(screen.getByText("로그인이 필요해요.")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "로그인" }).getAttribute("href")).toBe("/login");
   });
 });
