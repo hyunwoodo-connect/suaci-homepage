@@ -41,7 +41,6 @@ interface ReBuySheetProps {
  */
 export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) {
   const t = useTranslations("pay.sheet");
-  const tc = useTranslations("pay.checkout");
   const tCommon = useTranslations("common");
   const tPay = useTranslations("pay");
   const tCheckout = useTranslations("checkout");
@@ -204,7 +203,9 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
           />
         )}
 
-        {method === "BRANDPAY" && <p className="m-0 text-[13px] text-grey">{tc("brandpayHint")}</p>}
+        {method === "BRANDPAY" && (
+          <p className="m-0 text-[13px] text-grey">{tPay("checkout.brandpayHint")}</p>
+        )}
 
         <ReturnNotice />
 
