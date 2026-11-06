@@ -7,18 +7,19 @@ import { AuthProvider } from "@/lib/auth/auth-context";
 import { tokenStore } from "@/lib/auth/token-store";
 import { ApiClientError } from "@/lib/api";
 
-const { getMe, getOrder, listClaims, cancelOrder, createClaim } = vi.hoisted(() => ({
+const { getMe, getOrder, listClaims, cancelOrder, createClaim, createReturn } = vi.hoisted(() => ({
   getMe: vi.fn(),
   getOrder: vi.fn(),
   listClaims: vi.fn(),
   cancelOrder: vi.fn(),
   createClaim: vi.fn(),
+  createReturn: vi.fn(),
 }));
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>();
   return {
     ...actual,
-    api: { getMe, getOrder, listClaims, cancelOrder, createClaim, logout: vi.fn() },
+    api: { getMe, getOrder, listClaims, cancelOrder, createClaim, createReturn, logout: vi.fn() },
   };
 });
 vi.mock("@/i18n/navigation", () => ({
@@ -34,7 +35,7 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams() }));
 
-import type { Order } from "@/types";
+import type { Claim, Order } from "@/types";
 
 import OrderDetailPage from "./page";
 
@@ -246,5 +247,125 @@ describe("주문 상세", () => {
     await renderPage();
     expect(screen.getByText("dhl ZX99")).toBeTruthy();
     expect(screen.queryByRole("link", { name: "배송 조회" })).toBeNull();
+  });
+
+  describe("반품 신청", () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const delivered = (daysAgo: number): Order => ({
+      ...ORDER,
+      fulfillmentStatus: "delivered",
+      carrier: "cj",
+      trackingNumber: "123456789012",
+      deliveredAt: Date.now() - daysAgo * DAY,
+    });
+    const returnClaim = (over: Partial<Claim>): Claim => ({
+      claimId: "r1",
+      orderId: "o1",
+      type: "return",
+      status: "requested",
+      reasonCode: "단순변심",
+      lines: [{ lineId: "l1", productId: "p1", variantId: "v1", quantity: 1 }],
+      refundAmount: 25000,
+      refundedShipping: 0,
+      returnShippingFee: 3000,
+      createdAt: Date.now(),
+      createdDtm: "",
+      ...over,
+    });
+
+    it("받은 지 이틀 → 단순 변심은 미개봉 확인 전엔 못 보내고, 반품 배송비를 뺀 예상 환불 금액을 보여 준 뒤 신청", async () => {
+      signIn();
+      getOrder.mockResolvedValue(delivered(2));
+      createReturn.mockResolvedValue({});
+      await renderPage();
+      fireEvent.click(screen.getByRole("button", { name: "반품 신청" }));
+      const quote = screen.getByRole("region", { name: "예상 환불 금액" });
+      expect(quote.textContent).toContain("반품 배송비 (고객 부담)−₩3,000");
+      expect(quote.textContent).toContain("환불 예정 금액₩25,000");
+      const submit = screen.getByRole("button", { name: "반품 신청하기" });
+      expect(submit).toHaveProperty("disabled", true);
+      fireEvent.click(
+        screen.getByRole("checkbox", { name: "밀봉을 뜯지 않았고 사용하지 않았어요" }),
+      );
+      await act(async () => {
+        fireEvent.click(submit);
+      });
+      expect(createReturn).toHaveBeenCalledWith(
+        "o1",
+        expect.objectContaining({
+          reasonCode: "단순변심",
+          unopenedConfirmed: true,
+          lines: undefined,
+        }),
+      );
+    });
+
+    it("상품 불량 → 미개봉 확인 없이, 처음 낸 배송비까지 돌려주는 금액", async () => {
+      signIn();
+      getOrder.mockResolvedValue(delivered(2));
+      await renderPage();
+      fireEvent.click(screen.getByRole("button", { name: "반품 신청" }));
+      fireEvent.click(screen.getByRole("button", { name: "상품 불량(파손·누액 포함)" }));
+      expect(screen.queryByRole("checkbox")).toBeNull();
+      const quote = screen.getByRole("region", { name: "예상 환불 금액" });
+      expect(quote.textContent).toContain("처음 낸 배송비 환불+₩3,000");
+      expect(quote.textContent).toContain("환불 예정 금액₩31,000");
+      expect(screen.getByRole("button", { name: "반품 신청하기" })).toHaveProperty(
+        "disabled",
+        false,
+      );
+    });
+
+    it("받은 지 열흘 → 단순 변심은 고를 수 없고 하자 쪽으로 시작한다", async () => {
+      signIn();
+      getOrder.mockResolvedValue(delivered(10));
+      await renderPage();
+      fireEvent.click(screen.getByRole("button", { name: "반품 신청" }));
+      expect(screen.getByRole("button", { name: "단순 변심" })).toHaveProperty("disabled", true);
+      expect(
+        screen
+          .getByRole("button", { name: "상품 불량(파손·누액 포함)" })
+          .getAttribute("aria-pressed"),
+      ).toBe("true");
+      expect(screen.getByText(/단순 변심 반품은 받은 날부터 7일까지/)).toBeTruthy();
+    });
+
+    it("서버가 기한 지남으로 막으면 → 그 이유", async () => {
+      signIn();
+      getOrder.mockResolvedValue(delivered(2));
+      createReturn.mockRejectedValue(new ApiClientError("RETURN_WINDOW_CLOSED", "x", 409));
+      await renderPage();
+      fireEvent.click(screen.getByRole("button", { name: "반품 신청" }));
+      fireEvent.click(screen.getByRole("button", { name: "오배송" }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "반품 신청하기" }));
+      });
+      expect(screen.getByRole("alert").textContent).toBe(
+        "반품 신청 기간이 지났어요. 고객센터로 문의해 주세요.",
+      );
+    });
+
+    it("진행 중인 반품이 있으면 버튼 대신 내역에 '반품 신청됨'과 보낼 곳 안내", async () => {
+      signIn();
+      getOrder.mockResolvedValue(delivered(2));
+      listClaims.mockResolvedValue([returnClaim({})]);
+      await renderPage();
+      expect(screen.queryByRole("button", { name: "반품 신청" })).toBeNull();
+      expect(screen.getByText("반품 신청됨")).toBeTruthy();
+      expect(screen.getByText("반품 배송비 ₩3,000 차감")).toBeTruthy();
+      expect(screen.getByText(/보내실 곳과 방법을 메일로 안내해 드려요/)).toBeTruthy();
+    });
+
+    it("거절된 반품 → 거절 이유를 보여 주고 다시 신청할 수 있다", async () => {
+      signIn();
+      getOrder.mockResolvedValue(delivered(2));
+      listClaims.mockResolvedValue([
+        returnClaim({ status: "rejected", rejectReason: "사용한 흔적이 있어요" }),
+      ]);
+      await renderPage();
+      expect(screen.getByText("반품 거절")).toBeTruthy();
+      expect(screen.getByText("거절 이유: 사용한 흔적이 있어요")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "반품 신청" })).toBeTruthy();
+    });
   });
 });

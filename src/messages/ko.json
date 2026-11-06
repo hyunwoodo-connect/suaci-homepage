@@ -224,6 +224,7 @@
     "cancelNo": "돌아가기",
     "goLogin": "로그인",
     "requestCancel": "주문 취소 요청",
+    "requestReturn": "반품 신청",
     "payWithin": "30분 안에 결제해 주세요. 지나면 주문이 자동으로 취소돼요.",
     "trackShipment": "배송 조회",
     "carrier": {
@@ -283,6 +284,46 @@
       "default": "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
     },
     "cardNote": "카드사 사정에 따라 환불이 카드에 반영되기까지 3~7영업일이 더 걸릴 수 있어요."
+  },
+  "returns": {
+    "formTitle": "반품 사유 선택",
+    "changeOfMindClosed": "단순 변심 반품은 받은 날부터 7일까지 신청할 수 있어요.",
+    "unopened": "밀봉을 뜯지 않았고 사용하지 않았어요",
+    "unopenedNote": "개봉하거나 사용한 화장품은 단순 변심으로 반품할 수 없어요.",
+    "detail": "상세 내용 (선택)",
+    "detailPlaceholder": "어떤 점이 문제였는지 적어 주세요. 사진은 신청 뒤 안내 메일에 답장으로 보내 주세요.",
+    "scope": "반품 범위",
+    "scopeFull": "전체 반품",
+    "scopePartial": "일부 반품",
+    "partialHint": "반품할 수량을 선택해 주세요",
+    "quoteTitle": "예상 환불 금액",
+    "quoteItems": "상품 금액",
+    "quoteReturnFee": "반품 배송비 (고객 부담)",
+    "quoteReturnFeeFree": "반품 배송비 (무료 배송 주문이라 처음 배송비 포함)",
+    "quoteShippingBack": "처음 낸 배송비 환불",
+    "quoteTotal": "환불 예정 금액",
+    "submit": "반품 신청하기",
+    "cancel": "닫기",
+    "after": "보내실 곳과 방법을 메일로 안내해 드려요. 상품이 도착하면 확인한 뒤 3영업일 안에 환불해 드려요.",
+    "typeReturn": "반품",
+    "typeCancel": "취소",
+    "status": {
+      "requested": "반품 신청됨",
+      "approved": "환불 처리 중",
+      "failed": "환불 처리 중",
+      "completed": "환불 완료",
+      "rejected": "반품 거절"
+    },
+    "returnFee": "반품 배송비 {amount} 차감",
+    "shippingBack": "처음 배송비 {amount} 포함",
+    "rejectReason": "거절 이유: {reason}",
+    "error": {
+      "RETURN_WINDOW_CLOSED": "반품 신청 기간이 지났어요. 고객센터로 문의해 주세요.",
+      "RETURN_ALREADY_REQUESTED": "이미 진행 중인 반품 신청이 있어요.",
+      "RETURN_NOT_ALLOWED": "이 주문은 지금 반품을 신청할 수 없어요. 고객센터로 문의해 주세요.",
+      "RETURN_UNOPENED_REQUIRED": "단순 변심 반품은 밀봉을 뜯지 않았고 사용하지 않았는지 확인해 주세요.",
+      "NOTHING_TO_REFUND": "반품 배송비를 빼면 돌려드릴 금액이 없어요."
+    }
   },
   "events": {
     "title": "이벤트",

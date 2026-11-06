@@ -5,6 +5,8 @@ import { Suspense, use, useCallback, useEffect, useState, type ReactNode } from 
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 
+import QtyStepper from "@/components/orders/QtyStepper";
+import ReturnRequestForm from "@/components/orders/ReturnRequestForm";
 import { CHIP, CHIP_OFF, CHIP_ON } from "@/components/pay/chip";
 import LoginRequired from "@/components/shell/LoginRequired";
 import PageShell from "@/components/shell/PageShell";
@@ -15,6 +17,7 @@ import Skeleton from "@/components/ui/Skeleton";
 import { api, ApiClientError, isAuthRequired } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { formatDateKST, formatKRW } from "@/lib/format";
+import { canRequestReturn } from "@/lib/returns/rules";
 import {
   REASON_CODES,
   type Claim,
@@ -24,7 +27,7 @@ import {
   type ReasonCode,
 } from "@/types";
 
-import { CLAIM_STATUS_TONE, ORDER_STATE_TONE, orderState } from "../orderState";
+import { CLAIM_STATUS_TONE, ORDER_STATE_TONE, orderState, RETURN_STATUS_TONE } from "../orderState";
 
 /** 이름을 아는 택배사 코드(orders.carrier.*) — 모르는 코드는 그대로 보여 준다 */
 const CARRIER_CODES: readonly string[] = ["cj", "epost", "hanjin", "lotte", "logen"];
@@ -223,6 +226,7 @@ function OrderDetail({ orderId }: { orderId: string }) {
 
         <OrderActions
           order={order}
+          claims={claims}
           onDone={async () => {
             setData(await fetchDetail());
           }}
@@ -336,13 +340,20 @@ function SkeletonLine({
 
 /* ─── 주문 관리 ─────────────────────────────── */
 
-function OrderActions({ order, onDone }: { order: Order; onDone: () => Promise<void> }) {
+interface OrderActionsProps {
+  order: Order;
+  claims: Claim[];
+  onDone: () => Promise<void>;
+}
+
+function OrderActions({ order, claims, onDone }: OrderActionsProps) {
   const t = useTranslations("orders");
   const tc = useTranslations("claims");
 
   const [busy, setBusy] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [cancelFormOpen, setCancelFormOpen] = useState(false);
+  const [returnFormOpen, setReturnFormOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // 결제 전 → 바로 취소(한 번 더 묻는다). 결제했고 아직 안 보냄 → 취소 요청(사유 폼이 확인 단계)
@@ -350,8 +361,10 @@ function OrderActions({ order, onDone }: { order: Order; onDone: () => Promise<v
   const canRequestCancel =
     (order.paymentStatus === "paid" || order.paymentStatus === "partially_refunded") &&
     BEFORE_SHIPMENT.includes(order.fulfillmentStatus);
+  // 받은 뒤 → 반품 신청(기한·진행 중 반품은 rules 가 본다)
+  const canReturn = canRequestReturn(order, claims, Date.now());
 
-  if (!canCancel && !canRequestCancel) return null;
+  if (!canCancel && !canRequestCancel && !canReturn) return null;
 
   function errText(err: unknown): string {
     return err instanceof ApiClientError && CLAIM_ERRORS.includes(err.code)
@@ -435,6 +448,31 @@ function OrderActions({ order, onDone }: { order: Order; onDone: () => Promise<v
               errText={errText}
               onDone={async () => {
                 setCancelFormOpen(false);
+                await onDone();
+              }}
+            />
+          ))}
+
+        {canReturn &&
+          (!returnFormOpen ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="self-start"
+              onClick={() => {
+                setError(null);
+                setReturnFormOpen(true);
+              }}
+            >
+              {t("requestReturn")}
+            </Button>
+          ) : (
+            <ReturnRequestForm
+              order={order}
+              claims={claims}
+              onClose={() => setReturnFormOpen(false)}
+              onDone={async () => {
+                setReturnFormOpen(false);
                 await onDone();
               }}
             />
@@ -585,27 +623,11 @@ function CancelRequestForm({
                     {item.optionName} · {tc("ownedQty", { n: item.quantity })}
                   </span>
                 </div>
-                <div className="flex items-center rounded-full border border-line">
-                  <button
-                    type="button"
-                    aria-label={tc("decrease")}
-                    onClick={() => setLineQty(item, value - 1)}
-                    className="size-[44px] cursor-pointer text-[17px] text-ink disabled:pointer-events-none disabled:opacity-30"
-                    disabled={value <= 0}
-                  >
-                    −
-                  </button>
-                  <span className="num min-w-[24px] text-center text-[15px]">{value}</span>
-                  <button
-                    type="button"
-                    aria-label={tc("increase")}
-                    onClick={() => setLineQty(item, value + 1)}
-                    className="size-[44px] cursor-pointer text-[17px] text-ink disabled:pointer-events-none disabled:opacity-30"
-                    disabled={value >= item.quantity}
-                  >
-                    +
-                  </button>
-                </div>
+                <QtyStepper
+                  value={value}
+                  max={item.quantity}
+                  onChange={(n) => setLineQty(item, n)}
+                />
               </li>
             );
           })}
@@ -632,6 +654,7 @@ function CancelRequestForm({
 
 function ClaimsList({ claims }: { claims: Claim[] }) {
   const tc = useTranslations("claims");
+  const tr = useTranslations("returns");
 
   if (claims.length === 0) return null;
 
@@ -639,24 +662,57 @@ function ClaimsList({ claims }: { claims: Claim[] }) {
     <section className={`mb-[28px] ${BOX} pb-0`}>
       <SectionTitle>{tc("historyTitle")}</SectionTitle>
       <ul className="m-0 list-none p-0">
-        {claims.map((c) => (
-          <li key={c.claimId} className="border-t border-line py-[14px]">
-            <div className="mb-[6px] flex flex-wrap items-center gap-[10px]">
-              <Badge tone={CLAIM_STATUS_TONE[c.status]}>{tc(`status.${c.status}`)}</Badge>
-              <b className="text-[15px] font-medium">{tc(`reasonCode.${c.reasonCode}`)}</b>
-              <b className="num ml-auto text-[15px] font-medium">{formatKRW(c.refundAmount)}</b>
-            </div>
-            {c.reasonDetail && (
-              <p className="m-0 mb-[6px] text-[13px] leading-[1.6] text-ink-soft">
-                {c.reasonDetail}
-              </p>
-            )}
-            <div className="flex flex-wrap gap-x-[16px] gap-y-[2px] text-[13px] text-grey">
-              <span className="num">{tc("refundDue", { date: formatDateKST(c.refundDueAt) })}</span>
-              <span className="num">{tc("requestedAt", { date: formatDateKST(c.createdAt) })}</span>
-            </div>
-          </li>
-        ))}
+        {claims.map((c) => {
+          const isReturn = c.type === "return";
+          return (
+            <li key={c.claimId} className="border-t border-line py-[14px]">
+              <div className="mb-[6px] flex flex-wrap items-center gap-[10px]">
+                <Badge tone={isReturn ? RETURN_STATUS_TONE[c.status] : CLAIM_STATUS_TONE[c.status]}>
+                  {isReturn ? tr(`status.${c.status}`) : tc(`status.${c.status}`)}
+                </Badge>
+                <b className="text-[15px] font-medium">
+                  {tr(isReturn ? "typeReturn" : "typeCancel")} · {tc(`reasonCode.${c.reasonCode}`)}
+                </b>
+                <b className="num ml-auto text-[15px] font-medium">{formatKRW(c.refundAmount)}</b>
+              </div>
+              {c.reasonDetail && (
+                <p className="m-0 mb-[6px] text-[13px] leading-[1.6] text-ink-soft">
+                  {c.reasonDetail}
+                </p>
+              )}
+              {isReturn && c.status === "rejected" && c.rejectReason && (
+                <p className="m-0 mb-[6px] text-[13px] leading-[1.6] text-ink">
+                  {tr("rejectReason", { reason: c.rejectReason })}
+                </p>
+              )}
+              <div className="flex flex-wrap gap-x-[16px] gap-y-[2px] text-[13px] text-grey">
+                {isReturn && c.returnShippingFee > 0 && (
+                  <span className="num">
+                    {tr("returnFee", { amount: formatKRW(c.returnShippingFee) })}
+                  </span>
+                )}
+                {isReturn && c.refundedShipping > 0 && (
+                  <span className="num">
+                    {tr("shippingBack", { amount: formatKRW(c.refundedShipping) })}
+                  </span>
+                )}
+                {/* 반품은 회수 확인 뒤 환불 중일 때만 기한을 보인다(취소는 늘 보여 왔다) */}
+                {c.refundDueAt !== undefined &&
+                  (!isReturn || c.status === "approved" || c.status === "failed") && (
+                    <span className="num">
+                      {tc("refundDue", { date: formatDateKST(c.refundDueAt) })}
+                    </span>
+                  )}
+                <span className="num">
+                  {tc("requestedAt", { date: formatDateKST(c.createdAt) })}
+                </span>
+              </div>
+              {isReturn && c.status === "requested" && (
+                <p className="m-0 mt-[6px] text-[13px] leading-[1.6] text-grey">{tr("after")}</p>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

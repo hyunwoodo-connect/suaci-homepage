@@ -224,6 +224,7 @@
     "cancelNo": "go back",
     "goLogin": "sign in",
     "requestCancel": "request cancellation",
+    "requestReturn": "request a return",
     "payWithin": "please pay within 30 minutes. after that, the order is cancelled automatically.",
     "trackShipment": "track package",
     "carrier": {
@@ -283,6 +284,46 @@
       "default": "we couldn't process your request. please try again in a moment."
     },
     "cardNote": "depending on your card issuer, the refund may take another 3–7 business days to show on your card."
+  },
+  "returns": {
+    "formTitle": "reason for return",
+    "changeOfMindClosed": "change-of-mind returns are open for 7 days after delivery.",
+    "unopened": "the seal is intact and i haven't used it",
+    "unopenedNote": "opened or used cosmetics can't be returned for a change of mind.",
+    "detail": "details (optional)",
+    "detailPlaceholder": "tell us what went wrong. you can send photos by replying to the email we send after your request.",
+    "scope": "what to return",
+    "scopeFull": "everything",
+    "scopePartial": "some items",
+    "partialHint": "choose how many to return",
+    "quoteTitle": "estimated refund",
+    "quoteItems": "items",
+    "quoteReturnFee": "return shipping (paid by you)",
+    "quoteReturnFeeFree": "return shipping (your order shipped free, so the original shipping is included)",
+    "quoteShippingBack": "original shipping refunded",
+    "quoteTotal": "refund",
+    "submit": "request return",
+    "cancel": "close",
+    "after": "we'll email you where and how to send it. once it arrives and we've checked it, we refund within 3 business days.",
+    "typeReturn": "return",
+    "typeCancel": "cancellation",
+    "status": {
+      "requested": "return requested",
+      "approved": "refund in progress",
+      "failed": "refund in progress",
+      "completed": "refunded",
+      "rejected": "return declined"
+    },
+    "returnFee": "return shipping {amount} deducted",
+    "shippingBack": "includes original shipping {amount}",
+    "rejectReason": "reason: {reason}",
+    "error": {
+      "RETURN_WINDOW_CLOSED": "the return period has ended. please contact us.",
+      "RETURN_ALREADY_REQUESTED": "there's already a return request in progress.",
+      "RETURN_NOT_ALLOWED": "this order can't be returned right now. please contact us.",
+      "RETURN_UNOPENED_REQUIRED": "for a change-of-mind return, please confirm the seal is intact and the product is unused.",
+      "NOTHING_TO_REFUND": "after return shipping there's nothing left to refund."
+    }
   },
   "events": {
     "title": "Events",

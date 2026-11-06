@@ -61,3 +61,12 @@ export const CLAIM_STATUS_TONE = {
   rejected: "problem",
   failed: "problem",
 } as const satisfies Record<ClaimStatus, BadgeTone>;
+
+/** 반품 클레임 뱃지 — 신청·환불 진행(재시도 포함)은 진행 중, 환불 끝은 회색, 거절만 빨강 */
+export const RETURN_STATUS_TONE = {
+  requested: "neutral",
+  approved: "neutral",
+  failed: "neutral",
+  completed: "muted",
+  rejected: "problem",
+} as const satisfies Record<ClaimStatus, BadgeTone>;
