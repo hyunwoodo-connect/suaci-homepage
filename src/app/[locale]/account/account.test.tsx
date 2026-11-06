@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ko from "@/messages/ko.json";
+import { ApiClientError } from "@/lib/api";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { tokenStore } from "@/lib/auth/token-store";
 
@@ -10,7 +11,8 @@ const { getMe, listAddresses } = vi.hoisted(() => ({
   getMe: vi.fn(),
   listAddresses: vi.fn(),
 }));
-vi.mock("@/lib/api", () => ({
+vi.mock("@/lib/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/api")>()),
   api: { getMe, listAddresses, logout: vi.fn() },
 }));
 vi.mock("@/i18n/navigation", () => ({
@@ -51,6 +53,7 @@ async function renderPage() {
 describe("내 계정", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getMe.mockReset();
     tokenStore.clear();
     listAddresses.mockResolvedValue([]);
   });
@@ -85,6 +88,25 @@ describe("내 계정", () => {
     getMe.mockResolvedValue(USER);
     await renderPage();
     await waitFor(() => expect(screen.getByText("아직 없어요")).toBeTruthy());
+  });
+
+  it("배송지 요약을 받다가 로그인이 풀리면 → '로그인이 풀렸어요' + 로그인 버튼", async () => {
+    tokenStore.save({ idToken: "i", accessToken: "a", refreshToken: "r", expiresIn: 60 });
+    getMe.mockResolvedValueOnce(USER).mockRejectedValueOnce(new Error("AUTH_REQUIRED"));
+    listAddresses.mockRejectedValueOnce(new ApiClientError("AUTH_REQUIRED", "Unauthorized", 401));
+    await renderPage();
+    await waitFor(() =>
+      expect(screen.getByText("로그인이 풀렸어요. 다시 들어와 주세요.")).toBeTruthy(),
+    );
+  });
+
+  it("배송지 요약만 못 받은 그 밖의 실패 → 계정은 그대로, 배송지 줄은 이름만", async () => {
+    tokenStore.save({ idToken: "i", accessToken: "a", refreshToken: "r", expiresIn: 60 });
+    getMe.mockResolvedValue(USER);
+    listAddresses.mockRejectedValueOnce(new ApiClientError("SERVER_ERROR", "", 500));
+    await renderPage();
+    expect(screen.getByText("지우님, 반가워요.")).toBeTruthy();
+    expect(screen.queryByText("아직 없어요")).toBeNull();
   });
 
   it("저장된 로그인이 풀렸으면 → '로그인이 풀렸어요' + 로그인 버튼", async () => {

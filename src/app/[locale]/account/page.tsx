@@ -10,7 +10,7 @@ import PageShell from "@/components/shell/PageShell";
 import Button from "@/components/ui/Button";
 import Chevron from "@/components/ui/Chevron";
 import Skeleton from "@/components/ui/Skeleton";
-import { api } from "@/lib/api";
+import { api, isAuthRequired } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { formatDateKST } from "@/lib/format";
 
@@ -25,7 +25,7 @@ export default function AccountPage() {
   const t = useTranslations("account");
   const tc = useTranslations("common");
   const router = useRouter();
-  const { user, status, logout } = useAuth();
+  const { user, status, logout, recheckSession } = useAuth();
   // undefined = 아직 받는 중, null = 못 받음(줄 이름만 보인다)
   const [addressSummary, setAddressSummary] = useState<string | null | undefined>(undefined);
   const noneLabel = t("addressesNone");
@@ -38,8 +38,15 @@ export default function AccountPage() {
         const main = list.find((a) => a.isDefault) ?? list[0];
         setAddressSummary(main ? main.addr1 : noneLabel);
       })
-      .catch(() => setAddressSummary(null));
-  }, [status, noneLabel]);
+      .catch((err: unknown) => {
+        // 다른 화면처럼 로그인이 풀렸으면 '로그인이 풀렸어요'로 — 그 밖의 실패는 배송지 줄 이름만 남긴다
+        if (isAuthRequired(err)) {
+          void recheckSession();
+          return;
+        }
+        setAddressSummary(null);
+      });
+  }, [status, noneLabel, recheckSession]);
 
   if (status === "anonymous" || (status === "authenticated" && !user)) {
     return (
