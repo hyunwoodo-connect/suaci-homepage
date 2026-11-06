@@ -97,10 +97,15 @@ function CheckoutBody() {
         setAddresses(list);
         setAddrLoaded(true);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
+        // 로그인이 풀렸으면 '배송지 없음' 폼을 띄우지 않는다 — 세션을 다시 확인하면 위 게이트가 로그인으로 보낸다
+        if (isAuthRequired(err)) {
+          void recheckSession();
+          return;
+        }
         setAddrLoaded(true);
       });
-  }, []);
+  }, [recheckSession]);
 
   useEffect(() => {
     if (status === "authenticated") refreshAddresses();

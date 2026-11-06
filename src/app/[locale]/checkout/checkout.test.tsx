@@ -136,6 +136,24 @@ describe("주문서(첫 구매)", () => {
     expect(screen.getByText("도로명, 지번, 건물명으로 검색하세요.")).toBeTruthy();
   });
 
+  it("배송지를 받다가 로그인이 풀리면 → '배송지 입력' 폼을 띄우지 않고 세션을 다시 확인한다", async () => {
+    listAddresses.mockRejectedValueOnce(new ApiClientError("AUTH_REQUIRED", "Unauthorized", 401));
+    await act(async () => {
+      renderPage();
+    });
+    expect(recheckSession).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("배송지 입력")).toBeNull();
+  });
+
+  it("배송지를 못 받은 그 밖의 실패 → 새 배송지 폼으로 이어 간다", async () => {
+    listAddresses.mockRejectedValueOnce(new ApiClientError("SERVER_ERROR", "", 500));
+    await act(async () => {
+      renderPage();
+    });
+    expect(await screen.findByText("배송지 입력")).toBeTruthy();
+    expect(recheckSession).not.toHaveBeenCalled();
+  });
+
   it("주소 있으면 카드 + 결제하기 → createOrder(screen checkout) → 목업 결제창", async () => {
     listAddresses.mockResolvedValue([ADDRESS]);
     createOrder.mockResolvedValue({
