@@ -54,7 +54,9 @@ describe("ProductSection — 반품 제한 고지(전자상거래법 제17조제
     // 단순 변심 반품 배송비: 편도, 무료 배송이면 처음 배송비까지(환불 정책 v2)
     expect(body.textContent).toContain("편도 ₩3,000");
     expect(body.textContent).toContain("처음 배송비까지 합쳐 ₩6,000");
-    expect(body.textContent).toContain("밀봉을 뜯었거나 사용한 화장품은 단순 변심으로 반품할 수 없어요.");
+    expect(body.textContent).toContain(
+      "밀봉을 뜯었거나 사용한 화장품은 단순 변심으로 반품할 수 없어요.",
+    );
     expect(body.textContent).not.toContain("준비 중");
   });
 
