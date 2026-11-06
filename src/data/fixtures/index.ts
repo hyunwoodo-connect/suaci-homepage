@@ -17,20 +17,20 @@ function krw(list: number) {
 
 export const products: Product[] = [
   {
-    productId: "prod_daily_mist",
-    brandId: "brand_suaci",
-    slug: "daily-calming-mist",
+    productId: "01M6Q9CRE26QQ23008GC0M9C0N",
+    brandId: "01M6Q9CPJ8C2CT144C8X7F8XHY",
+    slug: "take-01",
     name: "lime & basil facial serum mist · take-01",
     nameKo: "라임바질 페이셜 세럼 미스트 · take-01",
     descriptor: "lime & basil facial serum mist",
     category: "mist",
     images: [],
     status: "active",
-    defaultVariantId: "var_daily_80",
+    defaultVariantId: "01M6Q9CSF159ZC0FD4GMR8WDQB",
     variants: [
       {
-        variantId: "var_daily_80",
-        sku: "SUACI-MIST-100",
+        variantId: "01M6Q9CSF159ZC0FD4GMR8WDQB",
+        sku: "TAKE01-100",
         optionName: "100 ml",
         price: krw(CHECKOUT_PRICING.price),
         stock: 120,
