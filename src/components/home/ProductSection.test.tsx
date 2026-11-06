@@ -34,7 +34,7 @@ describe("ProductSection — 반품 제한 고지(전자상거래법 제17조제
         <ProductSection />
       </NextIntlClientProvider>,
     );
-    expect(screen.getByText(/can't be returned for a change of mind/)).toBeTruthy();
+    expect(screen.getByText(/once the seal is opened or the product is used/)).toBeTruthy();
     expect(screen.getByRole("link", { name: "shipping & returns" })).toHaveAttribute(
       "href",
       "/legal/refund",
@@ -51,6 +51,10 @@ describe("ProductSection — 반품 제한 고지(전자상거래법 제17조제
     expect(body.closest("details")).not.toBeNull();
     expect(body.textContent).toContain("배송비는 ₩3,000이고 ₩50,000 이상 구매하면 무료예요.");
     expect(body.textContent).toContain("받은 날부터 7일 안에 반품을 신청할 수 있어요.");
+    // 단순 변심 반품 배송비: 편도, 무료 배송이면 처음 배송비까지(환불 정책 v2)
+    expect(body.textContent).toContain("편도 ₩3,000");
+    expect(body.textContent).toContain("처음 배송비까지 합쳐 ₩6,000");
+    expect(body.textContent).toContain("밀봉을 뜯었거나 사용한 화장품은 단순 변심으로 반품할 수 없어요.");
     expect(body.textContent).not.toContain("준비 중");
   });
 
