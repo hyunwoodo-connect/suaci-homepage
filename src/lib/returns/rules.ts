@@ -11,6 +11,8 @@ export const RETURN_REASONS: readonly ReturnReason[] = [
 
 /** 환불이 시작됐거나 끝난 클레임 상태 — 그 수량·배송비는 이미 돌아간 것으로 센다 */
 const REFUNDING: readonly ClaimStatus[] = ["approved", "failed", "completed"];
+/** 환불이 시작됐지만 끝나지 않은 상태(취소·반품 모두) */
+const IN_FLIGHT: readonly ClaimStatus[] = ["approved", "failed"];
 /** 아직 끝나지 않은 반품 상태 — 주문당 하나만 열 수 있다 */
 const OPEN_RETURN: readonly ClaimStatus[] = ["requested", "approved", "failed"];
 
@@ -45,12 +47,24 @@ export function returnWindow(
   };
 }
 
-/** 반품 신청 버튼을 보일지 — 결제됨·발송 뒤·전액 환불 아님·진행 중 반품 없음·기한 안 */
+/**
+ * 반품 신청 버튼을 보일지 — 결제됨·발송 뒤·진행 중 반품 없음·끝나지 않은 다른 환불 없음·반품할 수량 남음·기한 안.
+ * suaci-api 가 같은 조건으로 막는다(끝나지 않은 환불과 겹치면 확정이 꼬여서)
+ */
 export function canRequestReturn(order: Order, claims: Claim[], now: number): boolean {
   const paid = order.paymentStatus === "paid" || order.paymentStatus === "partially_refunded";
   const shipped = order.fulfillmentStatus === "shipped" || order.fulfillmentStatus === "delivered";
   const hasOpenReturn = claims.some((c) => c.type === "return" && OPEN_RETURN.includes(c.status));
-  return paid && shipped && !hasOpenReturn && returnWindow(order, now).open;
+  const refundInFlight = claims.some((c) => IN_FLIGHT.includes(c.status));
+  const hasUnits = Object.values(returnableQty(order, claims)).some((n) => n > 0);
+  return (
+    paid &&
+    shipped &&
+    !hasOpenReturn &&
+    !refundInFlight &&
+    hasUnits &&
+    returnWindow(order, now).open
+  );
 }
 
 /** 줄마다 아직 반품할 수 있는 수량 = 주문 수량 − 환불이 시작됐거나 끝난 클레임 수량 */
@@ -97,7 +111,12 @@ export function returnQuote(
   const shippingAlreadyBack = claims.some(
     (c) => REFUNDING.includes(c.status) && c.refundedShipping > 0,
   );
-  const returnShippingFee = customerFault ? fee + (order.totals.shippingFee === 0 ? fee : 0) : 0;
+  // 무료 배송 주문의 처음 배송비는 주문당 한 번 — 앞선 단순 변심 반품이 냈으면(편도보다 많이 뺐으면) 다시 안 뺀다
+  const outboundCharged = claims.some(
+    (c) => c.type === "return" && c.status === "completed" && c.returnShippingFee > fee,
+  );
+  const outbound = order.totals.shippingFee === 0 && !outboundCharged ? fee : 0;
+  const returnShippingFee = customerFault ? fee + outbound : 0;
   const refundedShipping = !customerFault && !shippingAlreadyBack ? order.totals.shippingFee : 0;
   return {
     itemsAmount,

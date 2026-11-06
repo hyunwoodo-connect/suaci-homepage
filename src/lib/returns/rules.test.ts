@@ -100,6 +100,17 @@ describe("canRequestReturn", () => {
     expect(canRequestReturn({ ...ORDER, ...over }, [], now)).toBe(false);
   });
 
+  it("끝나지 않은 다른 환불(취소 failed)이 있거나 반품할 수량이 없으면 → 안 보인다", () => {
+    expect(canRequestReturn(ORDER, [claim({ type: "cancel", status: "failed" })], now)).toBe(false);
+    const allBack = claim({
+      status: "completed",
+      lines: [{ lineId: "l1", productId: "p1", variantId: "v1", quantity: 2 }],
+    });
+    expect(
+      canRequestReturn({ ...ORDER, paymentStatus: "partially_refunded" }, [allBack], now),
+    ).toBe(false);
+  });
+
   it("진행 중 반품이 있으면 안 보이고, 거절됐으면 다시 보인다", () => {
     expect(canRequestReturn(ORDER, [claim({ status: "requested" })], now)).toBe(false);
     expect(canRequestReturn(ORDER, [claim({ status: "rejected" })], now)).toBe(true);
@@ -119,6 +130,16 @@ describe("returnQuote", () => {
   it("단순 변심, 무료 배송 주문 → 처음 배송비까지 6,000원", () => {
     const free = { ...ORDER, totals: { ...ORDER.totals, shippingFee: 0, grandTotal: 56000 } };
     expect(returnQuote(free, [], "단순변심").returnShippingFee).toBe(6000);
+  });
+
+  it("무료 배송 주문의 두 번째 단순 변심 반품 → 처음 배송비는 이미 냈으니 편도만", () => {
+    const free = { ...ORDER, totals: { ...ORDER.totals, shippingFee: 0, grandTotal: 56000 } };
+    const first = claim({ status: "completed", returnShippingFee: 6000 });
+    expect(returnQuote(free, [first], "단순변심")).toMatchObject({
+      itemsAmount: 28000,
+      returnShippingFee: 3000,
+      refundAmount: 25000,
+    });
   });
 
   it("하자 일부 반품 → 반품 배송비 0, 처음 배송비 3,000원 더함", () => {

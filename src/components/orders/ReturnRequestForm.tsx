@@ -60,7 +60,13 @@ export default function ReturnRequestForm({
   const partialInvalid = scope === "partial" && partialLines.length === 0;
   const needsUnopened = reason === "단순변심";
   const quote = returnQuote(order, claims, reason, scope === "partial" ? partialLines : undefined);
-  const blocked = busy || partialInvalid || (needsUnopened && !unopened) || quote.refundAmount <= 0;
+  // 고를 상품이 없거나(이미 다 돌려받음) 반품 배송비를 빼면 남는 돈이 없으면 보내지 않는다
+  const blocked =
+    busy ||
+    partialInvalid ||
+    (needsUnopened && !unopened) ||
+    quote.itemsAmount <= 0 ||
+    quote.refundAmount <= 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
