@@ -44,7 +44,6 @@ import Button from "@/components/ui/Button";
 
 /** 처리 가능한 주문 에러 코드 → 메시지 키. 그 외는 GENERIC. */
 const KNOWN_ERROR_CODES = [
-  "EMPTY_CART",
   "ADDRESS_NOT_FOUND",
   "PAYMENT_AMOUNT_MISMATCH",
   "OUT_OF_STOCK",

@@ -194,7 +194,6 @@
     "freeShipping": "free",
     "grandTotal": "amount due",
     "error": {
-      "EMPTY_CART": "your cart is empty",
       "ADDRESS_NOT_FOUND": "address not found",
       "PAYMENT_AMOUNT_MISMATCH": "payment amount doesn't match",
       "OUT_OF_STOCK": "some items are out of stock",

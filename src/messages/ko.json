@@ -194,7 +194,6 @@
     "freeShipping": "무료",
     "grandTotal": "총 결제 금액",
     "error": {
-      "EMPTY_CART": "주문할 상품이 없어요. 상품 페이지에서 다시 구매해 주세요.",
       "ADDRESS_NOT_FOUND": "배송지를 확인할 수 없어요. 다시 선택해 주세요.",
       "PAYMENT_AMOUNT_MISMATCH": "결제 금액이 변경됐어요. 새로고침 후 다시 시도해 주세요.",
       "OUT_OF_STOCK": "품절된 상품이에요.",

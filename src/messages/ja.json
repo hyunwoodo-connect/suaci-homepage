@@ -194,7 +194,6 @@
     "freeShipping": "無料",
     "grandTotal": "お支払い予定金額",
     "error": {
-      "EMPTY_CART": "カートが空です",
       "ADDRESS_NOT_FOUND": "配送先が見つかりません",
       "PAYMENT_AMOUNT_MISMATCH": "支払い金額が一致しません",
       "OUT_OF_STOCK": "在庫が不足している商品があります",
