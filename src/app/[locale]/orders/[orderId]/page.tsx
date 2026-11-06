@@ -1,26 +1,22 @@
 "use client";
 
-import { Suspense, use, useCallback, useEffect, useState } from "react";
+import { Suspense, use, useCallback, useEffect, useState, type ReactNode } from "react";
+
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
-import { Link } from "@/i18n/navigation";
+
 import { CHIP, CHIP_OFF, CHIP_ON } from "@/components/pay/chip";
+import PageShell from "@/components/shell/PageShell";
+import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import ButtonLink from "@/components/ui/ButtonLink";
-import PageShell from "@/components/shell/PageShell";
+import Skeleton from "@/components/ui/Skeleton";
 import { api, ApiClientError } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { formatDateKST, formatKRW } from "@/lib/format";
-import type {
-  Claim,
-  ClaimStatus,
-  Order,
-  OrderItem,
-  OrderStatus,
-  PaymentStatus,
-  FulfillmentStatus,
-  ReasonCode,
-} from "@/types";
+import type { Claim, Order, OrderItem, ReasonCode } from "@/types";
+
+import { CLAIM_STATUS_TONE, ORDER_STATE_TONE, orderState } from "../orderState";
 
 const REASON_CODES: readonly ReasonCode[] = [
   "단순변심",
@@ -38,14 +34,24 @@ const ERROR_KEYS: Record<string, string> = {
   OVER_REFUND: "OVER_REFUND",
 };
 
+// 실제 화면과 뼈대가 같은 크기가 되도록 상자·줄 틀을 한 곳에서 쓴다
+const BOX = "border border-line p-[16px]";
+const ITEM_ROW = "flex items-center gap-[16px] border-b border-line py-[14px] last:border-b-0";
+
+interface OrderDetailData {
+  order: Order;
+  claims: Claim[];
+}
+
 /**
- * 주문 상세 — getOrder / listClaims 계약 호출 + 주문 취소·환불 요청 액션.
- * ?welcome=1(체크아웃 직후) 이면 상단에 완료 배너 표시.
+ * 주문 상세 — getOrder + listClaims 를 같이 받아 한 번에 그린다(취소 내역이 늦게 튀어나오지 않게).
+ * 로그인 토큰이 브라우저에만 있어 서버에서 미리 못 받는다 — 받는 동안은 같은 틀의 뼈대.
+ * ?welcome=1(결제 직후) 이면 위에 완료 띠.
  */
 export default function OrderDetailPage({ params }: { params: Promise<{ orderId: string }> }) {
   const { orderId } = use(params);
   return (
-    <Suspense>
+    <Suspense fallback={<OrderDetailLoading />}>
       <OrderDetail orderId={orderId} />
     </Suspense>
   );
@@ -55,7 +61,6 @@ export default function OrderDetailPage({ params }: { params: Promise<{ orderId:
 
 function OrderDetail({ orderId }: { orderId: string }) {
   const t = useTranslations("orders");
-  const tp = useTranslations("pay.result");
   const tc = useTranslations("common");
   const ta = useTranslations("account");
   const { status, sessionEnded, refresh: recheckSession } = useAuth();
@@ -63,39 +68,36 @@ function OrderDetail({ orderId }: { orderId: string }) {
   const welcome = searchParams.get("welcome") === "1";
   const firstPurchase = searchParams.get("first") === "1";
 
-  const [order, setOrder] = useState<Order | null>(null);
-  const [claims, setClaims] = useState<Claim[]>([]);
-  // 못 불러오면 '불러오는 중'에 멈추지 않고 이유와 돌아갈 길을 보여 준다
+  const [data, setData] = useState<OrderDetailData | null>(null);
+  // 못 불러오면 뼈대에 멈추지 않고 이유와 다시 시도할 길을 보여 준다
   const [loadFailed, setLoadFailed] = useState(false);
 
-  const refresh = useCallback(async () => {
-    const [o, cs] = await Promise.all([
+  // 취소 내역을 못 받아도 주문은 보여 준다(내역만 비운다)
+  const fetchDetail = useCallback(async (): Promise<OrderDetailData> => {
+    const [order, claims] = await Promise.all([
       api.getOrder(orderId),
       api.listClaims(orderId).catch(() => [] as Claim[]),
     ]);
-    setOrder(o);
-    setClaims(cs);
+    return { order, claims };
   }, [orderId]);
 
+  const load = useCallback(
+    () =>
+      fetchDetail()
+        .then(setData)
+        .catch((err: unknown) => {
+          if (err instanceof ApiClientError && err.code === "AUTH_REQUIRED") {
+            void recheckSession();
+            return;
+          }
+          setLoadFailed(true);
+        }),
+    [fetchDetail, recheckSession],
+  );
+
   useEffect(() => {
-    if (status !== "authenticated") return;
-    // Inline load (matches the existing .then()-in-effect pattern that satisfies
-    // react-hooks/set-state-in-effect). `refresh` is used by action handlers.
-    void api
-      .getOrder(orderId)
-      .then(setOrder)
-      .catch((err: unknown) => {
-        if (err instanceof ApiClientError && err.code === "AUTH_REQUIRED") {
-          void recheckSession();
-          return;
-        }
-        setLoadFailed(true);
-      });
-    void api
-      .listClaims(orderId)
-      .then(setClaims)
-      .catch(() => setClaims([]));
-  }, [status, orderId, recheckSession]);
+    if (status === "authenticated") void load();
+  }, [status, load]);
 
   if (status === "anonymous") {
     return (
@@ -111,7 +113,7 @@ function OrderDetail({ orderId }: { orderId: string }) {
               query: { next: `/orders/${orderId}${searchParams.size ? `?${searchParams}` : ""}` },
             }}
           >
-            {ta("goLogin")}
+            {t("goLogin")}
           </ButtonLink>
         </div>
       </PageShell>
@@ -121,121 +123,208 @@ function OrderDetail({ orderId }: { orderId: string }) {
   if (loadFailed) {
     return (
       <PageShell title={t("detailTitle")}>
-        <div className="flex max-w-[400px] flex-col gap-[20px]">
+        <div className="flex max-w-[400px] flex-col items-start gap-[16px]">
           <p role="alert" className="m-0 text-[15px] text-ink">
             {t("detailLoadError")}
           </p>
-          <ButtonLink href="/orders" variant="outline">
-            {t("backToList")}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setLoadFailed(false);
+              void load();
+            }}
+          >
+            {tc("retry")}
+          </Button>
+          <ButtonLink href="/orders" variant="text" size="sm">
+            ← {t("backToList")}
           </ButtonLink>
         </div>
       </PageShell>
     );
   }
 
+  if (!data) {
+    return <OrderDetailLoading welcome={welcome} firstPurchase={firstPurchase} />;
+  }
+
+  const { order, claims } = data;
+  const state = orderState(order);
+
   return (
-    <PageShell title={t("detailTitle")} meta={order?.orderNo ?? ""}>
-      {!order ? (
-        <p className="m-0 text-[14px] text-grey">{tc("loading")}</p>
-      ) : (
-        <div className="max-w-[860px]">
-          {welcome && (
-            // 이 화면의 라임은 이 띠 하나 — 위 글자는 먹색
-            <div className="mb-[24px] flex flex-wrap items-baseline justify-between gap-[8px_16px] bg-lime px-[16px] py-[14px] text-ink">
-              <div>
-                <b className="block text-[17px] font-medium">{tp("done")}</b>
-                <span className="text-[14px]">
-                  {firstPurchase ? tp("doneFirst") : tp("doneSub")}
+    <PageShell title={t("detailTitle")} meta={order.orderNo}>
+      <div className="max-w-[860px]">
+        {welcome && <WelcomeBand firstPurchase={firstPurchase} orderNo={order.orderNo} />}
+
+        {/* 상태 — 세 축을 이름 하나로 */}
+        <div className="mb-[24px] flex flex-col items-start gap-[8px]">
+          <Badge tone={ORDER_STATE_TONE[state]}>{t(`state.${state}`)}</Badge>
+          {state === "awaitingPayment" && (
+            <p className="m-0 text-[13px] text-grey">{t("payWithin")}</p>
+          )}
+        </div>
+
+        {/* 품목 */}
+        <ul className="m-0 mb-[24px] list-none border-y border-line p-0">
+          {order.items.map((item) => (
+            <li key={item.lineId} className={ITEM_ROW}>
+              <div className="min-w-0 flex-1">
+                <b className="block text-[15px] font-medium leading-[24px]">{item.productName}</b>
+                <span className="num block text-[13px] leading-[20px] text-grey">
+                  {item.optionName} × {item.quantity}
                 </span>
               </div>
-              <span className="num text-[13px]">
-                {t("welcomeOrderNo", { orderNo: order.orderNo })}
-              </span>
-            </div>
-          )}
+              <b className="num shrink-0 text-[15px] font-medium">{formatKRW(item.lineSubtotal)}</b>
+            </li>
+          ))}
+        </ul>
 
-          {/* 상태 라인 */}
-          <div className="mb-[24px] flex flex-wrap gap-[8px]">
-            <StatusBadge
-              label={t("statusLabel")}
-              value={t(`orderStatus.${order.status}`)}
-              tone={orderTone(order.status)}
-            />
-            <StatusBadge
-              label={t("paymentLabel")}
-              value={t(`paymentStatus.${order.paymentStatus}`)}
-              tone={paymentTone(order.paymentStatus)}
-            />
-            <StatusBadge
-              label={t("fulfillmentLabel")}
-              value={t(`fulfillmentStatus.${order.fulfillmentStatus}`)}
-              tone={fulfillmentTone(order.fulfillmentStatus)}
-            />
-          </div>
-
-          {/* 품목 */}
-          <ul className="m-0 mb-[24px] list-none border-y border-line p-0">
-            {order.items.map((item) => (
-              <li
-                key={item.lineId}
-                className="flex items-center gap-[16px] border-b border-line py-[14px] last:border-b-0"
-              >
-                <div className="min-w-0 flex-1">
-                  <b className="block text-[15px] font-medium">{item.productName}</b>
-                  <span className="num text-[13px] text-grey">
-                    {item.optionName} × {item.quantity}
-                  </span>
-                </div>
-                <b className="num shrink-0 text-[15px] font-medium">
-                  {formatKRW(item.lineSubtotal)}
-                </b>
-              </li>
-            ))}
-          </ul>
-
-          {/* 합계 + 배송지 */}
-          <div className="mb-[28px] grid grid-cols-2 gap-[20px] max-sm:grid-cols-1">
-            <div className="border border-line p-[16px]">
-              <SectionTitle>{t("payment")}</SectionTitle>
-              <TotalRow label={t("subtotal")} value={formatKRW(order.totals.itemsSubtotal)} />
-              <TotalRow label={t("shipping")} value={formatKRW(order.totals.shippingFee)} />
-              <TotalRow label={t("discount")} value={`−${formatKRW(order.totals.discountTotal)}`} />
-              <div className="mt-[10px] flex items-baseline justify-between border-t border-line pt-[10px]">
-                <span className="text-[15px] font-medium">{t("grandTotal")}</span>
-                <b className="num text-[20px] font-medium">{formatKRW(order.totals.grandTotal)}</b>
-              </div>
-            </div>
-            <div className="border border-line p-[16px]">
-              <SectionTitle>{t("shippingTo")}</SectionTitle>
-              <p className="m-0 text-[14px] leading-[1.7] text-ink">
-                <b>{order.shippingAddress.recipient}</b>
-                <br />({order.shippingAddress.zipcode}) {order.shippingAddress.addr1}{" "}
-                {order.shippingAddress.addr2 ?? ""}
-                <br />
-                {order.shippingAddress.phone}
-              </p>
+        {/* 결제 정보 + 배송지 */}
+        <div className="mb-[28px] grid grid-cols-2 gap-[20px] max-sm:grid-cols-1">
+          <div className={BOX}>
+            <SectionTitle>{t("payment")}</SectionTitle>
+            <TotalRow label={t("subtotal")} value={formatKRW(order.totals.itemsSubtotal)} />
+            <TotalRow label={t("shipping")} value={formatKRW(order.totals.shippingFee)} />
+            <TotalRow label={t("discount")} value={`−${formatKRW(order.totals.discountTotal)}`} />
+            <div className="mt-[10px] flex items-baseline justify-between border-t border-line pt-[10px]">
+              <span className="text-[15px] font-medium leading-[32px]">{t("grandTotal")}</span>
+              <b className="num text-[20px] font-medium leading-[32px]">
+                {formatKRW(order.totals.grandTotal)}
+              </b>
             </div>
           </div>
-
-          {/* 관리 — 주문 취소 / 환불 요청 */}
-          <OrderActions order={order} onDone={refresh} />
-
-          {/* 환불 내역 */}
-          <ClaimsList claims={claims} />
-
-          <Link
-            href="/orders"
-            className="inline-flex min-h-[44px] items-center text-[14px] text-grey hover:text-ink"
-          >
-            ← {t("title")}
-          </Link>
+          <div className={BOX}>
+            <SectionTitle>{t("shippingTo")}</SectionTitle>
+            <p className="m-0 text-[14px] leading-[24px] text-ink">
+              <b>{order.shippingAddress.recipient}</b>
+              <br />({order.shippingAddress.zipcode}) {order.shippingAddress.addr1}{" "}
+              {order.shippingAddress.addr2 ?? ""}
+              <br />
+              {order.shippingAddress.phone}
+            </p>
+          </div>
         </div>
-      )}
+
+        <OrderActions
+          order={order}
+          onDone={async () => {
+            setData(await fetchDetail());
+          }}
+        />
+
+        <ClaimsList claims={claims} />
+
+        <ButtonLink href="/orders" variant="text" size="sm">
+          ← {t("title")}
+        </ButtonLink>
+      </div>
     </PageShell>
   );
 }
 
-/* ─── 관리 영역 (Task 1) ─────────────────────── */
+/** 결제 직후 띠 — 이 화면의 라임은 이 띠 하나, 위 글자는 먹색 */
+function WelcomeBand({ firstPurchase, orderNo }: { firstPurchase: boolean; orderNo: ReactNode }) {
+  const tp = useTranslations("pay.result");
+  return (
+    <div className="mb-[24px] flex flex-wrap items-baseline justify-between gap-[8px_16px] bg-lime px-[16px] py-[14px] text-ink">
+      <div>
+        <b className="block text-[17px] font-medium">{tp("done")}</b>
+        <span className="text-[14px]">{firstPurchase ? tp("doneFirst") : tp("doneSub")}</span>
+      </div>
+      <span className="num text-[13px]">{orderNo}</span>
+    </div>
+  );
+}
+
+/* ─── 불러오는 동안 ─────────────────────────── */
+
+interface OrderDetailLoadingProps {
+  welcome?: boolean;
+  firstPurchase?: boolean;
+}
+
+/** 주문 상세 뼈대 — 상태 뱃지 / 품목 한 줄 / 결제 정보·배송지 두 상자가 실제와 같은 자리·높이 */
+function OrderDetailLoading({ welcome = false, firstPurchase = false }: OrderDetailLoadingProps) {
+  const t = useTranslations("orders");
+  const tc = useTranslations("common");
+  return (
+    <PageShell title={t("detailTitle")} meta={<Skeleton inline className="h-[12px] w-[132px]" />}>
+      <div role="status" aria-label={tc("loading")} aria-busy="true" className="max-w-[860px]">
+        {welcome && (
+          // 띠 글은 정해져 있어 그대로 그리고, 아직 모르는 주문번호만 같은 길이로 비워 둔다
+          <WelcomeBand
+            firstPurchase={firstPurchase}
+            orderNo={
+              <span aria-hidden="true" className="invisible">
+                {t("welcomeOrderNo", { orderNo: "00000000-000000" })}
+              </span>
+            }
+          />
+        )}
+
+        <div className="mb-[24px] flex">
+          <Skeleton shape="badge" className="h-[22px] w-[64px]" />
+        </div>
+
+        <ul className="m-0 mb-[24px] list-none border-y border-line p-0">
+          <li className={ITEM_ROW}>
+            <div className="min-w-0 flex-1">
+              <span className="flex h-[24px] items-center">
+                <Skeleton className="h-[14px] w-[180px] max-w-full" />
+              </span>
+              <span className="flex h-[20px] items-center">
+                <Skeleton className="h-[12px] w-[88px]" />
+              </span>
+            </div>
+            <Skeleton className="h-[14px] w-[64px]" />
+          </li>
+        </ul>
+
+        <div className="mb-[28px] grid grid-cols-2 gap-[20px] max-sm:grid-cols-1">
+          <div className={BOX}>
+            <SkeletonLine height="h-[24px]" width="w-[56px]" className="mb-[12px]" />
+            {["w-[48px]", "w-[40px]", "w-[32px]"].map((w) => (
+              <div key={w} className="flex h-[32px] items-center justify-between">
+                <Skeleton className={`h-[12px] ${w}`} />
+                <Skeleton className="h-[12px] w-[56px]" />
+              </div>
+            ))}
+            <div className="mt-[10px] flex h-[43px] items-center justify-between border-t border-line pt-[10px]">
+              <Skeleton className="h-[14px] w-[72px]" />
+              <Skeleton className="h-[18px] w-[96px]" />
+            </div>
+          </div>
+          <div className={BOX}>
+            <SkeletonLine height="h-[24px]" width="w-[40px]" className="mb-[12px]" />
+            <SkeletonLine height="h-[24px]" width="w-[56px]" />
+            <SkeletonLine height="h-[24px]" width="w-[220px]" />
+            <SkeletonLine height="h-[24px]" width="w-[104px]" />
+          </div>
+        </div>
+      </div>
+    </PageShell>
+  );
+}
+
+/** 글 한 줄 자리 — 줄 높이(height) 안에 막대(width) 하나 */
+function SkeletonLine({
+  height,
+  width,
+  className = "",
+}: {
+  height: string;
+  width: string;
+  className?: string;
+}) {
+  return (
+    <span className={`flex items-center ${height} ${className}`}>
+      <Skeleton className={`h-[12px] max-w-full ${width}`} />
+    </span>
+  );
+}
+
+/* ─── 주문 관리 ─────────────────────────────── */
 
 function OrderActions({ order, onDone }: { order: Order; onDone: () => Promise<void> }) {
   const t = useTranslations("orders");
@@ -243,15 +332,16 @@ function OrderActions({ order, onDone }: { order: Order; onDone: () => Promise<v
 
   const [busy, setBusy] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
-  const [refundOpen, setRefundOpen] = useState(false);
+  const [cancelFormOpen, setCancelFormOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 결제 전 → 바로 취소(한 번 더 묻는다). 결제했고 아직 안 보냄 → 취소 요청(사유 폼이 확인 단계)
   const canCancel = order.status === "pending";
-  const canRefund =
+  const canRequestCancel =
     (order.paymentStatus === "paid" || order.paymentStatus === "partially_refunded") &&
     order.fulfillmentStatus === "unfulfilled";
 
-  if (!canCancel && !canRefund) return null;
+  if (!canCancel && !canRequestCancel) return null;
 
   function errText(err: unknown): string {
     if (err instanceof ApiClientError && ERROR_KEYS[err.code]) {
@@ -275,63 +365,67 @@ function OrderActions({ order, onDone }: { order: Order; onDone: () => Promise<v
   };
 
   return (
-    <section className="mb-[28px] border border-line p-[16px]">
+    <section className={`mb-[28px] ${BOX}`}>
       <SectionTitle>{t("manage")}</SectionTitle>
 
       <div className="flex flex-col gap-[16px]">
         {error && <ErrorNote text={error} />}
 
-        {/* 주문 취소 */}
-        {canCancel && (
-          <div className="flex items-center gap-[12px] flex-wrap">
-            {!confirmCancel ? (
-              <Button
-                variant="outline"
-                disabled={busy}
-                onClick={() => {
-                  setError(null);
-                  setConfirmCancel(true);
-                }}
-              >
-                {t("cancelOrder")}
-              </Button>
-            ) : (
-              <>
-                <span className="w-full text-[15px] text-ink">{t("cancelConfirm")}</span>
-                <Button variant="danger" disabled={busy} onClick={handleCancel}>
-                  {busy ? "…" : t("cancelYes")}
-                </Button>
-                <Button variant="outline" disabled={busy} onClick={() => setConfirmCancel(false)}>
-                  {t("cancelNo")}
-                </Button>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* 환불 요청 */}
-        {canRefund &&
-          (!refundOpen ? (
+        {canCancel &&
+          (!confirmCancel ? (
             <Button
-              variant="outline"
+              variant="danger"
+              size="sm"
+              className="self-start"
               disabled={busy}
               onClick={() => {
                 setError(null);
-                setRefundOpen(true);
+                setConfirmCancel(true);
               }}
             >
-              {t("requestRefund")}
+              {t("cancelOrder")}
             </Button>
           ) : (
-            <RefundForm
+            <div className="flex flex-wrap items-center gap-[8px]">
+              <span className="w-full text-[15px] text-ink">{t("cancelConfirm")}</span>
+              <Button variant="danger" size="sm" disabled={busy} onClick={handleCancel}>
+                {busy ? "…" : t("cancelYes")}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={busy}
+                onClick={() => setConfirmCancel(false)}
+              >
+                {t("cancelNo")}
+              </Button>
+            </div>
+          ))}
+
+        {canRequestCancel &&
+          (!cancelFormOpen ? (
+            <Button
+              variant="danger"
+              size="sm"
+              className="self-start"
+              disabled={busy}
+              onClick={() => {
+                setError(null);
+                setCancelFormOpen(true);
+              }}
+            >
+              {t("requestCancel")}
+            </Button>
+          ) : (
+            <CancelRequestForm
               order={order}
               busy={busy}
               setBusy={setBusy}
-              onCancel={() => setRefundOpen(false)}
+              onClose={() => setCancelFormOpen(false)}
               onError={setError}
               errText={errText}
               onDone={async () => {
-                setRefundOpen(false);
+                setCancelFormOpen(false);
                 await onDone();
               }}
             />
@@ -341,25 +435,34 @@ function OrderActions({ order, onDone }: { order: Order; onDone: () => Promise<v
   );
 }
 
-/* ─── 환불 폼 ────────────────────────────────── */
+/* ─── 취소 요청 폼 ───────────────────────────── */
 
-interface RefundFormProps {
+interface CancelRequestFormProps {
   order: Order;
   busy: boolean;
   setBusy: (b: boolean) => void;
-  onCancel: () => void;
+  onClose: () => void;
   onError: (m: string | null) => void;
   errText: (err: unknown) => string;
   onDone: () => Promise<void>;
 }
 
-function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }: RefundFormProps) {
+/** 결제했고 아직 안 보낸 주문의 취소 요청 — 백엔드에는 클레임(createClaim)으로 간다. 사유 값은 API 값 그대로, 화면 이름만 claims.reasonCode.* */
+function CancelRequestForm({
+  order,
+  busy,
+  setBusy,
+  onClose,
+  onError,
+  errText,
+  onDone,
+}: CancelRequestFormProps) {
   const tc = useTranslations("claims");
 
   const [reasonCode, setReasonCode] = useState<ReasonCode>("단순변심");
   const [reasonDetail, setReasonDetail] = useState("");
   const [scope, setScope] = useState<"full" | "partial">("full");
-  // 부분 환불: lineId → 환불 수량 (0 = 미선택)
+  // 일부 취소: lineId → 취소 수량 (0 = 안 고름)
   const [qty, setQty] = useState<Record<string, number>>({});
 
   const setLineQty = (item: OrderItem, next: number) => {
@@ -398,11 +501,11 @@ function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }
       onSubmit={handleSubmit}
       className="flex flex-col gap-[20px] border-t border-line pt-[16px]"
     >
-      <b className="text-[16px] font-medium text-ink">{tc("formTitle")}</b>
-
       {/* 사유 */}
-      <fieldset className="border-0 p-0 m-0">
-        <legend className="mb-[10px] p-0 text-[13px] text-grey">{tc("reason")}</legend>
+      <fieldset className="m-0 border-0 p-0">
+        <legend className="mb-[12px] p-0 text-[16px] font-medium text-ink">
+          {tc("formTitle")}
+        </legend>
         <div className="flex flex-wrap gap-[8px]">
           {REASON_CODES.map((code) => {
             const active = reasonCode === code;
@@ -423,21 +526,21 @@ function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }
 
       {/* 상세 (선택) */}
       <div>
-        <label htmlFor="refund-detail" className="mb-[6px] block text-[13px] text-grey">
+        <label htmlFor="cancel-detail" className="mb-[6px] block text-[13px] text-grey">
           {tc("detail")}
         </label>
         <textarea
-          id="refund-detail"
+          id="cancel-detail"
           value={reasonDetail}
           onChange={(e) => setReasonDetail(e.target.value)}
           rows={3}
           placeholder={tc("detailPlaceholder")}
-          className="w-full resize-y border border-line bg-paper px-[12px] py-[11px] text-[16px] text-ink outline-none transition-colors focus:border-ink"
+          className="w-full resize-y border border-line bg-paper px-[12px] py-[11px] text-[16px] text-ink outline-none transition-colors placeholder:text-grey/50 focus:border-ink"
         />
       </div>
 
-      {/* 범위 토글 */}
-      <fieldset className="border-0 p-0 m-0">
+      {/* 범위 */}
+      <fieldset className="m-0 border-0 p-0">
         <legend className="mb-[10px] p-0 text-[13px] text-grey">{tc("scope")}</legend>
         <div className="flex gap-[8px]">
           {(["full", "partial"] as const).map((s) => {
@@ -457,17 +560,17 @@ function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }
         </div>
       </fieldset>
 
-      {/* 부분 환불 라인 선택 */}
+      {/* 일부 취소 — 줄마다 수량 */}
       {scope === "partial" && (
-        <ul className="list-none m-0 p-0 border border-line">
+        <ul className="m-0 list-none border border-line p-0">
           {order.items.map((item) => {
             const value = qty[item.lineId] ?? 0;
             return (
               <li
                 key={item.lineId}
-                className="flex items-center gap-[12px] px-[14px] py-[12px] border-b border-line last:border-b-0 flex-wrap"
+                className="flex flex-wrap items-center gap-[12px] border-b border-line px-[14px] py-[12px] last:border-b-0"
               >
-                <div className="flex-1 min-w-[140px]">
+                <div className="min-w-[140px] flex-1">
                   <b className="block text-[15px] font-medium">{item.productName}</b>
                   <span className="text-[13px] text-grey">
                     {item.optionName} · {tc("ownedQty", { n: item.quantity })}
@@ -502,19 +605,21 @@ function RefundForm({ order, busy, setBusy, onCancel, onError, errText, onDone }
 
       {partialInvalid && <p className="m-0 text-[13px] text-grey">{tc("partialHint")}</p>}
 
-      <div className="flex flex-wrap gap-[8px]">
-        <Button type="submit" disabled={busy || partialInvalid}>
+      <div className="flex flex-wrap items-center gap-[8px_20px]">
+        <Button type="submit" variant="danger" size="sm" disabled={busy || partialInvalid}>
           {busy ? "…" : tc("submit")}
         </Button>
-        <Button type="button" variant="outline" disabled={busy} onClick={onCancel}>
+        <Button type="button" variant="text" size="sm" disabled={busy} onClick={onClose}>
           {tc("cancel")}
         </Button>
       </div>
+
+      <p className="m-0 text-[13px] leading-[1.6] text-grey">{tc("cardNote")}</p>
     </form>
   );
 }
 
-/* ─── 환불 내역 (Task 2) ─────────────────────── */
+/* ─── 취소·환불 내역 ─────────────────────────── */
 
 function ClaimsList({ claims }: { claims: Claim[] }) {
   const tc = useTranslations("claims");
@@ -522,24 +627,24 @@ function ClaimsList({ claims }: { claims: Claim[] }) {
   if (claims.length === 0) return null;
 
   return (
-    <section className="mb-[28px] border border-line p-[16px] pb-0">
+    <section className={`mb-[28px] ${BOX} pb-0`}>
       <SectionTitle>{tc("historyTitle")}</SectionTitle>
       <ul className="m-0 list-none p-0">
         {claims.map((c) => (
           <li key={c.claimId} className="border-t border-line py-[14px]">
-            <div className="flex items-center gap-[10px] flex-wrap mb-[6px]">
+            <div className="mb-[6px] flex flex-wrap items-center gap-[10px]">
+              <Badge tone={CLAIM_STATUS_TONE[c.status]}>{tc(`status.${c.status}`)}</Badge>
               <b className="text-[15px] font-medium">{tc(`reasonCode.${c.reasonCode}`)}</b>
-              <ClaimStatusBadge status={c.status} label={tc(`status.${c.status}`)} />
               <b className="num ml-auto text-[15px] font-medium">{formatKRW(c.refundAmount)}</b>
             </div>
             {c.reasonDetail && (
-              <p className="text-[13px] text-ink-soft m-0 mb-[6px] leading-[1.6]">
+              <p className="m-0 mb-[6px] text-[13px] leading-[1.6] text-ink-soft">
                 {c.reasonDetail}
               </p>
             )}
             <div className="flex flex-wrap gap-x-[16px] gap-y-[2px] text-[13px] text-grey">
-              <span>{tc("refundDue", { date: formatDateKST(c.refundDueAt) })}</span>
-              <span>{tc("requestedAt", { date: c.createdDtm.slice(0, 10) })}</span>
+              <span className="num">{tc("refundDue", { date: formatDateKST(c.refundDueAt) })}</span>
+              <span className="num">{tc("requestedAt", { date: formatDateKST(c.createdAt) })}</span>
             </div>
           </li>
         ))}
@@ -548,67 +653,17 @@ function ClaimsList({ claims }: { claims: Claim[] }) {
   );
 }
 
-/* ─── 상태 뱃지 & 톤 ─────────────────────────── */
+/* ─── 작은 조각 ─────────────────────────────── */
 
-/** 끝난 것(채움) · 진행 중(선) · 꺼진 것(흐림). 라임은 쓰지 않는다 — 이 화면의 라임은 완료 띠 하나 */
-type Tone = "done" | "active" | "muted";
-
-function orderTone(s: OrderStatus): Tone {
-  if (s === "completed") return "done";
-  if (s === "cancelled") return "muted";
-  return "active";
-}
-function paymentTone(s: PaymentStatus): Tone {
-  if (s === "paid") return "done";
-  if (s === "refunded" || s === "voided") return "muted";
-  return "active";
-}
-function fulfillmentTone(s: FulfillmentStatus): Tone {
-  if (s === "fulfilled") return "done";
-  if (s === "returned") return "muted";
-  return "active";
-}
-
-const TONE_CLASSES: Record<Tone, string> = {
-  done: "border-ink bg-ink text-paper",
-  active: "border-ink text-ink",
-  muted: "border-line text-grey",
-};
-
-function StatusBadge({ label, value, tone }: { label: string; value: string; tone: Tone }) {
+function SectionTitle({ children }: { children: ReactNode }) {
   return (
-    <span
-      className={`inline-flex items-baseline gap-[6px] rounded-full border px-[12px] py-[5px] text-[13px] ${TONE_CLASSES[tone]}`}
-    >
-      <span className="opacity-70">{label}</span>
-      <span className="font-medium">{value}</span>
-    </span>
+    <h2 className="m-0 mb-[12px] text-[14px] font-medium leading-[24px] text-ink">{children}</h2>
   );
-}
-
-function claimStatusTone(s: ClaimStatus): Tone {
-  if (s === "completed" || s === "approved") return "done";
-  if (s === "rejected" || s === "failed") return "muted";
-  return "active";
-}
-
-function ClaimStatusBadge({ status, label }: { status: ClaimStatus; label: string }) {
-  return (
-    <span
-      className={`rounded-full border px-[10px] py-[2px] text-[13px] ${TONE_CLASSES[claimStatusTone(status)]}`}
-    >
-      {label}
-    </span>
-  );
-}
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="m-0 mb-[12px] text-[14px] font-medium text-ink">{children}</h2>;
 }
 
 function TotalRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-[12px] py-[4px]">
+    <div className="flex h-[32px] items-center justify-between gap-[12px]">
       <span className="text-[14px] text-grey">{label}</span>
       <span className="num shrink-0 text-[14px]">{value}</span>
     </div>

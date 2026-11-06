@@ -1,19 +1,25 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ko from "@/messages/ko.json";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { tokenStore } from "@/lib/auth/token-store";
+import { ApiClientError } from "@/lib/api";
 
-const { getMe, getOrder, listClaims } = vi.hoisted(() => ({
+const { getMe, getOrder, listClaims, cancelOrder, createClaim } = vi.hoisted(() => ({
   getMe: vi.fn(),
   getOrder: vi.fn(),
   listClaims: vi.fn(),
+  cancelOrder: vi.fn(),
+  createClaim: vi.fn(),
 }));
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>();
-  return { ...actual, api: { getMe, getOrder, listClaims, logout: vi.fn() } };
+  return {
+    ...actual,
+    api: { getMe, getOrder, listClaims, cancelOrder, createClaim, logout: vi.fn() },
+  };
 });
 vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -28,7 +34,50 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams() }));
 
+import type { Order } from "@/types";
+
 import OrderDetailPage from "./page";
+
+const ORDER: Order = {
+  orderId: "o1",
+  orderNo: "20261106-ABC123",
+  status: "open",
+  paymentStatus: "paid",
+  fulfillmentStatus: "unfulfilled",
+  totals: {
+    itemsSubtotal: 28000,
+    discountTotal: 0,
+    shippingFee: 3000,
+    taxTotal: 0,
+    grandTotal: 31000,
+  },
+  shippingAddress: {
+    recipient: "지우",
+    phone: "010-1234-5678",
+    zipcode: "13529",
+    addr1: "판교역로 166",
+  },
+  items: [
+    {
+      lineId: "l1",
+      productId: "p1",
+      variantId: "v1",
+      sku: "S",
+      productName: "take-01",
+      optionName: "100 ml",
+      unitPrice: 28000,
+      compareAtPrice: 28000,
+      quantity: 1,
+      lineSubtotal: 28000,
+    },
+  ],
+  createdAt: 0,
+  createdDtm: "",
+};
+
+function signIn() {
+  tokenStore.save({ idToken: "i", accessToken: "a", refreshToken: "r", expiresIn: 60 });
+}
 
 async function renderPage() {
   await act(async () => {
@@ -49,21 +98,92 @@ describe("주문 상세", () => {
     getMe.mockResolvedValue({ userId: "u1", name: "지우", email: "" });
   });
 
-  it("로그인 안 했으면 '불러오는 중'에 멈추지 않고 로그인 버튼", async () => {
+  it("로그인 안 했으면 뼈대에 멈추지 않고 로그인 버튼", async () => {
     await renderPage();
-    expect(await screen.findByText("로그인하면 주문 내역을 볼 수 있어요.")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "로그인 / 가입" }).getAttribute("href")).toBe("/login");
-    expect(screen.queryByText("불러오는 중…")).toBeNull();
+    expect(await screen.findByText("로그인이 필요해요.")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "로그인" }).getAttribute("href")).toBe("/login");
+    expect(screen.queryByRole("status")).toBeNull();
   });
 
-  it("주문을 못 불러오면 이유와 주문 내역으로 돌아갈 길", async () => {
-    tokenStore.save({ idToken: "i", accessToken: "a", refreshToken: "r", expiresIn: 60 });
+  it("주문을 못 불러오면 이유 + 다시 시도 + 주문 내역으로 돌아갈 길", async () => {
+    signIn();
     getOrder.mockRejectedValue(new Error("boom"));
     await renderPage();
-    expect(await screen.findByRole("alert")).toBeTruthy();
-    expect(screen.getByText(/이 주문을 불러오지 못했어요/)).toBeTruthy();
-    expect(screen.getByRole("link", { name: "주문 내역으로" }).getAttribute("href")).toBe(
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "주문 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
+    );
+    expect(screen.getByRole("button", { name: "다시 시도" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /주문 내역으로/ }).getAttribute("href")).toBe(
       "/orders",
+    );
+  });
+
+  it("받는 중에는 → 뼈대만(주문·취소 내역을 같이 받아 한 번에 그린다)", async () => {
+    signIn();
+    getOrder.mockResolvedValue(ORDER);
+    listClaims.mockReturnValue(new Promise(() => {}));
+    await renderPage();
+    expect(screen.getByRole("status", { name: "불러오는 중…" })).toBeTruthy();
+    expect(screen.queryByText("take-01")).toBeNull();
+  });
+
+  it("결제했고 안 보냄 → 상태는 '결제완료' 하나, 세 갈래 칩은 없다", async () => {
+    signIn();
+    getOrder.mockResolvedValue(ORDER);
+    await renderPage();
+    expect(screen.getByText("결제완료")).toBeTruthy();
+    expect(screen.queryByText("배송 전")).toBeNull();
+    expect(screen.getByRole("heading", { name: "결제 정보" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "주문 관리" })).toBeTruthy();
+  });
+
+  it("결제 대기 → 30분 안에 결제하라는 한 줄", async () => {
+    signIn();
+    getOrder.mockResolvedValue({ ...ORDER, status: "pending", paymentStatus: "pending" });
+    await renderPage();
+    expect(screen.getByText("결제 대기")).toBeTruthy();
+    expect(screen.getByText(/30분 안에 결제해 주세요/)).toBeTruthy();
+  });
+
+  it("결제 대기 주문 취소는 한 번 더 묻는다 — '돌아가기'면 취소하지 않는다", async () => {
+    signIn();
+    getOrder.mockResolvedValue({ ...ORDER, status: "pending", paymentStatus: "pending" });
+    await renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "주문 취소" }));
+    expect(screen.getByRole("button", { name: "취소하기" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "돌아가기" }));
+    expect(cancelOrder).not.toHaveBeenCalled();
+  });
+
+  it("취소 요청 → 사유 화면 이름은 바뀌어도 API 에는 원래 값(상품하자)이 간다", async () => {
+    signIn();
+    getOrder.mockResolvedValue(ORDER);
+    createClaim.mockResolvedValue({});
+    await renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "주문 취소 요청" }));
+    expect(screen.getByText("취소 사유 선택")).toBeTruthy();
+    expect(screen.getByText(/영업일 기준 며칠이 걸릴 수 있어요/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "상품 불량(파손·누액 포함)" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "취소 요청하기" }));
+    });
+    expect(createClaim).toHaveBeenCalledWith(
+      "o1",
+      expect.objectContaining({ reasonCode: "상품하자", lines: undefined }),
+    );
+  });
+
+  it("취소할 수 없는 주문(CLAIM_NOT_ALLOWED) → 고객센터 안내", async () => {
+    signIn();
+    getOrder.mockResolvedValue(ORDER);
+    createClaim.mockRejectedValue(new ApiClientError("CLAIM_NOT_ALLOWED", "x", 409));
+    await renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "주문 취소 요청" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "취소 요청하기" }));
+    });
+    expect(screen.getByRole("alert").textContent).toBe(
+      "이 주문은 지금 취소·반품을 신청할 수 없어요. 고객센터로 문의해 주세요.",
     );
   });
 });

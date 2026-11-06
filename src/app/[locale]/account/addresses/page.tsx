@@ -4,19 +4,24 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useTranslations } from "next-intl";
 
-import { Link } from "@/i18n/navigation";
-import Button from "@/components/ui/Button";
-import PageShell from "@/components/shell/PageShell";
 import AddressForm from "@/components/pay/AddressForm";
+import PageShell from "@/components/shell/PageShell";
+import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
+import ButtonLink from "@/components/ui/ButtonLink";
+import Skeleton from "@/components/ui/Skeleton";
 import { addressName } from "@/lib/checkout/address";
 import { api, ApiClientError } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import type { Address, CreateAddressRequest } from "@/types";
-import ButtonLink from "@/components/ui/ButtonLink";
+
+/** 배송지 카드의 틀 — 실제 카드와 뼈대 카드가 같은 크기 */
+const CARD = "border border-line p-[16px]";
 
 /**
  * 배송지 — 목록·기본 지정·삭제(한 번 더 묻는다)·추가. 추가는 주문서와 같은 Daum 주소 찾기 폼.
  * 없으면 안내 + '배송지 추가' 하나로 시작한다. 중간에 로그인이 풀리면(AUTH_REQUIRED) 세션을 다시 확인한다.
+ * 로그인 토큰이 브라우저에만 있어 서버에서 미리 못 받는다 — 받는 동안은 같은 틀의 뼈대, '아직 배송지가 없어요'는 받은 뒤에만.
  */
 export default function AddressesPage() {
   const t = useTranslations("addresses");
@@ -83,15 +88,7 @@ export default function AddressesPage() {
     }
   };
 
-  if (status === "loading") {
-    return (
-      <PageShell title={t("title")}>
-        <p className="m-0 text-[14px] text-grey">{tc("loading")}</p>
-      </PageShell>
-    );
-  }
-
-  if (status !== "authenticated") {
+  if (status === "anonymous") {
     return (
       <PageShell title={t("title")}>
         <div className="flex max-w-[400px] flex-col gap-[20px]">
@@ -117,12 +114,12 @@ export default function AddressesPage() {
           </p>
         )}
 
-        {items === null && !loadFailed && (
-          <p className="m-0 text-[14px] text-grey">{tc("loading")}</p>
+        {(status === "loading" || (items === null && !loadFailed)) && (
+          <AddressesSkeleton label={tc("loading")} />
         )}
         {loadFailed && (
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             className="self-start"
             onClick={() => {
@@ -150,16 +147,12 @@ export default function AddressesPage() {
         {items !== null && items.length > 0 && (
           <ul className="m-0 flex list-none flex-col gap-[12px] p-0">
             {items.map((a) => (
-              <li key={a.addressId} className="border border-line p-[16px]">
+              <li key={a.addressId} className={CARD}>
                 <div className="mb-[6px] flex flex-wrap items-center gap-[8px]">
-                  <h2 className="m-0 text-[15px] font-medium">{addressName(a)}</h2>
-                  {a.isDefault && (
-                    <span className="rounded-full bg-lime px-[8px] py-[1px] text-[12px] text-ink">
-                      {t("defaultBadge")}
-                    </span>
-                  )}
+                  <h2 className="m-0 text-[15px] font-medium leading-[24px]">{addressName(a)}</h2>
+                  {a.isDefault && <Badge>{t("defaultBadge")}</Badge>}
                 </div>
-                <p className="m-0 text-[14px] leading-[1.6] text-ink-soft">
+                <p className="m-0 text-[14px] leading-[22px] text-ink-soft">
                   <span className="num">({a.zipcode})</span> {a.addr1} {a.addr2 ?? ""}
                   <br />
                   {/* 배송지 이름이 제목이면 받는 분은 여기 — 이름이 없으면 제목이 곧 받는 분 */}
@@ -182,7 +175,7 @@ export default function AddressesPage() {
                       {t("deleteYes")}
                     </Button>
                     <Button
-                      variant="outline"
+                      variant="secondary"
                       size="sm"
                       onClick={() => {
                         setConfirmingId(null);
@@ -192,10 +185,10 @@ export default function AddressesPage() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="mt-[14px] flex gap-[8px]">
+                  <div className="mt-[14px] flex gap-[8px_20px]">
                     {!a.isDefault && (
                       <Button
-                        variant="outline"
+                        variant="secondary"
                         size="sm"
                         disabled={busyId === a.addressId}
                         onClick={() => {
@@ -207,8 +200,9 @@ export default function AddressesPage() {
                         {t("setDefault")}
                       </Button>
                     )}
+                    {/* 카드마다 나오는 줄이라 빨간 버튼으로 두지 않는다 — 빨강(danger)은 한 번 더 묻는 단계의 '지우기'에만 */}
                     <Button
-                      variant="outline"
+                      variant="text"
                       size="sm"
                       onClick={() => {
                         setConfirmingId(a.addressId);
@@ -225,7 +219,7 @@ export default function AddressesPage() {
 
         {items !== null && items.length > 0 && !adding && (
           <Button
-            variant="outline"
+            variant="secondary"
             className="self-start"
             onClick={() => {
               setAdding(true);
@@ -239,15 +233,16 @@ export default function AddressesPage() {
           <section className="flex flex-col gap-[14px]">
             <div className="flex items-baseline justify-between gap-[12px]">
               <h2 className="m-0 text-[16px] font-medium">{t("addTitle")}</h2>
-              <button
-                type="button"
+              <Button
+                variant="text"
+                size="sm"
+                className="-my-[12px]"
                 onClick={() => {
                   setAdding(false);
                 }}
-                className="-my-[12px] inline-flex min-h-[44px] cursor-pointer items-center text-[14px] text-grey underline underline-offset-[3px] hover:text-ink"
               >
                 {tc("close")}
-              </button>
+              </Button>
             </div>
             <AddressForm
               onSubmit={save}
@@ -258,13 +253,37 @@ export default function AddressesPage() {
           </section>
         )}
 
-        <Link
-          href="/account"
-          className="inline-flex min-h-[44px] items-center self-start text-[14px] text-grey hover:text-ink"
-        >
+        <ButtonLink href="/account" variant="text" size="sm" className="self-start">
           ← {ta("title")}
-        </Link>
+        </ButtonLink>
       </div>
     </PageShell>
+  );
+}
+
+/* ─── 하위 컴포넌트 ─────────────────────────── */
+
+/** 배송지 카드 하나 + '배송지 추가' 알약 크기의 뼈대 — 제목 / 주소 두 줄 / 버튼 두 개가 실제 카드와 같은 자리 */
+function AddressesSkeleton({ label }: { label: string }) {
+  return (
+    <div role="status" aria-label={label} aria-busy="true" className="flex flex-col gap-[24px]">
+      <div className={CARD}>
+        <div className="mb-[6px] flex h-[24px] items-center gap-[8px]">
+          <Skeleton className="h-[14px] w-[56px]" />
+          <Skeleton shape="badge" className="h-[22px] w-[40px]" />
+        </div>
+        <div className="flex h-[22px] items-center">
+          <Skeleton className="h-[12px] w-[260px] max-w-full" />
+        </div>
+        <div className="flex h-[22px] items-center">
+          <Skeleton className="h-[12px] w-[112px]" />
+        </div>
+        <div className="mt-[14px] flex gap-[8px_20px]">
+          <Skeleton shape="pill" className="h-[44px] w-[112px]" />
+          <Skeleton className="my-[16px] h-[12px] w-[28px]" />
+        </div>
+      </div>
+      <Skeleton shape="pill" className="h-[52px] w-[128px]" />
+    </div>
   );
 }
