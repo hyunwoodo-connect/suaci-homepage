@@ -15,31 +15,29 @@ import Skeleton from "@/components/ui/Skeleton";
 import { api, ApiClientError, isAuthRequired } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { formatDateKST, formatKRW } from "@/lib/format";
-import type { Claim, Order, OrderItem, ReasonCode } from "@/types";
+import {
+  REASON_CODES,
+  type Claim,
+  type FulfillmentStatus,
+  type Order,
+  type OrderItem,
+  type ReasonCode,
+} from "@/types";
 
 import { CLAIM_STATUS_TONE, ORDER_STATE_TONE, orderState } from "../orderState";
-
-const REASON_CODES: readonly ReasonCode[] = [
-  "단순변심",
-  "상품하자",
-  "오배송",
-  "표시광고상이",
-  "배송지연",
-  "기타",
-];
 
 /** 이름을 아는 택배사 코드(orders.carrier.*) — 모르는 코드는 그대로 보여 준다 */
 const CARRIER_CODES: readonly string[] = ["cj", "epost", "hanjin", "lotte", "logen"];
 
 /** 손님이 취소 요청할 수 있는 배송 상태 — 발송 전까지(환불 정책 v2 '발송 전 취소는 바로 환불') */
-const BEFORE_SHIPMENT: readonly string[] = ["unfulfilled", "preparing"];
+const BEFORE_SHIPMENT: readonly FulfillmentStatus[] = ["unfulfilled", "preparing"];
 
-/** 백엔드 에러 코드 → claims.error.* 메시지 키. 매핑에 없으면 default. */
-const ERROR_KEYS: Record<string, string> = {
-  ORDER_NOT_CANCELLABLE: "ORDER_NOT_CANCELLABLE",
-  CLAIM_NOT_ALLOWED: "CLAIM_NOT_ALLOWED",
-  OVER_REFUND: "OVER_REFUND",
-};
+/** 취소·취소 요청이 막힌 이유 중 손님에게 따로 알리는 코드 — 메시지 `claims.error.{code}`. 그 밖은 default */
+const CLAIM_ERRORS: readonly string[] = [
+  "ORDER_NOT_CANCELLABLE",
+  "CLAIM_NOT_ALLOWED",
+  "OVER_REFUND",
+];
 
 // 실제 화면과 뼈대가 같은 크기가 되도록 상자·줄 틀을 한 곳에서 쓴다
 const BOX = "border border-line p-[16px]";
@@ -356,10 +354,9 @@ function OrderActions({ order, onDone }: { order: Order; onDone: () => Promise<v
   if (!canCancel && !canRequestCancel) return null;
 
   function errText(err: unknown): string {
-    if (err instanceof ApiClientError && ERROR_KEYS[err.code]) {
-      return tc(`error.${ERROR_KEYS[err.code]}`);
-    }
-    return tc("error.default");
+    return err instanceof ApiClientError && CLAIM_ERRORS.includes(err.code)
+      ? tc(`error.${err.code}`)
+      : tc("error.default");
   }
 
   const handleCancel = async () => {

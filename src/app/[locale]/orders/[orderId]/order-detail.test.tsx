@@ -187,6 +187,26 @@ describe("주문 상세", () => {
     );
   });
 
+  it("결제 대기 취소가 막히면(ORDER_NOT_CANCELLABLE) → 그 이유, 모르는 실패면 다시 시도 안내", async () => {
+    signIn();
+    getOrder.mockResolvedValue({ ...ORDER, status: "pending", paymentStatus: "pending" });
+    cancelOrder
+      .mockRejectedValueOnce(new ApiClientError("ORDER_NOT_CANCELLABLE", "x", 409))
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    await renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "주문 취소" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "취소하기" }));
+    });
+    expect(screen.getByRole("alert").textContent).toBe("이 주문은 취소할 수 없어요");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "취소하기" }));
+    });
+    expect(screen.getByRole("alert").textContent).toBe(
+      "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.",
+    );
+  });
+
   it("상품 준비 중(발송 전) → 아직 취소 요청할 수 있다", async () => {
     signIn();
     getOrder.mockResolvedValue({ ...ORDER, fulfillmentStatus: "preparing" });

@@ -24,5 +24,14 @@ export type PaymentStatus =
   "pending" | "authorized" | "paid" | "partially_refunded" | "refunded" | "voided" | "refunding";
 /** 배송 상태 — 결제 완료(unfulfilled) → 배송 준비 → 배송 중 → 배송 완료(관리 툴이 한 칸씩 바꾼다) */
 export type FulfillmentStatus = "unfulfilled" | "preparing" | "shipped" | "delivered";
-export type ReasonCode = "단순변심" | "상품하자" | "오배송" | "표시광고상이" | "배송지연" | "기타";
+/** 취소·반품 사유 코드. 값은 백엔드 그대로(한국어), 화면 이름은 메시지 `claims.reasonCode.*` */
+export const REASON_CODES = [
+  "단순변심",
+  "상품하자",
+  "오배송",
+  "표시광고상이",
+  "배송지연",
+  "기타",
+] as const;
+export type ReasonCode = (typeof REASON_CODES)[number];
 export type ClaimStatus = "requested" | "approved" | "rejected" | "completed" | "failed";
