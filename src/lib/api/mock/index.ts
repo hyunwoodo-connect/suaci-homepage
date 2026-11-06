@@ -7,6 +7,7 @@ import type {
   ConfirmPaymentRequest,
   CreateAddressRequest,
   CreateClaimRequest,
+  CreateReturnRequest,
   CreateOrderRequest,
   Order,
   OrderItem,
@@ -25,6 +26,7 @@ import { ApiClientError } from "../errors";
 import { effectivePrice } from "@/lib/format";
 import { tokenStore } from "@/lib/auth/token-store";
 import { CHECKOUT_PRICING } from "@/constants/checkout";
+import { canRequestReturn, returnableQty, returnQuote, returnWindow } from "@/lib/returns/rules";
 import { demoUser, products } from "@/data/fixtures";
 import { store } from "./store";
 
@@ -364,7 +366,8 @@ export function createMockClient(): ApiClient {
       ];
       if (
         !claimablePayment.includes(order.paymentStatus) ||
-        order.fulfillmentStatus !== "unfulfilled"
+        // 발송 전(배송 준비 중 포함)까지 — suaci-api 와 같다
+        (order.fulfillmentStatus !== "unfulfilled" && order.fulfillmentStatus !== "preparing")
       ) {
         throw new ApiClientError("CLAIM_NOT_ALLOWED", "클레임을 생성할 수 없는 주문입니다", 409);
       }
@@ -441,6 +444,78 @@ export function createMockClient(): ApiClient {
       store.writeClaims(claims);
       idem[claimIdemKey] = claim.claimId;
       store.writeIdem(idem);
+      return claim;
+    },
+    // 반품 신청 — 서버와 같은 규칙(lib/returns/rules)으로 막고 금액을 정한다. 돈은 움직이지 않는다(관리자가 회수 확인 뒤 환불)
+    async createReturn(orderId: string, r: CreateReturnRequest): Promise<Claim> {
+      requireAuth();
+      const claims = store.readClaims();
+      const idem = store.readIdem();
+      const idemKey = `return:${r.idempotencyKey}`;
+      const prior = claims.find((c) => c.claimId === idem[idemKey]);
+      if (prior) return prior;
+
+      const order = store.readOrders().find((o) => o.orderId === orderId);
+      if (!order) throw new ApiClientError("ORDER_NOT_FOUND", "주문을 찾을 수 없습니다", 404);
+      const mine = claims.filter((c) => c.orderId === orderId);
+      if (
+        mine.some(
+          (c) => c.type === "return" && ["requested", "approved", "failed"].includes(c.status),
+        )
+      ) {
+        throw new ApiClientError(
+          "RETURN_ALREADY_REQUESTED",
+          "이미 진행 중인 반품 신청이 있습니다",
+          409,
+        );
+      }
+      if (!canRequestReturn(order, mine, Date.now())) {
+        const closed =
+          order.fulfillmentStatus === "shipped" || order.fulfillmentStatus === "delivered";
+        throw closed
+          ? new ApiClientError("RETURN_WINDOW_CLOSED", "반품 신청 기간이 지났습니다", 409)
+          : new ApiClientError("RETURN_NOT_ALLOWED", "반품을 신청할 수 없는 주문입니다", 409);
+      }
+      if (r.reasonCode === "단순변심" && !returnWindow(order, Date.now()).changeOfMindOpen) {
+        throw new ApiClientError("RETURN_WINDOW_CLOSED", "반품 신청 기간이 지났습니다", 409);
+      }
+      if (r.reasonCode === "단순변심" && !r.unopenedConfirmed) {
+        throw new ApiClientError("RETURN_UNOPENED_REQUIRED", "미개봉·미사용을 확인해 주세요", 400);
+      }
+      const quote = returnQuote(order, mine, r.reasonCode, r.lines);
+      if (quote.refundAmount <= 0) {
+        throw new ApiClientError("NOTHING_TO_REFUND", "돌려드릴 금액이 없습니다", 400);
+      }
+      const left = returnableQty(order, mine);
+      const chosen =
+        r.lines ?? order.items.map((i) => ({ lineId: i.lineId, quantity: left[i.lineId] ?? 0 }));
+      const { createdAt, createdDtm } = now();
+      const claim: Claim = {
+        claimId: uuid(),
+        orderId,
+        type: "return",
+        status: "requested",
+        reasonCode: r.reasonCode,
+        reasonDetail: r.reasonDetail,
+        lines: chosen
+          .filter((l) => l.quantity > 0)
+          .map((l) => {
+            const item = order.items.find((i) => i.lineId === l.lineId);
+            return {
+              lineId: l.lineId,
+              productId: item?.productId ?? "",
+              variantId: item?.variantId ?? "",
+              quantity: l.quantity,
+            };
+          }),
+        refundAmount: quote.refundAmount,
+        refundedShipping: quote.refundedShipping,
+        returnShippingFee: quote.returnShippingFee,
+        createdAt,
+        createdDtm,
+      };
+      store.writeClaims([...claims, claim]);
+      store.writeIdem({ ...idem, [idemKey]: claim.claimId });
       return claim;
     },
   };

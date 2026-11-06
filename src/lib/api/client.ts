@@ -19,6 +19,7 @@ import type {
   ConfirmPaymentRequest,
   Claim,
   CreateClaimRequest,
+  CreateReturnRequest,
   ApiPage,
   PageParams,
 } from "@/types";
@@ -48,4 +49,5 @@ export interface ApiClient {
   confirmPayment(orderId: string, r: ConfirmPaymentRequest): Promise<Order>;
   listClaims(orderId: string): Promise<Claim[]>;
   createClaim(orderId: string, r: CreateClaimRequest): Promise<Claim>;
+  createReturn(orderId: string, r: CreateReturnRequest): Promise<Claim>;
 }

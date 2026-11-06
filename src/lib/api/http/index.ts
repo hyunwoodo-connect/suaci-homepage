@@ -7,6 +7,7 @@ import type {
   ConfirmRequest,
   CreateAddressRequest,
   CreateClaimRequest,
+  CreateReturnRequest,
   CreateOrderRequest,
   LoginRequest,
   Order,
@@ -167,6 +168,14 @@ export function createHttpClient(baseUrl?: string): ApiClient {
     async createClaim(orderId: string, r: CreateClaimRequest) {
       return unwrap(
         await authedRequest<Envelope<Claim>>(`/orders/${orderId}/claims`, {
+          method: "POST",
+          body: r,
+        }),
+      );
+    },
+    async createReturn(orderId: string, r: CreateReturnRequest) {
+      return unwrap(
+        await authedRequest<Envelope<Claim>>(`/orders/${orderId}/returns`, {
           method: "POST",
           body: r,
         }),
