@@ -2,7 +2,7 @@ import type { Address, Claim, Order } from "@/types";
 
 const hasWindow = (): boolean => typeof window !== "undefined";
 
-export const MOCK_KEYS = {
+const MOCK_KEYS = {
   addresses: "suaci.mock.addresses",
   orders: "suaci.mock.orders",
   socialDone: "suaci.mock.social-done",
@@ -12,7 +12,7 @@ export const MOCK_KEYS = {
   refunded: "suaci.mock.refunded",
 } as const;
 
-export function read<T>(key: string, fallback: T): T {
+function read<T>(key: string, fallback: T): T {
   if (!hasWindow()) return fallback;
   const raw = localStorage.getItem(key);
   if (!raw) return fallback;
@@ -23,7 +23,7 @@ export function read<T>(key: string, fallback: T): T {
   }
 }
 
-export function write<T>(key: string, value: T): void {
+function write<T>(key: string, value: T): void {
   if (hasWindow()) localStorage.setItem(key, JSON.stringify(value));
 }
 

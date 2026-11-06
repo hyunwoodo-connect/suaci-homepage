@@ -40,21 +40,14 @@ function toApiError(status: number, text: string): ApiClientError {
   try {
     parsed = text ? (JSON.parse(text) as ErrorBody) : null;
   } catch {
-    parsed = null;
-  }
-  if (parsed?.error) {
-    return new ApiClientError(parsed.error, parsed.message ?? text, status, parsed.field);
+    // 본문이 JSON 이 아니면(게이트웨이·프록시 오류 페이지) 상태로만 코드를 정한다
   }
   // API Gateway 의 Cognito authorizer 는 `{"message":"Unauthorized"}` 만 준다 — 백엔드의 401 코드와 같게 읽어야
   // 화면이 '로그인이 풀렸어요'로 넘어간다
-  const fallbackCode =
-    status === 401 ? "AUTH_REQUIRED" : status >= 500 ? "SERVER_ERROR" : "REQUEST_ERROR";
-  return new ApiClientError(
-    parsed?.error ?? fallbackCode,
-    parsed?.message ?? text,
-    status,
-    parsed?.field,
-  );
+  const code =
+    parsed?.error ||
+    (status === 401 ? "AUTH_REQUIRED" : status >= 500 ? "SERVER_ERROR" : "REQUEST_ERROR");
+  return new ApiClientError(code, parsed?.message ?? text, status, parsed?.field);
 }
 
 export function createFetcher(baseUrl: string) {
@@ -88,7 +81,7 @@ export function createFetcher(baseUrl: string) {
     const refreshToken = tokenStore.getRefreshToken();
     if (!refreshToken) return null;
     try {
-      const body = await request<{ data: TokenResponse }>("/auth/refresh", {
+      const body = await request<Envelope<TokenResponse>>("/auth/refresh", {
         method: "POST",
         body: { refreshToken },
         auth: false,
@@ -126,5 +119,3 @@ export function createFetcher(baseUrl: string) {
 
   return { request, authedRequest };
 }
-
-export type Fetcher = ReturnType<typeof createFetcher>;

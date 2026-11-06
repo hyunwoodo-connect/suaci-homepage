@@ -242,19 +242,20 @@ export function createMockClient(): ApiClient {
         const existing = store.readOrders().find((o) => o.orderId === existingId);
         if (existing) return existing;
       }
+      // 코드·문구는 백엔드 그대로(서버가 아직 장바구니 시절 이름을 쓴다)
       if (r.items.length === 0)
         throw new ApiClientError("CART_EMPTY", "장바구니가 비어 있습니다", 400);
-      const cartItems = r.items.map(priceLine);
+      const lines = r.items.map(priceLine);
       const addr = store.readAddresses().find((a) => a.addressId === r.addressId);
       if (!addr) throw new ApiClientError("ADDRESS_NOT_FOUND", "주소를 찾을 수 없습니다", 404);
 
-      const itemsSubtotal = cartItems.reduce((s, i) => s + i.lineSubtotal, 0);
-      const discountTotal = cartItems.reduce((s, i) => s + i.lineDiscount, 0);
+      const itemsSubtotal = lines.reduce((s, i) => s + i.lineSubtotal, 0);
+      const discountTotal = lines.reduce((s, i) => s + i.lineDiscount, 0);
       const shippingFee = itemsSubtotal >= FREE_SHIP_THRESHOLD ? 0 : SHIPPING_FEE;
       const taxTotal = Math.round(itemsSubtotal / 11);
       const grandTotal = itemsSubtotal + shippingFee;
 
-      const items: OrderItem[] = cartItems.map((i) => ({
+      const items: OrderItem[] = lines.map((i) => ({
         lineId: uuid(),
         productId: i.productId,
         variantId: i.variantId,
