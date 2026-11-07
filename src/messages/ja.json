@@ -244,7 +244,10 @@
       "partiallyRefunded": "一部返金",
       "refunded": "返金完了",
       "cancelled": "注文キャンセル"
-    }
+    },
+    "shippedNoCancel": "発送済みのご注文はキャンセルできません。お受け取り後に返品・交換をお申し込みください。",
+    "contact": "お困りの際は注文番号を添えて<mail>{email}</mail>までご連絡ください。",
+    "notFound": "ご注文が見つかりません。注文履歴からもう一度お探しください。"
   },
   "claims": {
     "formTitle": "キャンセル理由を選択",

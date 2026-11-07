@@ -311,6 +311,40 @@ describe("주문 상세", () => {
     expect(screen.queryByRole("button", { name: "주문 취소 요청" })).toBeNull();
   });
 
+  it("배송중 → 취소 버튼 자리에 '발송된 주문은 취소할 수 없어요' 안내와 문의 메일", async () => {
+    signIn();
+    getOrder.mockResolvedValue({ ...ORDER, fulfillmentStatus: "shipped" });
+    await renderPage();
+    expect(screen.getByText(/발송된 주문은 취소할 수 없어요/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "hello@takesuaci.com" }).getAttribute("href")).toBe(
+      "mailto:hello@takesuaci.com",
+    );
+  });
+
+  it("배송 완료 3개월이 지나 반품 버튼이 없어도 → 막다른 길이 아니게 문의 메일", async () => {
+    signIn();
+    getOrder.mockResolvedValue({
+      ...ORDER,
+      fulfillmentStatus: "delivered",
+      deliveredAt: Date.now() - 120 * 24 * 60 * 60 * 1000,
+    });
+    await renderPage();
+    expect(screen.queryByRole("button", { name: "반품 신청" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "주문 관리" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "hello@takesuaci.com" })).toBeTruthy();
+  });
+
+  it("없는 주문(ORDER_NOT_FOUND) → 다시 시도 대신 찾을 수 없다는 말과 주문 내역 길", async () => {
+    signIn();
+    getOrder.mockRejectedValue(new ApiClientError("ORDER_NOT_FOUND", "x", 404));
+    await renderPage();
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "주문을 찾을 수 없어요. 주문 내역에서 다시 찾아 주세요.",
+    );
+    expect(screen.queryByRole("button", { name: "다시 시도" })).toBeNull();
+    expect(screen.getByRole("link", { name: /주문 내역으로/ })).toBeTruthy();
+  });
+
   it("모르는 택배사 코드·조회 링크 없음 → 코드와 송장번호만, 버튼은 없다", async () => {
     signIn();
     getOrder.mockResolvedValue({

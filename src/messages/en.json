@@ -244,7 +244,10 @@
       "partiallyRefunded": "partially refunded",
       "refunded": "refunded",
       "cancelled": "cancelled"
-    }
+    },
+    "shippedNoCancel": "shipped orders can't be cancelled. once it arrives, you can request a return or exchange.",
+    "contact": "need help? email <mail>{email}</mail> with your order number.",
+    "notFound": "we couldn't find this order. please look for it in your orders."
   },
   "claims": {
     "formTitle": "choose a reason for cancelling",

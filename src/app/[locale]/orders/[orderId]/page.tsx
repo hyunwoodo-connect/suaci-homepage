@@ -15,7 +15,8 @@ import Badge from "@/components/ui/Badge";
 import Button, { buttonClasses } from "@/components/ui/Button";
 import ButtonLink from "@/components/ui/ButtonLink";
 import Skeleton from "@/components/ui/Skeleton";
-import { api, ApiClientError, isAuthRequired } from "@/lib/api";
+import { BUSINESS } from "@/constants/site";
+import { api, ApiClientError, isAuthRequired, isNotFound } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { formatDateKST, formatKRW } from "@/lib/format";
 import { canRequestCancel, canRequestReturn, remainingQty } from "@/lib/claims/rules";
@@ -67,8 +68,8 @@ function OrderDetail({ orderId }: { orderId: string }) {
   const welcome = searchParams.get("welcome") === "1";
 
   const [data, setData] = useState<OrderDetailData | null>(null);
-  // 못 불러오면 뼈대에 멈추지 않고 이유와 다시 시도할 길을 보여 준다
-  const [loadFailed, setLoadFailed] = useState(false);
+  // 못 불러오면 뼈대에 멈추지 않고 이유와 다시 시도할 길을 보여 준다. 없는 주문(남의 주문 포함)은 다시 해도 같아 시도 버튼이 없다
+  const [loadFailed, setLoadFailed] = useState<"notFound" | "error" | null>(null);
 
   // 취소 내역을 못 받아도 주문은 보여 준다(내역만 비운다)
   const fetchDetail = useCallback(async (): Promise<OrderDetailData> => {
@@ -88,7 +89,7 @@ function OrderDetail({ orderId }: { orderId: string }) {
             void recheckSession();
             return;
           }
-          setLoadFailed(true);
+          setLoadFailed(isNotFound(err) ? "notFound" : "error");
         }),
     [fetchDetail, recheckSession],
   );
@@ -114,18 +115,20 @@ function OrderDetail({ orderId }: { orderId: string }) {
       <PageShell title={t("detailTitle")}>
         <div className="flex max-w-[400px] flex-col items-start gap-[16px]">
           <p role="alert" className="m-0 text-[15px] text-ink">
-            {t("detailLoadError")}
+            {t(loadFailed === "notFound" ? "notFound" : "detailLoadError")}
           </p>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              setLoadFailed(false);
-              void load();
-            }}
-          >
-            {tc("retry")}
-          </Button>
+          {loadFailed === "error" && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setLoadFailed(null);
+                void load();
+              }}
+            >
+              {tc("retry")}
+            </Button>
+          )}
           <ButtonLink href="/orders" variant="text" size="sm">
             ← {t("backToList")}
           </ButtonLink>
@@ -357,7 +360,12 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
   const [now] = useState(Date.now);
   const canReturn = canRequestReturn(order, claims, now);
 
-  if (!canCancel && !canCancelPaid && !canReturn) return null;
+  // 발송된 결제 주문은 취소 버튼이 사라진 자리에 이유와 다음 길(반품·교환, 안 되면 메일)을 둔다 — 막다른 화면이 되지 않게
+  const isShipped =
+    (order.paymentStatus === "paid" || order.paymentStatus === "partially_refunded") &&
+    (order.fulfillmentStatus === "shipped" || order.fulfillmentStatus === "delivered");
+
+  if (!canCancel && !canCancelPaid && !canReturn && !isShipped) return null;
 
   function errText(err: unknown): string {
     return err instanceof ApiClientError && CLAIM_ERRORS.includes(err.code)
@@ -382,6 +390,9 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
       <SectionTitle>{t("manage")}</SectionTitle>
 
       <div className="flex flex-col gap-[16px]">
+        {isShipped && (
+          <p className="m-0 text-[14px] leading-[1.6] text-ink">{t("shippedNoCancel")}</p>
+        )}
         {error && <ErrorNote text={error} />}
 
         {canCancel &&
@@ -466,6 +477,8 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
               }}
             />
           ))}
+
+        {isShipped && <ContactNote />}
       </div>
     </section>
   );
@@ -702,6 +715,26 @@ function ClaimsList({ claims }: { claims: Claim[] }) {
 }
 
 /* ─── 작은 조각 ─────────────────────────────── */
+
+/** 화면에서 안 되는 일(기한 지난 반품·진행 중인 일 묻기)의 길 — 고객센터 메일 */
+function ContactNote() {
+  const t = useTranslations("orders");
+  return (
+    <p className="m-0 text-[13px] leading-[1.6] text-grey">
+      {t.rich("contact", {
+        email: BUSINESS.email,
+        mail: (chunks) => (
+          <a
+            href={`mailto:${BUSINESS.email}`}
+            className="text-ink underline underline-offset-[3px]"
+          >
+            {chunks}
+          </a>
+        ),
+      })}
+    </p>
+  );
+}
 
 function SectionTitle({ children }: { children: ReactNode }) {
   return (
