@@ -206,7 +206,7 @@ describe("재구매 시트", () => {
   it("반품 제한 고지(개봉·사용 후 단순 변심 불가) + 배송·교환·환불 안내 링크", async () => {
     await openSheet();
     expect(
-      screen.getByText(/개봉하거나 사용한 화장품은 단순 변심으로 반품할 수 없어요\./),
+      screen.getByText(/밀봉을 뜯었거나 사용한 화장품은 단순 변심으로 반품할 수 없어요\./),
     ).toBeTruthy();
     expect(screen.getByRole("link", { name: "배송·교환·환불 안내" })).toHaveAttribute(
       "href",

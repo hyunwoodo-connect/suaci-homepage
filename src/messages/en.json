@@ -349,7 +349,7 @@
     "formTitle": "reason for return",
     "changeOfMindClosed": "change-of-mind returns are open for 7 days after delivery.",
     "unopened": "the seal is intact and i haven't used it",
-    "unopenedNote": "opened or used cosmetics can't be returned for a change of mind.",
+    "unopenedNote": "cosmetics can't be returned for a change of mind once the seal is opened or the product is used.",
     "detail": "details (optional)",
     "detailPlaceholder": "tell us what went wrong. you can send photos by replying to the email we send after your request.",
     "scope": "what to return",

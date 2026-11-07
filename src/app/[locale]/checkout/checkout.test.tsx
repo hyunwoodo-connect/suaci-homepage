@@ -190,7 +190,7 @@ describe("주문서 — 반품 제한 고지(전자상거래법 제17조제6항)
       renderPage();
     });
     expect(
-      await screen.findByText(/개봉하거나 사용한 화장품은 단순 변심으로 반품할 수 없어요\./),
+      await screen.findByText(/밀봉을 뜯었거나 사용한 화장품은 단순 변심으로 반품할 수 없어요\./),
     ).toBeTruthy();
     expect(screen.getByRole("link", { name: "배송·교환·환불 안내" })).toHaveAttribute(
       "href",
