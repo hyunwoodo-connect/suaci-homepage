@@ -362,6 +362,19 @@ describe("주문 상세", () => {
     );
   });
 
+  it("배송 완료 → '받은 뒤 신청해 주세요' 안내 없이 반품·교환 버튼과 문의 메일", async () => {
+    signIn();
+    getOrder.mockResolvedValue({
+      ...ORDER,
+      fulfillmentStatus: "delivered",
+      deliveredAt: Date.now() - 2 * 24 * 60 * 60 * 1000,
+    });
+    await renderPage();
+    expect(screen.queryByText(/발송된 주문은 취소할 수 없어요/)).toBeNull();
+    expect(screen.getByRole("button", { name: "반품 신청" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "hello@takesuaci.com" })).toBeTruthy();
+  });
+
   it("배송 완료 3개월이 지나 반품 버튼이 없어도 → 막다른 길이 아니게 문의 메일", async () => {
     signIn();
     getOrder.mockResolvedValue({

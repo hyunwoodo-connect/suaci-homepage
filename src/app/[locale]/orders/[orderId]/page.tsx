@@ -23,7 +23,12 @@ import { BUSINESS } from "@/constants/site";
 import { api, isAuthRequired, isNotFound } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { formatKRW } from "@/lib/format";
-import { canRequestCancel, canRequestReturn, isShippedPaid } from "@/lib/claims/rules";
+import {
+  canRequestCancel,
+  canRequestReturn,
+  hasOpenAfterDelivery,
+  isShippedPaid,
+} from "@/lib/claims/rules";
 import type { Claim, Order } from "@/types";
 
 import { ORDER_STATE_TONE, orderState } from "../orderState";
@@ -350,6 +355,9 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
 
   // 발송된 결제 주문은 취소 버튼이 사라진 자리에 이유와 다음 길(반품·교환, 안 되면 메일)을 둔다 — 막다른 화면이 되지 않게
   const isShipped = isShippedPaid(order);
+  // '받은 뒤 반품·교환' 안내는 배송 중일 때만 — 받은 뒤엔 버튼이 바로 있거나, 이미 신청이 진행 중이다
+  const showInTransitNote =
+    isShipped && order.fulfillmentStatus === "shipped" && !hasOpenAfterDelivery(claims);
 
   if (!canCancel && !canCancelPaid && !canReturn && !isShipped) return null;
 
@@ -370,7 +378,7 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
       <SectionTitle>{t("manage")}</SectionTitle>
 
       <div className="flex flex-col gap-[16px]">
-        {isShipped && (
+        {showInTransitNote && (
           <p className="m-0 text-[14px] leading-[1.6] text-ink">{t("shippedNoCancel")}</p>
         )}
         {error && <ErrorNote text={error} />}
