@@ -249,6 +249,20 @@ describe("주문 상세", () => {
     });
   });
 
+  it("끝나지 않은 다른 환불(REFUND_IN_PROGRESS) → 잠시 뒤에 다시", async () => {
+    signIn();
+    getOrder.mockResolvedValue(ORDER);
+    createClaim.mockRejectedValue(new ApiClientError("REFUND_IN_PROGRESS", "x", 409));
+    await renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "주문 취소 요청" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "취소 요청하기" }));
+    });
+    expect(screen.getByRole("alert").textContent).toBe(
+      "아직 끝나지 않은 환불이 있어요. 잠시 뒤에 다시 시도해 주세요.",
+    );
+  });
+
   it("취소할 수 없는 주문(CLAIM_NOT_ALLOWED) → 고객센터 안내", async () => {
     signIn();
     getOrder.mockResolvedValue(ORDER);
