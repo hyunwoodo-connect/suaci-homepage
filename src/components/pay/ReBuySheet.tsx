@@ -11,6 +11,7 @@ import MemoPicker, { memoLabel } from "@/components/pay/MemoPicker";
 import MethodPicker from "@/components/pay/MethodPicker";
 import { orderErrorKey } from "@/components/pay/orderError";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import { useCloseOnBack } from "@/hooks/useCloseOnBack";
 import { isAuthRequired } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { readLastProvider } from "@/lib/auth/social";
@@ -28,6 +29,7 @@ import { startPayment } from "@/lib/payment/start-payment";
 import { isTestClientKey } from "@/lib/payment/toss";
 import type { CheckoutDefaults } from "@/types";
 import Button from "@/components/ui/Button";
+import CloseButton from "@/components/ui/CloseButton";
 
 interface ReBuySheetProps {
   qty: number;
@@ -85,16 +87,18 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
     });
   }, [defaults.lastPaymentMethod, methods]);
 
+  const close = useCloseOnBack(true, onClose);
+
   useEffect(() => {
     panelRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") close();
     };
     window.addEventListener("keydown", onKey);
     return () => {
       window.removeEventListener("keydown", onKey);
     };
-  }, [onClose]);
+  }, [close]);
 
   const total = displayTotal(qty);
   const address = defaults.address;
@@ -120,7 +124,7 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
         customerKey: user?.userId ?? "anonymous",
       });
       if (alreadyPaidOrderId) {
-        router.push(`/orders/${alreadyPaidOrderId}`);
+        router.replace(`/orders/${alreadyPaidOrderId}`);
         return;
       }
       // 여기까지 오면 손님이 결제창을 닫은 것(결제되면 토스가 다른 주소로 보낸다) — 다시 누를 수 있게
@@ -137,12 +141,8 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
-      <button
-        type="button"
-        aria-label={tCommon("close")}
-        onClick={onClose}
-        className="absolute inset-0 cursor-default bg-ink/30"
-      />
+      {/* 바깥 누르기 — 읽는 길은 X 버튼이 맡는다 */}
+      <div aria-hidden="true" onClick={close} className="absolute inset-0 bg-ink/30" />
       <div
         ref={panelRef}
         role="dialog"
@@ -152,14 +152,18 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
         className="relative flex w-full max-w-[480px] flex-col gap-[16px] rounded-t-[20px] bg-paper px-[20px] pb-[32px] pt-[16px] outline-none"
       >
         <span aria-hidden="true" className="mx-auto h-[4px] w-[36px] rounded-full bg-line" />
-        <h2 id="rebuy-title" className="m-0 text-[17px] font-medium">
-          {t("title")}
-        </h2>
+        <div className="-mr-[12px] -my-[8px] flex items-center justify-between gap-[12px]">
+          <h2 id="rebuy-title" className="m-0 text-[17px] font-medium">
+            {t("title")}
+          </h2>
+          <CloseButton label={tCommon("close")} onClick={close} />
+        </div>
 
         <SheetRow
           label={t("address")}
           onChange={() => {
-            router.push(`/checkout?qty=${String(qty)}`);
+            // replace — 시트가 쌓은 기록 칸을 주문서가 차지해 뒤로가기 한 번에 홈으로 돌아온다
+            router.replace(`/checkout?qty=${String(qty)}`);
           }}
           changeLabel={t("change")}
         >

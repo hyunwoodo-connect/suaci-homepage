@@ -8,18 +8,27 @@ import { ApiClientError } from "@/lib/api";
 import { createMockAdapter } from "@/lib/payment/providers";
 import { readPendingOrder, savePendingOrder } from "@/lib/payment/pending";
 
-const { getCheckoutDefaults, createOrder, authState, navigate, selectMock, push, searchState } =
-  vi.hoisted(() => ({
-    getCheckoutDefaults: vi.fn(),
-    createOrder: vi.fn(),
-    authState: {
-      value: { status: "authenticated", user: { userId: "u1" } } as Record<string, unknown>,
-    },
-    navigate: vi.fn(),
-    selectMock: { value: true },
-    push: vi.fn(),
-    searchState: { value: "" },
-  }));
+const {
+  getCheckoutDefaults,
+  createOrder,
+  authState,
+  navigate,
+  selectMock,
+  push,
+  replace,
+  searchState,
+} = vi.hoisted(() => ({
+  getCheckoutDefaults: vi.fn(),
+  createOrder: vi.fn(),
+  authState: {
+    value: { status: "authenticated", user: { userId: "u1" } } as Record<string, unknown>,
+  },
+  navigate: vi.fn(),
+  selectMock: { value: true },
+  push: vi.fn(),
+  replace: vi.fn(),
+  searchState: { value: "" },
+}));
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
   api: { getCheckoutDefaults, createOrder },
@@ -28,7 +37,7 @@ vi.mock("@/lib/auth/auth-context", () => ({
   useAuth: () => authState.value,
 }));
 vi.mock("@/i18n/navigation", () => ({
-  useRouter: () => ({ push, replace: vi.fn() }),
+  useRouter: () => ({ push, replace }),
   Link: ({
     href,
     children,
@@ -277,7 +286,7 @@ describe("재구매 시트", () => {
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "₩31,000 결제하기" }));
     });
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/orders/prev"));
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/orders/prev"));
     expect(navigate).not.toHaveBeenCalled();
   });
 

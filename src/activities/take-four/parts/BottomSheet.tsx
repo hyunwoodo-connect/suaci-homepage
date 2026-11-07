@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import { useCloseOnBack } from "@/hooks/useCloseOnBack";
 
 interface BottomSheetProps {
   isOpen: boolean;
@@ -17,7 +18,7 @@ interface BottomSheetProps {
 
 const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
-/** 아래서 올라오는 시트. 뒤를 어둡게 덮고, Esc·바깥 탭으로 닫힌다. 열린 동안 포커스는 시트 안에서만 돈다. */
+/** 아래서 올라오는 시트. 뒤를 어둡게 덮고, Esc·바깥 탭·폰 뒤로가기로 닫힌다. 열린 동안 포커스는 시트 안에서만 돈다. */
 export default function BottomSheet({
   isOpen,
   onClose,
@@ -26,13 +27,9 @@ export default function BottomSheet({
   children,
 }: BottomSheetProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
-  // 부모가 렌더마다 새 onClose를 넘겨도 열린 동안 포커스를 다시 잡지 않도록 ref로 든다
-  const onCloseRef = useRef(onClose);
   useBodyScrollLock(isOpen);
-
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
+  // close 는 늘 같은 함수라 열린 동안 포커스를 다시 잡지 않는다
+  const close = useCloseOnBack(isOpen, onClose);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -41,7 +38,7 @@ export default function BottomSheet({
 
     function handleKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
-        onCloseRef.current();
+        close();
         return;
       }
       if (e.key !== "Tab" || !dialogRef.current) return;
@@ -70,7 +67,7 @@ export default function BottomSheet({
       // 닫히면 연 버튼으로 포커스를 돌려준다
       opener?.focus();
     };
-  }, [isOpen]);
+  }, [isOpen, close]);
 
   if (!isOpen) return null;
 
@@ -78,7 +75,7 @@ export default function BottomSheet({
     <div
       data-backdrop
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) close();
       }}
       className="fixed inset-0 z-10 flex items-end bg-(--tf-dim)"
     >
