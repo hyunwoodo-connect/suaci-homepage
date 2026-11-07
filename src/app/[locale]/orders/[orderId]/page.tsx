@@ -10,6 +10,7 @@ import { claimErrorKey } from "@/components/orders/claimError";
 import ClaimHistory from "@/components/orders/ClaimHistory";
 import ExchangeRequestForm from "@/components/orders/ExchangeRequestForm";
 import ReturnRequestForm from "@/components/orders/ReturnRequestForm";
+import ShippingAddressBox from "@/components/orders/ShippingAddressBox";
 import TrackingLine from "@/components/orders/TrackingLine";
 import { useClaimSubmit } from "@/components/orders/useClaimSubmit";
 import LoginRequired from "@/components/shell/LoginRequired";
@@ -185,16 +186,10 @@ function OrderDetail({ orderId }: { orderId: string }) {
               </b>
             </div>
           </div>
-          <div className={BOX}>
-            <SectionTitle>{t("shippingTo")}</SectionTitle>
-            <p className="m-0 text-[14px] leading-[24px] text-ink">
-              <b>{order.shippingAddress.recipient}</b>
-              <br />({order.shippingAddress.zipcode}) {order.shippingAddress.addr1}{" "}
-              {order.shippingAddress.addr2 ?? ""}
-              <br />
-              {order.shippingAddress.phone}
-            </p>
-          </div>
+          <ShippingAddressBox
+            order={order}
+            onChanged={(next) => setData((prev) => (prev ? { ...prev, order: next } : prev))}
+          />
         </div>
 
         <OrderActions

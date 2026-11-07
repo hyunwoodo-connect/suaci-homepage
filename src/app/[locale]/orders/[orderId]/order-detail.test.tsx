@@ -696,4 +696,92 @@ describe("주문 상세", () => {
       expect(screen.queryByRole("button", { name: "교환 신청" })).toBeNull();
     });
   });
+
+  describe("배송지 변경", () => {
+    const HOME = {
+      addressId: "a1",
+      label: "집",
+      recipient: "지우",
+      phone: "010-1234-5678",
+      zipcode: "13529",
+      addr1: "판교역로 166",
+      isDefault: true,
+    };
+    const OFFICE = {
+      addressId: "a2",
+      label: "회사",
+      recipient: "지우",
+      phone: "010-1234-5678",
+      zipcode: "06236",
+      addr1: "테헤란로 152",
+      addr2: "12층",
+      isDefault: false,
+    };
+
+    it("결제완료(상품 준비 전) → 배송지 목록에서 골라 바꾸면 주문 배송지가 바뀐다", async () => {
+      signIn();
+      getOrder.mockResolvedValue(ORDER);
+      listAddresses.mockResolvedValue([HOME, OFFICE]);
+      changeShippingAddress.mockResolvedValue({
+        ...ORDER,
+        shippingAddress: {
+          recipient: "지우",
+          phone: "010-1234-5678",
+          zipcode: "06236",
+          addr1: "테헤란로 152",
+          addr2: "12층",
+        },
+      });
+      await renderPage();
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "배송지 변경" }));
+      });
+      expect(screen.getByRole("link", { name: "새 배송지 추가" }).getAttribute("href")).toBe(
+        "/account/addresses",
+      );
+      fireEvent.click(screen.getByRole("radio", { name: /회사/ }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "이 주소로 바꾸기" }));
+      });
+      expect(changeShippingAddress).toHaveBeenCalledWith("o1", { addressId: "a2" });
+      expect(screen.getByText(/테헤란로 152/)).toBeTruthy();
+      expect(screen.getByText("배송지를 바꿨어요.")).toBeTruthy();
+    });
+
+    it("서버가 막으면(ADDRESS_CHANGE_NOT_ALLOWED) → 그 이유", async () => {
+      signIn();
+      getOrder.mockResolvedValue(ORDER);
+      listAddresses.mockResolvedValue([HOME, OFFICE]);
+      changeShippingAddress.mockRejectedValue(
+        new ApiClientError("ADDRESS_CHANGE_NOT_ALLOWED", "x", 409),
+      );
+      await renderPage();
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "배송지 변경" }));
+      });
+      fireEvent.click(screen.getByRole("radio", { name: /회사/ }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "이 주소로 바꾸기" }));
+      });
+      expect(screen.getByRole("alert").textContent).toBe(
+        "상품 준비가 시작돼 배송지를 바꿀 수 없어요. 고객센터로 문의해 주세요.",
+      );
+    });
+
+    it("상품준비중 → 변경 버튼 대신 메일 안내", async () => {
+      signIn();
+      getOrder.mockResolvedValue({ ...ORDER, fulfillmentStatus: "preparing" });
+      await renderPage();
+      expect(screen.queryByRole("button", { name: "배송지 변경" })).toBeNull();
+      expect(screen.getByText(/포장을 시작해서 배송지를 바꾸려면/)).toBeTruthy();
+    });
+
+    it("배송중 → 변경 버튼도 안내도 없다", async () => {
+      signIn();
+      getOrder.mockResolvedValue({ ...ORDER, fulfillmentStatus: "shipped" });
+      await renderPage();
+      expect(screen.queryByRole("button", { name: "배송지 변경" })).toBeNull();
+      expect(screen.queryByText(/포장을 시작해서 배송지를 바꾸려면/)).toBeNull();
+    });
+  });
 });
