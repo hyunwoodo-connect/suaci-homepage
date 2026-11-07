@@ -310,6 +310,11 @@
       "CLAIM_NOT_ALLOWED": "이 주문은 지금 취소·반품을 신청할 수 없어요. 고객센터로 문의해 주세요.",
       "OVER_REFUND": "신청한 금액이 환불 가능 금액보다 많아요.",
       "INVALID_CLAIM_QUANTITY": "고른 수량이 남은 수량보다 많아요. 화면을 새로 고쳐 다시 확인해 주세요.",
+      "RETURN_WINDOW_CLOSED": "반품 신청 기간이 지났어요. 고객센터로 문의해 주세요.",
+      "RETURN_ALREADY_REQUESTED": "이미 진행 중인 반품 신청이 있어요.",
+      "RETURN_NOT_ALLOWED": "이 주문은 지금 반품을 신청할 수 없어요. 고객센터로 문의해 주세요.",
+      "RETURN_UNOPENED_REQUIRED": "단순 변심 반품은 밀봉을 뜯지 않았고 사용하지 않았는지 확인해 주세요.",
+      "NOTHING_TO_REFUND": "반품 배송비를 빼면 돌려드릴 금액이 없어요.",
       "default": "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
     },
     "cardNote": "카드사 사정에 따라 환불이 카드에 반영되기까지 3~7영업일이 더 걸릴 수 있어요.",
@@ -341,14 +346,7 @@
     "cancel": "닫기",
     "after": "보내실 곳과 방법을 메일로 안내해 드려요. 상품이 도착하면 확인한 뒤 3영업일 안에 환불해 드려요.",
     "returnFee": "반품 배송비 {amount} 차감",
-    "shippingBack": "처음 배송비 {amount} 포함",
-    "error": {
-      "RETURN_WINDOW_CLOSED": "반품 신청 기간이 지났어요. 고객센터로 문의해 주세요.",
-      "RETURN_ALREADY_REQUESTED": "이미 진행 중인 반품 신청이 있어요.",
-      "RETURN_NOT_ALLOWED": "이 주문은 지금 반품을 신청할 수 없어요. 고객센터로 문의해 주세요.",
-      "RETURN_UNOPENED_REQUIRED": "단순 변심 반품은 밀봉을 뜯지 않았고 사용하지 않았는지 확인해 주세요.",
-      "NOTHING_TO_REFUND": "반품 배송비를 빼면 돌려드릴 금액이 없어요."
-    }
+    "shippingBack": "처음 배송비 {amount} 포함"
   },
   "exchanges": {
     "qty": "{n}개",

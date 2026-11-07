@@ -4,24 +4,18 @@ import { useState } from "react";
 
 import { useTranslations } from "next-intl";
 
-import { CHIP, CHIP_OFF, CHIP_ON } from "@/components/pay/chip";
 import Button from "@/components/ui/Button";
-import { api, ApiClientError } from "@/lib/api";
+import { api } from "@/lib/api";
 import { formatKRW } from "@/lib/format";
-import { RETURN_REASONS, returnQuote, returnWindow, remainingQty } from "@/lib/claims/rules";
+import { RETURN_REASONS, remainingQty, returnQuote, returnWindow } from "@/lib/claims/rules";
 import type { Claim, Order, ReturnReason } from "@/types";
 
-import QtyStepper from "./QtyStepper";
+import { claimErrorKey } from "./claimError";
+import DetailField from "./DetailField";
+import LinesPicker from "./LinesPicker";
+import ReasonPicker from "./ReasonPicker";
 import { useClaimSubmit } from "./useClaimSubmit";
-
-/** 반품 신청이 막힌 이유 중 손님에게 따로 알리는 코드 — 메시지 `returns.error.{code}`. 그 밖은 claims.error.default */
-const RETURN_ERRORS: readonly string[] = [
-  "RETURN_WINDOW_CLOSED",
-  "RETURN_ALREADY_REQUESTED",
-  "RETURN_NOT_ALLOWED",
-  "RETURN_UNOPENED_REQUIRED",
-  "NOTHING_TO_REFUND",
-];
+import { useLineSelection } from "./useLineSelection";
 
 interface ReturnRequestFormProps {
   order: Order;
@@ -48,22 +42,17 @@ export default function ReturnRequestForm({
   const [reason, setReason] = useState<ReturnReason>(changeOfMindOpen ? "단순변심" : "상품하자");
   const [detail, setDetail] = useState("");
   const [unopened, setUnopened] = useState(false);
-  const [scope, setScope] = useState<"full" | "partial">("full");
-  const [qty, setQty] = useState<Record<string, number>>({});
   const { busy, run } = useClaimSubmit();
   const [error, setError] = useState<string | null>(null);
 
   const left = remainingQty(order, claims);
-  const partialLines = order.items
-    .map((it) => ({ lineId: it.lineId, quantity: qty[it.lineId] ?? 0 }))
-    .filter((l) => l.quantity > 0);
-  const partialInvalid = scope === "partial" && partialLines.length === 0;
+  const pick = useLineSelection(order, left);
   const needsUnopened = reason === "단순변심";
-  const quote = returnQuote(order, claims, reason, scope === "partial" ? partialLines : undefined);
+  const quote = returnQuote(order, claims, reason, pick.lines);
   // 고를 상품이 없거나(이미 다 돌려받음) 반품 배송비를 빼면 남는 돈이 없으면 보내지 않는다
   const blocked =
     busy ||
-    partialInvalid ||
+    pick.partialEmpty ||
     (needsUnopened && !unopened) ||
     quote.itemsAmount <= 0 ||
     quote.refundAmount <= 0;
@@ -78,16 +67,12 @@ export default function ReturnRequestForm({
           idempotencyKey,
           reasonCode: reason,
           reasonDetail: detail.trim() || undefined,
-          lines: scope === "partial" ? partialLines : undefined,
+          lines: pick.lines,
           unopenedConfirmed: needsUnopened && unopened,
         });
         await onDone();
       } catch (err) {
-        setError(
-          err instanceof ApiClientError && RETURN_ERRORS.includes(err.code)
-            ? t(`error.${err.code}`)
-            : tc("error.default"),
-        );
+        setError(tc(claimErrorKey(err)));
       }
     });
   };
@@ -103,31 +88,17 @@ export default function ReturnRequestForm({
         </p>
       )}
 
-      {/* 사유 */}
-      <fieldset className="m-0 border-0 p-0">
-        <legend className="mb-[12px] p-0 text-[16px] font-medium text-ink">{t("formTitle")}</legend>
-        <div className="flex flex-wrap gap-[8px]">
-          {RETURN_REASONS.map((code) => {
-            const active = reason === code;
-            const closed = code === "단순변심" && !changeOfMindOpen;
-            return (
-              <button
-                key={code}
-                type="button"
-                aria-pressed={active}
-                disabled={closed}
-                onClick={() => setReason(code)}
-                className={`${CHIP} ${active ? CHIP_ON : CHIP_OFF} disabled:pointer-events-none disabled:opacity-40`}
-              >
-                {tc(`reasonCode.${code}`)}
-              </button>
-            );
-          })}
-        </div>
+      <ReasonPicker
+        legend={t("formTitle")}
+        reasons={RETURN_REASONS}
+        value={reason}
+        onChange={setReason}
+        isDisabled={(code) => code === "단순변심" && !changeOfMindOpen}
+      >
         {!changeOfMindOpen && (
           <p className="m-0 mt-[10px] text-[13px] text-grey">{t("changeOfMindClosed")}</p>
         )}
-      </fieldset>
+      </ReasonPicker>
 
       {/* 단순 변심 — 미개봉·미사용 확인(환불 정책 v2) */}
       {needsUnopened && (
@@ -145,65 +116,29 @@ export default function ReturnRequestForm({
         </div>
       )}
 
-      {/* 상세 (선택) */}
-      <div>
-        <label htmlFor="return-detail" className="mb-[6px] block text-[13px] text-grey">
-          {t("detail")}
-        </label>
-        <textarea
-          id="return-detail"
-          value={detail}
-          onChange={(e) => setDetail(e.target.value)}
-          rows={3}
-          placeholder={t("detailPlaceholder")}
-          className="w-full resize-y border border-line bg-paper px-[12px] py-[11px] text-[16px] text-ink outline-none transition-colors placeholder:text-grey/50 focus:border-ink"
-        />
-      </div>
+      <DetailField
+        id="return-detail"
+        label={t("detail")}
+        placeholder={t("detailPlaceholder")}
+        value={detail}
+        onChange={setDetail}
+      />
 
-      {/* 범위 */}
-      <fieldset className="m-0 border-0 p-0">
-        <legend className="mb-[10px] p-0 text-[13px] text-grey">{t("scope")}</legend>
-        <div className="flex gap-[8px]">
-          {(["full", "partial"] as const).map((s) => {
-            const active = scope === s;
-            return (
-              <button
-                key={s}
-                type="button"
-                aria-pressed={active}
-                onClick={() => setScope(s)}
-                className={`${CHIP} flex-1 justify-center ${active ? CHIP_ON : CHIP_OFF}`}
-              >
-                {t(s === "full" ? "scopeFull" : "scopePartial")}
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      {scope === "partial" && (
-        <ul className="m-0 list-none border border-line p-0">
-          {order.items.map((item) => (
-            <li
-              key={item.lineId}
-              className="flex flex-wrap items-center gap-[12px] border-b border-line px-[14px] py-[12px] last:border-b-0"
-            >
-              <div className="min-w-[140px] flex-1">
-                <b className="block text-[15px] font-medium">{item.productName}</b>
-                <span className="text-[13px] text-grey">
-                  {item.optionName} · {tc("ownedQty", { n: left[item.lineId] ?? 0 })}
-                </span>
-              </div>
-              <QtyStepper
-                value={qty[item.lineId] ?? 0}
-                max={left[item.lineId] ?? 0}
-                onChange={(n) => setQty((prev) => ({ ...prev, [item.lineId]: n }))}
-              />
-            </li>
-          ))}
-        </ul>
-      )}
-      {partialInvalid && <p className="m-0 text-[13px] text-grey">{t("partialHint")}</p>}
+      <LinesPicker
+        order={order}
+        left={left}
+        scope={pick.scope}
+        onScope={pick.setScope}
+        qty={pick.qty}
+        onQty={pick.setLineQty}
+        labels={{
+          legend: t("scope"),
+          full: t("scopeFull"),
+          partial: t("scopePartial"),
+          hint: t("partialHint"),
+        }}
+        partialEmpty={pick.partialEmpty}
+      />
 
       {/* 예상 환불 금액 — 반품 배송비를 뺀 내역을 환불 전에 보여 준다(환불 정책 v2) */}
       <section aria-label={t("quoteTitle")} className="border border-line p-[16px]">

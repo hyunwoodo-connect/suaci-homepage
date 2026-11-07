@@ -310,6 +310,11 @@
       "CLAIM_NOT_ALLOWED": "この注文は現在キャンセル・返品を申請できません。カスタマーサービスにお問い合わせください。",
       "OVER_REFUND": "申請金額が返金可能額を超えています。",
       "INVALID_CLAIM_QUANTITY": "選んだ数量が残りの数量より多いです。画面を更新してもう一度ご確認ください。",
+      "RETURN_WINDOW_CLOSED": "返品申請の期間が過ぎました。お問い合わせください。",
+      "RETURN_ALREADY_REQUESTED": "すでに手続き中の返品申請があります。",
+      "RETURN_NOT_ALLOWED": "このご注文は現在返品を申請できません。お問い合わせください。",
+      "RETURN_UNOPENED_REQUIRED": "お客様都合の返品は未開封・未使用であることをご確認ください。",
+      "NOTHING_TO_REFUND": "返品送料を差し引くと返金できる金額がありません。",
       "default": "リクエストを処理できませんでした。しばらくしてからもう一度お試しください。"
     },
     "cardNote": "カード会社によっては、返金がカードに反映されるまでさらに3〜7営業日かかる場合があります。",
@@ -341,14 +346,7 @@
     "cancel": "閉じる",
     "after": "送り先と方法をメールでご案内します。商品の到着を確認後、3営業日以内に返金します。",
     "returnFee": "返品送料 {amount} を差し引き",
-    "shippingBack": "最初の送料 {amount} を含む",
-    "error": {
-      "RETURN_WINDOW_CLOSED": "返品申請の期間が過ぎました。お問い合わせください。",
-      "RETURN_ALREADY_REQUESTED": "すでに手続き中の返品申請があります。",
-      "RETURN_NOT_ALLOWED": "このご注文は現在返品を申請できません。お問い合わせください。",
-      "RETURN_UNOPENED_REQUIRED": "お客様都合の返品は未開封・未使用であることをご確認ください。",
-      "NOTHING_TO_REFUND": "返品送料を差し引くと返金できる金額がありません。"
-    }
+    "shippingBack": "最初の送料 {amount} を含む"
   },
   "exchanges": {
     "qty": "{n}点",

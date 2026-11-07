@@ -5,12 +5,12 @@ import { Suspense, use, useCallback, useEffect, useState, type ReactNode } from 
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 
+import CancelRequestForm from "@/components/orders/CancelRequestForm";
+import { claimErrorKey } from "@/components/orders/claimError";
 import ClaimHistory from "@/components/orders/ClaimHistory";
-import QtyStepper from "@/components/orders/QtyStepper";
 import ReturnRequestForm from "@/components/orders/ReturnRequestForm";
 import TrackingLine from "@/components/orders/TrackingLine";
 import { useClaimSubmit } from "@/components/orders/useClaimSubmit";
-import { CHIP, CHIP_OFF, CHIP_ON } from "@/components/pay/chip";
 import LoginRequired from "@/components/shell/LoginRequired";
 import PageShell from "@/components/shell/PageShell";
 import Badge from "@/components/ui/Badge";
@@ -18,21 +18,13 @@ import Button from "@/components/ui/Button";
 import ButtonLink from "@/components/ui/ButtonLink";
 import Skeleton from "@/components/ui/Skeleton";
 import { BUSINESS } from "@/constants/site";
-import { api, ApiClientError, isAuthRequired, isNotFound } from "@/lib/api";
+import { api, isAuthRequired, isNotFound } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { formatKRW } from "@/lib/format";
-import { canRequestCancel, canRequestReturn, remainingQty } from "@/lib/claims/rules";
-import { REASON_CODES, type Claim, type Order, type OrderItem, type ReasonCode } from "@/types";
+import { canRequestCancel, canRequestReturn, isShippedPaid } from "@/lib/claims/rules";
+import type { Claim, Order } from "@/types";
 
 import { ORDER_STATE_TONE, orderState } from "../orderState";
-
-/** 취소·취소 요청이 막힌 이유 중 손님에게 따로 알리는 코드 — 메시지 `claims.error.{code}`. 그 밖은 default */
-const CLAIM_ERRORS: readonly string[] = [
-  "ORDER_NOT_CANCELLABLE",
-  "CLAIM_NOT_ALLOWED",
-  "OVER_REFUND",
-  "INVALID_CLAIM_QUANTITY",
-];
 
 // 실제 화면과 뼈대가 같은 크기가 되도록 상자·줄 틀을 한 곳에서 쓴다
 const BOX = "border border-line p-[16px]";
@@ -346,17 +338,9 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
   const canReturn = canRequestReturn(order, claims, now);
 
   // 발송된 결제 주문은 취소 버튼이 사라진 자리에 이유와 다음 길(반품·교환, 안 되면 메일)을 둔다 — 막다른 화면이 되지 않게
-  const isShipped =
-    (order.paymentStatus === "paid" || order.paymentStatus === "partially_refunded") &&
-    (order.fulfillmentStatus === "shipped" || order.fulfillmentStatus === "delivered");
+  const isShipped = isShippedPaid(order);
 
   if (!canCancel && !canCancelPaid && !canReturn && !isShipped) return null;
-
-  function errText(err: unknown): string {
-    return err instanceof ApiClientError && CLAIM_ERRORS.includes(err.code)
-      ? tc(`error.${err.code}`)
-      : tc("error.default");
-  }
 
   const handleCancel = () =>
     run(async () => {
@@ -366,7 +350,7 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
         setConfirmCancel(false);
         await onDone();
       } catch (err) {
-        setError(errText(err));
+        setError(tc(claimErrorKey(err)));
       }
     });
 
@@ -430,7 +414,6 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
               order={order}
               claims={claims}
               onClose={() => setCancelFormOpen(false)}
-              errText={errText}
               onDone={async () => {
                 setCancelFormOpen(false);
                 await onDone();
@@ -466,168 +449,6 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
         {isShipped && <ContactNote />}
       </div>
     </section>
-  );
-}
-
-/* ─── 취소 요청 폼 ───────────────────────────── */
-
-interface CancelRequestFormProps {
-  order: Order;
-  claims: Claim[];
-  onClose: () => void;
-  errText: (err: unknown) => string;
-  onDone: () => Promise<void>;
-}
-
-/** 결제했고 아직 안 보낸 주문의 취소 요청 — 백엔드에는 클레임(createClaim)으로 간다. 사유 값은 API 값 그대로, 화면 이름만 claims.reasonCode.* */
-function CancelRequestForm({ order, claims, onClose, errText, onDone }: CancelRequestFormProps) {
-  const tc = useTranslations("claims");
-  const { busy, run } = useClaimSubmit();
-  const [error, setError] = useState<string | null>(null);
-
-  const [reasonCode, setReasonCode] = useState<ReasonCode>("단순변심");
-  const [reasonDetail, setReasonDetail] = useState("");
-  const [scope, setScope] = useState<"full" | "partial">("full");
-  // 일부 취소: lineId → 취소 수량 (0 = 안 고름). 이미 취소·환불된 수량은 고를 수 없다
-  const [qty, setQty] = useState<Record<string, number>>({});
-  const left = remainingQty(order, claims);
-
-  const setLineQty = (item: OrderItem, next: number) => {
-    const clamped = Math.max(0, Math.min(left[item.lineId] ?? 0, next));
-    setQty((prev) => ({ ...prev, [item.lineId]: clamped }));
-  };
-
-  const partialLines = order.items
-    .map((it) => ({ lineId: it.lineId, quantity: qty[it.lineId] ?? 0 }))
-    .filter((l) => l.quantity > 0);
-
-  const partialInvalid = scope === "partial" && partialLines.length === 0;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (partialInvalid) return;
-    await run(async (idempotencyKey) => {
-      setError(null);
-      try {
-        await api.createClaim(order.orderId, {
-          idempotencyKey,
-          reasonCode,
-          reasonDetail: reasonDetail.trim() || undefined,
-          lines: scope === "partial" ? partialLines : undefined,
-        });
-        await onDone();
-      } catch (err) {
-        setError(errText(err));
-      }
-    });
-  };
-
-  return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex flex-col gap-[20px] border-t border-line pt-[16px]"
-    >
-      {error && <ErrorNote text={error} />}
-
-      {/* 사유 */}
-      <fieldset className="m-0 border-0 p-0">
-        <legend className="mb-[12px] p-0 text-[16px] font-medium text-ink">
-          {tc("formTitle")}
-        </legend>
-        <div className="flex flex-wrap gap-[8px]">
-          {REASON_CODES.map((code) => {
-            const active = reasonCode === code;
-            return (
-              <button
-                key={code}
-                type="button"
-                aria-pressed={active}
-                onClick={() => setReasonCode(code)}
-                className={`${CHIP} ${active ? CHIP_ON : CHIP_OFF}`}
-              >
-                {tc(`reasonCode.${code}`)}
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      {/* 상세 (선택) */}
-      <div>
-        <label htmlFor="cancel-detail" className="mb-[6px] block text-[13px] text-grey">
-          {tc("detail")}
-        </label>
-        <textarea
-          id="cancel-detail"
-          value={reasonDetail}
-          onChange={(e) => setReasonDetail(e.target.value)}
-          rows={3}
-          placeholder={tc("detailPlaceholder")}
-          className="w-full resize-y border border-line bg-paper px-[12px] py-[11px] text-[16px] text-ink outline-none transition-colors placeholder:text-grey/50 focus:border-ink"
-        />
-      </div>
-
-      {/* 범위 */}
-      <fieldset className="m-0 border-0 p-0">
-        <legend className="mb-[10px] p-0 text-[13px] text-grey">{tc("scope")}</legend>
-        <div className="flex gap-[8px]">
-          {(["full", "partial"] as const).map((s) => {
-            const active = scope === s;
-            return (
-              <button
-                key={s}
-                type="button"
-                aria-pressed={active}
-                onClick={() => setScope(s)}
-                className={`${CHIP} flex-1 justify-center ${active ? CHIP_ON : CHIP_OFF}`}
-              >
-                {tc(s === "full" ? "scopeFull" : "scopePartial")}
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      {/* 일부 취소 — 줄마다 수량 */}
-      {scope === "partial" && (
-        <ul className="m-0 list-none border border-line p-0">
-          {order.items.map((item) => {
-            const value = qty[item.lineId] ?? 0;
-            return (
-              <li
-                key={item.lineId}
-                className="flex flex-wrap items-center gap-[12px] border-b border-line px-[14px] py-[12px] last:border-b-0"
-              >
-                <div className="min-w-[140px] flex-1">
-                  <b className="block text-[15px] font-medium">{item.productName}</b>
-                  <span className="text-[13px] text-grey">
-                    {item.optionName} · {tc("ownedQty", { n: left[item.lineId] ?? 0 })}
-                  </span>
-                </div>
-                <QtyStepper
-                  value={value}
-                  max={left[item.lineId] ?? 0}
-                  onChange={(n) => setLineQty(item, n)}
-                />
-              </li>
-            );
-          })}
-        </ul>
-      )}
-
-      {partialInvalid && <p className="m-0 text-[13px] text-grey">{tc("partialHint")}</p>}
-
-      <div className="flex flex-wrap items-center gap-[8px_20px]">
-        <Button type="submit" variant="danger" size="sm" disabled={busy || partialInvalid}>
-          {busy ? "…" : tc("submit")}
-        </Button>
-        <Button type="button" variant="text" size="sm" disabled={busy} onClick={onClose}>
-          {tc("cancel")}
-        </Button>
-      </div>
-
-      <p className="m-0 text-[13px] leading-[1.6] text-grey">{tc("cardNote")}</p>
-    </form>
   );
 }
 
