@@ -8,6 +8,8 @@ import type {
   CreateAddressRequest,
   CreateClaimRequest,
   CreateReturnRequest,
+  CreateExchangeRequest,
+  ChangeShippingAddressRequest,
   CreateOrderRequest,
   LoginRequest,
   Order,
@@ -177,6 +179,29 @@ export function createHttpClient(baseUrl?: string): ApiClient {
       return unwrap(
         await authedRequest<Envelope<Claim>>(`/orders/${orderId}/returns`, {
           method: "POST",
+          body: r,
+        }),
+      );
+    },
+    async createExchange(orderId: string, r: CreateExchangeRequest) {
+      return unwrap(
+        await authedRequest<Envelope<Claim>>(`/orders/${orderId}/exchanges`, {
+          method: "POST",
+          body: r,
+        }),
+      );
+    },
+    async withdrawClaim(orderId: string, claimId: string) {
+      return unwrap(
+        await authedRequest<Envelope<Claim>>(`/orders/${orderId}/claims/${claimId}/withdraw`, {
+          method: "POST",
+        }),
+      );
+    },
+    async changeShippingAddress(orderId: string, r: ChangeShippingAddressRequest) {
+      return unwrap(
+        await authedRequest<Envelope<Order>>(`/orders/${orderId}/shipping-address`, {
+          method: "PUT",
           body: r,
         }),
       );

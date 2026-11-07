@@ -270,15 +270,40 @@
     "partialHint": "취소할 수량을 선택해 주세요",
     "submit": "취소 요청하기",
     "cancel": "닫기",
-    "historyTitle": "취소·환불 내역",
+    "historyTitle": "취소·반품·교환 내역",
     "refundDue": "{date}까지 환불 예정",
     "requestedAt": "{date} 신청",
     "status": {
-      "requested": "접수됨",
-      "approved": "환불 처리 중",
-      "rejected": "거절됨",
-      "completed": "환불 완료",
-      "failed": "환불 처리 중"
+      "cancel": {
+        "requested": "환불 처리 중",
+        "approved": "환불 처리 중",
+        "failed": "환불 처리 중",
+        "received": "환불 처리 중",
+        "shipped": "환불 처리 중",
+        "completed": "환불 완료",
+        "rejected": "취소 거절",
+        "withdrawn": "신청 철회"
+      },
+      "return": {
+        "requested": "반품 신청됨",
+        "approved": "환불 처리 중",
+        "failed": "환불 처리 중",
+        "received": "환불 처리 중",
+        "shipped": "환불 처리 중",
+        "completed": "환불 완료",
+        "rejected": "반품 거절",
+        "withdrawn": "신청 철회"
+      },
+      "exchange": {
+        "requested": "교환 신청됨",
+        "received": "회수 확인",
+        "shipped": "교환 상품 발송",
+        "approved": "회수 확인",
+        "failed": "회수 확인",
+        "completed": "교환 완료",
+        "rejected": "교환 거절",
+        "withdrawn": "신청 철회"
+      }
     },
     "error": {
       "ORDER_NOT_CANCELLABLE": "이 주문은 취소할 수 없어요",
@@ -287,7 +312,13 @@
       "INVALID_CLAIM_QUANTITY": "고른 수량이 남은 수량보다 많아요. 화면을 새로 고쳐 다시 확인해 주세요.",
       "default": "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
     },
-    "cardNote": "카드사 사정에 따라 환불이 카드에 반영되기까지 3~7영업일이 더 걸릴 수 있어요."
+    "cardNote": "카드사 사정에 따라 환불이 카드에 반영되기까지 3~7영업일이 더 걸릴 수 있어요.",
+    "type": {
+      "cancel": "취소",
+      "return": "반품",
+      "exchange": "교환"
+    },
+    "rejectReason": "거절 이유: {reason}"
   },
   "returns": {
     "formTitle": "반품 사유 선택",
@@ -309,18 +340,8 @@
     "submit": "반품 신청하기",
     "cancel": "닫기",
     "after": "보내실 곳과 방법을 메일로 안내해 드려요. 상품이 도착하면 확인한 뒤 3영업일 안에 환불해 드려요.",
-    "typeReturn": "반품",
-    "typeCancel": "취소",
-    "status": {
-      "requested": "반품 신청됨",
-      "approved": "환불 처리 중",
-      "failed": "환불 처리 중",
-      "completed": "환불 완료",
-      "rejected": "반품 거절"
-    },
     "returnFee": "반품 배송비 {amount} 차감",
     "shippingBack": "처음 배송비 {amount} 포함",
-    "rejectReason": "거절 이유: {reason}",
     "error": {
       "RETURN_WINDOW_CLOSED": "반품 신청 기간이 지났어요. 고객센터로 문의해 주세요.",
       "RETURN_ALREADY_REQUESTED": "이미 진행 중인 반품 신청이 있어요.",
@@ -328,6 +349,10 @@
       "RETURN_UNOPENED_REQUIRED": "단순 변심 반품은 밀봉을 뜯지 않았고 사용하지 않았는지 확인해 주세요.",
       "NOTHING_TO_REFUND": "반품 배송비를 빼면 돌려드릴 금액이 없어요."
     }
+  },
+  "exchanges": {
+    "qty": "{n}개",
+    "after": "보내실 곳과 방법을 메일로 안내해 드려요. 돌아온 상품을 확인하면 새 제품을 보내 드려요."
   },
   "events": {
     "title": "이벤트",

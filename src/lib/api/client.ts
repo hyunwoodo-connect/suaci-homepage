@@ -20,6 +20,8 @@ import type {
   Claim,
   CreateClaimRequest,
   CreateReturnRequest,
+  CreateExchangeRequest,
+  ChangeShippingAddressRequest,
   ApiPage,
   PageParams,
 } from "@/types";
@@ -50,4 +52,9 @@ export interface ApiClient {
   listClaims(orderId: string): Promise<Claim[]>;
   createClaim(orderId: string, r: CreateClaimRequest): Promise<Claim>;
   createReturn(orderId: string, r: CreateReturnRequest): Promise<Claim>;
+  createExchange(orderId: string, r: CreateExchangeRequest): Promise<Claim>;
+  /** 신청 상태(requested)인 반품·교환을 손님이 거둔다 */
+  withdrawClaim(orderId: string, claimId: string): Promise<Claim>;
+  /** 결제 뒤 상품 준비 전 주문의 배송지를 손님 배송지 목록의 하나로 바꾼다 */
+  changeShippingAddress(orderId: string, r: ChangeShippingAddressRequest): Promise<Order>;
 }

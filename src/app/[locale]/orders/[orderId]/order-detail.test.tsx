@@ -491,6 +491,49 @@ describe("주문 상세", () => {
       expect(screen.getByText(/보내실 곳과 방법을 메일로 안내해 드려요/)).toBeTruthy();
     });
 
+    it("교환 새 제품 발송 → '교환 상품 발송'·택배사·송장·배송 조회(새 탭), 금액 대신 수량", async () => {
+      signIn();
+      getOrder.mockResolvedValue(delivered(5));
+      listClaims.mockResolvedValue([
+        returnClaim({
+          type: "exchange",
+          status: "shipped",
+          reasonCode: "상품하자",
+          refundAmount: 0,
+          returnShippingFee: 0,
+          carrier: "hanjin",
+          trackingNumber: "555",
+          trackingUrl: "https://hanjin.example/555",
+        }),
+      ]);
+      await renderPage();
+      expect(screen.getByText("교환 상품 발송")).toBeTruthy();
+      expect(screen.getByText("교환 · 상품 불량(파손·누액 포함)")).toBeTruthy();
+      expect(screen.getByText("한진택배 555")).toBeTruthy();
+      const links = screen.getAllByRole("link", { name: "배송 조회" });
+      expect(links.map((a) => a.getAttribute("href"))).toContain("https://hanjin.example/555");
+      expect(screen.getByText("1개")).toBeTruthy();
+      expect(screen.queryByText("₩0")).toBeNull();
+    });
+
+    it("거절된 교환 → '교환 거절'과 이유, 철회한 반품 → '신청 철회'", async () => {
+      signIn();
+      getOrder.mockResolvedValue(delivered(5));
+      listClaims.mockResolvedValue([
+        returnClaim({
+          claimId: "e1",
+          type: "exchange",
+          status: "rejected",
+          rejectReason: "새 제품과 같은 상태예요",
+        }),
+        returnClaim({ claimId: "r2", status: "withdrawn" }),
+      ]);
+      await renderPage();
+      expect(screen.getByText("교환 거절")).toBeTruthy();
+      expect(screen.getByText("거절 이유: 새 제품과 같은 상태예요")).toBeTruthy();
+      expect(screen.getByText("신청 철회")).toBeTruthy();
+    });
+
     it("거절된 반품 → 거절 이유를 보여 주고 다시 신청할 수 있다", async () => {
       signIn();
       getOrder.mockResolvedValue(delivered(2));

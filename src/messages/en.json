@@ -270,15 +270,40 @@
     "partialHint": "choose how many to cancel",
     "submit": "request cancellation",
     "cancel": "close",
-    "historyTitle": "cancellations & refunds",
+    "historyTitle": "cancellations, returns & exchanges",
     "refundDue": "refund expected by {date}",
     "requestedAt": "requested {date}",
     "status": {
-      "requested": "received",
-      "approved": "refund in progress",
-      "rejected": "rejected",
-      "completed": "refunded",
-      "failed": "refund in progress"
+      "cancel": {
+        "requested": "refund in progress",
+        "approved": "refund in progress",
+        "failed": "refund in progress",
+        "received": "refund in progress",
+        "shipped": "refund in progress",
+        "completed": "refunded",
+        "rejected": "cancellation declined",
+        "withdrawn": "request withdrawn"
+      },
+      "return": {
+        "requested": "return requested",
+        "approved": "refund in progress",
+        "failed": "refund in progress",
+        "received": "refund in progress",
+        "shipped": "refund in progress",
+        "completed": "refunded",
+        "rejected": "return declined",
+        "withdrawn": "request withdrawn"
+      },
+      "exchange": {
+        "requested": "exchange requested",
+        "received": "item received",
+        "shipped": "replacement shipped",
+        "approved": "item received",
+        "failed": "item received",
+        "completed": "exchanged",
+        "rejected": "exchange declined",
+        "withdrawn": "request withdrawn"
+      }
     },
     "error": {
       "ORDER_NOT_CANCELLABLE": "this order can't be cancelled",
@@ -287,7 +312,13 @@
       "INVALID_CLAIM_QUANTITY": "you chose more than what's left. refresh the page and check again.",
       "default": "we couldn't process your request. please try again in a moment."
     },
-    "cardNote": "depending on your card issuer, the refund may take another 3–7 business days to show on your card."
+    "cardNote": "depending on your card issuer, the refund may take another 3–7 business days to show on your card.",
+    "type": {
+      "cancel": "cancellation",
+      "return": "return",
+      "exchange": "exchange"
+    },
+    "rejectReason": "reason: {reason}"
   },
   "returns": {
     "formTitle": "reason for return",
@@ -309,18 +340,8 @@
     "submit": "request return",
     "cancel": "close",
     "after": "we'll email you where and how to send it. once it arrives and we've checked it, we refund within 3 business days.",
-    "typeReturn": "return",
-    "typeCancel": "cancellation",
-    "status": {
-      "requested": "return requested",
-      "approved": "refund in progress",
-      "failed": "refund in progress",
-      "completed": "refunded",
-      "rejected": "return declined"
-    },
     "returnFee": "return shipping {amount} deducted",
     "shippingBack": "includes original shipping {amount}",
-    "rejectReason": "reason: {reason}",
     "error": {
       "RETURN_WINDOW_CLOSED": "the return period has ended. please contact us.",
       "RETURN_ALREADY_REQUESTED": "there's already a return request in progress.",
@@ -328,6 +349,10 @@
       "RETURN_UNOPENED_REQUIRED": "for a change-of-mind return, please confirm the seal is intact and the product is unused.",
       "NOTHING_TO_REFUND": "after return shipping there's nothing left to refund."
     }
+  },
+  "exchanges": {
+    "qty": "{n} item(s)",
+    "after": "we'll email you where and how to send it. once we've checked the returned item, we'll send you a new one."
   },
   "events": {
     "title": "Events",

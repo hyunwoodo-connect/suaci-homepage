@@ -70,6 +70,10 @@ export interface CreateOrderRequest {
   items: OrderLineRequest[];
   metadata?: Metadata;
 }
+/** 결제 뒤 상품 준비 전까지 손님이 배송지를 바꾼다 — 배송지 목록의 하나 */
+export interface ChangeShippingAddressRequest {
+  addressId: string;
+}
 export interface ConfirmPaymentRequest {
   paymentKey: string;
   amount: number;

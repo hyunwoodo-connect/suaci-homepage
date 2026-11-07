@@ -8,6 +8,8 @@ import type {
   CreateAddressRequest,
   CreateClaimRequest,
   CreateReturnRequest,
+  CreateExchangeRequest,
+  ChangeShippingAddressRequest,
   CreateOrderRequest,
   Order,
   OrderItem,
@@ -26,7 +28,18 @@ import { ApiClientError } from "../errors";
 import { effectivePrice } from "@/lib/format";
 import { tokenStore } from "@/lib/auth/token-store";
 import { CHECKOUT_PRICING } from "@/constants/checkout";
-import { canRequestReturn, remainingQty, returnQuote, returnWindow } from "@/lib/claims/rules";
+import {
+  canChangeShippingAddress,
+  canRequestReturn,
+  canWithdraw,
+  EXCHANGE_REASONS,
+  hasOpenAfterDelivery,
+  hasRefundInFlight,
+  isShippedPaid,
+  remainingQty,
+  returnQuote,
+  returnWindow,
+} from "@/lib/claims/rules";
 import { demoUser, products } from "@/data/fixtures";
 import { store } from "./store";
 
@@ -372,11 +385,17 @@ export function createMockClient(): ApiClient {
         throw new ApiClientError("CLAIM_NOT_ALLOWED", "클레임을 생성할 수 없는 주문입니다", 409);
       }
 
+      const mine = claims.filter((c) => c.orderId === orderId);
+      // 환불 잠금 — 끝나지 않은 환불이 있으면 서버처럼 늦은 쪽을 거절한다
+      if (hasRefundInFlight(mine)) {
+        throw new ApiClientError(
+          "REFUND_IN_PROGRESS",
+          "이 주문에 아직 끝나지 않은 다른 환불이 있습니다",
+          409,
+        );
+      }
       // 남은 수량(이미 취소·환불된 수량을 뺀 것)을 넘으면 서버처럼 거절한다
-      const left = remainingQty(
-        order,
-        claims.filter((c) => c.orderId === orderId),
-      );
+      const left = remainingQty(order, mine);
       const lines: ClaimLine[] = (r.lines ?? []).map((l) => {
         const item = order.items.find((i) => i.lineId === l.lineId);
         if (!item)
@@ -465,11 +484,8 @@ export function createMockClient(): ApiClient {
       const order = store.readOrders().find((o) => o.orderId === orderId);
       if (!order) throw new ApiClientError("ORDER_NOT_FOUND", "주문을 찾을 수 없습니다", 404);
       const mine = claims.filter((c) => c.orderId === orderId);
-      if (
-        mine.some(
-          (c) => c.type === "return" && ["requested", "approved", "failed"].includes(c.status),
-        )
-      ) {
+      // 진행 중 반품·교환은 합쳐 주문당 하나
+      if (hasOpenAfterDelivery(mine)) {
         throw new ApiClientError(
           "RETURN_ALREADY_REQUESTED",
           "이미 진행 중인 반품 신청이 있습니다",
@@ -524,6 +540,114 @@ export function createMockClient(): ApiClient {
       store.writeClaims([...claims, claim]);
       store.writeIdem({ ...idem, [idemKey]: claim.claimId });
       return claim;
+    },
+    // 교환 신청 — 반품과 같은 자격(진행 중 반품·교환 하나, 끝나지 않은 환불 없음, 남은 수량, 배송 완료 3개월). 돈·재고는 안 움직인다
+    async createExchange(orderId: string, r: CreateExchangeRequest): Promise<Claim> {
+      requireAuth();
+      const claims = store.readClaims();
+      const idem = store.readIdem();
+      const idemKey = `exchange:${r.idempotencyKey}`;
+      const prior = claims.find((c) => c.claimId === idem[idemKey]);
+      if (prior) return prior;
+
+      if (!EXCHANGE_REASONS.includes(r.reasonCode)) {
+        throw new ApiClientError("INVALID_FIELD", "교환 사유를 확인해 주세요", 400, "reasonCode");
+      }
+      const order = store.readOrders().find((o) => o.orderId === orderId);
+      if (!order) throw new ApiClientError("ORDER_NOT_FOUND", "주문을 찾을 수 없습니다", 404);
+      const mine = claims.filter((c) => c.orderId === orderId);
+      if (hasOpenAfterDelivery(mine)) {
+        throw new ApiClientError(
+          "RETURN_ALREADY_REQUESTED",
+          "이미 진행 중인 반품·교환 신청이 있습니다",
+          409,
+        );
+      }
+      if (!canRequestReturn(order, mine, Date.now())) {
+        const windowClosed = isShippedPaid(order) && !returnWindow(order, Date.now()).open;
+        throw windowClosed
+          ? new ApiClientError("EXCHANGE_WINDOW_CLOSED", "교환 신청 기간이 지났습니다", 409)
+          : new ApiClientError("EXCHANGE_NOT_ALLOWED", "교환을 신청할 수 없는 주문입니다", 409);
+      }
+      const left = remainingQty(order, mine);
+      // 줄을 고르지 않으면 남은 수량 전부
+      const chosen =
+        r.lines ??
+        order.items
+          .map((i) => ({ lineId: i.lineId, quantity: left[i.lineId] ?? 0 }))
+          .filter((l) => l.quantity > 0);
+      const lines: ClaimLine[] = chosen.map((l) => {
+        const item = order.items.find((i) => i.lineId === l.lineId);
+        if (!item)
+          throw new ApiClientError("INVALID_CLAIM_LINE", "주문 항목을 찾을 수 없습니다", 400);
+        if (l.quantity <= 0 || l.quantity > (left[item.lineId] ?? 0))
+          throw new ApiClientError("INVALID_CLAIM_QUANTITY", "교환 수량이 잔여를 초과합니다", 400);
+        return {
+          lineId: item.lineId,
+          productId: item.productId,
+          variantId: item.variantId,
+          quantity: l.quantity,
+        };
+      });
+      const { createdAt, createdDtm } = now();
+      const claim: Claim = {
+        claimId: uuid(),
+        orderId,
+        type: "exchange",
+        status: "requested",
+        reasonCode: r.reasonCode,
+        reasonDetail: r.reasonDetail,
+        lines,
+        refundAmount: 0,
+        refundedShipping: 0,
+        returnShippingFee: 0,
+        createdAt,
+        createdDtm,
+      };
+      store.writeClaims([...claims, claim]);
+      store.writeIdem({ ...idem, [idemKey]: claim.claimId });
+      return claim;
+    },
+    async withdrawClaim(orderId: string, claimId: string): Promise<Claim> {
+      requireAuth();
+      const claims = store.readClaims();
+      const idx = claims.findIndex((c) => c.claimId === claimId && c.orderId === orderId);
+      if (idx === -1) throw new ApiClientError("CLAIM_NOT_FOUND", "신청을 찾을 수 없습니다", 404);
+      if (!canWithdraw(claims[idx])) {
+        throw new ApiClientError("CLAIM_NOT_WITHDRAWABLE", "철회할 수 없는 신청입니다", 409);
+      }
+      const withdrawn: Claim = { ...claims[idx], status: "withdrawn", withdrawnAt: Date.now() };
+      claims[idx] = withdrawn;
+      store.writeClaims(claims);
+      return withdrawn;
+    },
+    async changeShippingAddress(orderId: string, r: ChangeShippingAddressRequest): Promise<Order> {
+      requireAuth();
+      const orders = store.readOrders();
+      const idx = orders.findIndex((o) => o.orderId === orderId);
+      if (idx === -1) throw new ApiClientError("ORDER_NOT_FOUND", "주문을 찾을 수 없습니다", 404);
+      if (!canChangeShippingAddress(orders[idx])) {
+        throw new ApiClientError(
+          "ADDRESS_CHANGE_NOT_ALLOWED",
+          "배송지를 바꿀 수 없는 주문입니다",
+          409,
+        );
+      }
+      const addr = store.readAddresses().find((a) => a.addressId === r.addressId);
+      if (!addr) throw new ApiClientError("ADDRESS_NOT_FOUND", "주소를 찾을 수 없습니다", 404);
+      const updated: Order = {
+        ...orders[idx],
+        shippingAddress: {
+          recipient: addr.recipient,
+          phone: addr.phone,
+          zipcode: addr.zipcode,
+          addr1: addr.addr1,
+          addr2: addr.addr2,
+        },
+      };
+      orders[idx] = updated;
+      store.writeOrders(orders);
+      return updated;
     },
   };
 }

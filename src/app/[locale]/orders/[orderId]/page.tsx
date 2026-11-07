@@ -5,27 +5,26 @@ import { Suspense, use, useCallback, useEffect, useState, type ReactNode } from 
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 
+import ClaimHistory from "@/components/orders/ClaimHistory";
 import QtyStepper from "@/components/orders/QtyStepper";
 import ReturnRequestForm from "@/components/orders/ReturnRequestForm";
+import TrackingLine from "@/components/orders/TrackingLine";
 import { useClaimSubmit } from "@/components/orders/useClaimSubmit";
 import { CHIP, CHIP_OFF, CHIP_ON } from "@/components/pay/chip";
 import LoginRequired from "@/components/shell/LoginRequired";
 import PageShell from "@/components/shell/PageShell";
 import Badge from "@/components/ui/Badge";
-import Button, { buttonClasses } from "@/components/ui/Button";
+import Button from "@/components/ui/Button";
 import ButtonLink from "@/components/ui/ButtonLink";
 import Skeleton from "@/components/ui/Skeleton";
 import { BUSINESS } from "@/constants/site";
 import { api, ApiClientError, isAuthRequired, isNotFound } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
-import { formatDateKST, formatKRW } from "@/lib/format";
+import { formatKRW } from "@/lib/format";
 import { canRequestCancel, canRequestReturn, remainingQty } from "@/lib/claims/rules";
 import { REASON_CODES, type Claim, type Order, type OrderItem, type ReasonCode } from "@/types";
 
-import { CLAIM_STATUS_TONE, ORDER_STATE_TONE, orderState, RETURN_STATUS_TONE } from "../orderState";
-
-/** 이름을 아는 택배사 코드(orders.carrier.*) — 모르는 코드는 그대로 보여 준다 */
-const CARRIER_CODES: readonly string[] = ["cj", "epost", "hanjin", "lotte", "logen"];
+import { ORDER_STATE_TONE, orderState } from "../orderState";
 
 /** 취소·취소 요청이 막힌 이유 중 손님에게 따로 알리는 코드 — 메시지 `claims.error.{code}`. 그 밖은 default */
 const CLAIM_ERRORS: readonly string[] = [
@@ -156,25 +155,11 @@ function OrderDetail({ orderId }: { orderId: string }) {
             <p className="m-0 text-[13px] text-grey">{t("payWithin")}</p>
           )}
           {order.carrier && order.trackingNumber && (
-            <div className="flex flex-wrap items-center gap-[8px_16px]">
-              <span className="num text-[13px] text-grey">
-                {CARRIER_CODES.includes(order.carrier)
-                  ? t(`carrier.${order.carrier}`)
-                  : order.carrier}{" "}
-                {order.trackingNumber}
-              </span>
-              {order.trackingUrl && (
-                // 택배사 화면이라 새 탭으로 — 주문 화면은 그대로 둔다
-                <a
-                  href={order.trackingUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={buttonClasses("secondary", "sm")}
-                >
-                  {t("trackShipment")}
-                </a>
-              )}
-            </div>
+            <TrackingLine
+              carrier={order.carrier}
+              trackingNumber={order.trackingNumber}
+              trackingUrl={order.trackingUrl}
+            />
           )}
         </div>
 
@@ -227,7 +212,7 @@ function OrderDetail({ orderId }: { orderId: string }) {
           }}
         />
 
-        <ClaimsList claims={claims} />
+        <ClaimHistory claims={claims} />
 
         <ButtonLink href="/orders" variant="text" size="sm">
           ← {t("title")}
@@ -643,74 +628,6 @@ function CancelRequestForm({ order, claims, onClose, errText, onDone }: CancelRe
 
       <p className="m-0 text-[13px] leading-[1.6] text-grey">{tc("cardNote")}</p>
     </form>
-  );
-}
-
-/* ─── 취소·환불 내역 ─────────────────────────── */
-
-function ClaimsList({ claims }: { claims: Claim[] }) {
-  const tc = useTranslations("claims");
-  const tr = useTranslations("returns");
-
-  if (claims.length === 0) return null;
-
-  return (
-    <section className={`mb-[28px] ${BOX} pb-0`}>
-      <SectionTitle>{tc("historyTitle")}</SectionTitle>
-      <ul className="m-0 list-none p-0">
-        {claims.map((c) => {
-          const isReturn = c.type === "return";
-          return (
-            <li key={c.claimId} className="border-t border-line py-[14px]">
-              <div className="mb-[6px] flex flex-wrap items-center gap-[10px]">
-                <Badge tone={isReturn ? RETURN_STATUS_TONE[c.status] : CLAIM_STATUS_TONE[c.status]}>
-                  {isReturn ? tr(`status.${c.status}`) : tc(`status.${c.status}`)}
-                </Badge>
-                <b className="text-[15px] font-medium">
-                  {tr(isReturn ? "typeReturn" : "typeCancel")} · {tc(`reasonCode.${c.reasonCode}`)}
-                </b>
-                <b className="num ml-auto text-[15px] font-medium">{formatKRW(c.refundAmount)}</b>
-              </div>
-              {c.reasonDetail && (
-                <p className="m-0 mb-[6px] text-[13px] leading-[1.6] text-ink-soft">
-                  {c.reasonDetail}
-                </p>
-              )}
-              {isReturn && c.status === "rejected" && c.rejectReason && (
-                <p className="m-0 mb-[6px] text-[13px] leading-[1.6] text-ink">
-                  {tr("rejectReason", { reason: c.rejectReason })}
-                </p>
-              )}
-              <div className="flex flex-wrap gap-x-[16px] gap-y-[2px] text-[13px] text-grey">
-                {isReturn && c.returnShippingFee > 0 && (
-                  <span className="num">
-                    {tr("returnFee", { amount: formatKRW(c.returnShippingFee) })}
-                  </span>
-                )}
-                {isReturn && c.refundedShipping > 0 && (
-                  <span className="num">
-                    {tr("shippingBack", { amount: formatKRW(c.refundedShipping) })}
-                  </span>
-                )}
-                {/* 반품은 회수 확인 뒤 환불 중일 때만 기한을 보인다(취소는 늘 보여 왔다) */}
-                {c.refundDueAt !== undefined &&
-                  (!isReturn || c.status === "approved" || c.status === "failed") && (
-                    <span className="num">
-                      {tc("refundDue", { date: formatDateKST(c.refundDueAt) })}
-                    </span>
-                  )}
-                <span className="num">
-                  {tc("requestedAt", { date: formatDateKST(c.createdAt) })}
-                </span>
-              </div>
-              {isReturn && c.status === "requested" && (
-                <p className="m-0 mt-[6px] text-[13px] leading-[1.6] text-grey">{tr("after")}</p>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    </section>
   );
 }
 

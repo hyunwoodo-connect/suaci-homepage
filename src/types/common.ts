@@ -34,4 +34,17 @@ export const REASON_CODES = [
   "기타",
 ] as const;
 export type ReasonCode = (typeof REASON_CODES)[number];
-export type ClaimStatus = "requested" | "approved" | "rejected" | "completed" | "failed";
+/**
+ * 클레임 상태(취소·반품·교환 공용). 취소: approved → completed | failed(서버 재시도 → completed).
+ * 반품: requested → approved(회수 확인·환불 시작) → completed | failed, requested → rejected | withdrawn(손님 철회).
+ * 교환: requested → received(회수 확인, 건너뛸 수 있음) → shipped(새 제품 발송) → completed, requested → rejected | withdrawn
+ */
+export type ClaimStatus =
+  | "requested"
+  | "approved"
+  | "rejected"
+  | "completed"
+  | "failed"
+  | "received"
+  | "shipped"
+  | "withdrawn";

@@ -270,15 +270,40 @@
     "partialHint": "キャンセルする数量を選択してください",
     "submit": "キャンセルを申請する",
     "cancel": "閉じる",
-    "historyTitle": "キャンセル・返金履歴",
+    "historyTitle": "キャンセル・返品・交換履歴",
     "refundDue": "{date}までに返金予定",
     "requestedAt": "{date} 申請",
     "status": {
-      "requested": "受付済み",
-      "approved": "返金手続き中",
-      "rejected": "却下",
-      "completed": "返金完了",
-      "failed": "返金手続き中"
+      "cancel": {
+        "requested": "返金手続き中",
+        "approved": "返金手続き中",
+        "failed": "返金手続き中",
+        "received": "返金手続き中",
+        "shipped": "返金手続き中",
+        "completed": "返金完了",
+        "rejected": "キャンセル不可",
+        "withdrawn": "申請取り下げ"
+      },
+      "return": {
+        "requested": "返品申請済み",
+        "approved": "返金手続き中",
+        "failed": "返金手続き中",
+        "received": "返金手続き中",
+        "shipped": "返金手続き中",
+        "completed": "返金完了",
+        "rejected": "返品不可",
+        "withdrawn": "申請取り下げ"
+      },
+      "exchange": {
+        "requested": "交換申請済み",
+        "received": "返送品を確認",
+        "shipped": "交換品を発送",
+        "approved": "返送品を確認",
+        "failed": "返送品を確認",
+        "completed": "交換完了",
+        "rejected": "交換不可",
+        "withdrawn": "申請取り下げ"
+      }
     },
     "error": {
       "ORDER_NOT_CANCELLABLE": "キャンセルできない注文です",
@@ -287,7 +312,13 @@
       "INVALID_CLAIM_QUANTITY": "選んだ数量が残りの数量より多いです。画面を更新してもう一度ご確認ください。",
       "default": "リクエストを処理できませんでした。しばらくしてからもう一度お試しください。"
     },
-    "cardNote": "カード会社によっては、返金がカードに反映されるまでさらに3〜7営業日かかる場合があります。"
+    "cardNote": "カード会社によっては、返金がカードに反映されるまでさらに3〜7営業日かかる場合があります。",
+    "type": {
+      "cancel": "キャンセル",
+      "return": "返品",
+      "exchange": "交換"
+    },
+    "rejectReason": "理由:{reason}"
   },
   "returns": {
     "formTitle": "返品理由を選択",
@@ -309,18 +340,8 @@
     "submit": "返品を申請する",
     "cancel": "閉じる",
     "after": "送り先と方法をメールでご案内します。商品の到着を確認後、3営業日以内に返金します。",
-    "typeReturn": "返品",
-    "typeCancel": "キャンセル",
-    "status": {
-      "requested": "返品申請済み",
-      "approved": "返金手続き中",
-      "failed": "返金手続き中",
-      "completed": "返金完了",
-      "rejected": "返品不可"
-    },
     "returnFee": "返品送料 {amount} を差し引き",
     "shippingBack": "最初の送料 {amount} を含む",
-    "rejectReason": "理由:{reason}",
     "error": {
       "RETURN_WINDOW_CLOSED": "返品申請の期間が過ぎました。お問い合わせください。",
       "RETURN_ALREADY_REQUESTED": "すでに手続き中の返品申請があります。",
@@ -328,6 +349,10 @@
       "RETURN_UNOPENED_REQUIRED": "お客様都合の返品は未開封・未使用であることをご確認ください。",
       "NOTHING_TO_REFUND": "返品送料を差し引くと返金できる金額がありません。"
     }
+  },
+  "exchanges": {
+    "qty": "{n}点",
+    "after": "送り先と方法をメールでご案内します。返送品を確認後、新しい商品をお送りします。"
   },
   "events": {
     "title": "イベント",

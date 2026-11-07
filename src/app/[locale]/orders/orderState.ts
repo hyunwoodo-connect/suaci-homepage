@@ -1,5 +1,5 @@
 import type { BadgeTone } from "@/components/ui/Badge";
-import type { ClaimStatus, FulfillmentStatus, OrderStatus, PaymentStatus } from "@/types";
+import type { FulfillmentStatus, OrderStatus, PaymentStatus } from "@/types";
 
 /** 손님에게 보이는 주문 상태 하나 — 백엔드의 세 축(주문·결제·배송)을 한 이름으로 접는다. 화면 이름은 orders.state.* */
 export type OrderState =
@@ -52,24 +52,3 @@ export const ORDER_STATE_TONE = {
   refunded: "muted",
   cancelled: "muted",
 } as const satisfies Record<OrderState, BadgeTone>;
-
-/**
- * 취소 클레임 뱃지 — 승인(환불 시작)·실패(서버가 자동 재시도)는 손님에겐 같은 '환불 처리 중'이라 진행 중 색,
- * 환불 완료는 닫힌 것(주문의 환불완료와 같은 회색), 거절만 알아야 할 문제
- */
-export const CLAIM_STATUS_TONE = {
-  requested: "neutral",
-  approved: "neutral",
-  completed: "muted",
-  rejected: "problem",
-  failed: "neutral",
-} as const satisfies Record<ClaimStatus, BadgeTone>;
-
-/** 반품 클레임 뱃지 — 신청·환불 진행(재시도 포함)은 진행 중, 환불 끝은 회색, 거절만 빨강 */
-export const RETURN_STATUS_TONE = {
-  requested: "neutral",
-  approved: "neutral",
-  failed: "neutral",
-  completed: "muted",
-  rejected: "problem",
-} as const satisfies Record<ClaimStatus, BadgeTone>;

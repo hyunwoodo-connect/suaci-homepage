@@ -1,10 +1,16 @@
 import type { ReasonCode, ClaimStatus } from "./common";
 
-/** 클레임 종류 — 발송 전 취소(바로 환불) / 받은 뒤 반품(신청 → 회수 확인 뒤 환불 또는 거절) */
-export type ClaimType = "cancel" | "return";
+/**
+ * 클레임 종류 — 발송 전 취소(바로 환불) / 받은 뒤 반품(신청 → 회수 확인 뒤 환불 또는 거절) /
+ * 받은 뒤 교환(같은 제품의 새 제품으로 — 신청 → 회수 확인 → 새 제품 발송 → 완료, 돈은 움직이지 않는다)
+ */
+export type ClaimType = "cancel" | "return" | "exchange";
 
 /** 반품 사유 — 단순 변심(손님 부담·7일·미개봉)과 회사 탓 셋(3개월·배송비 회사 부담) */
 export type ReturnReason = Extract<ReasonCode, "단순변심" | "상품하자" | "오배송" | "표시광고상이">;
+
+/** 손님이 신청하는 교환 사유 — 회사 탓 셋만(단순 변심 교환은 반품 후 새 주문으로 안내, PM 11/7) */
+export type ExchangeReason = Extract<ReasonCode, "상품하자" | "오배송" | "표시광고상이">;
 
 export interface ClaimLine {
   lineId: string;
@@ -28,10 +34,17 @@ export interface Claim {
   /** 환급기한 — 취소는 신청 때, 반품은 회수 확인 때 정해진다 */
   refundDueAt?: number;
   refundDueDtm?: string;
-  /** 반품: 회수 확인·거절 시각, 거절 이유 */
+  /** 반품·교환: 회수 확인·거절 시각, 거절 이유 */
   receivedAt?: number;
   rejectedAt?: number;
   rejectReason?: string;
+  /** 교환 새 제품의 택배사 코드(cj·epost·hanjin·lotte·logen)·송장번호·택배사 배송 조회 링크(서버가 만든다)·발송 시각 */
+  carrier?: string;
+  trackingNumber?: string;
+  trackingUrl?: string;
+  shippedAt?: number;
+  /** 손님이 신청을 철회한 시각 */
+  withdrawnAt?: number;
   createdAt: number;
   createdDtm: string;
   resolvedAt?: number;
@@ -50,4 +63,11 @@ export interface CreateReturnRequest {
   reasonDetail?: string;
   lines?: { lineId: string; quantity: number }[];
   unopenedConfirmed: boolean;
+}
+/** 교환 신청. lines 를 빼면 남은 수량 전부 */
+export interface CreateExchangeRequest {
+  idempotencyKey: string;
+  reasonCode: ExchangeReason;
+  reasonDetail?: string;
+  lines?: { lineId: string; quantity: number }[];
 }
