@@ -25,7 +25,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { formatKRW } from "@/lib/format";
 import {
   canRequestCancel,
-  canRequestReturn,
+  canRequestAfterDelivery,
   hasOpenAfterDelivery,
   isShippedPaid,
 } from "@/lib/claims/rules";
@@ -341,7 +341,7 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
   // 받은 뒤 → 반품·교환 신청(조건이 같다 — 기한·진행 중 신청은 rules 가 본다)
   // 기한은 화면을 연 때 기준(렌더마다 시계를 읽지 않는다)
   const [now] = useState(Date.now);
-  const canReturn = canRequestReturn(order, claims, now);
+  const canAfterDelivery = canRequestAfterDelivery(order, claims, now);
 
   const open = (form: "cancel" | "return" | "exchange") => {
     setError(null);
@@ -359,7 +359,7 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
   const showInTransitNote =
     isShipped && order.fulfillmentStatus === "shipped" && !hasOpenAfterDelivery(claims);
 
-  if (!canCancel && !canCancelPaid && !canReturn && !isShipped) return null;
+  if (!canCancel && !canCancelPaid && !canAfterDelivery && !isShipped) return null;
 
   const handleCancel = () =>
     run(async () => {
@@ -434,7 +434,7 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
             />
           ))}
 
-        {canReturn && (
+        {canAfterDelivery && (
           <>
             <div className="flex flex-wrap gap-[8px]">
               {openForm !== "return" && (

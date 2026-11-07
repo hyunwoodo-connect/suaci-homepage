@@ -5,7 +5,7 @@ import type { Claim, Order } from "@/types";
 import {
   canChangeShippingAddress,
   canRequestCancel,
-  canRequestReturn,
+  canRequestAfterDelivery,
   canWithdraw,
   kstDayEnd,
   remainingQty,
@@ -163,44 +163,48 @@ describe("remainingQty", () => {
   });
 });
 
-describe("canRequestReturn", () => {
+describe("canRequestAfterDelivery", () => {
   const now = Date.parse("2026-11-10T12:00:00+09:00");
 
   it("결제됨·배송 완료·기한 안·진행 중 반품 없음 → 보인다", () => {
-    expect(canRequestReturn(ORDER, [], now)).toBe(true);
+    expect(canRequestAfterDelivery(ORDER, [], now)).toBe(true);
   });
 
   it.each([
     ["발송 전", { fulfillmentStatus: "preparing" as const }],
     ["전액 환불", { paymentStatus: "refunded" as const }],
   ])("%s → 안 보인다", (_label, over) => {
-    expect(canRequestReturn({ ...ORDER, ...over }, [], now)).toBe(false);
+    expect(canRequestAfterDelivery({ ...ORDER, ...over }, [], now)).toBe(false);
   });
 
   it("끝나지 않은 다른 환불(취소 failed)이 있거나 반품할 수량이 없으면 → 안 보인다", () => {
-    expect(canRequestReturn(ORDER, [claim({ type: "cancel", status: "failed" })], now)).toBe(false);
+    expect(canRequestAfterDelivery(ORDER, [claim({ type: "cancel", status: "failed" })], now)).toBe(
+      false,
+    );
     const allBack = claim({
       status: "completed",
       lines: [{ lineId: "l1", productId: "p1", variantId: "v1", quantity: 2 }],
     });
     expect(
-      canRequestReturn({ ...ORDER, paymentStatus: "partially_refunded" }, [allBack], now),
+      canRequestAfterDelivery({ ...ORDER, paymentStatus: "partially_refunded" }, [allBack], now),
     ).toBe(false);
   });
 
   it("진행 중 반품이 있으면 안 보이고, 거절·철회됐으면 다시 보인다", () => {
-    expect(canRequestReturn(ORDER, [claim({ status: "requested" })], now)).toBe(false);
-    expect(canRequestReturn(ORDER, [claim({ status: "rejected" })], now)).toBe(true);
-    expect(canRequestReturn(ORDER, [claim({ status: "withdrawn" })], now)).toBe(true);
+    expect(canRequestAfterDelivery(ORDER, [claim({ status: "requested" })], now)).toBe(false);
+    expect(canRequestAfterDelivery(ORDER, [claim({ status: "rejected" })], now)).toBe(true);
+    expect(canRequestAfterDelivery(ORDER, [claim({ status: "withdrawn" })], now)).toBe(true);
   });
 
   it("진행 중 교환(신청·회수 확인·발송)이 있으면 안 보이고, 교환이 끝나면 다시 보인다", () => {
     for (const status of ["requested", "received", "shipped"] as const) {
-      expect(canRequestReturn(ORDER, [claim({ type: "exchange", status })], now)).toBe(false);
+      expect(canRequestAfterDelivery(ORDER, [claim({ type: "exchange", status })], now)).toBe(
+        false,
+      );
     }
-    expect(canRequestReturn(ORDER, [claim({ type: "exchange", status: "completed" })], now)).toBe(
-      true,
-    );
+    expect(
+      canRequestAfterDelivery(ORDER, [claim({ type: "exchange", status: "completed" })], now),
+    ).toBe(true);
   });
 });
 

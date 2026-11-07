@@ -30,7 +30,7 @@ import { tokenStore } from "@/lib/auth/token-store";
 import { CHECKOUT_PRICING } from "@/constants/checkout";
 import {
   canChangeShippingAddress,
-  canRequestReturn,
+  canRequestAfterDelivery,
   canWithdraw,
   EXCHANGE_REASONS,
   hasOpenAfterDelivery,
@@ -492,7 +492,7 @@ export function createMockClient(): ApiClient {
           409,
         );
       }
-      if (!canRequestReturn(order, mine, Date.now())) {
+      if (!canRequestAfterDelivery(order, mine, Date.now())) {
         const closed =
           order.fulfillmentStatus === "shipped" || order.fulfillmentStatus === "delivered";
         throw closed
@@ -563,7 +563,7 @@ export function createMockClient(): ApiClient {
           409,
         );
       }
-      if (!canRequestReturn(order, mine, Date.now())) {
+      if (!canRequestAfterDelivery(order, mine, Date.now())) {
         const windowClosed = isShippedPaid(order) && !returnWindow(order, Date.now()).open;
         throw windowClosed
           ? new ApiClientError("EXCHANGE_WINDOW_CLOSED", "교환 신청 기간이 지났습니다", 409)

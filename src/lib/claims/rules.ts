@@ -109,7 +109,7 @@ export function canRequestCancel(order: Order, claims: Claim[]): boolean {
  * 반품·교환 신청 버튼을 보일지(조건이 같다) — 결제됨·발송 뒤·진행 중 반품·교환 없음·끝나지 않은 환불 없음·남은 수량·
  * 배송 완료 3개월 안. suaci-api 가 같은 조건으로 막는다(끝나지 않은 환불과 겹치면 확정이 꼬여서)
  */
-export function canRequestReturn(order: Order, claims: Claim[], now: number): boolean {
+export function canRequestAfterDelivery(order: Order, claims: Claim[], now: number): boolean {
   const hasUnits = Object.values(remainingQty(order, claims)).some((n) => n > 0);
   return (
     isShippedPaid(order) &&
