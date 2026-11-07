@@ -575,6 +575,48 @@ describe("주문 상세", () => {
       expect(screen.getByText("신청 철회")).toBeTruthy();
     });
 
+    it("신청 상태 반품 → '신청 철회'는 한 번 더 묻고, 철회하면 다시 불러온다", async () => {
+      signIn();
+      getOrder.mockResolvedValue(delivered(2));
+      listClaims.mockResolvedValue([returnClaim({})]);
+      withdrawClaim.mockResolvedValue({});
+      await renderPage();
+      fireEvent.click(screen.getByRole("button", { name: "신청 철회" }));
+      expect(screen.getByText(/이 신청을 철회할까요\?/)).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "돌아가기" }));
+      expect(withdrawClaim).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole("button", { name: "신청 철회" }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "철회하기" }));
+      });
+      expect(withdrawClaim).toHaveBeenCalledWith("o1", "r1");
+      expect(getOrder).toHaveBeenCalledTimes(2);
+    });
+
+    it("회수 확인 뒤(환불 처리 중) 반품 → 철회 버튼이 없다", async () => {
+      signIn();
+      getOrder.mockResolvedValue(delivered(2));
+      listClaims.mockResolvedValue([returnClaim({ status: "approved" })]);
+      await renderPage();
+      expect(screen.queryByRole("button", { name: "신청 철회" })).toBeNull();
+    });
+
+    it("이미 처리가 시작됐으면(CLAIM_NOT_WITHDRAWABLE) → 그 이유 + 내역을 다시 불러온다", async () => {
+      signIn();
+      getOrder.mockResolvedValue(delivered(2));
+      listClaims.mockResolvedValue([returnClaim({ type: "exchange" })]);
+      withdrawClaim.mockRejectedValue(new ApiClientError("CLAIM_NOT_WITHDRAWABLE", "x", 409));
+      await renderPage();
+      fireEvent.click(screen.getByRole("button", { name: "신청 철회" }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "철회하기" }));
+      });
+      expect(screen.getByRole("alert").textContent).toBe(
+        "이미 처리가 시작돼 철회할 수 없어요. 내역을 다시 확인해 주세요.",
+      );
+      expect(getOrder).toHaveBeenCalledTimes(2);
+    });
+
     it("거절된 반품 → 거절 이유를 보여 주고 다시 신청할 수 있다", async () => {
       signIn();
       getOrder.mockResolvedValue(delivered(2));

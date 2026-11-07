@@ -1,23 +1,32 @@
 "use client";
 
+import { useState } from "react";
+
 import { useTranslations } from "next-intl";
 
 import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
+import { api } from "@/lib/api";
+import { canWithdraw } from "@/lib/claims/rules";
 import { formatDateKST, formatKRW } from "@/lib/format";
 import type { Claim } from "@/types";
 
+import { claimErrorKey } from "./claimError";
 import { CLAIM_STATUS_TONE } from "./claimStatus";
 import TrackingLine from "./TrackingLine";
+import { useClaimSubmit } from "./useClaimSubmit";
 
 interface ClaimHistoryProps {
   claims: Claim[];
+  /** 철회처럼 내역을 바꾼 뒤 주문·내역을 다시 받는다 */
+  onChanged: () => Promise<void>;
 }
 
 /**
  * 주문의 취소·반품·교환 내역 — 상태 이름은 종류마다(`claims.status.{type}.{status}`, 관리 툴·메일과 같은 이름).
  * 돈이 오가는 줄(취소·반품)은 금액·환불 기한, 교환은 새 제품 택배사·송장과 '배송 조회'를 보인다
  */
-export default function ClaimHistory({ claims }: ClaimHistoryProps) {
+export default function ClaimHistory({ claims, onChanged }: ClaimHistoryProps) {
   const tc = useTranslations("claims");
 
   if (claims.length === 0) return null;
@@ -29,7 +38,7 @@ export default function ClaimHistory({ claims }: ClaimHistoryProps) {
       </h2>
       <ul className="m-0 list-none p-0">
         {claims.map((c) => (
-          <ClaimRow key={c.claimId} claim={c} />
+          <ClaimRow key={c.claimId} claim={c} onChanged={onChanged} />
         ))}
       </ul>
     </section>
@@ -38,8 +47,10 @@ export default function ClaimHistory({ claims }: ClaimHistoryProps) {
 
 /* ─── 하위 컴포넌트 ─────────────────────────── */
 
-function ClaimRow({ claim: c }: { claim: Claim }) {
+function ClaimRow({ claim: c, onChanged }: { claim: Claim; onChanged: () => Promise<void> }) {
   const tc = useTranslations("claims");
+  // 철회가 막힌 이유 — 다시 받은 줄에 철회 버튼이 사라져도 이유는 남긴다
+  const [error, setError] = useState<string | null>(null);
   const tr = useTranslations("returns");
   const te = useTranslations("exchanges");
   const isExchange = c.type === "exchange";
@@ -98,7 +109,78 @@ function ClaimRow({ claim: c }: { claim: Claim }) {
           {c.type === "return" ? tr("after") : te("after")}
         </p>
       )}
+      {error && (
+        <p role="alert" className="m-0 mt-[10px] text-[14px] text-alert">
+          {error}
+        </p>
+      )}
+      {canWithdraw(c) && <WithdrawControl claim={c} onChanged={onChanged} onError={setError} />}
     </li>
+  );
+}
+
+/** 신청 상태 반품·교환의 '신청 철회' — 되돌릴 수 없어 한 번 더 묻는다. 철회해도 기한 안이면 다시 신청할 수 있다 */
+interface WithdrawControlProps {
+  claim: Claim;
+  onChanged: () => Promise<void>;
+  onError: (message: string | null) => void;
+}
+
+function WithdrawControl({ claim, onChanged, onError }: WithdrawControlProps) {
+  const tc = useTranslations("claims");
+  const [confirming, setConfirming] = useState(false);
+  // 연타가 두 번 가지 않게 같은 잠금(철회는 멱등키가 없다 — 두 번째는 CLAIM_NOT_WITHDRAWABLE)
+  const { busy, run } = useClaimSubmit();
+
+  const withdraw = () =>
+    run(async () => {
+      onError(null);
+      try {
+        await api.withdrawClaim(claim.orderId, claim.claimId);
+      } catch (err) {
+        onError(tc(claimErrorKey(err)));
+      }
+      // 성공이든 이미 처리가 시작됐든 지금 상태를 다시 받아 보여 준다
+      await onChanged();
+    });
+
+  return (
+    <div className="mt-[10px] flex flex-col items-start gap-[8px]">
+      {!confirming ? (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => {
+            onError(null);
+            setConfirming(true);
+          }}
+        >
+          {tc("withdraw")}
+        </Button>
+      ) : (
+        <div className="flex flex-wrap items-center gap-[8px]">
+          <span className="w-full text-[14px] leading-[1.6] text-ink">{tc("withdrawConfirm")}</span>
+          <Button
+            variant="danger"
+            size="sm"
+            disabled={busy}
+            onClick={() => {
+              void withdraw();
+            }}
+          >
+            {busy ? "…" : tc("withdrawYes")}
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={busy}
+            onClick={() => setConfirming(false)}
+          >
+            {tc("withdrawNo")}
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -330,7 +330,11 @@
       "return": "return",
       "exchange": "exchange"
     },
-    "rejectReason": "reason: {reason}"
+    "rejectReason": "reason: {reason}",
+    "withdraw": "withdraw request",
+    "withdrawConfirm": "withdraw this request? you can request again later while the window is open.",
+    "withdrawYes": "withdraw",
+    "withdrawNo": "go back"
   },
   "returns": {
     "formTitle": "reason for return",

@@ -330,7 +330,11 @@
       "return": "返品",
       "exchange": "交換"
     },
-    "rejectReason": "理由:{reason}"
+    "rejectReason": "理由:{reason}",
+    "withdraw": "申請を取り下げる",
+    "withdrawConfirm": "この申請を取り下げますか?期限内であれば後でもう一度申請できます。",
+    "withdrawYes": "取り下げる",
+    "withdrawNo": "戻る"
   },
   "returns": {
     "formTitle": "返品理由を選択",

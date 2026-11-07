@@ -330,7 +330,11 @@
       "return": "반품",
       "exchange": "교환"
     },
-    "rejectReason": "거절 이유: {reason}"
+    "rejectReason": "거절 이유: {reason}",
+    "withdraw": "신청 철회",
+    "withdrawConfirm": "이 신청을 철회할까요? 기한 안이면 나중에 다시 신청할 수 있어요.",
+    "withdrawYes": "철회하기",
+    "withdrawNo": "돌아가기"
   },
   "returns": {
     "formTitle": "반품 사유 선택",

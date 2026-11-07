@@ -205,7 +205,12 @@ function OrderDetail({ orderId }: { orderId: string }) {
           }}
         />
 
-        <ClaimHistory claims={claims} />
+        <ClaimHistory
+          claims={claims}
+          onChanged={async () => {
+            setData(await fetchDetail());
+          }}
+        />
 
         <ButtonLink href="/orders" variant="text" size="sm">
           ← {t("title")}
