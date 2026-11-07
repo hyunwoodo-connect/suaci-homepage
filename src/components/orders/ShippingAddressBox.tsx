@@ -12,19 +12,25 @@ import { canChangeShippingAddress } from "@/lib/claims/rules";
 import type { Address, Order, ShippingAddressSnapshot } from "@/types";
 
 import { claimErrorKey } from "./claimError";
-import { useClaimSubmit } from "./useClaimSubmit";
+import { useSubmitLock } from "./useSubmitLock";
 
 interface ShippingAddressBoxProps {
   order: Order;
   /** 바꾼 주문(서버 응답) — 화면이 주문을 그것으로 바꾼다 */
   onChanged: (order: Order) => void;
+  /** 바꾸지 못했다 — 주문을 다시 읽는다(관리자가 포장을 시작했을 수 있다) */
+  onFailed: () => Promise<void>;
 }
 
 /**
  * 주문 상세의 배송지 상자. 결제 뒤 상품 준비 전이면 손님 배송지 목록에서 골라 바꾼다(PUT /orders/{id}/shipping-address).
  * 상품준비중(포장 시작)부터는 화면에서 못 바꾸고 고객센터 메일로 안내한다 — 관리자는 발송 전까지 바꿀 수 있다.
  */
-export default function ShippingAddressBox({ order, onChanged }: ShippingAddressBoxProps) {
+export default function ShippingAddressBox({
+  order,
+  onChanged,
+  onFailed,
+}: ShippingAddressBoxProps) {
   const t = useTranslations("orders");
   const a = order.shippingAddress;
   const canChange = canChangeShippingAddress(order);
@@ -56,6 +62,7 @@ export default function ShippingAddressBox({ order, onChanged }: ShippingAddress
         (picking ? (
           <AddressPicker
             order={order}
+            onFailed={onFailed}
             onClose={() => setPicking(false)}
             onChanged={(next) => {
               setPicking(false);
@@ -102,10 +109,11 @@ interface AddressPickerProps {
   order: Order;
   onClose: () => void;
   onChanged: (order: Order) => void;
+  onFailed: () => Promise<void>;
 }
 
 /** 손님 배송지 목록에서 하나 고르기 — 새 주소는 배송지 관리 화면에서 넣고 돌아온다 */
-function AddressPicker({ order, onClose, onChanged }: AddressPickerProps) {
+function AddressPicker({ order, onClose, onChanged, onFailed }: AddressPickerProps) {
   const t = useTranslations("orders");
   const tc = useTranslations("claims");
   const tCommon = useTranslations("common");
@@ -113,7 +121,7 @@ function AddressPicker({ order, onClose, onChanged }: AddressPickerProps) {
   const [loadFailed, setLoadFailed] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { busy, run } = useClaimSubmit();
+  const { busy, run } = useSubmitLock();
 
   // 펼칠 때 받는다 — 지금 주문 배송지와 같은 주소를 미리 골라 둔다
   useEffect(() => {
@@ -143,6 +151,7 @@ function AddressPicker({ order, onClose, onChanged }: AddressPickerProps) {
         onChanged(await api.changeShippingAddress(order.orderId, { addressId: selected }));
       } catch (err) {
         setError(tc(claimErrorKey(err)));
+        await onFailed();
       }
     });
 

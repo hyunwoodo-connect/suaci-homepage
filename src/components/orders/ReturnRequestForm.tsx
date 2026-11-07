@@ -14,14 +14,19 @@ import { claimErrorKey } from "./claimError";
 import DetailField from "./DetailField";
 import LinesPicker from "./LinesPicker";
 import ReasonPicker from "./ReasonPicker";
-import { useClaimSubmit } from "./useClaimSubmit";
+import { useSubmitLock } from "./useSubmitLock";
 import { useLineSelection } from "./useLineSelection";
 
 interface ReturnRequestFormProps {
   order: Order;
   claims: Claim[];
+  /** 주문 상세가 든 이 종류의 멱등키 — 폼을 닫았다 열어도 같고, 신청이 돼야 바뀐다 */
+  idempotencyKey: string;
   onClose: () => void;
+  /** 신청이 됐다 */
   onDone: () => Promise<void>;
+  /** 신청이 막혔거나 응답을 못 받았다 — 주문·내역을 다시 읽는다(서버에선 됐을 수 있다) */
+  onFailed: () => Promise<void>;
 }
 
 /**
@@ -31,8 +36,10 @@ interface ReturnRequestFormProps {
 export default function ReturnRequestForm({
   order,
   claims,
+  idempotencyKey,
   onClose,
   onDone,
+  onFailed,
 }: ReturnRequestFormProps) {
   const t = useTranslations("returns");
   const tc = useTranslations("claims");
@@ -42,7 +49,7 @@ export default function ReturnRequestForm({
   const [reason, setReason] = useState<ReturnReason>(changeOfMindOpen ? "단순변심" : "상품하자");
   const [detail, setDetail] = useState("");
   const [unopened, setUnopened] = useState(false);
-  const { busy, run } = useClaimSubmit();
+  const { busy, run } = useSubmitLock();
   const [error, setError] = useState<string | null>(null);
 
   const left = remainingQty(order, claims);
@@ -60,7 +67,7 @@ export default function ReturnRequestForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (blocked) return;
-    await run(async (idempotencyKey) => {
+    await run(async () => {
       setError(null);
       try {
         await api.createReturn(order.orderId, {
@@ -70,10 +77,12 @@ export default function ReturnRequestForm({
           lines: pick.lines,
           unopenedConfirmed: needsUnopened && unopened,
         });
-        await onDone();
       } catch (err) {
         setError(tc(claimErrorKey(err)));
+        await onFailed();
+        return;
       }
+      await onDone();
     });
   };
 

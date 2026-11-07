@@ -14,7 +14,7 @@ import type { Claim } from "@/types";
 import { claimErrorKey } from "./claimError";
 import { CLAIM_STATUS_TONE } from "./claimStatus";
 import TrackingLine from "./TrackingLine";
-import { useClaimSubmit } from "./useClaimSubmit";
+import { useSubmitLock } from "./useSubmitLock";
 
 interface ClaimHistoryProps {
   claims: Claim[];
@@ -130,7 +130,7 @@ function WithdrawControl({ claim, onChanged, onError }: WithdrawControlProps) {
   const tc = useTranslations("claims");
   const [confirming, setConfirming] = useState(false);
   // 연타가 두 번 가지 않게 같은 잠금(철회는 멱등키가 없다 — 두 번째는 CLAIM_NOT_WITHDRAWABLE)
-  const { busy, run } = useClaimSubmit();
+  const { busy, run } = useSubmitLock();
 
   const withdraw = () =>
     run(async () => {

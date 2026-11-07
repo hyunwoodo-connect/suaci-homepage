@@ -12,7 +12,8 @@ import ExchangeRequestForm from "@/components/orders/ExchangeRequestForm";
 import ReturnRequestForm from "@/components/orders/ReturnRequestForm";
 import ShippingAddressBox from "@/components/orders/ShippingAddressBox";
 import TrackingLine from "@/components/orders/TrackingLine";
-import { useClaimSubmit } from "@/components/orders/useClaimSubmit";
+import { useClaimKeys } from "@/components/orders/useClaimKeys";
+import { useSubmitLock } from "@/components/orders/useSubmitLock";
 import LoginRequired from "@/components/shell/LoginRequired";
 import PageShell from "@/components/shell/PageShell";
 import Badge from "@/components/ui/Badge";
@@ -29,7 +30,7 @@ import {
   hasOpenAfterDelivery,
   isShippedPaid,
 } from "@/lib/claims/rules";
-import type { Claim, Order } from "@/types";
+import type { Claim, ClaimType, Order } from "@/types";
 
 import { ORDER_STATE_TONE, orderState } from "../orderState";
 
@@ -95,6 +96,18 @@ function OrderDetail({ orderId }: { orderId: string }) {
   useEffect(() => {
     if (status === "authenticated") void load();
   }, [status, load]);
+
+  // 신청·철회·배송지 변경 뒤 다시 읽기 — 못 받으면 보던 화면을 그대로 두고 null(던지지 않는다: 이미 된 일을 실패로 보이지 않게)
+  const reload = useCallback(async (): Promise<OrderDetailData | null> => {
+    try {
+      const next = await fetchDetail();
+      setData(next);
+      return next;
+    } catch (err) {
+      if (isAuthRequired(err)) void recheckSession();
+      return null;
+    }
+  }, [fetchDetail, recheckSession]);
 
   if (status === "anonymous") {
     return (
@@ -194,21 +207,18 @@ function OrderDetail({ orderId }: { orderId: string }) {
           <ShippingAddressBox
             order={order}
             onChanged={(next) => setData((prev) => (prev ? { ...prev, order: next } : prev))}
+            onFailed={async () => {
+              await reload();
+            }}
           />
         </div>
 
-        <OrderActions
-          order={order}
-          claims={claims}
-          onDone={async () => {
-            setData(await fetchDetail());
-          }}
-        />
+        <OrderActions order={order} claims={claims} reload={reload} />
 
         <ClaimHistory
           claims={claims}
           onChanged={async () => {
-            setData(await fetchDetail());
+            await reload();
           }}
         />
 
@@ -321,18 +331,21 @@ function SkeletonLine({
 interface OrderActionsProps {
   order: Order;
   claims: Claim[];
-  onDone: () => Promise<void>;
+  /** 주문·내역을 다시 읽어 화면에 반영하고 돌려준다(못 받으면 null) */
+  reload: () => Promise<OrderDetailData | null>;
 }
 
-function OrderActions({ order, claims, onDone }: OrderActionsProps) {
+function OrderActions({ order, claims, reload }: OrderActionsProps) {
   const t = useTranslations("orders");
   const tc = useTranslations("claims");
 
   // 결제 전 주문 취소 — 연타의 두 번째가 '취소할 수 없어요'로 뜨지 않게 같은 잠금을 쓴다(키는 쓰지 않는다)
-  const { busy, run } = useClaimSubmit();
+  const { busy, run } = useSubmitLock();
   const [confirmCancel, setConfirmCancel] = useState(false);
   // 신청 폼은 한 번에 하나만 펼친다(취소·반품·교환)
-  const [openForm, setOpenForm] = useState<"cancel" | "return" | "exchange" | null>(null);
+  const [openForm, setOpenForm] = useState<ClaimType | null>(null);
+  // 신청 종류마다 멱등키 하나 — 폼이 닫혀도 남고, 신청이 됐을 때만 바뀐다
+  const keys = useClaimKeys();
   const [error, setError] = useState<string | null>(null);
 
   // 결제 전 → 바로 취소(한 번 더 묻는다). 결제했고 아직 안 보냄 → 취소 요청(사유 폼이 확인 단계)
@@ -343,14 +356,24 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
   const [now] = useState(Date.now);
   const canAfterDelivery = canRequestAfterDelivery(order, claims, now);
 
-  const open = (form: "cancel" | "return" | "exchange") => {
+  const open = (form: ClaimType) => {
     setError(null);
     setOpenForm(form);
   };
   const closeForm = () => setOpenForm(null);
-  const formDone = async () => {
+  const formDone = (type: ClaimType) => async () => {
+    keys.renew(type);
     setOpenForm(null);
-    await onDone();
+    await reload();
+  };
+  // 실패로 보여도 서버에선 됐을 수 있다(응답만 늦음) — 다시 읽어 그 종류의 새 신청이 생겼으면 된 것으로 본다
+  const formFailed = (type: ClaimType) => async () => {
+    const known = new Set(claims.filter((c) => c.type === type).map((c) => c.claimId));
+    const next = await reload();
+    if (next?.claims.some((c) => c.type === type && !known.has(c.claimId))) {
+      keys.renew(type);
+      setOpenForm(null);
+    }
   };
 
   // 발송된 결제 주문은 취소 버튼이 사라진 자리에 이유와 다음 길(반품·교환, 안 되면 메일)을 둔다 — 막다른 화면이 되지 않게
@@ -367,7 +390,7 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
       try {
         await api.cancelOrder(order.orderId);
         setConfirmCancel(false);
-        await onDone();
+        await reload();
       } catch (err) {
         setError(tc(claimErrorKey(err)));
       }
@@ -429,8 +452,10 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
             <CancelRequestForm
               order={order}
               claims={claims}
+              idempotencyKey={keys.keyFor("cancel")}
               onClose={closeForm}
-              onDone={formDone}
+              onDone={formDone("cancel")}
+              onFailed={formFailed("cancel")}
             />
           ))}
 
@@ -452,16 +477,20 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
               <ReturnRequestForm
                 order={order}
                 claims={claims}
+                idempotencyKey={keys.keyFor("return")}
                 onClose={closeForm}
-                onDone={formDone}
+                onDone={formDone("return")}
+                onFailed={formFailed("return")}
               />
             )}
             {openForm === "exchange" && (
               <ExchangeRequestForm
                 order={order}
                 claims={claims}
+                idempotencyKey={keys.keyFor("exchange")}
                 onClose={closeForm}
-                onDone={formDone}
+                onDone={formDone("exchange")}
+                onFailed={formFailed("exchange")}
               />
             )}
           </>

@@ -220,6 +220,101 @@ describe("주문 상세", () => {
     expect(second).toBe(first);
   });
 
+  describe("멱등키는 폼이 아니라 주문 상세에 — 닫았다 열어도 같은 키, 성공해야 새 키", () => {
+    const keyOf = (call: unknown[]) => (call[1] as { idempotencyKey: string }).idempotencyKey;
+    const cancelClaim: Claim = {
+      claimId: "c-new",
+      orderId: "o1",
+      type: "cancel",
+      status: "completed",
+      reasonCode: "단순변심",
+      lines: [{ lineId: "l1", productId: "p1", variantId: "v1", quantity: 1 }],
+      refundAmount: 28000,
+      refundedShipping: 0,
+      returnShippingFee: 0,
+      createdAt: 0,
+      createdDtm: "",
+    };
+    const TWO: Order = {
+      ...ORDER,
+      items: [{ ...ORDER.items[0], quantity: 2, lineSubtotal: 56000 }],
+    };
+
+    async function submitCancel() {
+      fireEvent.click(screen.getByRole("button", { name: "주문 취소 요청" }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "취소 요청하기" }));
+      });
+    }
+
+    it("실패 뒤 폼을 닫고 다시 열어 보내도 → 같은 멱등키(응답만 늦었던 환불이 두 번 되지 않게)", async () => {
+      signIn();
+      getOrder.mockResolvedValue(TWO);
+      createClaim.mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValueOnce({});
+      await renderPage();
+      await submitCancel();
+      fireEvent.click(screen.getByRole("button", { name: "닫기" }));
+      await submitCancel();
+      expect(createClaim).toHaveBeenCalledTimes(2);
+      expect(keyOf(createClaim.mock.calls[1])).toBe(keyOf(createClaim.mock.calls[0]));
+    });
+
+    it("실패하면 → 주문·클레임을 다시 읽는다", async () => {
+      signIn();
+      getOrder.mockResolvedValue(TWO);
+      createClaim.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+      await renderPage();
+      await submitCancel();
+      expect(getOrder).toHaveBeenCalledTimes(2);
+      expect(listClaims).toHaveBeenCalledTimes(2);
+    });
+
+    it("성공한 뒤 새로 신청하면 → 새 멱등키", async () => {
+      signIn();
+      getOrder.mockResolvedValue(TWO);
+      createClaim.mockResolvedValue({});
+      await renderPage();
+      await submitCancel();
+      await submitCancel();
+      expect(createClaim).toHaveBeenCalledTimes(2);
+      expect(keyOf(createClaim.mock.calls[1])).not.toBe(keyOf(createClaim.mock.calls[0]));
+    });
+
+    it("실패로 보였지만 다시 읽으니 신청이 생겼으면 → 성공으로 보고 폼을 닫고, 다음 신청은 새 키", async () => {
+      signIn();
+      getOrder.mockResolvedValue({ ...TWO, paymentStatus: "partially_refunded" });
+      listClaims.mockResolvedValueOnce([]).mockResolvedValue([cancelClaim]);
+      createClaim.mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValueOnce({});
+      await renderPage();
+      await submitCancel();
+      expect(screen.queryByRole("button", { name: "취소 요청하기" })).toBeNull();
+      expect(screen.getByText("환불 완료")).toBeTruthy();
+      await submitCancel();
+      expect(keyOf(createClaim.mock.calls[1])).not.toBe(keyOf(createClaim.mock.calls[0]));
+    });
+
+    it("반품도 → 실패 뒤 닫았다 열어도 같은 키", async () => {
+      signIn();
+      getOrder.mockResolvedValue({
+        ...TWO,
+        fulfillmentStatus: "delivered",
+        deliveredAt: Date.now() - 2 * 24 * 60 * 60 * 1000,
+      });
+      createReturn.mockRejectedValue(new TypeError("Failed to fetch"));
+      await renderPage();
+      for (let i = 0; i < 2; i++) {
+        fireEvent.click(screen.getByRole("button", { name: "반품 신청" }));
+        fireEvent.click(screen.getByRole("button", { name: "오배송" }));
+        await act(async () => {
+          fireEvent.click(screen.getByRole("button", { name: "반품 신청하기" }));
+        });
+        fireEvent.click(screen.getByRole("button", { name: "닫기" }));
+      }
+      expect(createReturn).toHaveBeenCalledTimes(2);
+      expect(keyOf(createReturn.mock.calls[1])).toBe(keyOf(createReturn.mock.calls[0]));
+    });
+  });
+
   it("취소 요청하기 연타 → 요청은 한 번", async () => {
     signIn();
     getOrder.mockResolvedValue(ORDER);
