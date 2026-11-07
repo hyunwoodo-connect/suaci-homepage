@@ -21,6 +21,8 @@ import type { SocialProvider } from "@/types";
 interface SocialLoginButtonsProps {
   /** 로그인 뒤 돌아갈 경로 */
   next: string;
+  /** 지금 기록을 바꿔 쓰며 떠난다 — 시트 안(로그인 시트)이면 시트가 쌓은 기록 칸을 남기지 않게 */
+  replace?: boolean;
 }
 
 /**
@@ -28,7 +30,7 @@ interface SocialLoginButtonsProps {
  * off(운영 + 키 없음)인 프로바이더는 빼고, 출시 전 숨긴 프로바이더(`NEXT_PUBLIC_SOCIAL_HIDDEN`)는 `?with=` 로 연 탭에서만 보인다.
  * 전부 빠지면 버튼 대신 준비 중 안내 한 줄.
  */
-export default function SocialLoginButtons({ next }: SocialLoginButtonsProps) {
+export default function SocialLoginButtons({ next, replace = false }: SocialLoginButtonsProps) {
   const t = useTranslations("pay.login");
   const locale = useLocale();
   const router = useRouter();
@@ -58,7 +60,10 @@ export default function SocialLoginButtons({ next }: SocialLoginButtonsProps) {
     });
     if (!url) return;
     // 실제 프로바이더(절대 주소)는 전체 이동, 목업(앱 안 경로)은 라우터로
-    if (url.startsWith("http")) window.location.assign(url);
+    if (url.startsWith("http")) {
+      if (replace) window.location.replace(url);
+      else window.location.assign(url);
+    } else if (replace) router.replace(url);
     else router.push(url);
   };
 

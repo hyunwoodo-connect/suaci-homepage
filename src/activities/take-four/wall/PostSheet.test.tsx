@@ -7,7 +7,7 @@ import PostSheet from "./PostSheet";
 
 const wall = vi.hoisted(() => ({ postStrip: vi.fn() }));
 vi.mock("./postStrip", () => wall);
-const router = vi.hoisted(() => ({ push: vi.fn() }));
+const router = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 const CARD_BLOB = new Blob(["card"], { type: "image/jpeg" });
@@ -19,6 +19,7 @@ function renderSheet() {
 beforeEach(() => {
   wall.postStrip.mockReset().mockResolvedValue({ stripId: "01J" });
   router.push.mockReset();
+  router.replace.mockReset();
 });
 
 afterEach(cleanup);
@@ -68,17 +69,17 @@ describe("PostSheet", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "연결이 끊겼어요. 네컷은 폰에 그대로 있어요.",
     );
-    expect(router.push).not.toHaveBeenCalled();
+    expect(router.replace).not.toHaveBeenCalled();
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "다시 보내기" })));
     expect(wall.postStrip).toHaveBeenCalledTimes(2);
-    expect(router.push).toHaveBeenCalledWith("/events/take-four/wall?posted=01J");
+    expect(router.replace).toHaveBeenCalledWith("/events/take-four/wall?posted=01J");
   });
 
   it("성공 → 벽으로(posted=stripId)", async () => {
     renderSheet();
     fireEvent.click(screen.getByRole("button", { name: "벽에 붙이기" }));
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "붙이기" })));
-    expect(router.push).toHaveBeenCalledWith("/events/take-four/wall?posted=01J");
+    expect(router.replace).toHaveBeenCalledWith("/events/take-four/wall?posted=01J");
   });
 
   it("하루 한도(429 RATE_LIMITED) → 한도 알림, 다시 보내기 없음, 아니요로 닫힘", async () => {
@@ -93,6 +94,6 @@ describe("PostSheet", () => {
     expect(screen.queryByRole("button", { name: "붙이기" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "아니요" }));
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(router.push).not.toHaveBeenCalled();
+    expect(router.replace).not.toHaveBeenCalled();
   });
 });

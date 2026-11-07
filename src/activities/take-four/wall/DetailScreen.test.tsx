@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
 import type { EventDetail } from "@/types";
 
@@ -116,6 +116,19 @@ describe("DetailScreen", () => {
     expect(
       within(screen.getByRole("dialog")).getByRole("link", { name: "벽으로" }),
     ).toHaveAttribute("href", "/events/take-four/wall");
+  });
+
+  it("감사 시트에서 폰 뒤로가기 → 시트가 닫힌다(시트 칸을 다시 쌓아 페이지에 가두지 않는다)", async () => {
+    await open();
+    fireEvent.click(screen.getByRole("button", { name: "신고" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "신고하기" }));
+    });
+    expect(screen.getByText("알려 줘서 고마워요")).toBeInTheDocument();
+    act(() => {
+      window.history.back();
+    });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
   it("신고 취소 → 보내지 않고 닫힘", async () => {

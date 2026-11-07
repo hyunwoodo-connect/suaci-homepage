@@ -116,8 +116,8 @@ function Actions({ strip, wallHref }: ActionsProps) {
   }
 
   function handleClose() {
-    // 보내는 중엔 닫지 않고, 보낸 뒤엔 이 네컷이 벽에서 내려가 `벽으로`로만 나간다
-    if (isRunning() || report === "sent") return;
+    // 보내는 중엔 닫지 않는다. 보낸 뒤엔 닫아도 된다 — 거절하면 폰 뒤로가기가 시트에 막혀 이 화면을 못 떠난다
+    if (isRunning()) return;
     setReport("closed");
   }
 
@@ -135,7 +135,8 @@ function Actions({ strip, wallHref }: ActionsProps) {
             <p className="m-0 text-[15px] leading-[1.6]">
               확인하는 동안 이 네컷은 벽에서 가려 둘게요.
             </p>
-            <PillButton size="sheet" href={wallHref}>
+            {/* replace — 시트가 쌓은 기록 칸을 벽이 차지해 돌아올 때 헛돌지 않는다 */}
+            <PillButton size="sheet" href={wallHref} replace>
               벽으로
             </PillButton>
           </>

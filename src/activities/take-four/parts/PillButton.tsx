@@ -6,6 +6,8 @@ interface PillButtonProps {
   children: ReactNode;
   /** 있으면 링크, 없으면 버튼. disabled면 링크 대신 비활성 버튼 */
   href?: string;
+  /** 링크가 지금 기록을 바꿔 쓴다(시트 안에서 다른 화면으로 — 시트가 쌓은 칸을 남기지 않게) */
+  replace?: boolean;
   onClick?: () => void;
   disabled?: boolean;
   /** ink: 잉크 바탕 / outline: 잉크 테두리(공유·저장) */
@@ -26,6 +28,7 @@ const SIZE_CLASS = {
 export default function PillButton({
   children,
   href,
+  replace = false,
   onClick,
   disabled = false,
   variant = "ink",
@@ -40,7 +43,7 @@ export default function PillButton({
   }`;
   if (href && !disabled) {
     return (
-      <Link href={href} className={className}>
+      <Link href={href} replace={replace} className={className}>
         {children}
       </Link>
     );

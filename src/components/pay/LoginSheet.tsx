@@ -53,7 +53,8 @@ export default function LoginSheet({ next, onClose }: LoginSheetProps) {
           </h2>
           <CloseButton label={tc("close")} onClick={close} />
         </div>
-        <SocialLoginButtons next={next} />
+        {/* replace — 시트가 쌓은 기록 칸을 로그인 화면이 차지해 돌아올 때 헛돌지 않는다 */}
+        <SocialLoginButtons next={next} replace />
         <p className="m-0 text-center text-[12px] text-grey">{t("hint")}</p>
         {/* 로그인 화면의 이메일 폼을 펼친 채로 열고, 끝나면 같은 구매로 돌아온다 */}
         {/* replace — 시트가 쌓은 기록 칸을 로그인 화면이 차지해 뒤로가기 한 번에 홈으로 돌아온다 */}

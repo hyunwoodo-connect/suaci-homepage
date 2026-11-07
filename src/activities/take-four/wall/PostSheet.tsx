@@ -32,8 +32,8 @@ export default function PostSheet({ card, slug }: PostSheetProps) {
       setStatus("posting");
       try {
         const { stripId } = await postStrip(card);
-        // 넘어가는 동안에도 `보내는 중…`으로 잠가 둔다
-        router.push(`/events/${slug}/wall?posted=${encodeURIComponent(stripId)}`);
+        // 넘어가는 동안에도 `보내는 중…`으로 잠가 둔다. replace — 시트가 쌓은 기록 칸을 벽이 차지해 뒤로가기가 헛돌지 않는다
+        router.replace(`/events/${slug}/wall?posted=${encodeURIComponent(stripId)}`);
       } catch (err) {
         // 하루 한도(기기당 10장)는 다시 보내도 안 되니 버튼 없이 알리기만
         setStatus(isRateLimited(err) ? "limited" : "failed");

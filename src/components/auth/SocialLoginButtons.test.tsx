@@ -5,8 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ko from "@/messages/ko.json";
 import { takeLoginState } from "@/lib/auth/social";
 
-const { push } = vi.hoisted(() => ({ push: vi.fn() }));
-vi.mock("@/i18n/navigation", () => ({ useRouter: () => ({ push, replace: vi.fn() }) }));
+const { push, replace } = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
+vi.mock("@/i18n/navigation", () => ({ useRouter: () => ({ push, replace }) }));
 
 import SocialLoginButtons from "./SocialLoginButtons";
 
@@ -46,6 +46,17 @@ describe("SocialLoginButtons", () => {
     expect(url).toMatch(/^\/auth\/mock\/kakao\?redirect_uri=/);
     const state = new URLSearchParams(url.split("?")[1]).get("state");
     expect(takeLoginState(state)).toEqual({ next: "/?buy=1" });
+  });
+
+  it("시트 안(replace) → 목업 동의 화면으로 replace — 시트가 쌓은 기록 칸을 남기지 않는다", () => {
+    render(
+      <NextIntlClientProvider locale="ko" messages={ko}>
+        <SocialLoginButtons next="/?buy=1" replace />
+      </NextIntlClientProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "카카오 로그인" }));
+    expect(push).not.toHaveBeenCalled();
+    expect((replace.mock.calls[0] as string[])[0]).toMatch(/^\/auth\/mock\/kakao\?/);
   });
 
   it("운영+실서버에서 클라 ID 가 있는 프로바이더만 → 그 버튼만(off 는 숨김)", () => {
