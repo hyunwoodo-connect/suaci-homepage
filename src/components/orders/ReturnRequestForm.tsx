@@ -12,6 +12,7 @@ import { RETURN_REASONS, returnQuote, returnWindow, returnableQty } from "@/lib/
 import type { Claim, Order, ReturnReason } from "@/types";
 
 import QtyStepper from "./QtyStepper";
+import { useClaimSubmit } from "./useClaimSubmit";
 
 /** 반품 신청이 막힌 이유 중 손님에게 따로 알리는 코드 — 메시지 `returns.error.{code}`. 그 밖은 claims.error.default */
 const RETURN_ERRORS: readonly string[] = [
@@ -42,16 +43,15 @@ export default function ReturnRequestForm({
   const t = useTranslations("returns");
   const tc = useTranslations("claims");
 
-  const { changeOfMindOpen } = returnWindow(order, Date.now());
+  const [now] = useState(Date.now);
+  const { changeOfMindOpen } = returnWindow(order, now);
   const [reason, setReason] = useState<ReturnReason>(changeOfMindOpen ? "단순변심" : "상품하자");
   const [detail, setDetail] = useState("");
   const [unopened, setUnopened] = useState(false);
   const [scope, setScope] = useState<"full" | "partial">("full");
   const [qty, setQty] = useState<Record<string, number>>({});
-  const [busy, setBusy] = useState(false);
+  const { busy, run } = useClaimSubmit();
   const [error, setError] = useState<string | null>(null);
-  // 폼 하나에 키 하나 — 더블클릭·재시도가 두 번 신청되지 않게(실패한 시도는 서버에 키를 남기지 않는다)
-  const [idempotencyKey] = useState(() => crypto.randomUUID());
 
   const left = returnableQty(order, claims);
   const partialLines = order.items
@@ -71,26 +71,25 @@ export default function ReturnRequestForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (blocked) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await api.createReturn(order.orderId, {
-        idempotencyKey,
-        reasonCode: reason,
-        reasonDetail: detail.trim() || undefined,
-        lines: scope === "partial" ? partialLines : undefined,
-        unopenedConfirmed: needsUnopened && unopened,
-      });
-      await onDone();
-    } catch (err) {
-      setError(
-        err instanceof ApiClientError && RETURN_ERRORS.includes(err.code)
-          ? t(`error.${err.code}`)
-          : tc("error.default"),
-      );
-    } finally {
-      setBusy(false);
-    }
+    await run(async (idempotencyKey) => {
+      setError(null);
+      try {
+        await api.createReturn(order.orderId, {
+          idempotencyKey,
+          reasonCode: reason,
+          reasonDetail: detail.trim() || undefined,
+          lines: scope === "partial" ? partialLines : undefined,
+          unopenedConfirmed: needsUnopened && unopened,
+        });
+        await onDone();
+      } catch (err) {
+        setError(
+          err instanceof ApiClientError && RETURN_ERRORS.includes(err.code)
+            ? t(`error.${err.code}`)
+            : tc("error.default"),
+        );
+      }
+    });
   };
 
   return (

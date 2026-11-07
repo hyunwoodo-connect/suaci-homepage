@@ -174,6 +174,39 @@ describe("주문 상세", () => {
     );
   });
 
+  it("취소 요청이 실패한 뒤 다시 보내면 → 같은 멱등키(두 번 환불되지 않게)", async () => {
+    signIn();
+    getOrder.mockResolvedValue(ORDER);
+    createClaim.mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValueOnce({});
+    await renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "주문 취소 요청" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "취소 요청하기" }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "취소 요청하기" }));
+    });
+    expect(createClaim).toHaveBeenCalledTimes(2);
+    const [first, second] = createClaim.mock.calls.map(
+      (c) => (c[1] as { idempotencyKey: string }).idempotencyKey,
+    );
+    expect(second).toBe(first);
+  });
+
+  it("취소 요청하기 연타 → 요청은 한 번", async () => {
+    signIn();
+    getOrder.mockResolvedValue(ORDER);
+    createClaim.mockReturnValue(new Promise(() => {}));
+    await renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "주문 취소 요청" }));
+    const submit = screen.getByRole("button", { name: "취소 요청하기" });
+    await act(async () => {
+      fireEvent.click(submit);
+      fireEvent.click(submit);
+    });
+    expect(createClaim).toHaveBeenCalledTimes(1);
+  });
+
   it("취소할 수 없는 주문(CLAIM_NOT_ALLOWED) → 고객센터 안내", async () => {
     signIn();
     getOrder.mockResolvedValue(ORDER);

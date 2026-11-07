@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 
 import QtyStepper from "@/components/orders/QtyStepper";
 import ReturnRequestForm from "@/components/orders/ReturnRequestForm";
+import { useClaimSubmit } from "@/components/orders/useClaimSubmit";
 import { CHIP, CHIP_OFF, CHIP_ON } from "@/components/pay/chip";
 import LoginRequired from "@/components/shell/LoginRequired";
 import PageShell from "@/components/shell/PageShell";
@@ -350,7 +351,8 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
   const t = useTranslations("orders");
   const tc = useTranslations("claims");
 
-  const [busy, setBusy] = useState(false);
+  // 결제 전 주문 취소 — 연타의 두 번째가 '취소할 수 없어요'로 뜨지 않게 같은 잠금을 쓴다(키는 쓰지 않는다)
+  const { busy, run } = useClaimSubmit();
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [cancelFormOpen, setCancelFormOpen] = useState(false);
   const [returnFormOpen, setReturnFormOpen] = useState(false);
@@ -362,7 +364,9 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
     (order.paymentStatus === "paid" || order.paymentStatus === "partially_refunded") &&
     BEFORE_SHIPMENT.includes(order.fulfillmentStatus);
   // 받은 뒤 → 반품 신청(기한·진행 중 반품은 rules 가 본다)
-  const canReturn = canRequestReturn(order, claims, Date.now());
+  // 기한은 화면을 연 때 기준(렌더마다 시계를 읽지 않는다)
+  const [now] = useState(Date.now);
+  const canReturn = canRequestReturn(order, claims, now);
 
   if (!canCancel && !canRequestCancel && !canReturn) return null;
 
@@ -372,19 +376,17 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
       : tc("error.default");
   }
 
-  const handleCancel = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      await api.cancelOrder(order.orderId);
-      setConfirmCancel(false);
-      await onDone();
-    } catch (err) {
-      setError(errText(err));
-    } finally {
-      setBusy(false);
-    }
-  };
+  const handleCancel = () =>
+    run(async () => {
+      setError(null);
+      try {
+        await api.cancelOrder(order.orderId);
+        setConfirmCancel(false);
+        await onDone();
+      } catch (err) {
+        setError(errText(err));
+      }
+    });
 
   return (
     <section className={`mb-[28px] ${BOX}`}>
@@ -441,10 +443,7 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
           ) : (
             <CancelRequestForm
               order={order}
-              busy={busy}
-              setBusy={setBusy}
               onClose={() => setCancelFormOpen(false)}
-              onError={setError}
               errText={errText}
               onDone={async () => {
                 setCancelFormOpen(false);
@@ -486,25 +485,16 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
 
 interface CancelRequestFormProps {
   order: Order;
-  busy: boolean;
-  setBusy: (b: boolean) => void;
   onClose: () => void;
-  onError: (m: string | null) => void;
   errText: (err: unknown) => string;
   onDone: () => Promise<void>;
 }
 
 /** 결제했고 아직 안 보낸 주문의 취소 요청 — 백엔드에는 클레임(createClaim)으로 간다. 사유 값은 API 값 그대로, 화면 이름만 claims.reasonCode.* */
-function CancelRequestForm({
-  order,
-  busy,
-  setBusy,
-  onClose,
-  onError,
-  errText,
-  onDone,
-}: CancelRequestFormProps) {
+function CancelRequestForm({ order, onClose, errText, onDone }: CancelRequestFormProps) {
   const tc = useTranslations("claims");
+  const { busy, run } = useClaimSubmit();
+  const [error, setError] = useState<string | null>(null);
 
   const [reasonCode, setReasonCode] = useState<ReasonCode>("단순변심");
   const [reasonDetail, setReasonDetail] = useState("");
@@ -525,22 +515,21 @@ function CancelRequestForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (busy || partialInvalid) return;
-    setBusy(true);
-    onError(null);
-    try {
-      await api.createClaim(order.orderId, {
-        idempotencyKey: crypto.randomUUID(),
-        reasonCode,
-        reasonDetail: reasonDetail.trim() || undefined,
-        lines: scope === "partial" ? partialLines : undefined,
-      });
-      await onDone();
-    } catch (err) {
-      onError(errText(err));
-    } finally {
-      setBusy(false);
-    }
+    if (partialInvalid) return;
+    await run(async (idempotencyKey) => {
+      setError(null);
+      try {
+        await api.createClaim(order.orderId, {
+          idempotencyKey,
+          reasonCode,
+          reasonDetail: reasonDetail.trim() || undefined,
+          lines: scope === "partial" ? partialLines : undefined,
+        });
+        await onDone();
+      } catch (err) {
+        setError(errText(err));
+      }
+    });
   };
 
   return (
@@ -548,6 +537,8 @@ function CancelRequestForm({
       onSubmit={handleSubmit}
       className="flex flex-col gap-[20px] border-t border-line pt-[16px]"
     >
+      {error && <ErrorNote text={error} />}
+
       {/* 사유 */}
       <fieldset className="m-0 border-0 p-0">
         <legend className="mb-[12px] p-0 text-[16px] font-medium text-ink">
