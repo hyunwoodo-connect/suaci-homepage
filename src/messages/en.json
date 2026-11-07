@@ -275,10 +275,10 @@
     "requestedAt": "requested {date}",
     "status": {
       "requested": "received",
-      "approved": "approved",
+      "approved": "refund in progress",
       "rejected": "rejected",
       "completed": "refunded",
-      "failed": "delayed (please contact us)"
+      "failed": "refund in progress"
     },
     "error": {
       "ORDER_NOT_CANCELLABLE": "this order can't be cancelled",

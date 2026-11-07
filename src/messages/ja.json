@@ -275,10 +275,10 @@
     "requestedAt": "{date} 申請",
     "status": {
       "requested": "受付済み",
-      "approved": "承認済み",
+      "approved": "返金手続き中",
       "rejected": "却下",
       "completed": "返金完了",
-      "failed": "処理遅延（お問い合わせください）"
+      "failed": "返金手続き中"
     },
     "error": {
       "ORDER_NOT_CANCELLABLE": "キャンセルできない注文です",

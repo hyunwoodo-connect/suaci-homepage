@@ -53,13 +53,16 @@ export const ORDER_STATE_TONE = {
   cancelled: "muted",
 } as const satisfies Record<OrderState, BadgeTone>;
 
-/** 취소·환불 신청 상태 → 뱃지 색. 승인은 잘 끝난 것, 환불 완료는 닫힌 것(주문의 환불완료와 같은 회색), 거절·지연은 알아야 할 문제 */
+/**
+ * 취소 클레임 뱃지 — 승인(환불 시작)·실패(서버가 자동 재시도)는 손님에겐 같은 '환불 처리 중'이라 진행 중 색,
+ * 환불 완료는 닫힌 것(주문의 환불완료와 같은 회색), 거절만 알아야 할 문제
+ */
 export const CLAIM_STATUS_TONE = {
   requested: "neutral",
-  approved: "done",
+  approved: "neutral",
   completed: "muted",
   rejected: "problem",
-  failed: "problem",
+  failed: "neutral",
 } as const satisfies Record<ClaimStatus, BadgeTone>;
 
 /** 반품 클레임 뱃지 — 신청·환불 진행(재시도 포함)은 진행 중, 환불 끝은 회색, 거절만 빨강 */

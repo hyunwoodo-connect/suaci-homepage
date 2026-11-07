@@ -275,10 +275,10 @@
     "requestedAt": "{date} 신청",
     "status": {
       "requested": "접수됨",
-      "approved": "승인됨",
+      "approved": "환불 처리 중",
       "rejected": "거절됨",
       "completed": "환불 완료",
-      "failed": "처리 지연(문의 필요)"
+      "failed": "환불 처리 중"
     },
     "error": {
       "ORDER_NOT_CANCELLABLE": "이 주문은 취소할 수 없어요",

@@ -334,6 +334,32 @@ describe("주문 상세", () => {
     expect(screen.getByRole("link", { name: "hello@takesuaci.com" })).toBeTruthy();
   });
 
+  it.each([
+    ["approved", "환불 처리 중"],
+    ["failed", "환불 처리 중"],
+    ["completed", "환불 완료"],
+  ] as const)("취소 클레임 %s → '%s'", async (status, label) => {
+    signIn();
+    getOrder.mockResolvedValue({ ...ORDER, paymentStatus: "partially_refunded" });
+    listClaims.mockResolvedValue([
+      {
+        claimId: "c1",
+        orderId: "o1",
+        type: "cancel",
+        status,
+        reasonCode: "단순변심",
+        lines: [],
+        refundAmount: 31000,
+        refundedShipping: 3000,
+        returnShippingFee: 0,
+        createdAt: 0,
+        createdDtm: "",
+      },
+    ]);
+    await renderPage();
+    expect(screen.getByText(label)).toBeTruthy();
+  });
+
   it("없는 주문(ORDER_NOT_FOUND) → 다시 시도 대신 찾을 수 없다는 말과 주문 내역 길", async () => {
     signIn();
     getOrder.mockRejectedValue(new ApiClientError("ORDER_NOT_FOUND", "x", 404));
