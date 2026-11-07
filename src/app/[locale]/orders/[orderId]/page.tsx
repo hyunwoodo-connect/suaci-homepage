@@ -2,7 +2,7 @@
 
 import { Suspense, use, useCallback, useEffect, useState, type ReactNode } from "react";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 
 import CancelRequestForm from "@/components/orders/CancelRequestForm";
@@ -23,7 +23,7 @@ import Skeleton from "@/components/ui/Skeleton";
 import { BUSINESS } from "@/constants/site";
 import { api, isAuthRequired, isNotFound } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
-import { formatKRW } from "@/lib/format";
+import { formatKRW, itemName } from "@/lib/format";
 import {
   canRequestCancel,
   canRequestAfterDelivery,
@@ -62,6 +62,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ orderId:
 function OrderDetail({ orderId }: { orderId: string }) {
   const t = useTranslations("orders");
   const tc = useTranslations("common");
+  const locale = useLocale();
   const { status, recheckSession } = useAuth();
   const searchParams = useSearchParams();
   const welcome = searchParams.get("welcome") === "1";
@@ -180,7 +181,9 @@ function OrderDetail({ orderId }: { orderId: string }) {
           {order.items.map((item) => (
             <li key={item.lineId} className={ITEM_ROW}>
               <div className="min-w-0 flex-1">
-                <b className="block text-[15px] font-medium leading-[24px]">{item.productName}</b>
+                <b className="block text-[15px] font-medium leading-[24px]">
+                  {itemName(item, locale)}
+                </b>
                 <span className="num block text-[13px] leading-[20px] text-grey">
                   {item.optionName} × {item.quantity}
                 </span>
@@ -217,6 +220,7 @@ function OrderDetail({ orderId }: { orderId: string }) {
 
         <ClaimHistory
           claims={claims}
+          items={order.items}
           onChanged={async () => {
             await reload();
           }}

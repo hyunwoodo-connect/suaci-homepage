@@ -13,6 +13,8 @@ export interface OrderItem {
   variantId: string;
   sku: string;
   productName: string;
+  /** 한국어 상품명 스냅샷(상품 nameKo). 옛 주문엔 없다 — 화면은 `itemName` 으로 고른다 */
+  productNameKo?: string;
   optionName: string;
   thumbnail?: string;
   unitPrice: number;
@@ -66,7 +68,7 @@ export interface OrderLineRequest {
 export interface CreateOrderRequest {
   addressId: string;
   idempotencyKey: string;
-  /** 바로 구매 상품. 상품이 하나라 장바구니 없이 주문에 바로 싣는다 */
+  /** 주문할 상품 줄. 지금은 상품이 하나라 구매 바·주문서가 한 줄만 싣는다(서버는 여러 줄을 받는다) */
   items: OrderLineRequest[];
   metadata?: Metadata;
 }

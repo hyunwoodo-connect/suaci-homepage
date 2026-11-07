@@ -1,8 +1,9 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { CHIP, CHIP_OFF, CHIP_ON } from "@/components/pay/chip";
+import { itemName } from "@/lib/format";
 import type { Order } from "@/types";
 
 import QtyStepper from "./QtyStepper";
@@ -33,6 +34,7 @@ export default function LinesPicker({
   partialEmpty,
 }: LinesPickerProps) {
   const tc = useTranslations("claims");
+  const locale = useLocale();
   return (
     <>
       <fieldset className="m-0 border-0 p-0">
@@ -63,7 +65,7 @@ export default function LinesPicker({
               className="flex flex-wrap items-center gap-[12px] border-b border-line px-[14px] py-[12px] last:border-b-0"
             >
               <div className="min-w-[140px] flex-1">
-                <b className="block text-[15px] font-medium">{item.productName}</b>
+                <b className="block text-[15px] font-medium">{itemName(item, locale)}</b>
                 <span className="text-[13px] text-grey">
                   {item.optionName} · {tc("ownedQty", { n: left[item.lineId] ?? 0 })}
                 </span>

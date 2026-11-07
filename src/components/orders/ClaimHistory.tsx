@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { api } from "@/lib/api";
 import { canWithdraw } from "@/lib/claims/rules";
-import { formatDateKST, formatKRW } from "@/lib/format";
-import type { Claim } from "@/types";
+import { formatDateKST, formatKRW, itemName } from "@/lib/format";
+import type { Claim, OrderItem } from "@/types";
 
 import { claimErrorKey } from "./claimError";
 import { CLAIM_STATUS_TONE } from "./claimStatus";
@@ -18,6 +18,8 @@ import { useSubmitLock } from "./useSubmitLock";
 
 interface ClaimHistoryProps {
   claims: Claim[];
+  /** 주문 줄 — 신청마다 어느 상품 몇 개인지 이름을 찾는다(여러 상품 주문) */
+  items: OrderItem[];
   /** 철회처럼 내역을 바꾼 뒤 주문·내역을 다시 받는다 */
   onChanged: () => Promise<void>;
 }
@@ -26,7 +28,7 @@ interface ClaimHistoryProps {
  * 주문의 취소·반품·교환 내역 — 상태 이름은 종류마다(`claims.status.{type}.{status}`, 관리 툴·메일과 같은 이름).
  * 돈이 오가는 줄(취소·반품)은 금액·환불 기한, 교환은 새 제품 택배사·송장과 '배송 조회'를 보인다
  */
-export default function ClaimHistory({ claims, onChanged }: ClaimHistoryProps) {
+export default function ClaimHistory({ claims, items, onChanged }: ClaimHistoryProps) {
   const tc = useTranslations("claims");
 
   if (claims.length === 0) return null;
@@ -38,7 +40,7 @@ export default function ClaimHistory({ claims, onChanged }: ClaimHistoryProps) {
       </h2>
       <ul className="m-0 list-none p-0">
         {claims.map((c) => (
-          <ClaimRow key={c.claimId} claim={c} onChanged={onChanged} />
+          <ClaimRow key={c.claimId} claim={c} items={items} onChanged={onChanged} />
         ))}
       </ul>
     </section>
@@ -47,8 +49,17 @@ export default function ClaimHistory({ claims, onChanged }: ClaimHistoryProps) {
 
 /* ─── 하위 컴포넌트 ─────────────────────────── */
 
-function ClaimRow({ claim: c, onChanged }: { claim: Claim; onChanged: () => Promise<void> }) {
+function ClaimRow({
+  claim: c,
+  items,
+  onChanged,
+}: {
+  claim: Claim;
+  items: OrderItem[];
+  onChanged: () => Promise<void>;
+}) {
   const tc = useTranslations("claims");
+  const locale = useLocale();
   // 철회가 막힌 이유 — 다시 받은 줄에 철회 버튼이 사라져도 이유는 남긴다
   const [error, setError] = useState<string | null>(null);
   const tr = useTranslations("returns");
@@ -71,6 +82,14 @@ function ClaimRow({ claim: c, onChanged }: { claim: Claim; onChanged: () => Prom
             : formatKRW(c.refundAmount)}
         </b>
       </div>
+      <p className="num m-0 mb-[6px] text-[13px] leading-[1.6] text-ink">
+        {c.lines
+          .map((l) => {
+            const item = items.find((i) => i.lineId === l.lineId);
+            return `${item ? itemName(item, locale) : ""} × ${String(l.quantity)}`;
+          })
+          .join(" · ")}
+      </p>
       {c.reasonDetail && (
         <p className="m-0 mb-[6px] text-[13px] leading-[1.6] text-ink-soft">{c.reasonDetail}</p>
       )}
