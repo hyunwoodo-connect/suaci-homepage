@@ -6,14 +6,15 @@ import ko from "@/messages/ko.json";
 import { ApiClientError } from "@/lib/api";
 import { savePendingOrder, readPendingOrder } from "@/lib/payment/pending";
 
-const { confirmPayment, replace, searchParams } = vi.hoisted(() => ({
+const { confirmPayment, getOrder, replace, searchParams } = vi.hoisted(() => ({
   confirmPayment: vi.fn(),
+  getOrder: vi.fn(),
   replace: vi.fn(),
   searchParams: { value: new URLSearchParams() },
 }));
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
-  api: { confirmPayment },
+  api: { confirmPayment, getOrder },
 }));
 vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ replace, push: vi.fn() }),
@@ -126,7 +127,7 @@ describe("/pay/complete", () => {
     ["ORDER_NOT_PAYABLE", 409, /결제를 마치지 못하고 닫혔어요/],
     ["PAYMENT_AMOUNT_MISMATCH", 400, /결제를 마치지 못하고 닫혔어요/],
   ])(
-    "%s(서버가 결제를 취소·환불함) → 돌려드린다는 문구 + 주문 내역·홈, 다시 확인하기는 없다",
+    "%s(서버가 결제를 취소·환불함) → 돌려드린다는 문구 + 주문 상세·홈, 다시 확인하기는 없다",
     async (code, status, text) => {
       savePendingOrder(pendingBase);
       searchParams.value = new URLSearchParams({
@@ -136,18 +137,61 @@ describe("/pay/complete", () => {
         amount: "31000",
       });
       confirmPayment.mockRejectedValue(new ApiClientError(code, "x", status));
+      getOrder.mockResolvedValue({ orderId: "o1", paymentStatus: "voided" });
       await act(async () => {
         renderComplete();
       });
       expect(await screen.findByText(text)).toBeTruthy();
       expect(screen.getByText(/3~7영업일/)).toBeTruthy();
-      expect(screen.getByRole("link", { name: "주문 내역" }).getAttribute("href")).toBe("/orders");
+      expect(screen.getByRole("link", { name: "주문 상세 보기" }).getAttribute("href")).toBe(
+        "/orders/o1",
+      );
       expect(screen.getByRole("link", { name: "홈으로 가기" }).getAttribute("href")).toBe("/");
       expect(screen.queryByRole("button", { name: "다시 확인하기" })).toBeNull();
       // 닫힌 주문을 '이어서 결제하기'로 다시 열지 않게 보류 기록도 지운다
       expect(readPendingOrder()).toBeNull();
     },
   );
+
+  it.each(["paid", "partially_refunded"])(
+    "ORDER_NOT_PAYABLE 인데 주문이 이미 결제됐으면(%s) → 돌려드린다는 문구 없이 그 주문 상세로",
+    async (paymentStatus) => {
+      savePendingOrder(pendingBase);
+      searchParams.value = new URLSearchParams({
+        o: "o1",
+        paymentKey: "k12345678",
+        orderId: "n",
+        amount: "31000",
+      });
+      confirmPayment.mockRejectedValue(new ApiClientError("ORDER_NOT_PAYABLE", "x", 409));
+      getOrder.mockResolvedValue({ orderId: "o1", paymentStatus });
+      await act(async () => {
+        renderComplete();
+      });
+      await waitFor(() => expect(replace).toHaveBeenCalledWith("/orders/o1"));
+      expect(screen.queryByText(/결제를 마치지 못하고 닫혔어요/)).toBeNull();
+      expect(readPendingOrder()).toBeNull();
+    },
+  );
+
+  it("ORDER_NOT_PAYABLE 이고 주문을 못 읽으면 → 닫혔다는 문구 + 주문 상세 링크", async () => {
+    searchParams.value = new URLSearchParams({
+      o: "o1",
+      paymentKey: "k12345678",
+      orderId: "n",
+      amount: "31000",
+    });
+    confirmPayment.mockRejectedValue(new ApiClientError("ORDER_NOT_PAYABLE", "x", 409));
+    getOrder.mockRejectedValue(new TypeError("Failed to fetch"));
+    await act(async () => {
+      renderComplete();
+    });
+    expect(await screen.findByText(/결제를 마치지 못하고 닫혔어요/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "주문 상세 보기" }).getAttribute("href")).toBe(
+      "/orders/o1",
+    );
+    expect(replace).not.toHaveBeenCalled();
+  });
 
   it("그 외 실패 → '잠깐 막혔어요' + 다시 시도(재호출 멱등: 두 번째 paid → 이동)", async () => {
     searchParams.value = new URLSearchParams({

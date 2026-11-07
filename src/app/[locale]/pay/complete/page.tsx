@@ -69,6 +69,11 @@ function PayCompleteBody() {
       const closed = CLOSED_BY_SERVER[code];
       // 닫힌 주문을 '이어서 결제하기'로 다시 열지 않게 보류 기록을 지운다
       if (closed) clearPendingOrder();
+      // ORDER_NOT_PAYABLE 은 '결제 전이 아님' 전부다 — 이미 결제된 주문(다른 탭·새로고침)이면 닫힌 게 아니라 끝난 것
+      if (code === "ORDER_NOT_PAYABLE" && (await isAlreadyPaid(orderId))) {
+        router.replace(`/orders/${orderId}`);
+        return;
+      }
       setPhase(closed ?? (code === "PAYMENT_DECLINED" ? "declined" : "hiccup"));
     }
   }, [orderId, parsed, router]);
@@ -105,7 +110,10 @@ function PayCompleteBody() {
   if (phase === "refundedOutOfStock" || phase === "refundedClosed") {
     return (
       <PayResult message={t(phase)}>
-        <ButtonLink href="/orders">{t("orders")}</ButtonLink>
+        {/* 주문이 어떻게 닫혔는지(취소·환불) 그 주문에서 확인한다 */}
+        <ButtonLink href={orderId ? `/orders/${orderId}` : "/orders"}>
+          {t("orderDetail")}
+        </ButtonLink>
         <ButtonLink href="/" variant="secondary">
           {t("home")}
         </ButtonLink>
@@ -130,4 +138,16 @@ function PayCompleteBody() {
     );
   }
   return <PayResult message={t("confirming")} />;
+}
+
+/* ─── 내부 ─────────────────────────── */
+
+/** 주문이 이미 결제됐나(결제완료·부분 환불). 못 읽으면 아니라고 본다 — 닫혔다는 안내와 주문 링크가 남는다 */
+async function isAlreadyPaid(orderId: string): Promise<boolean> {
+  try {
+    const order = await api.getOrder(orderId);
+    return order.paymentStatus === "paid" || order.paymentStatus === "partially_refunded";
+  } catch {
+    return false;
+  }
 }

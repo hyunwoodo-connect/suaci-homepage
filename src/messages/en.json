@@ -462,6 +462,7 @@
       "backToCheckout": "back to checkout",
       "hiccup": "a little hiccup. tap once more.",
       "orders": "my orders",
+      "orderDetail": "view order",
       "failed": "payment failed. please try another payment method.",
       "canceled": "payment cancelled. your order details are still here.",
       "retry": "try again",
