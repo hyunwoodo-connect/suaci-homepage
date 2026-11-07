@@ -8,6 +8,7 @@ import { useSearchParams } from "next/navigation";
 import CancelRequestForm from "@/components/orders/CancelRequestForm";
 import { claimErrorKey } from "@/components/orders/claimError";
 import ClaimHistory from "@/components/orders/ClaimHistory";
+import ExchangeRequestForm from "@/components/orders/ExchangeRequestForm";
 import ReturnRequestForm from "@/components/orders/ReturnRequestForm";
 import TrackingLine from "@/components/orders/TrackingLine";
 import { useClaimSubmit } from "@/components/orders/useClaimSubmit";
@@ -325,17 +326,27 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
   // 결제 전 주문 취소 — 연타의 두 번째가 '취소할 수 없어요'로 뜨지 않게 같은 잠금을 쓴다(키는 쓰지 않는다)
   const { busy, run } = useClaimSubmit();
   const [confirmCancel, setConfirmCancel] = useState(false);
-  const [cancelFormOpen, setCancelFormOpen] = useState(false);
-  const [returnFormOpen, setReturnFormOpen] = useState(false);
+  // 신청 폼은 한 번에 하나만 펼친다(취소·반품·교환)
+  const [openForm, setOpenForm] = useState<"cancel" | "return" | "exchange" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // 결제 전 → 바로 취소(한 번 더 묻는다). 결제했고 아직 안 보냄 → 취소 요청(사유 폼이 확인 단계)
   const canCancel = order.status === "pending";
   const canCancelPaid = canRequestCancel(order, claims);
-  // 받은 뒤 → 반품 신청(기한·진행 중 반품은 rules 가 본다)
+  // 받은 뒤 → 반품·교환 신청(조건이 같다 — 기한·진행 중 신청은 rules 가 본다)
   // 기한은 화면을 연 때 기준(렌더마다 시계를 읽지 않는다)
   const [now] = useState(Date.now);
   const canReturn = canRequestReturn(order, claims, now);
+
+  const open = (form: "cancel" | "return" | "exchange") => {
+    setError(null);
+    setOpenForm(form);
+  };
+  const closeForm = () => setOpenForm(null);
+  const formDone = async () => {
+    setOpenForm(null);
+    await onDone();
+  };
 
   // 발송된 결제 주문은 취소 버튼이 사라진 자리에 이유와 다음 길(반품·교환, 안 되면 메일)을 둔다 — 막다른 화면이 되지 않게
   const isShipped = isShippedPaid(order);
@@ -396,16 +407,13 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
           ))}
 
         {canCancelPaid &&
-          (!cancelFormOpen ? (
+          (openForm !== "cancel" ? (
             <Button
               variant="danger"
               size="sm"
               className="self-start"
               disabled={busy}
-              onClick={() => {
-                setError(null);
-                setCancelFormOpen(true);
-              }}
+              onClick={() => open("cancel")}
             >
               {t("requestCancel")}
             </Button>
@@ -413,38 +421,43 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
             <CancelRequestForm
               order={order}
               claims={claims}
-              onClose={() => setCancelFormOpen(false)}
-              onDone={async () => {
-                setCancelFormOpen(false);
-                await onDone();
-              }}
+              onClose={closeForm}
+              onDone={formDone}
             />
           ))}
 
-        {canReturn &&
-          (!returnFormOpen ? (
-            <Button
-              variant="secondary"
-              size="sm"
-              className="self-start"
-              onClick={() => {
-                setError(null);
-                setReturnFormOpen(true);
-              }}
-            >
-              {t("requestReturn")}
-            </Button>
-          ) : (
-            <ReturnRequestForm
-              order={order}
-              claims={claims}
-              onClose={() => setReturnFormOpen(false)}
-              onDone={async () => {
-                setReturnFormOpen(false);
-                await onDone();
-              }}
-            />
-          ))}
+        {canReturn && (
+          <>
+            <div className="flex flex-wrap gap-[8px]">
+              {openForm !== "return" && (
+                <Button variant="secondary" size="sm" onClick={() => open("return")}>
+                  {t("requestReturn")}
+                </Button>
+              )}
+              {openForm !== "exchange" && (
+                <Button variant="secondary" size="sm" onClick={() => open("exchange")}>
+                  {t("requestExchange")}
+                </Button>
+              )}
+            </div>
+            {openForm === "return" && (
+              <ReturnRequestForm
+                order={order}
+                claims={claims}
+                onClose={closeForm}
+                onDone={formDone}
+              />
+            )}
+            {openForm === "exchange" && (
+              <ExchangeRequestForm
+                order={order}
+                claims={claims}
+                onClose={closeForm}
+                onDone={formDone}
+              />
+            )}
+          </>
+        )}
 
         {isShipped && <ContactNote />}
       </div>

@@ -225,6 +225,7 @@
     "goLogin": "ログイン",
     "requestCancel": "注文キャンセルを申請",
     "requestReturn": "返品を申請",
+    "requestExchange": "交換を申請",
     "payWithin": "30分以内にお支払いください。過ぎると注文は自動でキャンセルされます。",
     "trackShipment": "配送状況を確認",
     "carrier": {
@@ -355,6 +356,17 @@
     "shippingBack": "最初の送料 {amount} を含む"
   },
   "exchanges": {
+    "formTitle": "交換理由を選択",
+    "changeOfMind": "お客様都合の場合は返品後に新しくご注文ください(往復送料と同じです)・どうしても交換をご希望の場合は<mail>{email}</mail>までご連絡ください。",
+    "detail": "詳細(任意)",
+    "detailPlaceholder": "どのような問題があったかご記入ください。写真は申請後のご案内メールに返信してお送りください。",
+    "scope": "交換の範囲",
+    "scopeFull": "すべて交換",
+    "scopePartial": "一部交換",
+    "partialHint": "交換する数量を選んでください",
+    "sameProduct": "同じ商品の新品と交換します。送料は当社が負担します。",
+    "submit": "交換を申請する",
+    "cancel": "閉じる",
     "qty": "{n}点",
     "after": "送り先と方法をメールでご案内します。返送品を確認後、新しい商品をお送りします。"
   },

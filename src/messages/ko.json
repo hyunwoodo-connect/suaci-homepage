@@ -225,6 +225,7 @@
     "goLogin": "로그인",
     "requestCancel": "주문 취소 요청",
     "requestReturn": "반품 신청",
+    "requestExchange": "교환 신청",
     "payWithin": "30분 안에 결제해 주세요. 지나면 주문이 자동으로 취소돼요.",
     "trackShipment": "배송 조회",
     "carrier": {
@@ -355,6 +356,17 @@
     "shippingBack": "처음 배송비 {amount} 포함"
   },
   "exchanges": {
+    "formTitle": "교환 사유 선택",
+    "changeOfMind": "단순 변심은 반품 후 새로 주문해 주세요(왕복 배송비와 같아요) · 꼭 교환을 원하시면 <mail>{email}</mail> 으로 알려 주세요.",
+    "detail": "상세 내용 (선택)",
+    "detailPlaceholder": "어떤 점이 문제였는지 적어 주세요. 사진은 신청 뒤 안내 메일에 답장으로 보내 주세요.",
+    "scope": "교환 범위",
+    "scopeFull": "전체 교환",
+    "scopePartial": "일부 교환",
+    "partialHint": "교환할 수량을 선택해 주세요",
+    "sameProduct": "같은 제품의 새 제품으로 바꿔 드려요. 배송비는 저희가 내요.",
+    "submit": "교환 신청하기",
+    "cancel": "닫기",
     "qty": "{n}개",
     "after": "보내실 곳과 방법을 메일로 안내해 드려요. 돌아온 상품을 확인하면 새 제품을 보내 드려요."
   },

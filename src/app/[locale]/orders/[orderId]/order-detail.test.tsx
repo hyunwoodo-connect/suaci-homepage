@@ -7,19 +7,46 @@ import { AuthProvider } from "@/lib/auth/auth-context";
 import { tokenStore } from "@/lib/auth/token-store";
 import { ApiClientError } from "@/lib/api";
 
-const { getMe, getOrder, listClaims, cancelOrder, createClaim, createReturn } = vi.hoisted(() => ({
+const {
+  getMe,
+  getOrder,
+  listClaims,
+  cancelOrder,
+  createClaim,
+  createReturn,
+  createExchange,
+  withdrawClaim,
+  listAddresses,
+  changeShippingAddress,
+} = vi.hoisted(() => ({
   getMe: vi.fn(),
   getOrder: vi.fn(),
   listClaims: vi.fn(),
   cancelOrder: vi.fn(),
   createClaim: vi.fn(),
   createReturn: vi.fn(),
+  createExchange: vi.fn(),
+  withdrawClaim: vi.fn(),
+  listAddresses: vi.fn(),
+  changeShippingAddress: vi.fn(),
 }));
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>();
   return {
     ...actual,
-    api: { getMe, getOrder, listClaims, cancelOrder, createClaim, createReturn, logout: vi.fn() },
+    api: {
+      getMe,
+      getOrder,
+      listClaims,
+      cancelOrder,
+      createClaim,
+      createReturn,
+      createExchange,
+      withdrawClaim,
+      listAddresses,
+      changeShippingAddress,
+      logout: vi.fn(),
+    },
   };
 });
 vi.mock("@/i18n/navigation", () => ({
@@ -558,6 +585,73 @@ describe("주문 상세", () => {
       expect(screen.getByText("반품 거절")).toBeTruthy();
       expect(screen.getByText("거절 이유: 사용한 흔적이 있어요")).toBeTruthy();
       expect(screen.getByRole("button", { name: "반품 신청" })).toBeTruthy();
+    });
+  });
+
+  describe("교환 신청", () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const delivered = (daysAgo: number): Order => ({
+      ...ORDER,
+      fulfillmentStatus: "delivered",
+      deliveredAt: Date.now() - daysAgo * DAY,
+    });
+
+    it("받은 뒤 → 사유 셋(단순 변심 없음)·새 제품 안내·단순 변심 길 안내를 보고 신청", async () => {
+      signIn();
+      getOrder.mockResolvedValue(delivered(2));
+      createExchange.mockResolvedValue({});
+      await renderPage();
+      fireEvent.click(screen.getByRole("button", { name: "교환 신청" }));
+      expect(screen.getByText("교환 사유 선택")).toBeTruthy();
+      expect(screen.queryByRole("button", { name: "단순 변심" })).toBeNull();
+      expect(screen.getByRole("button", { name: "오배송" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "상품 정보와 다름" })).toBeTruthy();
+      expect(
+        screen.getByText("같은 제품의 새 제품으로 바꿔 드려요. 배송비는 저희가 내요."),
+      ).toBeTruthy();
+      expect(
+        screen.getByText(/단순 변심은 반품 후 새로 주문해 주세요\(왕복 배송비와 같아요\)/),
+      ).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "오배송" }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "교환 신청하기" }));
+      });
+      expect(createExchange).toHaveBeenCalledWith(
+        "o1",
+        expect.objectContaining({ reasonCode: "오배송", lines: undefined }),
+      );
+    });
+
+    it("교환 폼을 열면 반품 폼은 닫힌다(한 번에 하나)", async () => {
+      signIn();
+      getOrder.mockResolvedValue(delivered(2));
+      await renderPage();
+      fireEvent.click(screen.getByRole("button", { name: "반품 신청" }));
+      expect(screen.getByText("반품 사유 선택")).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "교환 신청" }));
+      expect(screen.queryByText("반품 사유 선택")).toBeNull();
+      expect(screen.getByText("교환 사유 선택")).toBeTruthy();
+    });
+
+    it("서버가 기한 지남으로 막으면(EXCHANGE_WINDOW_CLOSED) → 그 이유", async () => {
+      signIn();
+      getOrder.mockResolvedValue(delivered(2));
+      createExchange.mockRejectedValue(new ApiClientError("EXCHANGE_WINDOW_CLOSED", "x", 409));
+      await renderPage();
+      fireEvent.click(screen.getByRole("button", { name: "교환 신청" }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "교환 신청하기" }));
+      });
+      expect(screen.getByRole("alert").textContent).toBe(
+        "교환 신청 기간(받은 날부터 3개월)이 지났어요. 고객센터로 문의해 주세요.",
+      );
+    });
+
+    it("발송 전·진행 중 교환이 있으면 → 교환 신청 버튼이 없다", async () => {
+      signIn();
+      getOrder.mockResolvedValue(ORDER);
+      await renderPage();
+      expect(screen.queryByRole("button", { name: "교환 신청" })).toBeNull();
     });
   });
 });

@@ -225,6 +225,7 @@
     "goLogin": "sign in",
     "requestCancel": "request cancellation",
     "requestReturn": "request a return",
+    "requestExchange": "request an exchange",
     "payWithin": "please pay within 30 minutes. after that, the order is cancelled automatically.",
     "trackShipment": "track package",
     "carrier": {
@@ -355,6 +356,17 @@
     "shippingBack": "includes original shipping {amount}"
   },
   "exchanges": {
+    "formTitle": "reason for exchange",
+    "changeOfMind": "changed your mind? please return it and place a new order (it costs the same as round-trip shipping) · if you'd really like an exchange, email <mail>{email}</mail>.",
+    "detail": "details (optional)",
+    "detailPlaceholder": "tell us what went wrong. you can send photos by replying to the email we send after your request.",
+    "scope": "what to exchange",
+    "scopeFull": "everything",
+    "scopePartial": "some items",
+    "partialHint": "choose how many to exchange",
+    "sameProduct": "we'll replace it with a new one of the same product. shipping is on us.",
+    "submit": "request exchange",
+    "cancel": "close",
     "qty": "{n} item(s)",
     "after": "we'll email you where and how to send it. once we've checked the returned item, we'll send you a new one."
   },
