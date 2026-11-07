@@ -110,7 +110,7 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
     setNote(t("paying"));
     setError(null);
     try {
-      await startPayment({
+      const { alreadyPaidOrderId } = await startPayment({
         adapter,
         method,
         qty,
@@ -119,6 +119,10 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
         screen: "rebuy-sheet",
         customerKey: user?.userId ?? "anonymous",
       });
+      if (alreadyPaidOrderId) {
+        router.push(`/orders/${alreadyPaidOrderId}`);
+        return;
+      }
       // 여기까지 오면 손님이 결제창을 닫은 것(결제되면 토스가 다른 주소로 보낸다) — 다시 누를 수 있게
       setNote(null);
       setBusy(false);

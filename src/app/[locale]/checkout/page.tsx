@@ -151,7 +151,7 @@ function CheckoutBody() {
     setBusy(true);
     setNote(null);
     try {
-      await startPayment({
+      const { alreadyPaidOrderId } = await startPayment({
         adapter,
         method,
         qty,
@@ -160,6 +160,10 @@ function CheckoutBody() {
         screen: "checkout",
         customerKey: user?.userId ?? "anonymous",
       });
+      if (alreadyPaidOrderId) {
+        router.replace(`/orders/${alreadyPaidOrderId}`);
+        return;
+      }
       // 여기까지 오면 손님이 결제창을 닫은 것(결제되면 토스가 다른 주소로 보낸다) — 다시 누를 수 있게
       setBusy(false);
     } catch (e) {

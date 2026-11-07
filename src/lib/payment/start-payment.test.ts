@@ -4,7 +4,7 @@ import { PRODUCT } from "@/constants/product";
 import { ApiClientError } from "@/lib/api";
 import { readSavedMemo } from "@/lib/checkout/memo";
 
-import { readPendingOrder } from "./pending";
+import { readPendingOrder, savePendingOrder } from "./pending";
 import type { PaymentAdapter } from "./providers";
 
 const { createOrder } = vi.hoisted(() => ({ createOrder: vi.fn() }));
@@ -67,6 +67,31 @@ describe("startPayment", () => {
       failPath: "/pay/fail?o=o1",
     });
     expect(readSavedMemo()?.memo).toBe("경비실에 맡겨 주세요");
+  });
+
+  it("이어 쓴 보류 주문이 이미 결제됐으면 → 결제창 대신 그 주문으로, 보류 기록은 지운다", async () => {
+    savePendingOrder({
+      orderId: "o1",
+      orderNo: "20261107-A",
+      amount: 56000,
+      idempotencyKey: "ik-1",
+      qty: 2,
+      addressId: "a1",
+      memo: "경비실에 맡겨 주세요",
+    });
+    createOrder.mockResolvedValue({
+      orderId: "o1",
+      orderNo: "20261107-A",
+      paymentStatus: "paid",
+      totals: { grandTotal: 56000 },
+    });
+    const adapter = fakeAdapter();
+    const outcome = await startPayment({ ...INPUT, adapter });
+
+    expect(createOrder).toHaveBeenCalledWith(expect.objectContaining({ idempotencyKey: "ik-1" }));
+    expect(outcome).toEqual({ alreadyPaidOrderId: "o1" });
+    expect(adapter.request).not.toHaveBeenCalled();
+    expect(readPendingOrder()).toBeNull();
   });
 
   it("주문을 못 만들면 → 그대로 던지고 결제창·보류 주문은 없다", async () => {

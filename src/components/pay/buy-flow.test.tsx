@@ -208,6 +208,7 @@ describe("재구매 시트", () => {
   it("결제하기 → createOrder(메타데이터) → pending 저장 → 목업 결제창 이동", async () => {
     createOrder.mockResolvedValue({
       orderId: "o1",
+      paymentStatus: "pending",
       orderNo: "20261026-A",
       totals: { grandTotal: 31000 },
     });
@@ -240,7 +241,12 @@ describe("재구매 시트", () => {
       addressId: "a1",
       memo: "문 앞에 놓아 주세요",
     });
-    createOrder.mockResolvedValue({ orderId: "o2", orderNo: "B", totals: { grandTotal: 31000 } });
+    createOrder.mockResolvedValue({
+      orderId: "o2",
+      orderNo: "B",
+      paymentStatus: "pending",
+      totals: { grandTotal: 31000 },
+    });
     await openSheet();
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "₩31,000 결제하기" }));
@@ -249,6 +255,30 @@ describe("재구매 시트", () => {
     expect((createOrder.mock.calls[0]?.[0] as { idempotencyKey: string }).idempotencyKey).toBe(
       "ik-prev",
     );
+  });
+
+  it("이어 쓴 보류 주문이 이미 결제됐으면 → 결제창 대신 그 주문 상세로", async () => {
+    savePendingOrder({
+      orderId: "prev",
+      orderNo: "N",
+      amount: 31000,
+      idempotencyKey: "ik-prev",
+      qty: 1,
+      addressId: "a1",
+      memo: "문 앞에 놓아 주세요",
+    });
+    createOrder.mockResolvedValue({
+      orderId: "prev",
+      orderNo: "N",
+      paymentStatus: "paid",
+      totals: { grandTotal: 31000 },
+    });
+    await openSheet();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "₩31,000 결제하기" }));
+    });
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/orders/prev"));
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it("pending 의 주소가 다르면 키를 재사용하지 않는다 — 옛 주소로 배송되면 안 된다", async () => {
@@ -261,7 +291,12 @@ describe("재구매 시트", () => {
       addressId: "OTHER",
       memo: "문 앞에 놓아 주세요",
     });
-    createOrder.mockResolvedValue({ orderId: "o2", orderNo: "B", totals: { grandTotal: 31000 } });
+    createOrder.mockResolvedValue({
+      orderId: "o2",
+      orderNo: "B",
+      paymentStatus: "pending",
+      totals: { grandTotal: 31000 },
+    });
     await openSheet();
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "₩31,000 결제하기" }));

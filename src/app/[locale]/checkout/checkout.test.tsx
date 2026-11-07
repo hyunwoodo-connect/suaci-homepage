@@ -158,6 +158,7 @@ describe("주문서(첫 구매)", () => {
     listAddresses.mockResolvedValue([ADDRESS]);
     createOrder.mockResolvedValue({
       orderId: "o1",
+      paymentStatus: "pending",
       orderNo: "20261026-A",
       totals: { grandTotal: 31000 },
     });
