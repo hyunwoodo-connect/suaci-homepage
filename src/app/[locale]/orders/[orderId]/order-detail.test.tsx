@@ -207,6 +207,48 @@ describe("주문 상세", () => {
     expect(createClaim).toHaveBeenCalledTimes(1);
   });
 
+  describe("일부 취소 뒤", () => {
+    const TWO: Order = {
+      ...ORDER,
+      paymentStatus: "partially_refunded",
+      items: [{ ...ORDER.items[0], quantity: 2, lineSubtotal: 56000 }],
+    };
+    const cancelled = (status: Claim["status"], quantity: number): Claim => ({
+      claimId: `c-${status}`,
+      orderId: "o1",
+      type: "cancel",
+      status,
+      reasonCode: "단순변심",
+      lines: [{ lineId: "l1", productId: "p1", variantId: "v1", quantity }],
+      refundAmount: 28000 * quantity,
+      refundedShipping: 0,
+      returnShippingFee: 0,
+      createdAt: 0,
+      createdDtm: "",
+    });
+
+    it("이미 취소된 1개를 빼고 남은 1개까지만 고른다", async () => {
+      signIn();
+      getOrder.mockResolvedValue(TWO);
+      listClaims.mockResolvedValue([cancelled("completed", 1)]);
+      await renderPage();
+      fireEvent.click(screen.getByRole("button", { name: "주문 취소 요청" }));
+      fireEvent.click(screen.getByRole("button", { name: "일부 취소" }));
+      expect(screen.getByText(/남은 수량 1개/)).toBeTruthy();
+      const plus = screen.getByRole("button", { name: "수량 늘리기" });
+      fireEvent.click(plus);
+      expect(plus).toHaveProperty("disabled", true);
+    });
+
+    it("남은 수량이 없으면(환불 처리 중인 취소가 전부) → 취소 요청 버튼이 없다", async () => {
+      signIn();
+      getOrder.mockResolvedValue(TWO);
+      listClaims.mockResolvedValue([cancelled("approved", 2)]);
+      await renderPage();
+      expect(screen.queryByRole("button", { name: "주문 취소 요청" })).toBeNull();
+    });
+  });
+
   it("취소할 수 없는 주문(CLAIM_NOT_ALLOWED) → 고객센터 안내", async () => {
     signIn();
     getOrder.mockResolvedValue(ORDER);

@@ -1,5 +1,5 @@
 import { CHECKOUT_PRICING } from "@/constants/checkout";
-import type { Claim, ClaimStatus, Order, ReturnReason } from "@/types";
+import type { Claim, ClaimStatus, FulfillmentStatus, Order, ReturnReason } from "@/types";
 
 /** 반품 사유(화면 순서). 배송 지연·기타는 반품 사유가 아니다(발송 전 취소에서만) */
 export const RETURN_REASONS: readonly ReturnReason[] = [
@@ -47,12 +47,29 @@ export function returnWindow(
   };
 }
 
+/** 손님이 취소 요청할 수 있는 배송 상태 — 발송 전까지(환불 정책 v2 '발송 전 취소는 바로 환불') */
+const BEFORE_SHIPMENT: readonly FulfillmentStatus[] = ["unfulfilled", "preparing"];
+
+/** 결제를 받았고 전액 환불되지 않은 주문 */
+function isPaid(order: Order): boolean {
+  return order.paymentStatus === "paid" || order.paymentStatus === "partially_refunded";
+}
+
+/** 취소 요청 버튼을 보일지 — 결제됨·발송 전·취소할 수량이 남음. suaci-api 가 같은 조건으로 막는다 */
+export function canRequestCancel(order: Order, claims: Claim[]): boolean {
+  return (
+    isPaid(order) &&
+    BEFORE_SHIPMENT.includes(order.fulfillmentStatus) &&
+    Object.values(remainingQty(order, claims)).some((n) => n > 0)
+  );
+}
+
 /**
  * 반품 신청 버튼을 보일지 — 결제됨·발송 뒤·진행 중 반품 없음·끝나지 않은 다른 환불 없음·반품할 수량 남음·기한 안.
  * suaci-api 가 같은 조건으로 막는다(끝나지 않은 환불과 겹치면 확정이 꼬여서)
  */
 export function canRequestReturn(order: Order, claims: Claim[], now: number): boolean {
-  const paid = order.paymentStatus === "paid" || order.paymentStatus === "partially_refunded";
+  const paid = isPaid(order);
   const shipped = order.fulfillmentStatus === "shipped" || order.fulfillmentStatus === "delivered";
   const hasOpenReturn = claims.some((c) => c.type === "return" && OPEN_RETURN.includes(c.status));
   const refundInFlight = claims.some((c) => IN_FLIGHT.includes(c.status));

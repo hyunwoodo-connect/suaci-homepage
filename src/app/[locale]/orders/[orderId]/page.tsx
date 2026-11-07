@@ -18,29 +18,20 @@ import Skeleton from "@/components/ui/Skeleton";
 import { api, ApiClientError, isAuthRequired } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { formatDateKST, formatKRW } from "@/lib/format";
-import { canRequestReturn } from "@/lib/claims/rules";
-import {
-  REASON_CODES,
-  type Claim,
-  type FulfillmentStatus,
-  type Order,
-  type OrderItem,
-  type ReasonCode,
-} from "@/types";
+import { canRequestCancel, canRequestReturn, remainingQty } from "@/lib/claims/rules";
+import { REASON_CODES, type Claim, type Order, type OrderItem, type ReasonCode } from "@/types";
 
 import { CLAIM_STATUS_TONE, ORDER_STATE_TONE, orderState, RETURN_STATUS_TONE } from "../orderState";
 
 /** 이름을 아는 택배사 코드(orders.carrier.*) — 모르는 코드는 그대로 보여 준다 */
 const CARRIER_CODES: readonly string[] = ["cj", "epost", "hanjin", "lotte", "logen"];
 
-/** 손님이 취소 요청할 수 있는 배송 상태 — 발송 전까지(환불 정책 v2 '발송 전 취소는 바로 환불') */
-const BEFORE_SHIPMENT: readonly FulfillmentStatus[] = ["unfulfilled", "preparing"];
-
 /** 취소·취소 요청이 막힌 이유 중 손님에게 따로 알리는 코드 — 메시지 `claims.error.{code}`. 그 밖은 default */
 const CLAIM_ERRORS: readonly string[] = [
   "ORDER_NOT_CANCELLABLE",
   "CLAIM_NOT_ALLOWED",
   "OVER_REFUND",
+  "INVALID_CLAIM_QUANTITY",
 ];
 
 // 실제 화면과 뼈대가 같은 크기가 되도록 상자·줄 틀을 한 곳에서 쓴다
@@ -360,15 +351,13 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
 
   // 결제 전 → 바로 취소(한 번 더 묻는다). 결제했고 아직 안 보냄 → 취소 요청(사유 폼이 확인 단계)
   const canCancel = order.status === "pending";
-  const canRequestCancel =
-    (order.paymentStatus === "paid" || order.paymentStatus === "partially_refunded") &&
-    BEFORE_SHIPMENT.includes(order.fulfillmentStatus);
+  const canCancelPaid = canRequestCancel(order, claims);
   // 받은 뒤 → 반품 신청(기한·진행 중 반품은 rules 가 본다)
   // 기한은 화면을 연 때 기준(렌더마다 시계를 읽지 않는다)
   const [now] = useState(Date.now);
   const canReturn = canRequestReturn(order, claims, now);
 
-  if (!canCancel && !canRequestCancel && !canReturn) return null;
+  if (!canCancel && !canCancelPaid && !canReturn) return null;
 
   function errText(err: unknown): string {
     return err instanceof ApiClientError && CLAIM_ERRORS.includes(err.code)
@@ -426,7 +415,7 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
             </div>
           ))}
 
-        {canRequestCancel &&
+        {canCancelPaid &&
           (!cancelFormOpen ? (
             <Button
               variant="danger"
@@ -443,6 +432,7 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
           ) : (
             <CancelRequestForm
               order={order}
+              claims={claims}
               onClose={() => setCancelFormOpen(false)}
               errText={errText}
               onDone={async () => {
@@ -485,13 +475,14 @@ function OrderActions({ order, claims, onDone }: OrderActionsProps) {
 
 interface CancelRequestFormProps {
   order: Order;
+  claims: Claim[];
   onClose: () => void;
   errText: (err: unknown) => string;
   onDone: () => Promise<void>;
 }
 
 /** 결제했고 아직 안 보낸 주문의 취소 요청 — 백엔드에는 클레임(createClaim)으로 간다. 사유 값은 API 값 그대로, 화면 이름만 claims.reasonCode.* */
-function CancelRequestForm({ order, onClose, errText, onDone }: CancelRequestFormProps) {
+function CancelRequestForm({ order, claims, onClose, errText, onDone }: CancelRequestFormProps) {
   const tc = useTranslations("claims");
   const { busy, run } = useClaimSubmit();
   const [error, setError] = useState<string | null>(null);
@@ -499,11 +490,12 @@ function CancelRequestForm({ order, onClose, errText, onDone }: CancelRequestFor
   const [reasonCode, setReasonCode] = useState<ReasonCode>("단순변심");
   const [reasonDetail, setReasonDetail] = useState("");
   const [scope, setScope] = useState<"full" | "partial">("full");
-  // 일부 취소: lineId → 취소 수량 (0 = 안 고름)
+  // 일부 취소: lineId → 취소 수량 (0 = 안 고름). 이미 취소·환불된 수량은 고를 수 없다
   const [qty, setQty] = useState<Record<string, number>>({});
+  const left = remainingQty(order, claims);
 
   const setLineQty = (item: OrderItem, next: number) => {
-    const clamped = Math.max(0, Math.min(item.quantity, next));
+    const clamped = Math.max(0, Math.min(left[item.lineId] ?? 0, next));
     setQty((prev) => ({ ...prev, [item.lineId]: clamped }));
   };
 
@@ -611,12 +603,12 @@ function CancelRequestForm({ order, onClose, errText, onDone }: CancelRequestFor
                 <div className="min-w-[140px] flex-1">
                   <b className="block text-[15px] font-medium">{item.productName}</b>
                   <span className="text-[13px] text-grey">
-                    {item.optionName} · {tc("ownedQty", { n: item.quantity })}
+                    {item.optionName} · {tc("ownedQty", { n: left[item.lineId] ?? 0 })}
                   </span>
                 </div>
                 <QtyStepper
                   value={value}
-                  max={item.quantity}
+                  max={left[item.lineId] ?? 0}
                   onChange={(n) => setLineQty(item, n)}
                 />
               </li>

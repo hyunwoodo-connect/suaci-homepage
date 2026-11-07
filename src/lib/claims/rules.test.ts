@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import type { Claim, Order } from "@/types";
 
-import { canRequestReturn, kstDayEnd, remainingQty, returnQuote, returnWindow } from "./rules";
+import {
+  canRequestCancel,
+  canRequestReturn,
+  kstDayEnd,
+  remainingQty,
+  returnQuote,
+  returnWindow,
+} from "./rules";
 
 const ORDER: Order = {
   orderId: "o1",
@@ -83,6 +90,41 @@ describe("returnWindow", () => {
       open: true,
       changeOfMindOpen: true,
     });
+  });
+});
+
+describe("canRequestCancel", () => {
+  const paid: Order = { ...ORDER, fulfillmentStatus: "unfulfilled", deliveredAt: undefined };
+
+  it("결제됨·발송 전(상품 준비 중 포함) → 보인다", () => {
+    expect(canRequestCancel(paid, [])).toBe(true);
+    expect(canRequestCancel({ ...paid, fulfillmentStatus: "preparing" }, [])).toBe(true);
+  });
+
+  it.each([
+    ["결제 전", { paymentStatus: "pending" as const }],
+    ["발송됨", { fulfillmentStatus: "shipped" as const }],
+    ["전액 환불", { paymentStatus: "refunded" as const }],
+  ])("%s → 안 보인다", (_label, over) => {
+    expect(canRequestCancel({ ...paid, ...over }, [])).toBe(false);
+  });
+
+  it("남은 수량이 없으면(환불 중·끝난 취소가 전부 가져감) → 안 보인다", () => {
+    const all = claim({
+      type: "cancel",
+      status: "approved",
+      lines: [{ lineId: "l1", productId: "p1", variantId: "v1", quantity: 2 }],
+    });
+    expect(canRequestCancel({ ...paid, paymentStatus: "partially_refunded" }, [all])).toBe(false);
+  });
+});
+
+describe("remainingQty", () => {
+  it("환불이 시작됐거나 끝난 취소·반품 수량만 뺀다(신청·거절은 빼지 않는다)", () => {
+    const cancelled = claim({ type: "cancel", status: "failed" });
+    const requested = claim({ status: "requested" });
+    const rejected = claim({ status: "rejected" });
+    expect(remainingQty(ORDER, [cancelled, requested, rejected])).toEqual({ l1: 1 });
   });
 });
 

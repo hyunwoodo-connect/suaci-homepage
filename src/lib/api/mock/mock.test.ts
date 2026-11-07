@@ -114,7 +114,7 @@ describe("mock client", () => {
     ).rejects.toMatchObject({ code: "OVER_REFUND" });
   });
 
-  it("라인 부분환불: 상품소계 넘어가면 두번째 클레임 OVER_REFUND", async () => {
+  it("라인 부분환불: 남은 수량을 넘는 두 번째 클레임 → INVALID_CLAIM_QUANTITY", async () => {
     await loginDemo();
     // take-01(38000) qty2 → itemsSubtotal 76000
     const p = products[0];
@@ -143,13 +143,13 @@ describe("mock client", () => {
     expect(c1.refundAmount).toBe(CHECKOUT_PRICING.price);
     expect((await api.getOrder(order.orderId)).paymentStatus).toBe("partially_refunded");
 
-    // 2) 2개 라인 환불 시도 (76000) → 누적 114000 > 상품소계 76000 → OVER_REFUND
+    // 2) 남은 1개를 넘는 2개 → INVALID_CLAIM_QUANTITY(서버와 같은 코드)
     await expect(
       api.createClaim(order.orderId, {
         idempotencyKey: "lc2",
         reasonCode: "단순변심",
         lines: [{ lineId, quantity: 2 }],
       }),
-    ).rejects.toMatchObject({ code: "OVER_REFUND" });
+    ).rejects.toMatchObject({ code: "INVALID_CLAIM_QUANTITY" });
   });
 });

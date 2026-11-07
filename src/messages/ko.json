@@ -261,7 +261,7 @@
     "scope": "취소 범위",
     "scopeFull": "전체 취소",
     "scopePartial": "일부 취소",
-    "ownedQty": "주문 수량 {n}개",
+    "ownedQty": "남은 수량 {n}개",
     "increase": "수량 늘리기",
     "decrease": "수량 줄이기",
     "partialHint": "취소할 수량을 선택해 주세요",
@@ -281,6 +281,7 @@
       "ORDER_NOT_CANCELLABLE": "이 주문은 취소할 수 없어요",
       "CLAIM_NOT_ALLOWED": "이 주문은 지금 취소·반품을 신청할 수 없어요. 고객센터로 문의해 주세요.",
       "OVER_REFUND": "신청한 금액이 환불 가능 금액보다 많아요.",
+      "INVALID_CLAIM_QUANTITY": "고른 수량이 남은 수량보다 많아요. 화면을 새로 고쳐 다시 확인해 주세요.",
       "default": "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
     },
     "cardNote": "카드사 사정에 따라 환불이 카드에 반영되기까지 3~7영업일이 더 걸릴 수 있어요."

@@ -372,10 +372,17 @@ export function createMockClient(): ApiClient {
         throw new ApiClientError("CLAIM_NOT_ALLOWED", "클레임을 생성할 수 없는 주문입니다", 409);
       }
 
+      // 남은 수량(이미 취소·환불된 수량을 뺀 것)을 넘으면 서버처럼 거절한다
+      const left = remainingQty(
+        order,
+        claims.filter((c) => c.orderId === orderId),
+      );
       const lines: ClaimLine[] = (r.lines ?? []).map((l) => {
         const item = order.items.find((i) => i.lineId === l.lineId);
         if (!item)
           throw new ApiClientError("INVALID_CLAIM_LINE", "주문 항목을 찾을 수 없습니다", 400);
+        if (l.quantity <= 0 || l.quantity > (left[item.lineId] ?? 0))
+          throw new ApiClientError("INVALID_CLAIM_QUANTITY", "환불 수량이 잔여를 초과합니다", 400);
         return {
           lineId: item.lineId,
           productId: item.productId,

@@ -261,7 +261,7 @@
     "scope": "what to cancel",
     "scopeFull": "cancel all",
     "scopePartial": "cancel some",
-    "ownedQty": "{n} ordered",
+    "ownedQty": "{n} left",
     "increase": "increase quantity",
     "decrease": "decrease quantity",
     "partialHint": "choose how many to cancel",
@@ -281,6 +281,7 @@
       "ORDER_NOT_CANCELLABLE": "this order can't be cancelled",
       "CLAIM_NOT_ALLOWED": "this order can't be cancelled or returned right now. please contact customer service.",
       "OVER_REFUND": "the requested amount is more than the refundable amount.",
+      "INVALID_CLAIM_QUANTITY": "you chose more than what's left. refresh the page and check again.",
       "default": "we couldn't process your request. please try again in a moment."
     },
     "cardNote": "depending on your card issuer, the refund may take another 3–7 business days to show on your card."
