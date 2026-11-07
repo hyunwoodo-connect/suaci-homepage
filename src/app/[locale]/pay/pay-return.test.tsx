@@ -121,6 +121,34 @@ describe("/pay/complete", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["OUT_OF_STOCK", 409, /재고가 모자라 주문을 받지 못했어요/],
+    ["ORDER_NOT_PAYABLE", 409, /결제를 마치지 못하고 닫혔어요/],
+    ["PAYMENT_AMOUNT_MISMATCH", 400, /결제를 마치지 못하고 닫혔어요/],
+  ])(
+    "%s(서버가 결제를 취소·환불함) → 돌려드린다는 문구 + 주문 내역·홈, 다시 확인하기는 없다",
+    async (code, status, text) => {
+      savePendingOrder(pendingBase);
+      searchParams.value = new URLSearchParams({
+        o: "o1",
+        paymentKey: "k12345678",
+        orderId: "n",
+        amount: "31000",
+      });
+      confirmPayment.mockRejectedValue(new ApiClientError(code, "x", status));
+      await act(async () => {
+        renderComplete();
+      });
+      expect(await screen.findByText(text)).toBeTruthy();
+      expect(screen.getByText(/3~7영업일/)).toBeTruthy();
+      expect(screen.getByRole("link", { name: "주문 내역" }).getAttribute("href")).toBe("/orders");
+      expect(screen.getByRole("link", { name: "홈으로 가기" }).getAttribute("href")).toBe("/");
+      expect(screen.queryByRole("button", { name: "다시 확인하기" })).toBeNull();
+      // 닫힌 주문을 '이어서 결제하기'로 다시 열지 않게 보류 기록도 지운다
+      expect(readPendingOrder()).toBeNull();
+    },
+  );
+
   it("그 외 실패 → '잠깐 막혔어요' + 다시 시도(재호출 멱등: 두 번째 paid → 이동)", async () => {
     searchParams.value = new URLSearchParams({
       o: "o1",

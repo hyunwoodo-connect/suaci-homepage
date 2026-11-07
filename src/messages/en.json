@@ -409,7 +409,9 @@
       "canceled": "payment cancelled. your order details are still here.",
       "retry": "try again",
       "continue": "continue",
-      "done": "order placed."
+      "done": "order placed.",
+      "refundedOutOfStock": "we ran out of stock, so we couldn't take this order. your payment is cancelled and refunded. depending on your card issuer, it can take 3–7 business days to show.",
+      "refundedClosed": "this order closed before the payment went through. if you were charged, the payment is cancelled and refunded. depending on your card issuer, it can take 3–7 business days to show."
     },
     "mock": {
       "title": "{provider} sign in (mock)",

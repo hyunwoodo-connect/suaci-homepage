@@ -27,7 +27,18 @@ export default function PayCompletePage() {
 
 /* ─── 하위 컴포넌트 ─────────────────────────── */
 
-type Phase = "confirming" | "badLink" | "declined" | "hiccup";
+type Phase =
+  "confirming" | "badLink" | "declined" | "hiccup" | "refundedOutOfStock" | "refundedClosed";
+
+/**
+ * 서버가 결제를 확정하지 않고 닫은 승인 실패 → 다시 확인해도 소용없다. 결제된 돈이 있으면 서버가 이미 취소·환불했다
+ * (재고 부족 자동 환불·닫힌 주문·금액 불일치). 확인 전에 거절한 경우는 돈이 움직이지 않았다
+ */
+const CLOSED_BY_SERVER: Readonly<Record<string, Phase>> = {
+  OUT_OF_STOCK: "refundedOutOfStock",
+  ORDER_NOT_PAYABLE: "refundedClosed",
+  PAYMENT_AMOUNT_MISMATCH: "refundedClosed",
+};
 
 function PayCompleteBody() {
   const t = useTranslations("pay.result");
@@ -54,9 +65,11 @@ function PayCompleteBody() {
       clearPendingOrder();
       router.replace(`/orders/${orderId}?welcome=1`);
     } catch (err) {
-      setPhase(
-        err instanceof ApiClientError && err.code === "PAYMENT_DECLINED" ? "declined" : "hiccup",
-      );
+      const code = err instanceof ApiClientError ? err.code : "";
+      const closed = CLOSED_BY_SERVER[code];
+      // 닫힌 주문을 '이어서 결제하기'로 다시 열지 않게 보류 기록을 지운다
+      if (closed) clearPendingOrder();
+      setPhase(closed ?? (code === "PAYMENT_DECLINED" ? "declined" : "hiccup"));
     }
   }, [orderId, parsed, router]);
 
@@ -85,6 +98,16 @@ function PayCompleteBody() {
       <PayResult message={t("declined")}>
         <ButtonLink href={pendingQty ? `/checkout?qty=${String(pendingQty)}` : "/checkout"}>
           {t("backToCheckout")}
+        </ButtonLink>
+      </PayResult>
+    );
+  }
+  if (phase === "refundedOutOfStock" || phase === "refundedClosed") {
+    return (
+      <PayResult message={t(phase)}>
+        <ButtonLink href="/orders">{t("orders")}</ButtonLink>
+        <ButtonLink href="/" variant="secondary">
+          {t("home")}
         </ButtonLink>
       </PayResult>
     );
