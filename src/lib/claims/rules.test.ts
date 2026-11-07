@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Claim, Order } from "@/types";
 
-import { canRequestReturn, kstDayEnd, returnQuote, returnWindow, returnableQty } from "./rules";
+import { canRequestReturn, kstDayEnd, remainingQty, returnQuote, returnWindow } from "./rules";
 
 const ORDER: Order = {
   orderId: "o1",
@@ -153,7 +153,7 @@ describe("returnQuote", () => {
 
   it("이미 환불된 수량은 빼고, 처음 배송비를 이미 돌려줬으면 다시 안 더한다", () => {
     const done = claim({ status: "completed", reasonCode: "상품하자", refundedShipping: 3000 });
-    expect(returnableQty(ORDER, [done])).toEqual({ l1: 1 });
+    expect(remainingQty(ORDER, [done])).toEqual({ l1: 1 });
     expect(returnQuote(ORDER, [done], "오배송")).toMatchObject({
       itemsAmount: 28000,
       refundedShipping: 0,

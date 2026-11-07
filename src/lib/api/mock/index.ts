@@ -26,7 +26,7 @@ import { ApiClientError } from "../errors";
 import { effectivePrice } from "@/lib/format";
 import { tokenStore } from "@/lib/auth/token-store";
 import { CHECKOUT_PRICING } from "@/constants/checkout";
-import { canRequestReturn, returnableQty, returnQuote, returnWindow } from "@/lib/returns/rules";
+import { canRequestReturn, remainingQty, returnQuote, returnWindow } from "@/lib/claims/rules";
 import { demoUser, products } from "@/data/fixtures";
 import { store } from "./store";
 
@@ -446,7 +446,7 @@ export function createMockClient(): ApiClient {
       store.writeIdem(idem);
       return claim;
     },
-    // 반품 신청 — 서버와 같은 규칙(lib/returns/rules)으로 막고 금액을 정한다. 돈은 움직이지 않는다(관리자가 회수 확인 뒤 환불)
+    // 반품 신청 — 서버와 같은 규칙(lib/claims/rules)으로 막고 금액을 정한다. 돈은 움직이지 않는다(관리자가 회수 확인 뒤 환불)
     async createReturn(orderId: string, r: CreateReturnRequest): Promise<Claim> {
       requireAuth();
       const claims = store.readClaims();
@@ -486,7 +486,7 @@ export function createMockClient(): ApiClient {
       if (quote.refundAmount <= 0) {
         throw new ApiClientError("NOTHING_TO_REFUND", "돌려드릴 금액이 없습니다", 400);
       }
-      const left = returnableQty(order, mine);
+      const left = remainingQty(order, mine);
       const chosen =
         r.lines ?? order.items.map((i) => ({ lineId: i.lineId, quantity: left[i.lineId] ?? 0 }));
       const { createdAt, createdDtm } = now();

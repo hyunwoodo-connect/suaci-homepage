@@ -56,7 +56,7 @@ export function canRequestReturn(order: Order, claims: Claim[], now: number): bo
   const shipped = order.fulfillmentStatus === "shipped" || order.fulfillmentStatus === "delivered";
   const hasOpenReturn = claims.some((c) => c.type === "return" && OPEN_RETURN.includes(c.status));
   const refundInFlight = claims.some((c) => IN_FLIGHT.includes(c.status));
-  const hasUnits = Object.values(returnableQty(order, claims)).some((n) => n > 0);
+  const hasUnits = Object.values(remainingQty(order, claims)).some((n) => n > 0);
   return (
     paid &&
     shipped &&
@@ -67,8 +67,8 @@ export function canRequestReturn(order: Order, claims: Claim[], now: number): bo
   );
 }
 
-/** 줄마다 아직 반품할 수 있는 수량 = 주문 수량 − 환불이 시작됐거나 끝난 클레임 수량 */
-export function returnableQty(order: Order, claims: Claim[]): Record<string, number> {
+/** 줄마다 남은 수량(취소·반품·교환할 수 있는 수량) = 주문 수량 − 환불이 시작됐거나 끝난 클레임 수량 */
+export function remainingQty(order: Order, claims: Claim[]): Record<string, number> {
   const taken: Record<string, number> = {};
   for (const c of claims) {
     if (!REFUNDING.includes(c.status)) continue;
@@ -99,7 +99,7 @@ export function returnQuote(
   reason: ReturnReason,
   lines?: { lineId: string; quantity: number }[],
 ): ReturnQuote {
-  const left = returnableQty(order, claims);
+  const left = remainingQty(order, claims);
   const chosen =
     lines ?? order.items.map((i) => ({ lineId: i.lineId, quantity: left[i.lineId] ?? 0 }));
   const itemsAmount = chosen.reduce((sum, l) => {

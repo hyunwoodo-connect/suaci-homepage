@@ -8,7 +8,7 @@ import { CHIP, CHIP_OFF, CHIP_ON } from "@/components/pay/chip";
 import Button from "@/components/ui/Button";
 import { api, ApiClientError } from "@/lib/api";
 import { formatKRW } from "@/lib/format";
-import { RETURN_REASONS, returnQuote, returnWindow, returnableQty } from "@/lib/returns/rules";
+import { RETURN_REASONS, returnQuote, returnWindow, remainingQty } from "@/lib/claims/rules";
 import type { Claim, Order, ReturnReason } from "@/types";
 
 import QtyStepper from "./QtyStepper";
@@ -53,7 +53,7 @@ export default function ReturnRequestForm({
   const { busy, run } = useClaimSubmit();
   const [error, setError] = useState<string | null>(null);
 
-  const left = returnableQty(order, claims);
+  const left = remainingQty(order, claims);
   const partialLines = order.items
     .map((it) => ({ lineId: it.lineId, quantity: qty[it.lineId] ?? 0 }))
     .filter((l) => l.quantity > 0);

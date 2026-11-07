@@ -18,7 +18,7 @@ import Skeleton from "@/components/ui/Skeleton";
 import { api, ApiClientError, isAuthRequired } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { formatDateKST, formatKRW } from "@/lib/format";
-import { canRequestReturn } from "@/lib/returns/rules";
+import { canRequestReturn } from "@/lib/claims/rules";
 import {
   REASON_CODES,
   type Claim,
