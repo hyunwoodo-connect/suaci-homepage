@@ -1,5 +1,6 @@
 /** 정책 문서(약관·개인정보처리방침·배송환불·사업자 정보). 백엔드 `GET /legal/{slug}` 응답을 그대로 비춘다. */
 export const LEGAL_SLUGS = ["terms", "privacy", "refund", "business"] as const;
+/** 정책 문서 종류(`LEGAL_SLUGS` 의 값) */
 export type LegalSlug = (typeof LEGAL_SLUGS)[number];
 
 /** 문서의 한 판. 본문은 마크다운. 시각은 `*At`=Unix ms, `*Dtm`=KST ISO. */

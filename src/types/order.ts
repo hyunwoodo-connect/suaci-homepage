@@ -1,5 +1,6 @@
 import type { Metadata, OrderStatus, PaymentStatus, FulfillmentStatus } from "./common";
 
+/** 주문 금액 합계(백엔드 주문 DTO의 `totals`) */
 export interface OrderTotals {
   itemsSubtotal: number;
   discountTotal: number;
@@ -7,6 +8,7 @@ export interface OrderTotals {
   taxTotal: number;
   grandTotal: number;
 }
+/** 주문에 담긴 상품 한 줄(백엔드 주문 DTO) */
 export interface OrderItem {
   lineId: string;
   productId: string;
@@ -22,6 +24,7 @@ export interface OrderItem {
   quantity: number;
   lineSubtotal: number;
 }
+/** 주문을 만들 때 복사해 둔 배송지(백엔드 주문 DTO) */
 export interface ShippingAddressSnapshot {
   recipient: string;
   phone: string;
@@ -29,6 +32,7 @@ export interface ShippingAddressSnapshot {
   addr1: string;
   addr2?: string;
 }
+/** 주문 한 건(백엔드 주문 DTO) — 주문 만들기·결제 승인·주문 상세가 같은 모양을 돌려준다 */
 export interface Order {
   orderId: string;
   orderNo: string;
@@ -51,6 +55,7 @@ export interface Order {
   createdAt: number;
   createdDtm: string;
 }
+/** 주문 목록의 한 줄(`GET /orders`) */
 export interface OrderSummary {
   orderId: string;
   orderNo: string;
@@ -67,6 +72,7 @@ export interface OrderLineRequest {
   variantId: string;
   quantity: number;
 }
+/** 주문 만들기 요청. `idempotencyKey` 가 같으면 서버는 새로 만들지 않고 옛 주문을 돌려준다 */
 export interface CreateOrderRequest {
   addressId: string;
   idempotencyKey: string;
@@ -78,6 +84,7 @@ export interface CreateOrderRequest {
 export interface ChangeShippingAddressRequest {
   addressId: string;
 }
+/** 결제 승인 요청 — 결제창이 돌려준 `paymentKey` 와 금액 */
 export interface ConfirmPaymentRequest {
   paymentKey: string;
   amount: number;

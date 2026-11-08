@@ -12,12 +12,14 @@ export type ReturnReason = Extract<ReasonCode, "단순변심" | "상품하자" |
 /** 손님이 신청하는 교환 사유 — 회사 탓 셋만(단순 변심 교환은 반품 후 새 주문으로 안내, PM 11/7) */
 export type ExchangeReason = Extract<ReasonCode, "상품하자" | "오배송" | "표시광고상이">;
 
+/** 클레임에 담긴 주문 줄 하나와 수량 */
 export interface ClaimLine {
   lineId: string;
   productId: string;
   variantId: string;
   quantity: number;
 }
+/** 취소·반품·교환 한 건(백엔드 클레임 DTO) */
 export interface Claim {
   claimId: string;
   orderId: string;
@@ -50,6 +52,7 @@ export interface Claim {
   resolvedAt?: number;
   resolvedDtm?: string;
 }
+/** 취소 요청(`createClaim`) — 사유와 취소할 줄 */
 export interface CreateClaimRequest {
   idempotencyKey: string;
   reasonCode: ReasonCode;
