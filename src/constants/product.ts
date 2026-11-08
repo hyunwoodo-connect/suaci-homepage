@@ -22,7 +22,7 @@ export const PRODUCT = {
 export const PRODUCT_PHOTOS: Readonly<Record<"main" | "moment", string | null>> = {
   /** 제품 섹션 큰 컷 */
   main: null,
-  /** 무드 갤러리 넷째 줄(모델+보틀 컷 자리) */
+  /** 무드 갤러리의 모델+보틀 컷 자리 */
   moment: null,
 };
 
