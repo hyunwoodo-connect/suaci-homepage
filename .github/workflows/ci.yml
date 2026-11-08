@@ -30,6 +30,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
       - run: pnpm lint
+      - run: pnpm check:readability
       - run: pnpm exec tsc --noEmit
       - run: pnpm test
       - run: pnpm build

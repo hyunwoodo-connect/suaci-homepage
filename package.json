@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "check:readability": "node scripts/check-readability.mjs"
   },
   "dependencies": {
     "@tosspayments/tosspayments-sdk": "2.10.0",
