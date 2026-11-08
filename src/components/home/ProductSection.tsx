@@ -1,18 +1,19 @@
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
-import PhotoSoon from "@/components/home/PhotoSoon";
+import ProductShot from "@/components/home/ProductShot";
 import ReturnNotice from "@/components/legal/ReturnNotice";
 import { CHECKOUT_PRICING } from "@/constants/checkout";
-import { PRODUCT } from "@/constants/product";
+import { ingredientLine } from "@/constants/ingredients";
+import { PRODUCT, PRODUCT_PHOTOS } from "@/constants/product";
 import { formatKRW } from "@/lib/format";
 
 /**
  * v5 제품 섹션 — 단일 SKU. 구매 CTA는 두지 않는다(하단 원클릭 바가 유일한 CTA).
- * 큰 제품 컷 자리 + 텍스트. 제품 사진이 나오기 전에는 '준비 중' 자리만 둔다(다른 브랜드 사진은 공개하지 않는다).
- * TODO(출시): suaci 보틀 컷으로 교체.
+ * 큰 제품 컷 + 텍스트. 실제 제품 사진(`PRODUCT_PHOTOS.main`)이 오기 전에는 '준비 중' 자리만 둔다(다른 브랜드·AI 사진은 공개하지 않는다).
  */
 export default function ProductSection() {
   const t = useTranslations("home.product");
+  const locale = useLocale();
 
   return (
     <section
@@ -26,7 +27,13 @@ export default function ProductSection() {
           {t("label")}
         </p>
 
-        <PhotoSoon label={t("photoSoon")} className="w-[max(40%,min(100%,320px))]" />
+        <ProductShot
+          src={PRODUCT_PHOTOS.main}
+          alt={t("photoAlt")}
+          soonLabel={t("photoSoon")}
+          className="w-[max(40%,min(100%,320px))]"
+          sizes="(max-width: 767px) 100vw, 40vw"
+        />
 
         <div className="flex min-w-0 flex-[1_1_300px] flex-col gap-[28px] pt-[clamp(0px,2vw,24px)] md:max-w-[440px]">
           <div className="flex flex-col gap-[6px]">
@@ -39,11 +46,10 @@ export default function ProductSection() {
           <p className="m-0 max-w-[340px] text-[14px] leading-[1.6] text-ink-soft">{t("note")}</p>
 
           <div className="border-t border-line">
-            {/* 사용법·전성분은 실제 내용이 나올 때까지 메시지를 비워 두고 칸을 숨긴다(자리 표시 문구를 손님에게 보이지 않게) */}
+            {/* 사용법은 표시 문구가 확정될 때까지 메시지를 비워 두고 칸을 숨긴다(자리 표시 문구를 손님에게 보이지 않게) */}
             {t("howToUseBody") && <Detail title={t("howToUse")} body={t("howToUseBody")} />}
-            {t("ingredientsBody") && (
-              <Detail title={t("ingredients")} body={t("ingredientsBody")} />
-            )}
+            {/* 전성분은 처방 표 한 곳(constants/ingredients)에서 — 한국어 화면은 한글 이름, 그 밖은 INCI */}
+            <Detail title={t("ingredients")} body={ingredientLine(locale)} />
             {/* 배송·교환·환불 안내 2판의 요약. 금액은 주문서와 같은 상수에서 — 바뀌면 정책 문서(관리 툴)도 같이 */}
             <Detail
               title={t("shipping")}

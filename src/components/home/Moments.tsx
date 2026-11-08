@@ -2,8 +2,8 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 
 import LoopVideo from "@/components/home/LoopVideo";
-import PhotoSoon from "@/components/home/PhotoSoon";
-import { HOME_MEDIA } from "@/constants/product";
+import ProductShot from "@/components/home/ProductShot";
+import { HOME_MEDIA, PRODUCT_PHOTOS } from "@/constants/product";
 
 /**
  * v5 무드 갤러리 — 완벽한 그리드가 아닌 엇갈린 배치.
@@ -62,8 +62,14 @@ export default function Moments() {
           className="mt-[clamp(0px,6vw,96px)] w-[max(21%,min(100%,220px))]"
           sizes="(max-width: 767px) 60vw, 21vw"
         />
-        {/* 모델+보틀 컷은 AI 시안 병(실제 용기와 모양이 다르다)이라 실제 제품 컷이 나올 때까지 비워 둔다 */}
-        <PhotoSoon label={t("bottleSoon")} className="ml-auto w-[max(25%,min(100%,260px))]" />
+        {/* 제품이 나오는 컷은 실제 병 사진만(AI 시안 병은 실제 용기와 모양이 달랐다) — 오기 전엔 준비 중 자리 */}
+        <ProductShot
+          src={PRODUCT_PHOTOS.moment}
+          alt={t("bottleAlt")}
+          soonLabel={t("bottleSoon")}
+          className="ml-auto w-[max(25%,min(100%,260px))]"
+          sizes="(max-width: 767px) 70vw, 25vw"
+        />
         <Shot
           src={HOME_MEDIA.basket}
           alt={t("basketAlt")}

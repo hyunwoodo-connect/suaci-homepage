@@ -72,4 +72,24 @@ describe("ProductSection — 반품 제한 고지(전자상거래법 제17조제
     expect(screen.getByRole("img", { name: "제품 사진 준비 중" })).toBeTruthy();
     expect(container.querySelector("img")).toBeNull();
   });
+
+  it("전성분 → 1차 전성분표 한 줄(ko 한글 이름, 향료 속 리모넨·리날룰 끝)", () => {
+    render(
+      <NextIntlClientProvider locale="ko" messages={ko}>
+        <ProductSection />
+      </NextIntlClientProvider>,
+    );
+    const body = screen.getByText(/^정제수, 다이프로필렌글라이콜/);
+    expect(body.closest("details")?.textContent).toContain("전성분");
+    expect(body.textContent?.endsWith("리모넨, 리날룰")).toBe(true);
+  });
+
+  it("en → 전성분은 INCI 이름", () => {
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <ProductSection />
+      </NextIntlClientProvider>,
+    );
+    expect(screen.getByText(/^Aqua, Dipropylene Glycol/)).toBeTruthy();
+  });
 });
