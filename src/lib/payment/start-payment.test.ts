@@ -60,7 +60,7 @@ describe("startPayment", () => {
     expect(adapter.request).toHaveBeenCalledWith("CARD", {
       orderId: "o1",
       orderNo: "20261107-A",
-      orderName: "라임바질 페이셜 세럼 미스트 · take-01 2개",
+      orderName: `${PRODUCT.name} 2개`,
       amount: 56000,
       customerKey: "u1",
       successPath: "/pay/complete?o=o1",

@@ -169,7 +169,8 @@ function OrderDetail({ orderId }: { orderId: string }) {
           {state === "awaitingPayment" && (
             <p className="m-0 text-[13px] text-grey">{t("payWithin")}</p>
           )}
-          {shipDelayed && (
+          {/* 안내가 '아래 주문 취소 요청'을 가리키므로 그 버튼이 있을 때만(남은 수량이 모두 취소 중이면 없다) */}
+          {shipDelayed && canRequestCancel(order, claims) && (
             <p className="m-0 max-w-[560px] text-[13px] leading-[1.6] text-ink-soft">
               {t("shipDelayed")}
             </p>

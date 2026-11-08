@@ -5,7 +5,7 @@ import { createTossAdapter, isTestClientKey } from "./toss";
 const input = {
   orderId: "o1",
   orderNo: "20261105-ABC123",
-  orderName: "라임바질 페이셜 세럼 미스트 1",
+  orderName: "라임바질 페이셜 세럼 미스트 · take-01 1개",
   amount: 31000,
   customerKey: "u1",
   successPath: "/pay/complete?o=o1",
@@ -39,7 +39,7 @@ describe("createTossAdapter", () => {
       method: "CARD",
       amount: { currency: "KRW", value: 31000 },
       orderId: "20261105-ABC123",
-      orderName: "라임바질 페이셜 세럼 미스트 1",
+      orderName: "라임바질 페이셜 세럼 미스트 · take-01 1개",
       successUrl: "https://x/pay/complete?o=o1",
       failUrl: "https://x/pay/fail?o=o1",
       card: { flowMode: "DEFAULT" },

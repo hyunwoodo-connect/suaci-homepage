@@ -173,6 +173,34 @@ describe("주문 상세", () => {
     expect(screen.getByRole("button", { name: "주문 취소 요청" })).toBeTruthy();
   });
 
+  it("기한은 지났지만 남은 수량이 모두 취소 중(버튼 없음) → '아래 취소 요청' 안내를 보이지 않는다", async () => {
+    signIn();
+    getOrder.mockResolvedValue({ ...ORDER, shipBy: Date.now() - 1000 });
+    // 환불 처리 중(approved)인 전체 취소 — 남은 수량이 0이라 '주문 취소 요청' 버튼이 없다
+    const cancelling: Claim = {
+      claimId: "c1",
+      orderId: "o1",
+      type: "cancel",
+      status: "approved",
+      reasonCode: "단순변심",
+      lines: ORDER.items.map((i) => ({
+        lineId: i.lineId,
+        productId: i.productId,
+        variantId: i.variantId,
+        quantity: i.quantity,
+      })),
+      refundAmount: ORDER.totals.grandTotal,
+      refundedShipping: 0,
+      returnShippingFee: 0,
+      createdAt: 0,
+      createdDtm: "",
+    };
+    listClaims.mockResolvedValue([cancelling]);
+    await renderPage();
+    expect(screen.getByText("결제완료")).toBeTruthy();
+    expect(screen.queryByText(/발송이 늦어지고 있어요/)).toBeNull();
+  });
+
   it("발송기한 전이거나 기한이 없으면(발송됨·테스트 결제) → 지연 안내 없음", async () => {
     signIn();
     getOrder.mockResolvedValue({ ...ORDER, shipBy: Date.now() + 60_000 });
