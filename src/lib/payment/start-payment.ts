@@ -62,7 +62,8 @@ export async function startPayment(input: StartPaymentInput): Promise<StartPayme
   await adapter.request(method, {
     orderId: order.orderId,
     orderNo: order.orderNo,
-    orderName: `${PRODUCT.name} ${String(qty)}`,
+    // 결제창·카드 명세에 그대로 보인다 — 사이트의 상품 이름 + 수량
+    orderName: `${PRODUCT.name} ${String(qty)}개`,
     amount: order.totals.grandTotal,
     customerKey,
     successPath: `/pay/complete?o=${order.orderId}`,
