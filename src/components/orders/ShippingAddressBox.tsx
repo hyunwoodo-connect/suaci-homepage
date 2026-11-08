@@ -148,9 +148,14 @@ function AddressPicker({ order, onClose, onChanged, onFailed }: AddressPickerPro
       if (!selected) return;
       setError(null);
       try {
-        onChanged(await api.changeShippingAddress(order.orderId, { addressId: selected }));
+        const changedOrder = await api.changeShippingAddress(order.orderId, {
+          addressId: selected,
+        });
+        onChanged(changedOrder);
       } catch (err) {
-        setError(tc(claimErrorKey(err)));
+        const errorKey = claimErrorKey(err);
+        const errorMessage = tc(errorKey);
+        setError(errorMessage);
         await onFailed();
       }
     });

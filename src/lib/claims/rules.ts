@@ -46,16 +46,19 @@ const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
  * '받은 날부터 7일'은 받은 날을 세지 않고 마지막 날 끝까지, 없는 날(2/30)은 다음 달로 넘긴다
  */
 export function kstDayEnd(at: number, offset: { days?: number; months?: number }): number {
+  const instant = new Date(at);
   const [y, m, d] = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Seoul",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   })
-    .format(new Date(at))
+    .format(instant)
     .split("-")
     .map(Number);
-  return Date.UTC(y, m - 1 + (offset.months ?? 0), d + (offset.days ?? 0) + 1) - KST_OFFSET_MS - 1;
+  const monthIndex = m - 1 + (offset.months ?? 0);
+  const dayAfterLast = d + (offset.days ?? 0) + 1;
+  return Date.UTC(y, monthIndex, dayAfterLast) - KST_OFFSET_MS - 1;
 }
 
 /** 반품 신청 기한(환불 정책 v2): 배송 완료부터 단순 변심 7일, 하자·오배송·표시와 다름 3개월. 배송 완료 전이면 둘 다 열려 있다 */

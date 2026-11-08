@@ -79,7 +79,8 @@ function OrderDetail({ orderId }: { orderId: string }) {
       api.getOrder(orderId),
       api.listClaims(orderId).catch(() => [] as Claim[]),
     ]);
-    return { order, claims, isShipDelayed: isShipDelayed(order, Date.now()) };
+    const now = Date.now();
+    return { order, claims, isShipDelayed: isShipDelayed(order, now) };
   }, [orderId]);
 
   const load = useCallback(
@@ -91,7 +92,8 @@ function OrderDetail({ orderId }: { orderId: string }) {
             void recheckSession();
             return;
           }
-          setLoadFailed(isNotFound(err) ? "notFound" : "error");
+          const failure = isNotFound(err) ? "notFound" : "error";
+          setLoadFailed(failure);
         }),
     [fetchDetail, recheckSession],
   );
@@ -125,11 +127,12 @@ function OrderDetail({ orderId }: { orderId: string }) {
   }
 
   if (loadFailed) {
+    const failedMessageKey = loadFailed === "notFound" ? "notFound" : "detailLoadError";
     return (
       <PageShell title={t("detailTitle")}>
         <div className="flex max-w-[400px] flex-col items-start gap-[16px]">
           <p role="alert" className="m-0 text-[15px] text-ink">
-            {t(loadFailed === "notFound" ? "notFound" : "detailLoadError")}
+            {t(failedMessageKey)}
           </p>
           {loadFailed === "error" && (
             <Button
@@ -404,7 +407,9 @@ function OrderActions({ order, claims, reload }: OrderActionsProps) {
         setConfirmCancel(false);
         await reload();
       } catch (err) {
-        setError(tc(claimErrorKey(err)));
+        const errorKey = claimErrorKey(err);
+        const errorMessage = tc(errorKey);
+        setError(errorMessage);
       }
     });
 

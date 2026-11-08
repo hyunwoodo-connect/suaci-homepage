@@ -65,6 +65,16 @@ function ClaimRow({
   const tr = useTranslations("returns");
   const te = useTranslations("exchanges");
   const isExchange = c.type === "exchange";
+  const returnFee =
+    c.type === "return" && c.returnShippingFee > 0 && formatKRW(c.returnShippingFee);
+  const shippingBack =
+    c.type === "return" && c.refundedShipping > 0 && formatKRW(c.refundedShipping);
+  // 반품은 회수 확인 뒤 환불 중일 때만 기한을 보인다(취소는 늘 보여 왔다)
+  const refundDueDate =
+    c.refundDueAt !== undefined &&
+    (c.type === "cancel" || (c.type === "return" && isRefunding(c))) &&
+    formatDateKST(c.refundDueAt);
+  const requestedDate = formatDateKST(c.createdAt);
 
   return (
     <li className="border-t border-line py-[14px]">
@@ -108,20 +118,12 @@ function ClaimRow({
         </div>
       )}
       <div className="flex flex-wrap gap-x-[16px] gap-y-[2px] text-[13px] text-grey">
-        {c.type === "return" && c.returnShippingFee > 0 && (
-          <span className="num">{tr("returnFee", { amount: formatKRW(c.returnShippingFee) })}</span>
+        {returnFee && <span className="num">{tr("returnFee", { amount: returnFee })}</span>}
+        {shippingBack && (
+          <span className="num">{tr("shippingBack", { amount: shippingBack })}</span>
         )}
-        {c.type === "return" && c.refundedShipping > 0 && (
-          <span className="num">
-            {tr("shippingBack", { amount: formatKRW(c.refundedShipping) })}
-          </span>
-        )}
-        {/* 반품은 회수 확인 뒤 환불 중일 때만 기한을 보인다(취소는 늘 보여 왔다) */}
-        {c.refundDueAt !== undefined &&
-          (c.type === "cancel" || (c.type === "return" && isRefunding(c))) && (
-            <span className="num">{tc("refundDue", { date: formatDateKST(c.refundDueAt) })}</span>
-          )}
-        <span className="num">{tc("requestedAt", { date: formatDateKST(c.createdAt) })}</span>
+        {refundDueDate && <span className="num">{tc("refundDue", { date: refundDueDate })}</span>}
+        <span className="num">{tc("requestedAt", { date: requestedDate })}</span>
       </div>
       {c.status === "requested" && c.type !== "cancel" && (
         <p className="m-0 mt-[6px] text-[13px] leading-[1.6] text-grey">
@@ -157,7 +159,9 @@ function WithdrawControl({ claim, onChanged, onError }: WithdrawControlProps) {
       try {
         await api.withdrawClaim(claim.orderId, claim.claimId);
       } catch (err) {
-        onError(tc(claimErrorKey(err)));
+        const errorKey = claimErrorKey(err);
+        const errorMessage = tc(errorKey);
+        onError(errorMessage);
       }
       // 성공이든 이미 처리가 시작됐든 지금 상태를 다시 받아 보여 준다
       await onChanged();

@@ -78,13 +78,19 @@ export default function ReturnRequestForm({
           unopenedConfirmed: needsUnopened && unopened,
         });
       } catch (err) {
-        setError(tc(claimErrorKey(err)));
+        const errorKey = claimErrorKey(err);
+        const errorMessage = tc(errorKey);
+        setError(errorMessage);
         await onFailed();
         return;
       }
       await onDone();
     });
   };
+
+  const returnFeeLabelKey =
+    order.totals.shippingFee === 0 ? "quoteReturnFeeFree" : "quoteReturnFee";
+  const refundShown = Math.max(0, quote.refundAmount);
 
   return (
     <form
@@ -154,10 +160,7 @@ export default function ReturnRequestForm({
         <h3 className="m-0 mb-[8px] text-[14px] font-medium text-ink">{t("quoteTitle")}</h3>
         <QuoteRow label={t("quoteItems")} value={formatKRW(quote.itemsAmount)} />
         {quote.returnShippingFee > 0 && (
-          <QuoteRow
-            label={t(order.totals.shippingFee === 0 ? "quoteReturnFeeFree" : "quoteReturnFee")}
-            value={`−${formatKRW(quote.returnShippingFee)}`}
-          />
+          <QuoteRow label={t(returnFeeLabelKey)} value={`−${formatKRW(quote.returnShippingFee)}`} />
         )}
         {quote.refundedShipping > 0 && (
           <QuoteRow
@@ -167,9 +170,7 @@ export default function ReturnRequestForm({
         )}
         <div className="mt-[8px] flex items-baseline justify-between border-t border-line pt-[8px]">
           <span className="text-[15px] font-medium">{t("quoteTotal")}</span>
-          <b className="num text-[18px] font-medium">
-            {formatKRW(Math.max(0, quote.refundAmount))}
-          </b>
+          <b className="num text-[18px] font-medium">{formatKRW(refundShown)}</b>
         </div>
       </section>
 

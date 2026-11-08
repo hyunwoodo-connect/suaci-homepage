@@ -61,7 +61,9 @@ export default function CancelRequestForm({
           lines: pick.lines,
         });
       } catch (err) {
-        setError(tc(claimErrorKey(err)));
+        const errorKey = claimErrorKey(err);
+        const errorMessage = tc(errorKey);
+        setError(errorMessage);
         await onFailed();
         return;
       }
