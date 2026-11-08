@@ -1,8 +1,8 @@
-// 읽기 규칙 검사(게이트·저장 훅이 같이 부른다). 사람이 위에서 아래로 읽게 하는 두 가지를 본다.
+// 읽기 규칙 검사(CI 가 부른다). 사람이 위에서 아래로 읽게 하는 두 가지를 본다.
 //   1. 중첩 호출: 함수 인자에는 이름 붙은 값만 넣는다. 호출·삼항·계산식은 먼저 `const` 로 이름을 붙인다.
 //   2. export 설명: export 하는 함수·상수·타입 바로 위에 `/** */` 가 있다.
 // 줄 단위 근사라 콜백(`=>` 가 있는 줄)은 1에서 뺀다. 테스트와 테스트 도구(`testing/`)는 보지 않는다.
-// 사용: `node scripts/check-readability.mjs` (전체) · `node scripts/check-readability.mjs <파일>` (그 파일만, 훅)
+// 사용: `node scripts/check-readability.mjs` (전체) · `node scripts/check-readability.mjs <파일>` (그 파일만)
 
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
