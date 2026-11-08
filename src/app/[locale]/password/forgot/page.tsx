@@ -31,7 +31,8 @@ export default function ForgotPasswordPage() {
       await api.forgotPassword(email);
       setSent(true);
     } catch {
-      setError(t("error"));
+      const errorMessage = t("error");
+      setError(errorMessage);
     } finally {
       setBusy(false);
     }

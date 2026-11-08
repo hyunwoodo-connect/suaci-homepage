@@ -40,7 +40,8 @@ export default function SocialLoginButtons({ next, replace = false }: SocialLogi
   useEffect(() => {
     // setState 는 .then() 안에서(동기 setState 를 react-hooks 린트가 막는다)
     void Promise.resolve().then(() => {
-      setUnlocked(unlockedProviders(window.location.search));
+      const openedInTab = unlockedProviders(window.location.search);
+      setUnlocked(openedInTab);
     });
   }, []);
 

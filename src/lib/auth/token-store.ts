@@ -3,9 +3,13 @@ import type { TokenResponse } from "@/types";
 const KEY = "suaci.auth.tokens";
 const hasWindow = (): boolean => typeof window !== "undefined";
 
+/** 로그인 토큰 보관(localStorage). 서버 렌더에서는 비어 있는 것처럼 동작한다 */
 export const tokenStore = {
   save(t: TokenResponse): void {
-    if (hasWindow()) localStorage.setItem(KEY, JSON.stringify(t));
+    if (hasWindow()) {
+      const serialized = JSON.stringify(t);
+      localStorage.setItem(KEY, serialized);
+    }
   },
   read(): TokenResponse | null {
     if (!hasWindow()) return null;

@@ -42,10 +42,12 @@ function LoginBody() {
   const { login, status, recheckSession } = useAuth();
 
   const justReset = searchParams.get("reset") === "1";
-  const next = afterLoginPath(searchParams.get("next"));
+  const nextParam = searchParams.get("next");
+  const next = afterLoginPath(nextParam);
 
   // 구매 시트의 '이메일로 로그인'은 ?email=1 로 와서 폼을 펼친 채로 연다
-  const [showEmail, setShowEmail] = useState(justReset || searchParams.get("email") === "1");
+  const opensEmailForm = justReset || searchParams.get("email") === "1";
+  const [showEmail, setShowEmail] = useState(opensEmailForm);
   const [lastProvider, setLastProvider] = useState<SocialProvider | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -67,8 +69,10 @@ function LoginBody() {
   useEffect(() => {
     Promise.resolve().then(() => {
       const last = readLastProvider();
-      const visible = visibleProviders(unlockedProviders(window.location.search));
-      setLastProvider(last && visible.includes(last) ? last : null);
+      const unlocked = unlockedProviders(window.location.search);
+      const visible = visibleProviders(unlocked);
+      const shownLast = last && visible.includes(last) ? last : null;
+      setLastProvider(shownLast);
     });
   }, []);
 
@@ -86,6 +90,8 @@ function LoginBody() {
     }
   };
 
+  const lastProviderName = lastProvider && t(`provider.${lastProvider}`);
+
   return (
     <PageShell title={tp("title")} meta={t("loginSub")}>
       <div className="flex max-w-[400px] flex-col">
@@ -97,10 +103,10 @@ function LoginBody() {
 
         {/* 소셜 로그인 — 카카오·네이버만(오너 결정 #93). 공식 버튼은 손대지 않는다 */}
         <SocialLoginButtons next={next} />
-        {lastProvider && (
+        {lastProviderName && (
           <p className="m-0 mt-[14px] flex items-center gap-[8px] text-[13px] text-grey">
             <span aria-hidden="true" className="size-[6px] shrink-0 rounded-full bg-lime" />
-            {t("lastUsed", { provider: t(`provider.${lastProvider}`) })}
+            {t("lastUsed", { provider: lastProviderName })}
           </p>
         )}
 

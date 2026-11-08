@@ -70,6 +70,7 @@ export function isSocialProvider(value: unknown): value is SocialProvider {
   return typeof value === "string" && (SOCIAL_PROVIDERS as readonly string[]).includes(value);
 }
 
+/** 소셜 로그인 어댑터 모드 — `live` 실제 로그인, `mock` 앱 안 동의 화면, `off` 버튼을 뺀다 */
 export type SocialMode = "live" | "mock" | "off";
 
 /** 지금 쓸 소셜 로그인 어댑터 — 실키+실서버(live) > 목업(개발·mock 모드) > 꺼짐(운영 실서버) */
@@ -87,7 +88,8 @@ export function socialMode(env: {
 export function createLoginState(next: string): string {
   const nonce = crypto.randomUUID();
   try {
-    sessionStorage.setItem(STATE_KEY, JSON.stringify({ nonce, next }));
+    const serialized = JSON.stringify({ nonce, next });
+    sessionStorage.setItem(STATE_KEY, serialized);
   } catch {
     // 시크릿 모드 등 — state 검증은 콜백에서 실패하고 로그인부터 다시
   }
@@ -206,7 +208,8 @@ export interface SignupStash {
 /** 가입 표를 담는다. 저장소가 막혀 있으면 동의 화면이 로그인으로 돌려보낸다 */
 export function stashSignup(stash: SignupStash): void {
   try {
-    sessionStorage.setItem(SIGNUP_STASH_KEY, JSON.stringify(stash));
+    const serialized = JSON.stringify(stash);
+    sessionStorage.setItem(SIGNUP_STASH_KEY, serialized);
   } catch {}
 }
 
@@ -268,8 +271,13 @@ export function unlockedProviders(search: string): SocialProvider[] {
   try {
     const fromUrl = new URLSearchParams(search).get("with");
     const saved = (sessionStorage.getItem(WITH_KEY) ?? "").split(",");
-    const all = [...new Set([...saved, ...(fromUrl ?? "").split(",")])].filter(isSocialProvider);
-    if (fromUrl) sessionStorage.setItem(WITH_KEY, all.join(","));
+    const requested = (fromUrl ?? "").split(",");
+    const merged = new Set([...saved, ...requested]);
+    const all = [...merged].filter(isSocialProvider);
+    if (fromUrl) {
+      const remembered = all.join(",");
+      sessionStorage.setItem(WITH_KEY, remembered);
+    }
     return all;
   } catch {
     return [];

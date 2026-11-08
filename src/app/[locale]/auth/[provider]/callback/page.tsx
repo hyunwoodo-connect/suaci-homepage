@@ -69,11 +69,13 @@ function CallbackBody({ provider }: CallbackBodyProps) {
     let next = FALLBACK_NEXT;
     Promise.resolve()
       .then(async () => {
-        const saved = takeLoginState(search.get("state"));
+        const stateParam = search.get("state");
+        const saved = takeLoginState(stateParam);
         if (saved) next = safeNextPath(saved.next);
         const error = search.get("error");
         if (error) {
-          setPhase({ kind: error === "access_denied" ? "declined" : "refused", next });
+          const kind = error === "access_denied" ? "declined" : "refused";
+          setPhase({ kind, next });
           return;
         }
         const code = search.get("code");
@@ -84,7 +86,7 @@ function CallbackBody({ provider }: CallbackBodyProps) {
         const result = await api.socialSignIn(provider, {
           code,
           redirectUri: socialRedirectUri(window.location.origin, provider),
-          state: search.get("state") ?? undefined,
+          state: stateParam ?? undefined,
         });
         if (result.status === "signed_in") {
           await adoptTokens(result.tokens);

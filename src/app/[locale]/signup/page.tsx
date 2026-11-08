@@ -36,7 +36,8 @@ function SignupBody() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
-  const next = afterLoginPath(searchParams.get("next"));
+  const nextParam = searchParams.get("next");
+  const next = afterLoginPath(nextParam);
 
   const [step, setStep] = useState<Step>("form");
   const [name, setName] = useState("");
@@ -55,7 +56,8 @@ function SignupBody() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!consents.terms || !consents.privacy || !consents.age) {
-      setError(t("consent.required"));
+      const consentMessage = t("consent.required");
+      setError(consentMessage);
       return;
     }
     setBusy(true);
@@ -64,7 +66,8 @@ function SignupBody() {
       await api.signup({ email, password, name, consents });
       setStep("confirm");
     } catch {
-      setError(t("error"));
+      const errorMessage = t("error");
+      setError(errorMessage);
     } finally {
       setBusy(false);
     }
@@ -79,7 +82,8 @@ function SignupBody() {
       await login(email, password);
       router.push(next);
     } catch {
-      setError(t("error"));
+      const errorMessage = t("error");
+      setError(errorMessage);
     } finally {
       setBusy(false);
     }

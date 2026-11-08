@@ -37,7 +37,8 @@ function ResetForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [email, setEmail] = useState(searchParams.get("email") ?? "");
+  const emailParam = searchParams.get("email") ?? "";
+  const [email, setEmail] = useState(emailParam);
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +52,8 @@ function ResetForm() {
       await api.resetPassword({ email, code, newPassword });
       router.push({ pathname: "/login", query: { reset: "1" } });
     } catch {
-      setError(t("error"));
+      const errorMessage = t("error");
+      setError(errorMessage);
     } finally {
       setBusy(false);
     }

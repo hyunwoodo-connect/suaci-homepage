@@ -13,8 +13,10 @@ import type { TokenResponse, User } from "@/types";
 import { api } from "@/lib/api";
 import { tokenStore } from "./token-store";
 
+/** 로그인 상태. 저장된 토큰을 확인하는 동안은 `loading` 이라 로그인 화면으로 보내지 않는다 */
 export type AuthStatus = "loading" | "authenticated" | "anonymous";
 
+/** `useAuth` 가 돌려주는 값 — 지금 로그인한 사람과 로그인·로그아웃 동작 */
 export interface AuthContextValue {
   user: User | null;
   status: AuthStatus;
@@ -30,6 +32,7 @@ export interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/** `[locale]` 화면 전체에 로그인 상태를 나눠 준다. 붙을 때 저장된 토큰으로 세션을 되살린다 */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<AuthStatus>("loading");
@@ -91,7 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string) => {
-      await adoptTokens(await api.login({ email, password }));
+      const tokens = await api.login({ email, password });
+      await adoptTokens(tokens);
     },
     [adoptTokens],
   );
@@ -112,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+/** 로그인 상태와 동작을 읽는다. `AuthProvider` 밖에서 부르면 던진다 */
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within an AuthProvider");

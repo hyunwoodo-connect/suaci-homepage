@@ -73,7 +73,9 @@ function MockConsentBody({ provider }: MockConsentBodyProps) {
           <button
             type="button"
             onClick={() => {
-              go(`code=${encodeURIComponent(`mock:${provider}:${name.trim() || "mina"}`)}`);
+              const mockCode = `mock:${provider}:${name.trim() || "mina"}`;
+              const encodedCode = encodeURIComponent(mockCode);
+              go(`code=${encodedCode}`);
             }}
             className="w-full py-3 text-sm font-medium"
             style={{ backgroundColor: bg, color: fg }}
