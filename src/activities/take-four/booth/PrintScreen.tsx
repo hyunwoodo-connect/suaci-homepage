@@ -30,6 +30,15 @@ export const PRINT_STEP_MS = 900;
 /** 칸 덮개 자리 */
 const COVERS = cellBoxes();
 
+/** 현상 화면의 세 단계: 인화 중(칸이 걷히는 중이거나 합성 중) → 다 됨 / 실패 */
+type PrintPhase = "printing" | "ready" | "failed";
+
+const HEADLINE: Record<PrintPhase, string> = {
+  printing: "printing…",
+  ready: "here.",
+  failed: "oops.",
+};
+
 /**
  * 현상. 카드 위 연두 덮개가 칸마다 걷히며 `printing…` → `here.` + `받기`.
  * 카드는 저장 카드와 같은 `drawCard`로 그린다. 가장자리 글자는 합성이 글꼴을 받은 뒤(ready)에 얹는다.
@@ -53,8 +62,7 @@ export default function PrintScreen({
     return () => clearTimeout(timer);
   }, [left]);
 
-  const isFailed = status === "failed";
-  const isReady = !isFailed && left === 0 && status === "ready";
+  const phase = phaseOf(status, left);
   const shown = SHOT_INDEXES.length - left;
 
   return (
@@ -66,11 +74,9 @@ export default function PrintScreen({
           aria-live="polite"
           className="font-(family-name:--tf-latin) text-[52px] leading-none font-semibold tracking-[-0.02em] italic"
         >
-          {isFailed ? "oops." : isReady ? "here." : "printing…"}
+          {HEADLINE[phase]}
         </div>
-        <p className="m-0 mt-[12px] text-[16px] leading-[1.5]">
-          {isFailed ? "인화가 안 됐어요." : isReady ? "" : left > 0 ? `${secondsLeft(left)}초` : ""}
-        </p>
+        <p className="m-0 mt-[12px] text-[16px] leading-[1.5]">{captionOf(phase, left)}</p>
       </div>
 
       {/* 카드가 화면을 늘리지 않게 absolute, 작은 폰에선 줄인다(시안은 390×844) */}
@@ -91,14 +97,14 @@ export default function PrintScreen({
         </div>
       </div>
 
-      {isFailed ? (
+      {phase === "failed" && (
         <div className="flex flex-col gap-[4px]">
           <PillButton onClick={onRetry}>다시 인화하기</PillButton>
           <TextLink onClick={onRetake}>{retakeLabel}</TextLink>
         </div>
-      ) : isReady ? (
-        <PillButton onClick={onReceive}>받기</PillButton>
-      ) : (
+      )}
+      {phase === "ready" && <PillButton onClick={onReceive}>받기</PillButton>}
+      {phase === "printing" && (
         <div role="status" className="flex h-[58px] items-center justify-center gap-[10px]">
           <span className="sr-only">인화 중</span>
           {SHOT_INDEXES.map((i) => (
@@ -154,6 +160,19 @@ function CardCanvas({ frames, takenAt, withText }: CardCanvasProps) {
 }
 
 /* ─── 내부 ─────────────────────────── */
+
+function phaseOf(status: PrintScreenProps["status"], left: number): PrintPhase {
+  if (status === "failed") return "failed";
+  if (left === 0 && status === "ready") return "ready";
+  return "printing";
+}
+
+/** 큰 글자 아래 한 줄. 인화 중에는 남은 초, 칸이 다 걷혔는데 합성이 안 끝났으면 빈 줄 */
+function captionOf(phase: PrintPhase, left: number): string {
+  if (phase === "failed") return "인화가 안 됐어요.";
+  if (phase === "printing" && left > 0) return `${secondsLeft(left)}초`;
+  return "";
+}
 
 /** 남은 칸이 다 드러나기까지 몇 초(칸마다 0.9초, 올림) */
 function secondsLeft(cells: number): number {

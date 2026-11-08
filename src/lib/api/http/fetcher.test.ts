@@ -119,6 +119,37 @@ describe("http client", () => {
     // 재시도는 정확히 1회 — fetch 총 3회 (요청 → refresh → 재요청)
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
+
+  it("최초 401 → refresh 실패 → 다시 보내지 않고 토큰 클리어 + 처음 에러", async () => {
+    tokenStore.save({ idToken: "i", accessToken: "old", refreshToken: "r", expiresIn: 1 });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        text: async () => JSON.stringify({ error: "AUTH_REQUIRED", message: "처음" }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: async () => JSON.stringify({ error: "INVALID_REFRESH_TOKEN", message: "refresh" }),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    const api = createHttpClient("https://api.test");
+    await expect(api.getMe()).rejects.toMatchObject({ code: "AUTH_REQUIRED", message: "처음" });
+    expect(tokenStore.getAccessToken()).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("401 이 아닌 실패 → refresh 없이 그대로, 토큰 유지", async () => {
+    tokenStore.save({ idToken: "i", accessToken: "old", refreshToken: "r", expiresIn: 1 });
+    const fetchMock = mockFetchOnce(500, { error: "SERVER_ERROR", message: "x" });
+    vi.stubGlobal("fetch", fetchMock);
+    const api = createHttpClient("https://api.test");
+    await expect(api.getMe()).rejects.toMatchObject({ code: "SERVER_ERROR", status: 500 });
+    expect(tokenStore.getAccessToken()).toBe("old");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("createFetcher", () => {

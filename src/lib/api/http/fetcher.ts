@@ -50,6 +50,10 @@ function toApiError(status: number, text: string): ApiClientError {
   return new ApiClientError(code, parsed?.message ?? text, status, parsed?.field);
 }
 
+function isUnauthorized(err: unknown): boolean {
+  return err instanceof ApiClientError && err.status === 401;
+}
+
 export function createFetcher(baseUrl: string) {
   async function request<T>(
     path: string,
@@ -94,25 +98,32 @@ export function createFetcher(baseUrl: string) {
     }
   }
 
+  // 401 이면 토큰을 새로 받아 정확히 한 번만 다시 — 새로 받지 못하면 토큰을 비우고 처음 에러를 던진다
   async function authedRequest<T>(path: string, opts: RequestOpts = {}): Promise<T> {
+    const authedOpts = { ...opts, auth: true };
     try {
-      return await request<T>(path, { ...opts, auth: true });
+      return await request<T>(path, authedOpts);
     } catch (err) {
-      if (err instanceof ApiClientError && err.status === 401) {
-        const tokens = await refreshTokens();
-        if (tokens) {
-          // Exactly one retry. If it also 401s, clear the (now-stale) tokens before propagating.
-          try {
-            return await request<T>(path, { ...opts, auth: true }, tokens.idToken);
-          } catch (retryErr) {
-            if (retryErr instanceof ApiClientError && retryErr.status === 401) {
-              tokenStore.clear();
-            }
-            throw retryErr;
-          }
-        }
+      if (!isUnauthorized(err)) throw err;
+      const tokens = await refreshTokens();
+      if (!tokens) {
         tokenStore.clear();
+        throw err;
       }
+      return await retryWithFreshToken<T>(path, authedOpts, tokens.idToken);
+    }
+  }
+
+  /** 새 토큰으로 다시 보낸 것까지 401 이면 낡은 토큰을 비우고 그대로 던진다 */
+  async function retryWithFreshToken<T>(
+    path: string,
+    opts: RequestOpts,
+    idToken: string,
+  ): Promise<T> {
+    try {
+      return await request<T>(path, opts, idToken);
+    } catch (err) {
+      if (isUnauthorized(err)) tokenStore.clear();
       throw err;
     }
   }
