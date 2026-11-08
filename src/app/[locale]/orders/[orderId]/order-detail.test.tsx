@@ -165,6 +165,22 @@ describe("주문 상세", () => {
     expect(screen.getByRole("heading", { name: "주문 관리" })).toBeTruthy();
   });
 
+  it("발송기한이 지났는데 아직 안 보냄 → 발송 지연 안내 + 취소 요청 길", async () => {
+    signIn();
+    getOrder.mockResolvedValue({ ...ORDER, shipBy: Date.now() - 1000 });
+    await renderPage();
+    expect(screen.getByText(/발송이 늦어지고 있어요\./)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "주문 취소 요청" })).toBeTruthy();
+  });
+
+  it("발송기한 전이거나 기한이 없으면(발송됨·테스트 결제) → 지연 안내 없음", async () => {
+    signIn();
+    getOrder.mockResolvedValue({ ...ORDER, shipBy: Date.now() + 60_000 });
+    await renderPage();
+    expect(screen.getByText("결제완료")).toBeTruthy();
+    expect(screen.queryByText(/발송이 늦어지고 있어요/)).toBeNull();
+  });
+
   it("결제 대기 → 30분 안에 결제하라는 한 줄", async () => {
     signIn();
     getOrder.mockResolvedValue({ ...ORDER, status: "pending", paymentStatus: "pending" });

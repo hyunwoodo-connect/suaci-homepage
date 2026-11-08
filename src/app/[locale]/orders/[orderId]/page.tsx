@@ -32,7 +32,7 @@ import {
 } from "@/lib/claims/rules";
 import type { Claim, ClaimType, Order } from "@/types";
 
-import { ORDER_STATE_TONE, orderState } from "../orderState";
+import { isShipDelayed, ORDER_STATE_TONE, orderState } from "../orderState";
 
 // 실제 화면과 뼈대가 같은 크기가 되도록 상자·줄 틀을 한 곳에서 쓴다
 const BOX = "border border-line p-[16px]";
@@ -166,6 +166,11 @@ function OrderDetail({ orderId }: { orderId: string }) {
           <Badge tone={ORDER_STATE_TONE[state]}>{t(`state.${state}`)}</Badge>
           {state === "awaitingPayment" && (
             <p className="m-0 text-[13px] text-grey">{t("payWithin")}</p>
+          )}
+          {isShipDelayed(order, Date.now()) && (
+            <p className="m-0 max-w-[560px] text-[13px] leading-[1.6] text-ink-soft">
+              {t("shipDelayed")}
+            </p>
           )}
           {order.carrier && order.trackingNumber && (
             <TrackingLine

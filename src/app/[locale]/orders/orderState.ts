@@ -52,3 +52,11 @@ export const ORDER_STATE_TONE = {
   refunded: "muted",
   cancelled: "muted",
 } as const satisfies Record<OrderState, BadgeTone>;
+
+/**
+ * 발송이 늦었나 — 서버가 준 발송기한(보낼 주문만 있다)이 지났다. 정책 v2 "발송이 늦어지면 먼저 알립니다. 발송 전이면 전액 취소할 수 있습니다".
+ * 같은 날 손님에게 발송 지연 안내 메일도 간다(서버 스케줄).
+ */
+export function isShipDelayed({ shipBy }: { shipBy?: number }, now: number): boolean {
+  return shipBy !== undefined && now > shipBy;
+}

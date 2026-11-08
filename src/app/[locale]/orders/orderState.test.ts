@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { orderState } from "./orderState";
+import { isShipDelayed, orderState } from "./orderState";
 
 describe("orderState", () => {
   it("결제 전(pending) → 결제 대기", () => {
@@ -99,5 +99,13 @@ describe("orderState", () => {
     expect(
       orderState({ status: "open", paymentStatus: "paid", fulfillmentStatus: "unfulfilled" }),
     ).toBe("paid");
+  });
+});
+
+describe("isShipDelayed", () => {
+  it("발송기한이 지났다 → true, 기한 전·기한 없음(발송됨·테스트 결제) → false", () => {
+    expect(isShipDelayed({ shipBy: 100 }, 101)).toBe(true);
+    expect(isShipDelayed({ shipBy: 100 }, 100)).toBe(false);
+    expect(isShipDelayed({}, 101)).toBe(false);
   });
 });

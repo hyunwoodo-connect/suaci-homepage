@@ -46,6 +46,8 @@ export interface Order {
   trackingUrl?: string;
   shippedAt?: number;
   deliveredAt?: number;
+  /** 발송기한(Unix ms, 결제한 날부터 3영업일째 끝) — 보낼 주문(결제됨·발송 전)만, 테스트 결제는 없음 */
+  shipBy?: number;
   createdAt: number;
   createdDtm: string;
 }

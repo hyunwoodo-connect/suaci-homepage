@@ -237,6 +237,7 @@
     "requestReturn": "request a return",
     "requestExchange": "request an exchange",
     "payWithin": "please pay within 30 minutes. after that, the order is cancelled automatically.",
+    "shipDelayed": "your order is taking longer than planned to ship. we'll send it as soon as it's ready and share the tracking number. if you'd rather not wait, you can use 'request cancellation' below for a full refund until it ships.",
     "trackShipment": "track package",
     "carrier": {
       "cj": "cj logistics",
