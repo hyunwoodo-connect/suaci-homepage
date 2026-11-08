@@ -41,6 +41,8 @@ const ITEM_ROW = "flex items-center gap-[16px] border-b border-line py-[14px] la
 interface OrderDetailData {
   order: Order;
   claims: Claim[];
+  /** 받은 때 기준으로 발송기한이 지났나 — 그리는 중에 시계를 읽지 않게 받을 때 한 번 정한다 */
+  isShipDelayed: boolean;
 }
 
 /**
@@ -77,7 +79,7 @@ function OrderDetail({ orderId }: { orderId: string }) {
       api.getOrder(orderId),
       api.listClaims(orderId).catch(() => [] as Claim[]),
     ]);
-    return { order, claims };
+    return { order, claims, isShipDelayed: isShipDelayed(order, Date.now()) };
   }, [orderId]);
 
   const load = useCallback(
@@ -153,7 +155,7 @@ function OrderDetail({ orderId }: { orderId: string }) {
     return <OrderDetailLoading welcome={welcome} />;
   }
 
-  const { order, claims } = data;
+  const { order, claims, isShipDelayed: shipDelayed } = data;
   const state = orderState(order);
 
   return (
@@ -167,7 +169,7 @@ function OrderDetail({ orderId }: { orderId: string }) {
           {state === "awaitingPayment" && (
             <p className="m-0 text-[13px] text-grey">{t("payWithin")}</p>
           )}
-          {isShipDelayed(order, Date.now()) && (
+          {shipDelayed && (
             <p className="m-0 max-w-[560px] text-[13px] leading-[1.6] text-ink-soft">
               {t("shipDelayed")}
             </p>
