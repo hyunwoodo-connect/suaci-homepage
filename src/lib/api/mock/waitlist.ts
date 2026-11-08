@@ -5,7 +5,8 @@ import type { WaitlistApi } from "../waitlist";
 export function createMockWaitlistApi(): WaitlistApi {
   return {
     async join({ email }) {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      const trimmedEmail = email.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
         throw new ApiClientError("INVALID_EMAIL", "invalid email", 400, "email");
       }
     },

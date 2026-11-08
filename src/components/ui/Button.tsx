@@ -20,6 +20,7 @@ import type { ButtonHTMLAttributes } from "react";
  *  그래서 primary 는 잉크 채움(흰 바탕 대비 18:1)으로 두고, 위계는 나머지를 낮추는 쪽으로 만든다.
  */
 export type ButtonVariant = "primary" | "secondary" | "text" | "danger";
+/** 버튼 크기 — 높이 `md` 52px, `sm` 44px */
 export type ButtonSize = "md" | "sm";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

@@ -5,7 +5,9 @@
  */
 import { PRETENDARD_CSS, PRETENDARD_JP_CSS } from "@/constants/fonts";
 
+/** 비번을 맞힌 브라우저에 심는 쿠키 이름 */
 export const SITE_LOCK_COOKIE = "suaci_preview";
+/** 잠금을 풀어 두는 기간(초) — 30일 */
 export const SITE_LOCK_MAX_AGE_S = 60 * 60 * 24 * 30;
 
 /** 쿠키에 넣는 값. 비번 자체는 쿠키에 두지 않는다 */
@@ -178,7 +180,8 @@ export function gateHtml({
 
 /** 잠금 화면 응답 — 401, 검색·캐시 제외 */
 export function gateResponse(next: string, wrong: boolean, locale: GateLocale): Response {
-  return new Response(gateHtml({ next, wrong, locale }), {
+  const html = gateHtml({ next, wrong, locale });
+  return new Response(html, {
     status: 401,
     headers: {
       "content-type": "text/html; charset=utf-8",

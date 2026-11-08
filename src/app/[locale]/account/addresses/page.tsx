@@ -50,11 +50,13 @@ export default function AddressesPage() {
 
   const load = useCallback(async () => {
     try {
-      setItems(await api.listAddresses());
+      const addresses = await api.listAddresses();
+      setItems(addresses);
       setLoadFailed(false);
     } catch (err) {
       setLoadFailed(true);
-      handleError(err, t("loadError"));
+      const loadErrorMessage = t("loadError");
+      handleError(err, loadErrorMessage);
     }
   }, [handleError, t]);
 
@@ -71,7 +73,8 @@ export default function AddressesPage() {
       // 폼이 접히면 화면이 푸터에 걸려 있다 — 방금 넣은 배송지가 보이게 위로
       window.scrollTo({ top: 0 });
     } catch (err) {
-      handleError(err, t("saveError"));
+      const saveErrorMessage = t("saveError");
+      handleError(err, saveErrorMessage);
     }
   };
 
@@ -83,7 +86,8 @@ export default function AddressesPage() {
       setConfirmingId(null);
       await load();
     } catch (err) {
-      handleError(err, t("saveError"));
+      const saveErrorMessage = t("saveError");
+      handleError(err, saveErrorMessage);
     } finally {
       setBusyId(null);
     }

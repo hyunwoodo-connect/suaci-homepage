@@ -1,3 +1,4 @@
+/** API 실패. `code` 는 백엔드 오류 코드, 화면은 이 값을 보고 문구를 고른다 */
 export class ApiClientError extends Error {
   constructor(
     readonly code: string,

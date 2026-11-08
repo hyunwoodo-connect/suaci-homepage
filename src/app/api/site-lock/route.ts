@@ -12,15 +12,18 @@ import {
 
 export async function POST(req: Request) {
   const form = await req.formData().catch(() => null);
-  const next = safeNext(form?.get("next"));
+  const nextField = form?.get("next");
+  const next = safeNext(nextField);
   const pin = process.env.SITE_LOCK_PIN;
   const tried = form?.get("pin");
 
   if (!pin || typeof tried !== "string" || tried !== pin) {
     // 하나씩 맞혀 보기 어렵게 틀리면 잠깐 늦춘다
     await new Promise((r) => setTimeout(r, 800));
+    const cookieHeader = req.headers.get("cookie") ?? "";
+    const localeCookie = /(?:^|;\s*)NEXT_LOCALE=([^;]+)/.exec(cookieHeader)?.[1];
     const locale = gateLocale(next, {
-      cookie: /(?:^|;\s*)NEXT_LOCALE=([^;]+)/.exec(req.headers.get("cookie") ?? "")?.[1],
+      cookie: localeCookie,
       acceptLanguage: req.headers.get("accept-language"),
     });
     return gateResponse(next, true, locale);
@@ -28,7 +31,8 @@ export async function POST(req: Request) {
 
   // Amplify 안에서 req.url은 내부 주소(localhost:3000)라 상대 경로로 보낸다
   const res = new NextResponse(null, { status: 303, headers: { location: next } });
-  res.cookies.set(SITE_LOCK_COOKIE, await lockToken(pin), {
+  const unlockToken = await lockToken(pin);
+  res.cookies.set(SITE_LOCK_COOKIE, unlockToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

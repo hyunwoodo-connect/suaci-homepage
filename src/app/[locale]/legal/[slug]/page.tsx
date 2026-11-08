@@ -35,17 +35,20 @@ export default async function LegalPage({ params }: LegalPageProps) {
   const doc = await legalApi.get(slug as LegalSlug).catch(() => null);
   if (!doc) notFound();
   const others = LEGAL_SLUGS.filter((s) => s !== slug);
+  const effectiveDate = doc.current.effectiveDtm.slice(0, 10);
+  let upcomingNotice: string | undefined;
+  if (doc.upcoming) {
+    const upcomingDate = doc.upcoming.effectiveDtm.slice(0, 10);
+    upcomingNotice = t("upcoming", { date: upcomingDate });
+  }
 
   return (
-    <PageShell
-      title={t(doc.slug)}
-      meta={t("effective", { date: doc.current.effectiveDtm.slice(0, 10) })}
-    >
+    <PageShell title={t(doc.slug)} meta={t("effective", { date: effectiveDate })}>
       <div className="flex flex-col gap-[40px]">
         {locale !== "ko" && <p className="m-0 max-w-[72ch] text-[13px] text-grey">{t("koOnly")}</p>}
         {doc.upcoming && (
           <p className="m-0 max-w-[72ch] text-[13px] text-grey">
-            {t("upcoming", { date: doc.upcoming.effectiveDtm.slice(0, 10) })}{" "}
+            {upcomingNotice}{" "}
             <Link
               href={`/legal/${doc.slug}/${doc.upcoming.version}`}
               className="underline hover:text-ink"

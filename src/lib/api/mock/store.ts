@@ -24,9 +24,13 @@ function read<T>(key: string, fallback: T): T {
 }
 
 function write<T>(key: string, value: T): void {
-  if (hasWindow()) localStorage.setItem(key, JSON.stringify(value));
+  if (hasWindow()) {
+    const serialized = JSON.stringify(value);
+    localStorage.setItem(key, serialized);
+  }
 }
 
+/** 목업 커머스 API 의 저장소 — 배송지·주문·클레임을 이 브라우저의 localStorage 에 둔다 */
 export const store = {
   readAddresses: (): Address[] => read<Address[]>(MOCK_KEYS.addresses, []),
   writeAddresses: (v: Address[]): void => write(MOCK_KEYS.addresses, v),

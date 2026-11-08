@@ -2,6 +2,7 @@ import type { TokenResponse } from "@/types";
 import { ApiClientError } from "../errors";
 import { tokenStore } from "@/lib/auth/token-store";
 
+/** 요청 옵션. `auth` 를 켜면 로그인 토큰을 붙인다 */
 export interface RequestOpts {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
@@ -27,7 +28,10 @@ function buildUrl(baseUrl: string, path: string, query?: RequestOpts["query"]): 
   if (query) {
     const params = new URLSearchParams();
     for (const [k, v] of Object.entries(query)) {
-      if (v !== undefined) params.set(k, String(v));
+      if (v !== undefined) {
+        const text = String(v);
+        params.set(k, text);
+      }
     }
     const qs = params.toString();
     if (qs) url += `?${qs}`;
@@ -54,6 +58,7 @@ function isUnauthorized(err: unknown): boolean {
   return err instanceof ApiClientError && err.status === 401;
 }
 
+/** 주소 하나에 묶인 요청 함수 — `request` 는 그대로 보내고, `authedRequest` 는 로그인 토큰을 붙여 401 이면 새 토큰으로 한 번만 다시 보낸다 */
 export function createFetcher(baseUrl: string) {
   async function request<T>(
     path: string,

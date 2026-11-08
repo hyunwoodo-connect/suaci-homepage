@@ -26,7 +26,7 @@ export const PRODUCT_PHOTOS: Readonly<Record<"main" | "moment", string | null>> 
   moment: null,
 };
 
-/** v5 홈 에셋 경로 */
+/** 홈 화면이 쓰는 사진·영상·로고 경로 */
 export const HOME_MEDIA = {
   heroPoster: "/image/v5/hero-poster.webp",
   /** 폰 화면에 보이는 가운데 부분만 자른 포스터(1100×1440) — 폰은 큰 포스터의 3분의 1만 보여서 */

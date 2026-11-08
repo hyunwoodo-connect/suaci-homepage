@@ -36,7 +36,8 @@ export default function AccountPage() {
       .listAddresses()
       .then((list) => {
         const main = list.find((a) => a.isDefault) ?? list[0];
-        setAddressSummary(main ? main.addr1 : noneLabel);
+        const summary = main ? main.addr1 : noneLabel;
+        setAddressSummary(summary);
       })
       .catch((err: unknown) => {
         // 다른 화면처럼 로그인이 풀렸으면 '로그인이 풀렸어요'로 — 그 밖의 실패는 배송지 줄 이름만 남긴다

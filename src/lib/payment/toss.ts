@@ -32,7 +32,7 @@ interface TossAdapterDeps {
   load?: (clientKey: string) => Promise<TossPaymentsLike>;
 }
 
-/** 토스 결제창 어댑터 */
+/** 토스 결제창 어댑터. 카카오페이·네이버페이는 그 결제 화면을 바로 열고, 손님이 창을 닫은 것은 오류로 던지지 않는다 */
 export function createTossAdapter(deps: TossAdapterDeps): PaymentAdapter {
   const load = deps.load ?? loadSdk;
   return {

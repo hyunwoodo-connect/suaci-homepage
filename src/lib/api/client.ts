@@ -26,6 +26,7 @@ import type {
   PageParams,
 } from "@/types";
 
+/** 커머스 API 의 모양 — 실서버(`createHttpClient`)와 목업(`createMockClient`)이 같은 모양으로 구현한다 */
 export interface ApiClient {
   signup(r: SignupRequest): Promise<{ email: string }>;
   confirm(r: ConfirmRequest): Promise<{ confirmed: boolean }>;

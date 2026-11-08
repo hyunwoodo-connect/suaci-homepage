@@ -5,6 +5,7 @@ import { createHttpClient } from "./http";
 // 커머스 `api`는 NEXT_PUBLIC_API_MODE로 mock/http를 고른다. 이벤트·놀이 API는 이와 별개로
 // `selectApi`(주소가 있으면 live, 없으면 mock, 운영은 빈 응답)를 따른다.
 const MODE = process.env.NEXT_PUBLIC_API_MODE ?? "mock";
+/** 화면이 쓰는 커머스 API — `NEXT_PUBLIC_API_MODE` 가 `http` 면 실서버, 아니면 목업 */
 export const api: ApiClient = MODE === "http" ? createHttpClient() : createMockClient();
 export type { ApiClient } from "./client";
 export { ApiClientError, isAuthRequired, isNotFound, isRateLimited } from "./errors";

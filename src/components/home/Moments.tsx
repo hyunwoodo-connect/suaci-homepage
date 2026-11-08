@@ -13,6 +13,7 @@ import { HOME_MEDIA, PRODUCT_PHOTOS } from "@/constants/product";
 export default function Moments() {
   const t = useTranslations("home.moments");
   const tv = useTranslations("home.video");
+  const waterVideoName = tv("water");
 
   return (
     <section
@@ -48,8 +49,8 @@ export default function Moments() {
             label={t("waterAlt")}
             className="aspect-[21/9] h-auto w-full bg-studio object-cover"
             toggleLabels={{
-              pause: tv("pause", { name: tv("water") }),
-              play: tv("play", { name: tv("water") }),
+              pause: tv("pause", { name: waterVideoName }),
+              play: tv("play", { name: waterVideoName }),
             }}
             toggleClassName="bottom-[4px] right-[4px] md:bottom-[16px] md:right-[16px]"
           />

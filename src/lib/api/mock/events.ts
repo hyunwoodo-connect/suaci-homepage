@@ -3,18 +3,23 @@ import type { EventDetail } from "@/types";
 import type { EventsApi } from "../events";
 
 const DAY = 24 * 60 * 60 * 1000;
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
 function buildMockDetail(): EventDetail {
   const now = Date.now();
+  const startAt = now - DAY;
+  const endAt = now + 30 * DAY;
+  const startKstMs = startAt + KST_OFFSET_MS;
+  const endKstMs = endAt + KST_OFFSET_MS;
   return {
     eventId: "no01",
     slug: "take-four",
     activityId: "take-four",
     phase: "live",
-    startAt: now - DAY,
-    startDtm: new Date(now - DAY + 9 * 60 * 60 * 1000).toISOString().replace("Z", "+09:00"),
-    endAt: now + 30 * DAY,
-    endDtm: new Date(now + 30 * DAY + 9 * 60 * 60 * 1000).toISOString().replace("Z", "+09:00"),
+    startAt,
+    startDtm: new Date(startKstMs).toISOString().replace("Z", "+09:00"),
+    endAt,
+    endDtm: new Date(endKstMs).toISOString().replace("Z", "+09:00"),
     card: {
       title: "take four",
       summary: "네 컷으로 남기는 take suaci.",

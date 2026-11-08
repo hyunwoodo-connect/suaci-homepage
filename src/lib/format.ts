@@ -1,8 +1,10 @@
 import type { Money, OrderItem } from "@/types";
 
+/** 원 금액을 화면 표시(`₩28,000`)로 */
 export function formatKRW(amount: number): string {
   return `₩${amount.toLocaleString("ko-KR")}`;
 }
+/** 실제로 받는 값 — 할인가가 있으면 할인가, 없으면 정가 */
 export function effectivePrice(price: Money): number {
   return price.sale ?? price.list;
 }

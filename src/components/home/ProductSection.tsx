@@ -15,6 +15,8 @@ export default function ProductSection() {
   const t = useTranslations("home.product");
   const locale = useLocale();
 
+  const roundTripFee = CHECKOUT_PRICING.shippingFee * 2;
+
   return (
     <section
       id="product"
@@ -57,7 +59,7 @@ export default function ProductSection() {
                 fee: formatKRW(CHECKOUT_PRICING.shippingFee),
                 freeOver: formatKRW(CHECKOUT_PRICING.freeShippingOver),
                 // 무료 배송으로 받은 단순 변심 반품: 반품 편도 + 처음 배송비(환불 정책 v2)
-                roundTrip: formatKRW(CHECKOUT_PRICING.shippingFee * 2),
+                roundTrip: formatKRW(roundTripFee),
               })}
             />
           </div>

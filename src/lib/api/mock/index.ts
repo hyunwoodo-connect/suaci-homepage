@@ -126,6 +126,7 @@ function makeOrderNo(): string {
   return `${yyyymmdd}-${suffix}`;
 }
 
+/** 백엔드 없이 도는 커머스 API 대역 — 데이터는 이 브라우저의 localStorage 에 둔다 */
 export function createMockClient(): ApiClient {
   return {
     // ---- auth ----
@@ -175,7 +176,8 @@ export function createMockClient(): ApiClient {
     async socialComplete(r: SocialCompleteRequest): Promise<TokenResponse> {
       const done = store.readSocialDone();
       const key = r.signupToken.replace("mock-signup-", "");
-      store.writeSocialDone(done.includes(key) ? done : [...done, key]);
+      const nextDone = done.includes(key) ? done : [...done, key];
+      store.writeSocialDone(nextDone);
       return mockTokens();
     },
     async getCheckoutDefaults(): Promise<CheckoutDefaults> {
@@ -265,7 +267,8 @@ export function createMockClient(): ApiClient {
       const itemsSubtotal = lines.reduce((s, i) => s + i.lineSubtotal, 0);
       const discountTotal = lines.reduce((s, i) => s + i.lineDiscount, 0);
       const shippingFee = itemsSubtotal >= FREE_SHIP_THRESHOLD ? 0 : SHIPPING_FEE;
-      const taxTotal = Math.round(itemsSubtotal / 11);
+      const exactTax = itemsSubtotal / 11;
+      const taxTotal = Math.round(exactTax);
       const grandTotal = itemsSubtotal + shippingFee;
 
       const items: OrderItem[] = lines.map((i) => ({
@@ -423,7 +426,8 @@ export function createMockClient(): ApiClient {
           const item = order.items.find((i) => i.lineId === l.lineId);
           if (!item) return sum;
           const perUnit = item.quantity > 0 ? item.lineSubtotal / item.quantity : 0;
-          return sum + Math.round(perUnit * l.quantity);
+          const exactRefund = perUnit * l.quantity;
+          return sum + Math.round(exactRefund);
         }, 0);
       }
 
@@ -436,6 +440,7 @@ export function createMockClient(): ApiClient {
       }
 
       const { createdAt, createdDtm } = now();
+      const refundDueAt = createdAt + REFUND_DUE_MS;
       const claim: Claim = {
         claimId: uuid(),
         orderId,
@@ -447,8 +452,8 @@ export function createMockClient(): ApiClient {
         refundAmount,
         refundedShipping,
         returnShippingFee: 0,
-        refundDueAt: createdAt + REFUND_DUE_MS,
-        refundDueDtm: new Date(createdAt + REFUND_DUE_MS).toISOString(),
+        refundDueAt,
+        refundDueDtm: new Date(refundDueAt).toISOString(),
         createdAt,
         createdDtm,
       };
@@ -492,14 +497,15 @@ export function createMockClient(): ApiClient {
           409,
         );
       }
-      if (!canRequestAfterDelivery(order, mine, Date.now())) {
+      const requestedAt = Date.now();
+      if (!canRequestAfterDelivery(order, mine, requestedAt)) {
         const closed =
           order.fulfillmentStatus === "shipped" || order.fulfillmentStatus === "delivered";
         throw closed
           ? new ApiClientError("RETURN_WINDOW_CLOSED", "반품 신청 기간이 지났습니다", 409)
           : new ApiClientError("RETURN_NOT_ALLOWED", "반품을 신청할 수 없는 주문입니다", 409);
       }
-      if (r.reasonCode === "단순변심" && !returnWindow(order, Date.now()).changeOfMindOpen) {
+      if (r.reasonCode === "단순변심" && !returnWindow(order, requestedAt).changeOfMindOpen) {
         throw new ApiClientError("RETURN_WINDOW_CLOSED", "반품 신청 기간이 지났습니다", 409);
       }
       if (r.reasonCode === "단순변심" && !r.unopenedConfirmed) {
@@ -563,8 +569,9 @@ export function createMockClient(): ApiClient {
           409,
         );
       }
-      if (!canRequestAfterDelivery(order, mine, Date.now())) {
-        const windowClosed = isShippedPaid(order) && !returnWindow(order, Date.now()).open;
+      const requestedAt = Date.now();
+      if (!canRequestAfterDelivery(order, mine, requestedAt)) {
+        const windowClosed = isShippedPaid(order) && !returnWindow(order, requestedAt).open;
         throw windowClosed
           ? new ApiClientError("EXCHANGE_WINDOW_CLOSED", "교환 신청 기간이 지났습니다", 409)
           : new ApiClientError("EXCHANGE_NOT_ALLOWED", "교환을 신청할 수 없는 주문입니다", 409);

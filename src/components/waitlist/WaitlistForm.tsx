@@ -34,7 +34,8 @@ export default function WaitlistForm({ locale, source }: WaitlistFormProps) {
   async function send() {
     if (status === "sending") return;
     if (!privacy || !marketing) {
-      setError({ message: t("needConsent"), canRetry: false });
+      const consentMessage = t("needConsent");
+      setError({ message: consentMessage, canRetry: false });
       return;
     }
     setStatus("sending");
@@ -42,8 +43,10 @@ export default function WaitlistForm({ locale, source }: WaitlistFormProps) {
     try {
       // source 는 임의 쿼리 유입 — 64자 상한(저장·CSV 위생)
       const src = source?.slice(0, 64);
-      await waitlistApi.join({ email: email.trim(), locale, ...(src ? { source: src } : {}) });
-      trackLead(source?.slice(0, 64));
+      const trimmedEmail = email.trim();
+      const sourceField = src ? { source: src } : {};
+      await waitlistApi.join({ email: trimmedEmail, locale, ...sourceField });
+      trackLead(src);
       setStatus("done");
     } catch (err) {
       const code = err instanceof ApiClientError ? err.code : "";

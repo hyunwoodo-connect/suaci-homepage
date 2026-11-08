@@ -29,6 +29,7 @@ import type { ApiClient } from "../client";
 import { createFetcher } from "./fetcher";
 import type { Envelope } from "./fetcher";
 
+/** 실서버 커머스 API. 주소를 안 주면 `NEXT_PUBLIC_API_BASE_URL` 을 쓴다 */
 export function createHttpClient(baseUrl?: string): ApiClient {
   const base = baseUrl ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
   const { request, authedRequest } = createFetcher(base);

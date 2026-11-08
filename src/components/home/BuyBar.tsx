@@ -39,7 +39,8 @@ export default function BuyBar() {
     fee: formatKRW(CHECKOUT_PRICING.shippingFee),
     freeOver: formatKRW(CHECKOUT_PRICING.freeShippingOver),
   });
-  const paymentsOpen = canTakePayment(paymentEnv());
+  const env = paymentEnv();
+  const paymentsOpen = canTakePayment(env);
 
   const buy = useCallback(
     async (qtyOverride?: number) => {
@@ -72,7 +73,9 @@ export default function BuyBar() {
   useEffect(() => {
     if (autoOpened || status === "loading" || search.get("buy") !== "1") return;
     setAutoOpened(true);
-    void buy(parseQty(search.get("qty")));
+    const qtyParam = search.get("qty");
+    const resumedQty = parseQty(qtyParam);
+    void buy(resumedQty);
   }, [autoOpened, buy, search, status]);
 
   return (

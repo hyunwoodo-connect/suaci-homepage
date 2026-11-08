@@ -24,8 +24,10 @@ export default async function middleware(req: NextRequest) {
   const slug = eventSlugFromPath(req.nextUrl.pathname);
   if (slug) {
     const cookieName = previewCookieName(slug);
-    const queryToken = validPreviewToken(req.nextUrl.searchParams.get("preview"));
-    const cookieToken = validPreviewToken(req.cookies.get(cookieName)?.value);
+    const previewParam = req.nextUrl.searchParams.get("preview");
+    const previewCookie = req.cookies.get(cookieName)?.value;
+    const queryToken = validPreviewToken(previewParam);
+    const cookieToken = validPreviewToken(previewCookie);
 
     // 공개 이벤트면 토큰 없이 통과(쿠키도 심지 않는다). 아니면 쿼리 토큰, 그다음 쿠키 토큰.
     let granted: { ok: boolean; token?: string } = {
@@ -51,7 +53,9 @@ export default async function middleware(req: NextRequest) {
       return res;
     }
     // 공개 전 이벤트는 비번(테스터)으로만 연다
-    if (!(await isUnlocked(req.cookies.get(SITE_LOCK_COOKIE)?.value, process.env.SITE_LOCK_PIN))) {
+    const lockCookie = req.cookies.get(SITE_LOCK_COOKIE)?.value;
+    const isSiteUnlocked = await isUnlocked(lockCookie, process.env.SITE_LOCK_PIN);
+    if (!isSiteUnlocked) {
       return gate(req);
     }
     return NextResponse.next();
@@ -66,7 +70,8 @@ function gate(req: NextRequest): Response {
     cookie: req.cookies.get("NEXT_LOCALE")?.value,
     acceptLanguage: req.headers.get("accept-language"),
   });
-  return gateResponse(req.nextUrl.pathname + req.nextUrl.search, false, locale);
+  const returnPath = req.nextUrl.pathname + req.nextUrl.search;
+  return gateResponse(returnPath, false, locale);
 }
 
 export const config = {

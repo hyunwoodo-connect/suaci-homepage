@@ -10,4 +10,5 @@ export const routing = defineRouting({
   localePrefix: "as-needed",
 });
 
+/** 사이트 언어 코드(`routing.locales` 의 값) */
 export type Locale = (typeof routing.locales)[number];

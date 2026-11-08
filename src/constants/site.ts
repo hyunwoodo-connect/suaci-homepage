@@ -1,4 +1,4 @@
-/** 사이트 전역 상수 */
+/** 사이트 이름·주소·기본 제목과 설명 — 메타데이터와 매니페스트가 읽는다 */
 export const SITE = {
   name: "suaci",
   wordmark: "suaci",

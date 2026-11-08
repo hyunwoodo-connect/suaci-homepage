@@ -22,11 +22,12 @@ export default async function LegalVersionPage({ params }: LegalVersionPageProps
   const t = await getTranslations({ locale, namespace: "legal" });
   const found = await legalApi.getVersion(slug as LegalSlug, Number(raw)).catch(() => null);
   if (!found) notFound();
+  const effectiveDate = found.effectiveDtm.slice(0, 10);
 
   return (
     <PageShell
       title={`${t(found.slug)} · ${t("version", { n: found.version })}`}
-      meta={t("effective", { date: found.effectiveDtm.slice(0, 10) })}
+      meta={t("effective", { date: effectiveDate })}
     >
       <div className="flex flex-col gap-[40px]">
         <p className="m-0 max-w-[72ch] text-[13px] text-grey">

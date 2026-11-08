@@ -11,6 +11,7 @@ declare global {
 const GA4_ID = /^G-[A-Z0-9]{4,20}$/;
 const PIXEL_ID = /^\d{10,20}$/;
 
+/** 페이지에 실을 분석 도구 ID. 없거나 모양이 틀리면 null 이고 그 도구는 싣지 않는다 */
 export interface AnalyticsIds {
   ga4: string | null;
   pixel: string | null;

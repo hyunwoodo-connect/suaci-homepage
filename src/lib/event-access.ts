@@ -48,6 +48,7 @@ export async function checkEventAccess(slug: string, preview: string | undefined
     ttl = FAILURE_TTL_MS; // 백엔드 오류·시간 초과면 잠금 쪽으로 닫되 짧게만 기억한다
   }
   if (cache.size >= CACHE_MAX) cache.clear();
-  cache.set(key, { ok, until: Date.now() + ttl });
+  const until = Date.now() + ttl;
+  cache.set(key, { ok, until });
   return ok;
 }

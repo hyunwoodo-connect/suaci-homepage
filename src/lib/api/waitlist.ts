@@ -11,11 +11,13 @@ export interface WaitlistJoinInput {
   source?: string;
 }
 
+/** 출시 알림 API 의 모양 — 실서버·목업·빈 응답이 같은 모양으로 구현한다 */
 export interface WaitlistApi {
   /** 이미 있는 이메일도 성공. 실패는 `ApiClientError`(code: INVALID_EMAIL·RATE_LIMITED·…) */
   join(input: WaitlistJoinInput): Promise<void>;
 }
 
+/** 실서버 출시 알림 API. 화면에서 두 동의를 받은 뒤에만 불러 동의 값은 늘 true 로 싣는다 */
 export function createWaitlistApi(baseUrl: string): WaitlistApi {
   const { request } = createFetcher(baseUrl);
   return {
@@ -37,6 +39,7 @@ export function createEmptyWaitlistApi(): WaitlistApi {
   };
 }
 
+/** 주소가 있으면 실서버, 없으면 개발·테스트는 목업이고 운영은 빈 응답 */
 export function selectWaitlistApi(
   baseUrl: string | undefined,
   nodeEnv: string | undefined,
@@ -48,6 +51,7 @@ export function selectWaitlistApi(
   );
 }
 
+/** 화면이 쓰는 출시 알림 API — 빌드 환경으로 한 번 정해진다 */
 export const waitlistApi: WaitlistApi = selectWaitlistApi(
   process.env.NEXT_PUBLIC_API_BASE_URL,
   process.env.NODE_ENV,

@@ -27,6 +27,8 @@ export default function Hero() {
     media: "(min-width: 459px)",
   });
 
+  const heroVideoName = tv("hero");
+
   return (
     <section
       aria-label="take suaci"
@@ -49,8 +51,8 @@ export default function Hero() {
         label={t("videoLabel")}
         className="absolute inset-0 h-full w-full object-cover object-[62%_50%]"
         toggleLabels={{
-          pause: tv("pause", { name: tv("hero") }),
-          play: tv("play", { name: tv("hero") }),
+          pause: tv("pause", { name: heroVideoName }),
+          play: tv("play", { name: heroVideoName }),
         }}
         // 캡션 줄 오른쪽 끝 — 넓은 화면에서도 본문 최대 폭(1344)의 오른쪽 선에 맞춘다
         toggleClassName="bottom-[14px] right-[6px] md:bottom-[28px] md:right-[max(38px,calc((100%-1344px)/2-10px))]"

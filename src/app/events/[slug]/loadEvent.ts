@@ -20,7 +20,10 @@ export async function loadEvent(slug: string, preview: string | undefined): Prom
   const queryToken = validPreviewToken(preview);
   const event = await eventsApi.get(slug, queryToken);
   if (event) return { event, previewToken: queryToken };
-  const saved = validPreviewToken((await cookies()).get(previewCookieName(slug))?.value);
+  const cookieStore = await cookies();
+  const cookieName = previewCookieName(slug);
+  const savedCookie = cookieStore.get(cookieName)?.value;
+  const saved = validPreviewToken(savedCookie);
   if (saved && saved !== queryToken) {
     const viaCookie = await eventsApi.get(slug, saved);
     if (viaCookie) return { event: viaCookie, previewToken: saved };

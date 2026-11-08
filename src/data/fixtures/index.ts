@@ -15,6 +15,7 @@ function krw(list: number) {
   return { list, currency: "KRW" as const };
 }
 
+/** 목업 API 가 파는 상품 목록 */
 export const products: Product[] = [
   {
     productId: "01M6Q9CRE26QQ23008GC0M9C0N",
