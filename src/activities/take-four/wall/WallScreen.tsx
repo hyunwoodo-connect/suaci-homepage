@@ -68,7 +68,8 @@ export default function WallScreen({ event, now }: WallScreenProps) {
   const loadPage = useCallback(async (next?: string) => {
     const request = ++requestRef.current;
     loadingRef.current = true;
-    setLoad(next ? "more" : "first");
+    const loadingState = next ? "more" : "first";
+    setLoad(loadingState);
     try {
       const page = await wallApi.list(next);
       if (request !== requestRef.current) return;
@@ -76,7 +77,10 @@ export default function WallScreen({ event, now }: WallScreenProps) {
       setCursor(page.cursor);
       setLoad("ready");
     } catch {
-      if (request === requestRef.current) setLoad(next ? "moreFailed" : "failed");
+      if (request === requestRef.current) {
+        const failedState = next ? "moreFailed" : "failed";
+        setLoad(failedState);
+      }
     } finally {
       if (request === requestRef.current) loadingRef.current = false;
     }

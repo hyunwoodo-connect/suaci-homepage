@@ -8,8 +8,10 @@ export interface BoothState {
   count: 3 | 2 | 1;
 }
 
+/** 부스 화면이 보내는 동작 — 시작, 타이머 한 칸, 처음으로 */
 export type BoothAction = { type: "start" } | { type: "tick" } | { type: "reset" };
 
+/** 촬영 전 상태. `reset` 도 여기로 돌아온다 */
 export const BOOTH_INITIAL: BoothState = { step: "ready", shot: 0, count: 3 };
 
 /** 숫자 하나가 머무는 시간 */

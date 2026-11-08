@@ -7,6 +7,7 @@ import type { TakeFourEventContent } from "./eventContent";
 /** 안내 화면의 네 상태 — 레코드 phase에 발표 시각을 더한 것(`copy` 키와 같다). */
 export type InfoPhase = keyof EventCopy;
 
+/** 안내 화면에 그릴 값 — 이벤트 레코드와 이벤트 내용으로 만든다 */
 export interface InfoView {
   phase: InfoPhase;
   /** 큰 제목 — 이벤트 내용의 회차 이름, 없으면 레코드 카드 제목 */

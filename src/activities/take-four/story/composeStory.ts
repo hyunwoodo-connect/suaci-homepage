@@ -9,8 +9,10 @@ export const STORY = { width: 1080, height: 1920 } as const;
 
 const SCALE = STORY.width / 360;
 const JPEG_QUALITY = 0.9;
+/** 스토리 왼쪽 아래에 찍는 해시태그. 글꼴을 미리 받을 때도 이 글자를 쓴다 */
 export const STORY_HASHTAG = "#그라데이션웃음챌린지";
 
+/** 스토리 캔버스 위 글자·카드 자리(px). `storyLayout` 이 시안 값을 3배로 채운다 */
 export interface StoryLayout {
   /** `take four.` 가운데 x·기준선 y */
   title: { x: number; baseline: number; size: number; letterSpacing: number };
@@ -106,8 +108,10 @@ export async function composeStory(strip: Blob, link: string): Promise<Blob> {
     ctx.font = fonts.wordmark.draw;
     ctx.fillText("suaci", wordmark.x, wordmark.baseline);
     const dotX = wordmark.x + ctx.measureText("suaci").width + wordmark.dot.gap + wordmark.dot.r;
+    const dotY = wordmark.baseline - wordmark.dot.rise;
+    const fullCircle = Math.PI * 2;
     ctx.beginPath();
-    ctx.arc(dotX, wordmark.baseline - wordmark.dot.rise, wordmark.dot.r, 0, Math.PI * 2);
+    ctx.arc(dotX, dotY, wordmark.dot.r, 0, fullCircle);
     ctx.fillStyle = TAKE_FOUR_COLORS.dot;
     ctx.fill();
     ctx.fillStyle = TAKE_FOUR_COLORS.ink;

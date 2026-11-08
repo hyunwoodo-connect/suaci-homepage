@@ -11,7 +11,8 @@ export async function makeThumb(card: Blob): Promise<Blob> {
   const bitmap = await createImageBitmap(card);
   try {
     const width = THUMB_WIDTH;
-    const height = Math.round((bitmap.height * THUMB_WIDTH) / bitmap.width);
+    const exactHeight = (bitmap.height * THUMB_WIDTH) / bitmap.width;
+    const height = Math.round(exactHeight);
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;

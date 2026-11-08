@@ -5,8 +5,11 @@ import type { Rect } from "../strip/layout";
 /** 먼저 이 폭으로 줄여 푼다 — 48MP 원본을 통째로 풀면 폰에서 200MB 가까이 잡는다 */
 export const DECODE_WIDTH = 1920;
 
+const ALBUM_WIDTH = 960;
+const ALBUM_EXACT_HEIGHT = ALBUM_WIDTH / CELL_ASPECT;
+
 /** 앨범 사진 한 장을 자른 크기 — 카드 칸(420)보다 넉넉하게, 칸 비율 그대로. */
-export const ALBUM_FRAME = { width: 960, height: Math.round(960 / CELL_ASPECT) } as const;
+export const ALBUM_FRAME = { width: ALBUM_WIDTH, height: Math.round(ALBUM_EXACT_HEIGHT) } as const;
 
 /** 브라우저가 못 여는 사진(HEIC를 못 푸는 크롬·안드로이드, 깨진 파일). */
 export class AlbumDecodeError extends Error {

@@ -19,7 +19,8 @@ interface InfoScreenProps {
  */
 export default function InfoScreen({ event, now }: InfoScreenProps) {
   const base = `/events/${event.slug}`;
-  const view = infoView(event, getTakeFourContent(event.eventId), now);
+  const content = getTakeFourContent(event.eventId);
+  const view = infoView(event, content, now);
 
   return (
     <Screen tone="lime">

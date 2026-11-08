@@ -109,7 +109,8 @@ function Actions({ strip, wallHref }: ActionsProps) {
           rememberHidden(strip.stripId);
           setReport("sent");
         } else {
-          setReport(isRateLimited(err) ? "limited" : "failed");
+          const failure = isRateLimited(err) ? "limited" : "failed";
+          setReport(failure);
         }
       }
     });

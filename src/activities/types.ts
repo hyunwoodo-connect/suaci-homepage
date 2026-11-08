@@ -10,6 +10,7 @@ export interface RouteContext {
   url: string;
 }
 
+/** 놀이 모듈의 입구 화면이 받는 값 — 요청 정보와 이벤트 레코드 */
 export interface EntranceProps extends RouteContext {
   event: EventDetail;
 }

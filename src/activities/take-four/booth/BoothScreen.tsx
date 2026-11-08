@@ -81,7 +81,8 @@ export default function BoothScreen({ slug, onDone }: BoothScreenProps) {
 
   function handleVideoSize(event: SyntheticEvent<HTMLVideoElement>) {
     const { videoWidth, videoHeight } = event.currentTarget;
-    setVideoSize(videoWidth && videoHeight ? { width: videoWidth, height: videoHeight } : null);
+    const measured = videoWidth && videoHeight ? { width: videoWidth, height: videoHeight } : null;
+    setVideoSize(measured);
   }
 
   function handleStop() {

@@ -89,7 +89,8 @@ function drawEdge(
   const write = (text: string, x: number, along: number, align: CanvasTextAlign, font: string) => {
     ctx.save();
     ctx.translate(x, along);
-    ctx.rotate(Math.PI / 2);
+    const quarterTurn = Math.PI / 2;
+    ctx.rotate(quarterTurn);
     ctx.font = font;
     ctx.textAlign = align;
     ctx.fillText(text, 0, 0);
@@ -97,35 +98,37 @@ function drawEdge(
   };
   const { right, left } = edge;
   write(EDGE_WORDS.top, right.x, right.top, "left", fonts.word.draw);
-  write(String(numbers.edge), right.x, (right.top + right.bottom) / 2, "center", fonts.number.draw);
+  const edgeNumber = String(numbers.edge);
+  const rightMiddle = (right.top + right.bottom) / 2;
+  write(edgeNumber, right.x, rightMiddle, "center", fonts.number.draw);
   write(EDGE_WORDS.bottom, right.x, right.bottom, "right", fonts.word.draw);
   // ▲는 Fraunces에 없는 글자라(대체 글꼴로 찍힌다) 도형으로 그린다. 눕혀서 오른쪽을 가리킨다
   const { mark } = left;
+  const markBaseX = left.x - mark.depth / 2;
+  const markTipX = left.x + mark.depth / 2;
+  const markTipY = left.top + mark.width / 2;
+  const markEndY = left.top + mark.width;
   ctx.beginPath();
-  ctx.moveTo(left.x - mark.depth / 2, left.top);
-  ctx.lineTo(left.x + mark.depth / 2, left.top + mark.width / 2);
-  ctx.lineTo(left.x - mark.depth / 2, left.top + mark.width);
+  ctx.moveTo(markBaseX, left.top);
+  ctx.lineTo(markTipX, markTipY);
+  ctx.lineTo(markBaseX, markEndY);
   ctx.closePath();
   ctx.fill();
-  write(String(numbers.frame), left.x, left.top + mark.advance, "left", fonts.number.draw);
+  const frameNumber = String(numbers.frame);
+  const frameNumberY = left.top + mark.advance;
+  write(frameNumber, left.x, frameNumberY, "left", fonts.number.draw);
 }
 
 /** 칸을 꽉 채우게(가운데 자르기). 찍은 장은 이미 정사각이라 보통 그대로 들어간다. */
 function drawCover(ctx: CanvasRenderingContext2D, source: StripFrame, cell: Rect) {
   const { width, height } = source;
   if (!width || !height) return;
-  const scale = Math.max(cell.width / width, cell.height / height);
+  const scaleToWidth = cell.width / width;
+  const scaleToHeight = cell.height / height;
+  const scale = Math.max(scaleToWidth, scaleToHeight);
   const sw = cell.width / scale;
   const sh = cell.height / scale;
-  ctx.drawImage(
-    source,
-    (width - sw) / 2,
-    (height - sh) / 2,
-    sw,
-    sh,
-    cell.x,
-    cell.y,
-    cell.width,
-    cell.height,
-  );
+  const sx = (width - sw) / 2;
+  const sy = (height - sh) / 2;
+  ctx.drawImage(source, sx, sy, sw, sh, cell.x, cell.y, cell.width, cell.height);
 }

@@ -21,7 +21,9 @@ const EDGE_OFFSET = 17;
  * 같은 네컷은 늘 같은 번호라 현상 화면 미리보기와 저장 카드가 같다.
  */
 export function edgeNumbers(takenAt: Date): EdgeNumbers[] {
-  const start = (Math.floor(takenAt.getTime() / 60_000) % (ROLL - SHOT_INDEXES.length + 1)) + 1;
+  const exactMinutes = takenAt.getTime() / 60_000;
+  const startChoices = ROLL - SHOT_INDEXES.length + 1;
+  const start = (Math.floor(exactMinutes) % startChoices) + 1;
   return SHOT_INDEXES.map((i) => ({ frame: start + i, edge: start + i + EDGE_OFFSET }));
 }
 

@@ -12,6 +12,7 @@ interface CardProps {
   isMine?: boolean;
 }
 
+/** 카드 크기 이름 — 화면마다 다른 폭(`CARD_WIDTH`)의 키 */
 export type CardSize = keyof typeof CARD_WIDTH;
 
 /** 시안 화면별 카드 폭. resume: 입구 카드 / fill: 벽 칸을 꽉 / print: 현상 / result: 완성 / detail: 크게 보기 */

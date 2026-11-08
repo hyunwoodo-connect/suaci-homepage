@@ -10,7 +10,9 @@ import { makeThumb } from "./thumb";
 export async function postStrip(card: Blob): Promise<StripView> {
   const thumb = await makeThumb(card);
   const { stripId, uploads } = await wallApi.create();
-  await Promise.all([wallApi.upload(uploads.original, card), wallApi.upload(uploads.thumb, thumb)]);
+  const originalUpload = wallApi.upload(uploads.original, card);
+  const thumbUpload = wallApi.upload(uploads.thumb, thumb);
+  await Promise.all([originalUpload, thumbUpload]);
   const view = await wallApi.confirm(stripId);
   rememberMine(view.stripId);
   return view;

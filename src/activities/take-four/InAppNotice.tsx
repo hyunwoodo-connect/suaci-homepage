@@ -33,7 +33,8 @@ export default function InAppNotice({ env, url, albumHref }: InAppNoticeProps) {
 
   async function handleCopy() {
     const isCopied = await copyText(url);
-    setToast(isCopied ? "주소를 복사했어요" : "주소창을 길게 눌러 복사해 주세요");
+    const toastText = isCopied ? "주소를 복사했어요" : "주소창을 길게 눌러 복사해 주세요";
+    setToast(toastText);
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setToast(null), TOAST_MS);
   }

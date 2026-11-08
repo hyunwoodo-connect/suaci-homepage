@@ -36,14 +36,17 @@ export function createMockWallApi(): WallApi {
       };
     },
     async upload(t, blob) {
-      uploaded.set(t.key, await blobToDataUrl(blob));
+      const dataUrl = await blobToDataUrl(blob);
+      uploaded.set(t.key, dataUrl);
     },
     async confirm(id) {
       const done = posted.find((s) => s.stripId === id);
       if (done) return done;
       if (!pending.has(id)) throw notFound();
-      const photoUrl = uploaded.get(target(id, "original").key);
-      const thumbUrl = uploaded.get(target(id, "thumb").key);
+      const originalKey = target(id, "original").key;
+      const thumbKey = target(id, "thumb").key;
+      const photoUrl = uploaded.get(originalKey);
+      const thumbUrl = uploaded.get(thumbKey);
       if (!photoUrl || !thumbUrl) {
         throw new ApiClientError("UPLOAD_MISSING", "사진이 아직 없어요", 409);
       }

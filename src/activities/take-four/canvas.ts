@@ -18,8 +18,12 @@ export function canvasToBlob(
         // 큰 캔버스(카드 1080×1350·스토리 1080×1920) 메모리를 바로 돌려준다 — 폰 사파리는 캔버스 총량 한도가 빠듯하다
         canvas.width = 0;
         canvas.height = 0;
-        if (blob) resolve(blob);
-        else reject(new Error("이미지를 만들지 못했어요"));
+        if (blob) {
+          resolve(blob);
+        } else {
+          const encodeFailure = new Error("이미지를 만들지 못했어요");
+          reject(encodeFailure);
+        }
       },
       type,
       quality,

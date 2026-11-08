@@ -49,7 +49,9 @@ export async function loadLast(): Promise<LastStrip | null> {
     const db = await openDb();
     let record: unknown;
     try {
-      record = await request(db.transaction(STORE, "readonly").objectStore(STORE).get(KEY));
+      const store = db.transaction(STORE, "readonly").objectStore(STORE);
+      const getRecord = store.get(KEY);
+      record = await request(getRecord);
     } finally {
       db.close();
     }
@@ -68,13 +70,15 @@ export async function loadLast(): Promise<LastStrip | null> {
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     if (typeof indexedDB === "undefined") {
-      reject(new Error("IndexedDB 없음"));
+      const unavailable = new Error("IndexedDB 없음");
+      reject(unavailable);
       return;
     }
     let isLate = false;
     const timer = setTimeout(() => {
       isLate = true;
-      reject(new Error("IndexedDB 응답 없음"));
+      const timedOut = new Error("IndexedDB 응답 없음");
+      reject(timedOut);
     }, OPEN_TIMEOUT_MS);
     const req = indexedDB.open(DB_NAME, 1);
     req.onupgradeneeded = () => req.result.createObjectStore(STORE);

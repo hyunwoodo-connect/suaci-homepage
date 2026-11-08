@@ -36,7 +36,8 @@ export default function PostSheet({ card, slug }: PostSheetProps) {
         router.replace(`/events/${slug}/wall?posted=${encodeURIComponent(stripId)}`);
       } catch (err) {
         // 하루 한도(기기당 10장)는 다시 보내도 안 되니 버튼 없이 알리기만
-        setStatus(isRateLimited(err) ? "limited" : "failed");
+        const failure = isRateLimited(err) ? "limited" : "failed";
+        setStatus(failure);
       }
     });
   }

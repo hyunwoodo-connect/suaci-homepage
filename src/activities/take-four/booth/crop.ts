@@ -3,12 +3,16 @@ import type { Rect } from "../strip/layout";
 
 /** 가운데에서 가장 큰 aspect(폭/높이) 사각형. 기본은 카드 칸 비율 */
 export function centerCrop(width: number, height: number, aspect: number = CELL_ASPECT): Rect {
-  const isWide = width > height * aspect;
-  const cropWidth = isWide ? Math.round(height * aspect) : width;
-  const cropHeight = isWide ? height : Math.round(width / aspect);
+  const widthAtFullHeight = height * aspect;
+  const heightAtFullWidth = width / aspect;
+  const isWide = width > widthAtFullHeight;
+  const cropWidth = isWide ? Math.round(widthAtFullHeight) : width;
+  const cropHeight = isWide ? height : Math.round(heightAtFullWidth);
+  const marginX = (width - cropWidth) / 2;
+  const marginY = (height - cropHeight) / 2;
   return {
-    x: Math.round((width - cropWidth) / 2),
-    y: Math.round((height - cropHeight) / 2),
+    x: Math.round(marginX),
+    y: Math.round(marginY),
     width: cropWidth,
     height: cropHeight,
   };
@@ -24,7 +28,9 @@ export function coverGuideRect(
   boxWidth: number,
   boxHeight: number,
 ): Rect {
-  const scale = Math.max(boxWidth / videoWidth, boxHeight / videoHeight);
+  const scaleToWidth = boxWidth / videoWidth;
+  const scaleToHeight = boxHeight / videoHeight;
+  const scale = Math.max(scaleToWidth, scaleToHeight);
   const offsetX = (boxWidth - videoWidth * scale) / 2;
   const offsetY = (boxHeight - videoHeight * scale) / 2;
   const crop = centerCrop(videoWidth, videoHeight);

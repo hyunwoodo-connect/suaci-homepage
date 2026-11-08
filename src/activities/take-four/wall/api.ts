@@ -24,16 +24,19 @@ export interface UploadTarget {
   key: string;
 }
 
+/** 네컷을 만든 응답 — 새 id 와 사진을 올릴 자리 둘(원본·썸네일) */
 export interface CreatedStrip {
   stripId: string;
   uploads: { original: UploadTarget; thumb: UploadTarget };
 }
 
+/** 벽 목록 한 쪽. `cursor` 가 null 이면 더 부를 쪽이 없다 */
 export interface WallPage {
   items: StripView[];
   cursor: string | null;
 }
 
+/** 벽 API 의 모양 — 실서버·목업·빈 벽이 같은 모양으로 구현한다 */
 export interface WallApi {
   list(cursor?: string): Promise<WallPage>;
   /** 벽에 없으면(없음·가림·pending) null */
@@ -61,6 +64,7 @@ export async function uploadTo(target: UploadTarget, blob: Blob): Promise<void> 
   }
 }
 
+/** 실서버 벽 API. 쓰기 요청에는 이 폰의 기기 토큰(`X-Device-Token`)을 함께 보낸다 */
 export function createWallApi(baseUrl: string): WallApi {
   const { request } = createFetcher(baseUrl);
   const device = () => ({ "X-Device-Token": getDeviceToken() });
@@ -132,6 +136,7 @@ export function createEmptyWallApi(): WallApi {
   };
 }
 
+/** 주소가 있으면 실서버, 없으면 개발·테스트는 목업이고 운영은 빈 벽 */
 export function selectWallApi(baseUrl: string | undefined, nodeEnv: string | undefined): WallApi {
   return selectApi(
     { live: createWallApi, mock: createMockWallApi, empty: createEmptyWallApi },
@@ -140,6 +145,7 @@ export function selectWallApi(baseUrl: string | undefined, nodeEnv: string | und
   );
 }
 
+/** 화면이 쓰는 벽 API — 빌드 환경으로 한 번 정해진다 */
 export const wallApi: WallApi = selectWallApi(
   process.env.NEXT_PUBLIC_API_BASE_URL,
   process.env.NODE_ENV,

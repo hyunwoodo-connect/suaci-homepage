@@ -1,6 +1,7 @@
 /** 카메라가 안 열리는 앱 안 브라우저. */
 export type InAppBrowser = "instagram" | "kakao" | "facebook" | "line" | "naver";
 
+/** UA 로 가린 기기 환경. 앱 안 브라우저와 OS 에 맞춰 안내를 고른다 */
 export interface DeviceEnv {
   inApp: InAppBrowser | null;
   os: "ios" | "android" | "other";

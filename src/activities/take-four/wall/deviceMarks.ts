@@ -11,7 +11,8 @@ const MAX_IDS = 200;
 
 function readIds(key: string): string[] {
   try {
-    const parsed: unknown = JSON.parse(localStorage.getItem(key) ?? "[]");
+    const stored = localStorage.getItem(key) ?? "[]";
+    const parsed: unknown = JSON.parse(stored);
     return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : [];
   } catch {
     return [];
@@ -20,7 +21,9 @@ function readIds(key: string): string[] {
 
 function writeIds(key: string, ids: string[]): void {
   try {
-    localStorage.setItem(key, JSON.stringify(ids.slice(-MAX_IDS)));
+    const kept = ids.slice(-MAX_IDS);
+    const serialized = JSON.stringify(kept);
+    localStorage.setItem(key, serialized);
   } catch {}
 }
 
@@ -28,14 +31,17 @@ function addId(key: string, id: string): void {
   writeIds(key, [...readIds(key).filter((v) => v !== id), id]);
 }
 
+/** 이 폰에서 붙인 네컷으로 적어 둔다 — 벽에 올린 직후 `postStrip` 이 부른다 */
 export function rememberMine(id: string): void {
   addId(MINE, id);
 }
 
+/** 이 폰에서 붙인 네컷인가 */
 export function isMine(id: string): boolean {
   return readIds(MINE).includes(id);
 }
 
+/** `내 거` 기록에서 뺀다 */
 export function forgetMine(id: string): void {
   writeIds(
     MINE,
@@ -43,10 +49,12 @@ export function forgetMine(id: string): void {
   );
 }
 
+/** 리본을 단 네컷으로 적어 둔다 — 다시 열어도 `리본 달았어요` 로 보이게 */
 export function rememberRibbon(id: string): void {
   addId(RIBBONS, id);
 }
 
+/** 이 폰에서 리본을 단 네컷인가 */
 export function hasRibbon(id: string): boolean {
   return readIds(RIBBONS).includes(id);
 }
@@ -59,6 +67,7 @@ export function rememberHidden(id: string): void {
   addId(HIDDEN, id);
 }
 
+/** 이 폰에서 가린 네컷인가 — 벽 목록을 합칠 때 뺀다 */
 export function isHidden(id: string): boolean {
   return readIds(HIDDEN).includes(id);
 }

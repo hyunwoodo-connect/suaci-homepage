@@ -176,7 +176,8 @@ function captionOf(phase: PrintPhase, left: number): string {
 
 /** 남은 칸이 다 드러나기까지 몇 초(칸마다 0.9초, 올림) */
 function secondsLeft(cells: number): number {
-  return Math.ceil((cells * PRINT_STEP_MS) / 1000);
+  const exactSeconds = (cells * PRINT_STEP_MS) / 1000;
+  return Math.ceil(exactSeconds);
 }
 
 function prefersReducedMotion(): boolean {

@@ -1,3 +1,4 @@
+/** 공유·저장을 시도한 결과. `cancelled` 는 손님이 시트를 닫았거나 앞선 공유가 아직 열려 있을 때 */
 export type ShareResult = "shared" | "downloaded" | "cancelled";
 
 /**

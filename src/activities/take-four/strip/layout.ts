@@ -1,5 +1,6 @@
 import { SHOT_INDEXES } from "../shots";
 
+/** 위치와 크기를 가진 사각형(px) — 카드 칸과 사진 자르기가 같이 쓴다 */
 export interface Rect {
   x: number;
   y: number;
@@ -40,6 +41,7 @@ export interface CellEdge {
   left: { x: number; top: number; mark: typeof MARK };
 }
 
+/** `cardLayout` 이 돌려주는 카드의 자리 — 네 칸과 칸마다의 가장자리 글자 */
 export interface CardLayout {
   /** 칸 네 개. 찍은 순서대로 왼쪽 위 → 오른쪽 위 → 왼쪽 아래 → 오른쪽 아래 */
   cells: Rect[];
@@ -50,12 +52,16 @@ export interface CardLayout {
 
 /** 합성 카드의 자리 계산(순수 숫자). 현상 화면 덮개도 같은 칸을 줄여 쓴다. */
 export function cardLayout(): CardLayout {
-  const cells = SHOT_INDEXES.map((i) => ({
-    x: LEFT + (i % 2) * (CELL + COLUMN_GAP),
-    y: TOP + Math.floor(i / 2) * (CELL + ROW_GAP),
-    width: CELL,
-    height: CELL / CELL_ASPECT,
-  }));
+  const cells = SHOT_INDEXES.map((i) => {
+    const exactRow = i / 2;
+    const row = Math.floor(exactRow);
+    return {
+      x: LEFT + (i % 2) * (CELL + COLUMN_GAP),
+      y: TOP + row * (CELL + ROW_GAP),
+      width: CELL,
+      height: CELL / CELL_ASPECT,
+    };
+  });
   return {
     cells,
     edges: cells.map((cell) => ({

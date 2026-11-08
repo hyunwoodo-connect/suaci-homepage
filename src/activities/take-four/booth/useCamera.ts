@@ -65,7 +65,10 @@ export function useCamera(): Camera {
     try {
       stream = await navigator.mediaDevices.getUserMedia(CONSTRAINTS);
     } catch (err) {
-      if (attempt === attemptRef.current) setStatus(errorStatus(err));
+      if (attempt === attemptRef.current) {
+        const failedStatus = errorStatus(err);
+        setStatus(failedStatus);
+      }
       return false;
     }
     if (attempt !== attemptRef.current) {

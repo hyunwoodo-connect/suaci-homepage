@@ -69,7 +69,8 @@ export default function BoothFlow({ event, source = "camera" }: BoothFlowProps) 
         initialFrames={albumFrames}
         onDone={(frames) => {
           setAlbumFrames(frames);
-          develop(frames, new Date());
+          const takenAt = new Date();
+          develop(frames, takenAt);
         }}
       />
     );
