@@ -7,6 +7,7 @@ import type { SocialProvider } from "@/types";
 
 import { createTossAdapter } from "./toss";
 
+/** 손님이 고를 수 있는 결제수단. 화면 이름은 메시지 `pay.method.{id}` */
 export type PayMethodId = "BRANDPAY" | "KAKAOPAY" | "NAVERPAY" | "CARD";
 
 /**
@@ -19,6 +20,7 @@ export const PREVIEW_METHODS = ["CARD", "KAKAOPAY", "NAVERPAY", "TOSSPAY"] as co
 /** 수단 노출 순서 — 스펙 §3(브랜드페이 먼저) */
 const METHOD_ORDER: readonly PayMethodId[] = ["BRANDPAY", "KAKAOPAY", "NAVERPAY", "CARD"];
 
+/** 결제창에 넘기는 값 — `startPayment` 가 방금 만든 주문으로 채운다 */
 export interface PaymentRequestInput {
   orderId: string;
   orderNo: string;
@@ -96,7 +98,8 @@ export function selectPaymentAdapters(env: PaymentEnv, deps?: AdapterDeps): Paym
 /** 이 브라우저 창의 결제창 목록 — 결제 주소로 이 창을 옮긴다. 서버 렌더에선 창이 없어 빈 목록 */
 export function browserPaymentAdapters(): PaymentAdapter[] {
   if (typeof window === "undefined") return [];
-  return selectPaymentAdapters(paymentEnv(), {
+  const env = paymentEnv();
+  return selectPaymentAdapters(env, {
     origin: window.location.origin,
     navigate: (url) => {
       window.location.assign(url);

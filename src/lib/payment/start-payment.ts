@@ -6,6 +6,7 @@ import { saveMemo } from "@/lib/checkout/memo";
 import { clearPendingOrder, createOrderReusingPending, savePendingOrder } from "./pending";
 import type { PayMethodId, PaymentAdapter } from "./providers";
 
+/** `startPayment` 입력 — 주문서·재구매 시트가 고른 수단·수량·배송지·메모 */
 export interface StartPaymentInput {
   adapter: PaymentAdapter;
   method: PayMethodId;

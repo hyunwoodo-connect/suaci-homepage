@@ -60,7 +60,8 @@ function CheckoutBody() {
   const { status, user, recheckSession } = useAuth();
 
   // 수량: 쿼리 > 보류 주문(이어가기 — "적은 건 그대로") > 1
-  const qtyParam = Number(search.get("qty"));
+  const qtyQuery = search.get("qty");
+  const qtyParam = Number(qtyQuery);
   const [pendingQty, setPendingQty] = useState<number | null>(null);
   const qty =
     Number.isInteger(qtyParam) && qtyParam >= 1
@@ -71,7 +72,10 @@ function CheckoutBody() {
   useEffect(() => {
     Promise.resolve().then(() => {
       const p = readPendingOrder();
-      if (p && p.qty >= 1) setPendingQty(Math.min(p.qty, PRODUCT.maxQuantity));
+      if (p && p.qty >= 1) {
+        const resumedQty = Math.min(p.qty, PRODUCT.maxQuantity);
+        setPendingQty(resumedQty);
+      }
     });
   }, []);
 
@@ -119,15 +123,18 @@ function CheckoutBody() {
         setMemo(saved.memo);
         if (saved.isCustom) setCustomMemo(true);
       }
-      setMethod(defaultMethod({ lastPaymentMethod: null, loginProvider: readLastProvider() }));
+      const loginProvider = readLastProvider();
+      const initialMethod = defaultMethod({ lastPaymentMethod: null, loginProvider });
+      setMethod(initialMethod);
     });
   }, []);
 
   const adapters = browserPaymentAdapters();
   const methods = availableMethods(adapters);
   const ready = adapters.length > 0;
+  const { tossClientKey } = paymentEnv();
   // 카드 심사 동안 운영도 토스 테스트 키로 연다 — 손님이 실제로 산 줄 알지 않게 알린다
-  const isTestPayment = isTestClientKey(paymentEnv().tossClientKey);
+  const isTestPayment = isTestClientKey(tossClientKey);
 
   const defaultId = (addresses.find((a) => a.isDefault) ?? addresses[0])?.addressId ?? null;
   const selectedId =
@@ -143,7 +150,8 @@ function CheckoutBody() {
   const pay = async () => {
     if (busy || !ready) return;
     if (!selected) {
-      setNote(t("selectAddress"));
+      const selectAddressNote = t("selectAddress");
+      setNote(selectAddressNote);
       return;
     }
     const adapter = adapterFor(adapters, method);
@@ -167,7 +175,9 @@ function CheckoutBody() {
       // 여기까지 오면 손님이 결제창을 닫은 것(결제되면 토스가 다른 주소로 보낸다) — 다시 누를 수 있게
       setBusy(false);
     } catch (e) {
-      setNote(t(orderErrorKey(e)));
+      const errorKey = orderErrorKey(e);
+      const errorNote = t(errorKey);
+      setNote(errorNote);
       // 토큰이 풀렸는데 화면 상태만 남은 경우 — 상태를 다시 확인하면 로그인으로 보내는 효과가 수량까지 붙여 보낸다
       if (isAuthRequired(e)) void recheckSession();
       setBusy(false);
@@ -181,6 +191,9 @@ function CheckoutBody() {
       </PageShell>
     );
   }
+
+  const itemsSubtotal = CHECKOUT_PRICING.price * qty;
+  const totalLabel = formatKRW(total);
 
   return (
     <PageShell title={t("title")}>
@@ -318,12 +331,12 @@ function CheckoutBody() {
           <div className="mb-[16px] border border-line p-[16px]">
             <TotalRow
               label={`${tProduct("name")} × ${String(qty)}`}
-              value={formatKRW(CHECKOUT_PRICING.price * qty)}
+              value={formatKRW(itemsSubtotal)}
             />
             <TotalRow
               label={t("shipping")}
               value={
-                total === CHECKOUT_PRICING.price * qty
+                total === itemsSubtotal
                   ? t("freeShipping")
                   : formatKRW(CHECKOUT_PRICING.shippingFee)
               }
@@ -331,7 +344,7 @@ function CheckoutBody() {
             />
             <div className="mt-[12px] flex items-baseline justify-between border-t border-line pt-[12px]">
               <span className="text-[15px] font-medium">{t("grandTotal")}</span>
-              <b className="num text-[20px] font-medium">{formatKRW(total)}</b>
+              <b className="num text-[20px] font-medium">{totalLabel}</b>
             </div>
           </div>
           <ReturnNotice className="mb-[14px]" />
@@ -352,7 +365,7 @@ function CheckoutBody() {
               ? tp("sheet.preparingCta")
               : busy
                 ? tp("sheet.paying")
-                : tp("sheet.payCta", { total: formatKRW(total) })}
+                : tp("sheet.payCta", { total: totalLabel })}
           </Button>
           {ready && isTestPayment && (
             <p className="m-0 mt-[8px] text-center text-[13px] text-grey">

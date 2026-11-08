@@ -162,7 +162,8 @@ export default function AddressForm({
             id={id}
             value={phone}
             onChange={(e) => {
-              setPhone(formatPhoneInput(e.target.value));
+              const formattedPhone = formatPhoneInput(e.target.value);
+              setPhone(formattedPhone);
             }}
             required
             type="tel"

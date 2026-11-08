@@ -23,7 +23,8 @@ export default function ResumePrompt({ onResume }: ResumePromptProps) {
   useEffect(() => {
     // setState 는 .then 안에서(react-hooks 린트)
     Promise.resolve().then(() => {
-      setPending(readPendingOrder());
+      const savedOrder = readPendingOrder();
+      setPending(savedOrder);
     });
   }, []);
 

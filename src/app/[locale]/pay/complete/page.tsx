@@ -50,7 +50,8 @@ function PayCompleteBody() {
 
   useEffect(() => {
     Promise.resolve().then(() => {
-      setPendingQty(readPendingOrder()?.qty ?? null);
+      const savedQty = readPendingOrder()?.qty ?? null;
+      setPendingQty(savedQty);
     });
   }, []);
 
@@ -74,7 +75,8 @@ function PayCompleteBody() {
         router.replace(`/orders/${orderId}`);
         return;
       }
-      setPhase(closed ?? (code === "PAYMENT_DECLINED" ? "declined" : "hiccup"));
+      const failedPhase = closed ?? (code === "PAYMENT_DECLINED" ? "declined" : "hiccup");
+      setPhase(failedPhase);
     }
   }, [orderId, parsed, router]);
 

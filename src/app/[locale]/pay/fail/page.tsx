@@ -28,11 +28,13 @@ function PayFailBody() {
   const t = useTranslations("pay.result");
   const search = useSearchParams();
   // 토스 message 는 쓰지 않는다(누구나 만든 링크로 아무 글이나 띄울 수 있다) — code 분류로 우리 문구만
-  const reason = failReason(search.get("code"));
+  const failCode = search.get("code");
+  const reason = failReason(failCode);
   const [qty, setQty] = useState<number | null>(null);
   useEffect(() => {
     Promise.resolve().then(() => {
-      setQty(readPendingOrder()?.qty ?? null);
+      const savedQty = readPendingOrder()?.qty ?? null;
+      setQty(savedQty);
     });
   }, []);
   return (

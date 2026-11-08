@@ -66,8 +66,9 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
   const adapters = useMemo(() => browserPaymentAdapters(), []);
   const methods = useMemo(() => availableMethods(adapters), [adapters]);
   const ready = adapters.length > 0;
+  const { tossClientKey } = paymentEnv();
   // 카드 심사 동안 운영도 토스 테스트 키로 연다 — 손님이 실제로 산 줄 알지 않게 알린다
-  const isTestPayment = isTestClientKey(paymentEnv().tossClientKey);
+  const isTestPayment = isTestClientKey(tossClientKey);
 
   // 저장된 메모·기본 수단은 마운트 뒤에 읽는다(렌더 중 storage 접근 금지, setState 는 .then 안 — 린트)
   useEffect(() => {
@@ -77,13 +78,13 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
         setMemo(saved.memo);
         if (saved.isCustom) setCustomMemo(true);
       }
-      setMethod(
-        defaultMethod({
-          lastPaymentMethod: defaults.lastPaymentMethod,
-          loginProvider: readLastProvider(),
-          available: methods,
-        }),
-      );
+      const loginProvider = readLastProvider();
+      const initialMethod = defaultMethod({
+        lastPaymentMethod: defaults.lastPaymentMethod,
+        loginProvider,
+        available: methods,
+      });
+      setMethod(initialMethod);
     });
   }, [defaults.lastPaymentMethod, methods]);
 
@@ -101,17 +102,20 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
   }, [close]);
 
   const total = displayTotal(qty);
+  const totalLabel = formatKRW(total);
   const address = defaults.address;
 
   const pay = async () => {
     if (busy || !ready || !address) return;
     const adapter = adapterFor(adapters, method);
     if (!adapter) {
-      setNote(t("preparing"));
+      const preparingNote = t("preparing");
+      setNote(preparingNote);
       return;
     }
     setBusy(true);
-    setNote(t("paying"));
+    const payingNote = t("paying");
+    setNote(payingNote);
     setError(null);
     try {
       const { alreadyPaidOrderId } = await startPayment({
@@ -132,7 +136,9 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
       setBusy(false);
     } catch (e) {
       setNote(null);
-      setError(tCheckout(orderErrorKey(e)));
+      const errorKey = orderErrorKey(e);
+      const errorMessage = tCheckout(errorKey);
+      setError(errorMessage);
       // 화면 상태만 로그인으로 남지 않게 — 다음 '구매하기'가 로그인 시트를 연다
       if (isAuthRequired(e)) void recheckSession();
       setBusy(false);
@@ -224,7 +230,7 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
           }}
           disabled={busy || !ready}
         >
-          {ready ? t("payCta", { total: formatKRW(total) }) : t("preparingCta")}
+          {ready ? t("payCta", { total: totalLabel }) : t("preparingCta")}
         </Button>
         <p
           role="status"

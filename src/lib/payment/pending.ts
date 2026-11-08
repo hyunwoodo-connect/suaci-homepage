@@ -8,6 +8,7 @@ import type { Order } from "@/types";
 const KEY = "suaci.pay.pending";
 const TTL_MS = 30 * 60_000;
 
+/** 결제창을 열기 전에 적어 두는 주문 한 건 — 돌아오지 않으면 30분 안에 같은 멱등키로 잇는다 */
 export interface PendingOrder {
   orderId: string;
   orderNo: string;
@@ -20,13 +21,15 @@ export interface PendingOrder {
   savedAt: number;
 }
 
+/** 보류 주문을 적어 둔다 — `startPayment` 가 결제창을 열기 직전에 부른다 */
 export function savePendingOrder(p: Omit<PendingOrder, "savedAt">): void {
   try {
     // 같은 주문을 이어 써도 시계를 다시 돌리지 않는다 — 늘리면 서버가 이미 닫은 주문으로 결제창을 연다.
     // 30분이 막 지난 것도 그대로 읽는다(지운 뒤 새로 찍으면 30분이 다시 생긴다)
     const prev = readRaw();
     const savedAt = prev?.orderId === p.orderId ? prev.savedAt : Date.now();
-    sessionStorage.setItem(KEY, JSON.stringify({ ...p, savedAt }));
+    const serialized = JSON.stringify({ ...p, savedAt });
+    sessionStorage.setItem(KEY, serialized);
   } catch {
     // 저장 못 해도 결제는 진행 — 이어가기만 없어진다
   }
@@ -56,6 +59,7 @@ export function reuseKey(
     : null;
 }
 
+/** 보류 주문을 지운다 — 승인이 끝났거나 서버가 닫은 주문을 다시 잇지 않게 */
 export function clearPendingOrder(): void {
   try {
     sessionStorage.removeItem(KEY);
@@ -72,7 +76,8 @@ export async function createOrderReusingPending(
   cur: { amount: number; addressId: string; memo: string },
   newKey: () => string = () => crypto.randomUUID(),
 ): Promise<{ order: Order; idempotencyKey: string }> {
-  const reused = reuseKey(readPendingOrder(), cur);
+  const pending = readPendingOrder();
+  const reused = reuseKey(pending, cur);
   if (reused) {
     const order = await create(reused);
     if (order.paymentStatus !== "voided") return { order, idempotencyKey: reused };
