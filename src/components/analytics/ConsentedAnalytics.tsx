@@ -1,12 +1,18 @@
 "use client";
 
-import Script from "next/script";
+import { useEffect, useRef } from "react";
 
-import { useAnalyticsConsent } from "@/lib/analytics-consent";
+import { usePathname } from "next/navigation";
+
 import type { AnalyticsIds } from "@/lib/analytics";
+import {
+  clearAnalyticsCookies,
+  stopAnalyticsTools,
+  useAnalyticsConsent,
+} from "@/lib/analytics-consent";
+import { loadAnalyticsTools, sendPageView } from "@/lib/analytics-loader";
 
 import ConsentBanner, { type ConsentCopy } from "./ConsentBanner";
-import PixelPageViews from "./PixelPageViews";
 
 interface ConsentedAnalyticsProps {
   ids: AnalyticsIds;
@@ -15,36 +21,37 @@ interface ConsentedAnalyticsProps {
 }
 
 /**
- * GA4 는 구글 신호·광고 개인화를 끈 채로 싣는다(보관이 26개월로 늘거나 구글이 자기 광고에 쓰지 않게 — 처리방침의 보유 기간 2개월과 맞춘다).
- * 동의에 따라 GA4·메타 픽셀을 싣는다 — 허용이면 싣고, 거부면 아무것도, 아직 고르지 않았으면 배너만.
+ * 동의에 따라 GA4·메타 픽셀을 싣는다 — 허용이면 싣고(화면마다 page_view), 거부면 아무것도, 아직 고르지 않았으면 배너만.
  * 서버 그림에서는 동의를 모르므로 아무것도 그리지 않는다(첫 그림 뒤에 정해진다).
+ * 허용하지 않은 채 들어오면 전에 남은 분석 쿠키를 지운다. 다른 탭에서 동의를 거두면 이 탭도 도구를 멈추고 새로고침한다.
  */
 export default function ConsentedAnalytics({ ids, copy, privacyHref }: ConsentedAnalyticsProps) {
   const consent = useAnalyticsConsent();
-  if (consent === undefined || consent === "denied") return null;
+  const pathname = usePathname();
+  const loaded = useRef(false);
+
+  useEffect(() => {
+    if (consent === undefined) return;
+    if (consent === "granted") {
+      if (!loaded.current) loadAnalyticsTools(ids);
+      loaded.current = true;
+      return;
+    }
+    if (loaded.current) {
+      // 이 탭에서 실었는데 동의가 거둬졌다(다른 탭의 '쿠키 설정'·거부) — 멈추고 새로고침해 내린다
+      stopAnalyticsTools();
+      clearAnalyticsCookies();
+      window.location.reload();
+      return;
+    }
+    clearAnalyticsCookies();
+  }, [consent, ids]);
+
+  useEffect(() => {
+    if (consent !== "granted") return;
+    sendPageView(window.location.href);
+  }, [consent, pathname]);
+
   if (consent === null) return <ConsentBanner copy={copy} privacyHref={privacyHref} />;
-  const { ga4, pixel } = ids;
-  return (
-    <>
-      {ga4 && (
-        <>
-          <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${ga4}`}
-            strategy="afterInteractive"
-          />
-          <Script id="ga4" strategy="afterInteractive">
-            {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','${ga4}',{allow_google_signals:false,allow_ad_personalization_signals:false});`}
-          </Script>
-        </>
-      )}
-      {pixel && (
-        <>
-          <Script id="meta-pixel" strategy="afterInteractive">
-            {`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${pixel}');`}
-          </Script>
-          <PixelPageViews />
-        </>
-      )}
-    </>
-  );
+  return null;
 }

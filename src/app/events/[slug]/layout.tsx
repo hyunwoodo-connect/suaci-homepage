@@ -41,8 +41,9 @@ export default function EventLayout({ children }: { children: React.ReactNode })
         <link rel="stylesheet" href={PRETENDARD_CSS} crossOrigin="anonymous" />
       </head>
       <body className="antialiased">
-        {children}
+        {/* 동의 배너가 화면 맨 위에 뜨므로 읽는 순서도 맨 앞 */}
         <Analytics locale="ko" />
+        {children}
       </body>
     </html>
   );

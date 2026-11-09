@@ -22,9 +22,11 @@ import ButtonLink from "@/components/ui/ButtonLink";
 import Skeleton from "@/components/ui/Skeleton";
 import { BUSINESS } from "@/constants/site";
 import { trackPurchase } from "@/lib/analytics";
+import { useAnalyticsConsent } from "@/lib/analytics-consent";
 import { api, isAuthRequired, isNotFound } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { paymentEnv } from "@/lib/payment/providers";
+import { isLiveClientKey } from "@/lib/payment/toss";
 import { formatKRW, itemName } from "@/lib/format";
 import {
   canRequestCancel,
@@ -105,12 +107,20 @@ function OrderDetail({ orderId }: { orderId: string }) {
   }, [status, load]);
 
   // 결제 직후 완료 화면에서 구매를 한 번 센다 — 실결제 키일 때만(테스트 키 결제는 돈이 움직이지 않아 매출이 아니다)
+  // 완료 화면에서 처음 '허용'을 눌러도 센다 — 도구 대기열은 허용 직후 만들어지므로 다음 틱에 보낸다
   const paidOrder = data?.order.paymentStatus === "paid" ? data.order : null;
+  const consent = useAnalyticsConsent();
   useEffect(() => {
-    if (!welcome || !paidOrder || !isLivePayment()) return;
+    if (!welcome || !paidOrder || consent !== "granted" || !isLivePayment()) return;
     const quantity = paidOrder.items.reduce((sum, item) => sum + item.quantity, 0);
-    trackPurchase({ orderNo: paidOrder.orderNo, value: paidOrder.totals.grandTotal, quantity });
-  }, [welcome, paidOrder]);
+    const purchase = { orderNo: paidOrder.orderNo, value: paidOrder.totals.grandTotal, quantity };
+    const timer = setTimeout(() => {
+      trackPurchase(purchase);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [welcome, paidOrder, consent]);
 
   // 신청·철회·배송지 변경 뒤 다시 읽기 — 못 받으면 보던 화면을 그대로 두고 null(던지지 않는다: 이미 된 일을 실패로 보이지 않게)
   const reload = useCallback(async (): Promise<OrderDetailData | null> => {
@@ -579,5 +589,5 @@ function ErrorNote({ text }: { text: string }) {
 /** 이 빌드가 실결제 키(`live_`)로 결제를 받는가 */
 function isLivePayment(): boolean {
   const { tossClientKey } = paymentEnv();
-  return tossClientKey?.startsWith("live_") ?? false;
+  return isLiveClientKey(tossClientKey);
 }

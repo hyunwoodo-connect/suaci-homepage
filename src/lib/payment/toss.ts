@@ -63,6 +63,11 @@ export function createTossAdapter(deps: TossAdapterDeps): PaymentAdapter {
   };
 }
 
+/** 실결제 키(`live_`)인가 — 결제 시작·구매를 분석 도구에 셀 때만 쓴다(테스트 결제는 매출이 아니다) */
+export function isLiveClientKey(clientKey: string | undefined): boolean {
+  return clientKey?.startsWith("live_") ?? false;
+}
+
 /** 테스트 키(`test_`)면 돈이 움직이지 않는다 — 화면에 시험 결제임을 알린다 */
 export function isTestClientKey(clientKey: string | undefined): boolean {
   return clientKey?.startsWith("test_") ?? false;

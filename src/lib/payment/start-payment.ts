@@ -5,7 +5,8 @@ import { trackBeginCheckout } from "@/lib/analytics";
 import { saveMemo } from "@/lib/checkout/memo";
 
 import { clearPendingOrder, createOrderReusingPending, savePendingOrder } from "./pending";
-import type { PayMethodId, PaymentAdapter } from "./providers";
+import { paymentEnv, type PayMethodId, type PaymentAdapter } from "./providers";
+import { isLiveClientKey } from "./toss";
 
 /** `startPayment` 입력 — 주문서·재구매 시트가 고른 수단·수량·배송지·메모 */
 export interface StartPaymentInput {
@@ -61,7 +62,9 @@ export async function startPayment(input: StartPaymentInput): Promise<StartPayme
     addressId,
     memo,
   });
-  trackBeginCheckout(order.totals.grandTotal, qty);
+  // 실결제 키일 때만 센다 — 테스트 결제창을 연 것은 광고 성과가 아니다
+  const env = paymentEnv();
+  if (isLiveClientKey(env.tossClientKey)) trackBeginCheckout(order.totals.grandTotal, qty);
   await adapter.request(method, {
     orderId: order.orderId,
     orderNo: order.orderNo,

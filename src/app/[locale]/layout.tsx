@@ -78,10 +78,11 @@ export default async function LocaleLayout({
         )}
       </head>
       <body className="antialiased">
+        {/* 동의 배너가 화면 맨 위에 뜨므로 읽는 순서도 맨 앞 */}
+        <Analytics locale={locale} />
         <NextIntlClientProvider>
           <AuthProvider>{children}</AuthProvider>
         </NextIntlClientProvider>
-        <Analytics locale={locale} />
       </body>
     </html>
   );
