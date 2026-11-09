@@ -88,7 +88,7 @@ describe("이메일 회원가입", () => {
     fillForm("abcd1234", "abcd1234");
     await submit();
     expect(signup).toHaveBeenCalledWith(
-      expect.objectContaining({ email: "jiwoo@example.com", password: "abcd1234" }),
+      expect.objectContaining({ email: "jiwoo@example.com", password: "abcd1234", locale: "ko" }),
     );
   });
 

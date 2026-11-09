@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 
 import { Link, useRouter } from "@/i18n/navigation";
@@ -40,6 +40,8 @@ export default function SignupPage() {
 
 function SignupBody() {
   const t = useTranslations("auth");
+  // 인증번호 메일을 이 화면 언어로 보낸다
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
@@ -78,7 +80,7 @@ function SignupBody() {
     setBusy(true);
     setError(null);
     try {
-      await api.signup({ email, password, name, consents });
+      await api.signup({ email, password, name, consents, locale });
       setStep("confirm");
     } catch (err) {
       if (err instanceof ApiClientError && WEAK_PASSWORD_CODES.includes(err.code)) {

@@ -30,6 +30,8 @@ export interface SignupRequest {
   password: string;
   name: string;
   consents: Consents;
+  /** 화면 언어 — 인증번호 메일을 그 언어로 보낸다(나중 비밀번호 찾기 메일도) */
+  locale?: string;
 }
 /** 가입 확인 요청 — 이메일과 받은 코드 */
 export interface ConfirmRequest {

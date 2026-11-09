@@ -32,7 +32,8 @@ export interface ApiClient {
   confirm(r: ConfirmRequest): Promise<{ confirmed: boolean }>;
   login(r: LoginRequest): Promise<TokenResponse>;
   refresh(refreshToken: string): Promise<TokenResponse>;
-  forgotPassword(email: string): Promise<{ sent: boolean }>;
+  /** 비밀번호 재설정 인증번호 메일 — `locale` 은 메일 언어(화면 언어) */
+  forgotPassword(email: string, locale?: string): Promise<{ sent: boolean }>;
   resetPassword(r: ResetPasswordRequest): Promise<{ reset: boolean }>;
   logout(): Promise<{ loggedOut: boolean }>;
   /** 카카오·네이버 인가 코드 → 로그인 또는 가입 표(UX 두 번 클릭의 로그인). */

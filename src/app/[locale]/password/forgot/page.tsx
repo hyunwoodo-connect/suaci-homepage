@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
 import Button from "@/components/ui/Button";
@@ -17,6 +17,8 @@ import ButtonLink from "@/components/ui/ButtonLink";
  */
 export default function ForgotPasswordPage() {
   const t = useTranslations("auth");
+  // 인증번호 메일을 이 화면 언어로 보낸다
+  const locale = useLocale();
 
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
@@ -28,7 +30,7 @@ export default function ForgotPasswordPage() {
     setBusy(true);
     setError(null);
     try {
-      await api.forgotPassword(email);
+      await api.forgotPassword(email, locale);
       setSent(true);
     } catch {
       const errorMessage = t("error");

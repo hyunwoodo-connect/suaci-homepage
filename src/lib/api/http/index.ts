@@ -90,11 +90,12 @@ export function createHttpClient(baseUrl?: string): ApiClient {
     async getCheckoutDefaults() {
       return unwrap(await authedRequest<Envelope<CheckoutDefaults>>("/checkout/defaults"));
     },
-    async forgotPassword(email: string) {
+    async forgotPassword(email: string, locale?: string) {
+      const body = locale ? { email, locale } : { email };
       return unwrap(
         await request<Envelope<{ sent: boolean }>>("/auth/password/forgot", {
           method: "POST",
-          body: { email },
+          body,
         }),
       );
     },
