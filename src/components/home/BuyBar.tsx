@@ -15,6 +15,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { formatKRW } from "@/lib/format";
 import { canTakePayment, paymentEnv } from "@/lib/payment/providers";
+import { useSalesLock } from "@/lib/sales/sales-lock";
 import type { CheckoutDefaults } from "@/types";
 
 /**
@@ -41,6 +42,11 @@ export default function BuyBar() {
   });
   const env = paymentEnv();
   const paymentsOpen = canTakePayment(env);
+  // 출시 전 구매 차단(#286) — 판매 전이면 버튼을 '1월 5일 판매 시작'으로 막고 출시 알림 길만 남긴다
+  const salesLock = useSalesLock();
+  const salesDate = salesLock.opensOn;
+  const soonText = salesDate ? t("salesSoon", { date: salesDate }) : t("soon");
+  const showNotify = !paymentsOpen || salesLock.locked;
 
   const buy = useCallback(
     async (qtyOverride?: number) => {
@@ -91,7 +97,7 @@ export default function BuyBar() {
             }}
           />
           {/* 본문 큰 제목 위에 떠도 읽히게 — 반투명·얇은 띠는 아래 글자가 비쳐 섞인다 */}
-          {paymentsOpen ? (
+          {!showNotify ? (
             <p className="pointer-events-none m-0 rounded-full bg-paper px-[12px] py-[5px] text-[12px] text-grey shadow-[0_2px_10px_rgba(20,20,20,0.10)]">
               {shippingLine}
             </p>
@@ -104,7 +110,7 @@ export default function BuyBar() {
                 href="/notify"
                 className="flex min-h-[36px] items-center gap-[4px] px-[14px] pb-[4px] hover:text-ink"
               >
-                {t("soon")}
+                {salesLock.locked ? soonText : t("soon")}
                 <span className="text-ink underline underline-offset-[3px]">{t("notify")}</span>
               </Link>
             </div>
@@ -137,23 +143,33 @@ export default function BuyBar() {
                 +
               </button>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                void buy();
-              }}
-              aria-haspopup="dialog"
-              className="ml-[4px] flex h-[44px] cursor-pointer items-center gap-[8px] whitespace-nowrap rounded-full bg-paper px-[10px] text-[14px] font-semibold text-ink min-[360px]:px-[14px] min-[390px]:px-[18px]"
-            >
-              {/* 320px 폰에선 점을 빼 바가 화면 안에 든다 */}
+            {salesLock.locked ? (
+              // 판매 전 — 누를 수 없는 버튼에 판매 시작 날짜(서버도 주문·결제 승인을 막는다)
               <span
-                aria-hidden="true"
-                className="hidden h-[7px] w-[7px] rounded-full bg-lime min-[360px]:block"
-              />
-              <span className="num">
-                {formatKRW(price)} · {t("buy")}
+                aria-disabled="true"
+                className="ml-[4px] flex h-[44px] items-center whitespace-nowrap rounded-full bg-paper/80 px-[14px] text-[14px] font-semibold text-ink/70 min-[390px]:px-[18px]"
+              >
+                {salesDate ? t("salesStartsOn", { date: salesDate }) : t("soon")}
               </span>
-            </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  void buy();
+                }}
+                aria-haspopup="dialog"
+                className="ml-[4px] flex h-[44px] cursor-pointer items-center gap-[8px] whitespace-nowrap rounded-full bg-paper px-[10px] text-[14px] font-semibold text-ink min-[360px]:px-[14px] min-[390px]:px-[18px]"
+              >
+                {/* 320px 폰에선 점을 빼 바가 화면 안에 든다 */}
+                <span
+                  aria-hidden="true"
+                  className="hidden h-[7px] w-[7px] rounded-full bg-lime min-[360px]:block"
+                />
+                <span className="num">
+                  {formatKRW(price)} · {t("buy")}
+                </span>
+              </button>
+            )}
           </div>
         </div>
       </div>

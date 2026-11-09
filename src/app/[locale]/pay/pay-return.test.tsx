@@ -153,6 +153,27 @@ describe("/pay/complete", () => {
     },
   );
 
+  it("SALES_NOT_OPEN(출시 전 구매 차단 — 승인 안 함) → 결제된 금액 없다는 문구 + 출시 알림·홈, 보류 기록 지움", async () => {
+    savePendingOrder(pendingBase);
+    searchParams.value = new URLSearchParams({
+      o: "o1",
+      paymentKey: "k12345678",
+      orderId: "n",
+      amount: "31000",
+    });
+    confirmPayment.mockRejectedValue(new ApiClientError("SALES_NOT_OPEN", "x", 403));
+    await act(async () => {
+      renderComplete();
+    });
+    expect(await screen.findByText(/결제된 금액은 없어요/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "출시 알림 신청" }).getAttribute("href")).toBe(
+      "/notify",
+    );
+    expect(screen.getByRole("link", { name: "홈으로 가기" }).getAttribute("href")).toBe("/");
+    expect(screen.queryByRole("button", { name: "다시 확인하기" })).toBeNull();
+    expect(readPendingOrder()).toBeNull();
+  });
+
   it.each(["paid", "partially_refunded"])(
     "ORDER_NOT_PAYABLE 인데 주문이 이미 결제됐으면(%s) → 돌려드린다는 문구 없이 그 주문 상세로",
     async (paymentStatus) => {

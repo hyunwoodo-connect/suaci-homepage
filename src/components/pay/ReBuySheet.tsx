@@ -25,6 +25,7 @@ import {
   paymentEnv,
   type PayMethodId,
 } from "@/lib/payment/providers";
+import { useSalesLock } from "@/lib/sales/sales-lock";
 import { startPayment } from "@/lib/payment/start-payment";
 import { isTestClientKey } from "@/lib/payment/toss";
 import type { CheckoutDefaults } from "@/types";
@@ -65,7 +66,12 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
   // 어댑터 목록 — 토스 클라이언트 키가 있으면 토스 결제창, 개발·목업이면 목업
   const adapters = useMemo(() => browserPaymentAdapters(), []);
   const methods = useMemo(() => availableMethods(adapters), [adapters]);
-  const ready = adapters.length > 0;
+  // 출시 전 구매 차단(#286) — 판매 전이면 결제 버튼을 판매 시작 날짜로 막는다(서버도 막는다)
+  const salesLock = useSalesLock();
+  const ready = adapters.length > 0 && !salesLock.locked;
+  const lockedLabel = salesLock.opensOn
+    ? tPay("bar.salesStartsOn", { date: salesLock.opensOn })
+    : tPay("bar.soon");
   const { tossClientKey } = paymentEnv();
   // 카드 심사 동안 운영도 토스 테스트 키로 연다 — 손님이 실제로 산 줄 알지 않게 알린다
   const isTestPayment = isTestClientKey(tossClientKey);
@@ -230,7 +236,11 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
           }}
           disabled={busy || !ready}
         >
-          {ready ? t("payCta", { total: totalLabel }) : t("preparingCta")}
+          {ready
+            ? t("payCta", { total: totalLabel })
+            : salesLock.locked
+              ? lockedLabel
+              : t("preparingCta")}
         </Button>
         <p
           role="status"

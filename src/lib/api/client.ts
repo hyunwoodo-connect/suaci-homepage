@@ -24,6 +24,7 @@ import type {
   ChangeShippingAddressRequest,
   ApiPage,
   PageParams,
+  SalesStatus,
 } from "@/types";
 
 /** 커머스 API 의 모양 — 실서버(`createHttpClient`)와 목업(`createMockClient`)이 같은 모양으로 구현한다 */
@@ -42,6 +43,8 @@ export interface ApiClient {
   getMe(): Promise<User>;
   /** 구매 시트가 미리 채울 기본 배송지·지난 결제수단. */
   getCheckoutDefaults(): Promise<CheckoutDefaults>;
+  /** 판매 상태(공개) — 출시 전이면 구매 버튼을 막는다. 서버가 주문·결제 승인에서 다시 막는다 */
+  getSalesStatus(): Promise<SalesStatus>;
   listAddresses(): Promise<Address[]>;
   createAddress(r: CreateAddressRequest): Promise<Address>;
   updateAddress(id: string, r: UpdateAddressRequest): Promise<Address>;

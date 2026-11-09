@@ -28,7 +28,13 @@ export default function PayCompletePage() {
 /* ─── 하위 컴포넌트 ─────────────────────────── */
 
 type Phase =
-  "confirming" | "badLink" | "declined" | "hiccup" | "refundedOutOfStock" | "refundedClosed";
+  | "confirming"
+  | "badLink"
+  | "declined"
+  | "hiccup"
+  | "refundedOutOfStock"
+  | "refundedClosed"
+  | "salesNotOpen";
 
 /**
  * 서버가 결제를 확정하지 않고 닫은 승인 실패 → 다시 확인해도 소용없다. 결제된 돈이 있으면 서버가 이미 취소·환불했다
@@ -38,10 +44,13 @@ const CLOSED_BY_SERVER: Readonly<Record<string, Phase>> = {
   OUT_OF_STOCK: "refundedOutOfStock",
   ORDER_NOT_PAYABLE: "refundedClosed",
   PAYMENT_AMOUNT_MISMATCH: "refundedClosed",
+  // 출시 전 구매 차단 — 서버가 토스 승인을 부르지 않았다(돈이 안 나갔다). 판매가 열리면 새로 주문한다
+  SALES_NOT_OPEN: "salesNotOpen",
 };
 
 function PayCompleteBody() {
   const t = useTranslations("pay.result");
+  const tBar = useTranslations("pay.bar");
   const router = useRouter();
   const search = useSearchParams();
   const [phase, setPhase] = useState<Phase>("confirming");
@@ -116,6 +125,16 @@ function PayCompleteBody() {
         <ButtonLink href={orderId ? `/orders/${orderId}` : "/orders"}>
           {t("orderDetail")}
         </ButtonLink>
+        <ButtonLink href="/" variant="secondary">
+          {t("home")}
+        </ButtonLink>
+      </PayResult>
+    );
+  }
+  if (phase === "salesNotOpen") {
+    return (
+      <PayResult message={t("salesNotOpen")}>
+        <ButtonLink href="/notify">{tBar("notify")}</ButtonLink>
         <ButtonLink href="/" variant="secondary">
           {t("home")}
         </ButtonLink>

@@ -22,6 +22,7 @@ import type {
   TokenResponse,
   UpdateAddressRequest,
   User,
+  SalesStatus,
 } from "@/types";
 import type { ApiClient } from "../client";
 import { ApiClientError } from "../errors";
@@ -179,6 +180,9 @@ export function createMockClient(): ApiClient {
       const nextDone = done.includes(key) ? done : [...done, key];
       store.writeSocialDone(nextDone);
       return mockTokens();
+    },
+    async getSalesStatus(): Promise<SalesStatus> {
+      return { open: true };
     },
     async getCheckoutDefaults(): Promise<CheckoutDefaults> {
       requireAuth();

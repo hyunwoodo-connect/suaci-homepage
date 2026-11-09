@@ -24,6 +24,7 @@ import type {
   UpdateAddressRequest,
   User,
   PageParams,
+  SalesStatus,
 } from "@/types";
 import type { ApiClient } from "../client";
 import { createFetcher } from "./fetcher";
@@ -86,6 +87,9 @@ export function createHttpClient(baseUrl?: string): ApiClient {
           auth: false,
         }),
       );
+    },
+    async getSalesStatus() {
+      return unwrap(await request<Envelope<SalesStatus>>("/sales/status", { method: "GET" }));
     },
     async getCheckoutDefaults() {
       return unwrap(await authedRequest<Envelope<CheckoutDefaults>>("/checkout/defaults"));

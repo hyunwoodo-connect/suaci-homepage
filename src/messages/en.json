@@ -206,7 +206,8 @@
       "PAYMENT_AMOUNT_MISMATCH": "payment amount doesn't match",
       "OUT_OF_STOCK": "some items are out of stock",
       "AUTH_REQUIRED": "please sign in again",
-      "GENERIC": "please try again in a moment"
+      "GENERIC": "please try again in a moment",
+      "SALES_NOT_OPEN": "it's not on sale yet. please try again once sales open."
     }
   },
   "orders": {
@@ -426,7 +427,9 @@
       "resume": "pick up where you left off?",
       "resumeCta": "continue",
       "soon": "coming soon.",
-      "notify": "get notified"
+      "notify": "get notified",
+      "salesStartsOn": "on sale {date}",
+      "salesSoon": "on sale from {date}."
     },
     "login": {
       "title": "just tell us who you are.",
@@ -478,7 +481,8 @@
       "continue": "continue",
       "done": "order placed.",
       "refundedOutOfStock": "we ran out of stock, so we couldn't take this order. your payment is cancelled and refunded. depending on your card issuer, it can take 3–7 business days to show.",
-      "refundedClosed": "this order closed before the payment went through. if you were charged, the payment is cancelled and refunded. depending on your card issuer, it can take 3–7 business days to show."
+      "refundedClosed": "this order closed before the payment went through. if you were charged, the payment is cancelled and refunded. depending on your card issuer, it can take 3–7 business days to show.",
+      "salesNotOpen": "it's not on sale yet, so we didn't approve the payment. you haven't been charged. please order again once sales open."
     },
     "mock": {
       "title": "{provider} sign in (mock)",

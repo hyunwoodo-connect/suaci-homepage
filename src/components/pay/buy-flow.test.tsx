@@ -7,10 +7,13 @@ import ko from "@/messages/ko.json";
 import { ApiClientError } from "@/lib/api";
 import { createMockAdapter } from "@/lib/payment/providers";
 import { readPendingOrder, savePendingOrder } from "@/lib/payment/pending";
+import { resetSalesStatusCache } from "@/lib/sales/sales-lock";
+import type { SalesStatus } from "@/types";
 
 const {
   getCheckoutDefaults,
   createOrder,
+  getSalesStatus,
   authState,
   navigate,
   selectMock,
@@ -20,6 +23,7 @@ const {
 } = vi.hoisted(() => ({
   getCheckoutDefaults: vi.fn(),
   createOrder: vi.fn(),
+  getSalesStatus: vi.fn((): Promise<SalesStatus> => Promise.resolve({ open: true })),
   authState: {
     value: { status: "authenticated", user: { userId: "u1" } } as Record<string, unknown>,
   },
@@ -31,7 +35,7 @@ const {
 }));
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
-  api: { getCheckoutDefaults, createOrder },
+  api: { getCheckoutDefaults, createOrder, getSalesStatus },
 }));
 vi.mock("@/lib/auth/auth-context", () => ({
   useAuth: () => authState.value,
@@ -96,11 +100,34 @@ function renderBar() {
 describe("사기 바", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetSalesStatusCache();
     sessionStorage.clear();
     localStorage.clear();
     authState.value = { status: "authenticated", user: { userId: "u1" } };
     selectMock.value = true;
     searchState.value = "";
+  });
+
+  it("판매 전(출시 전 구매 차단) → 버튼이 '1월 5일 판매 시작'으로 막히고 출시 알림 길이 보인다", async () => {
+    getSalesStatus.mockResolvedValueOnce({
+      open: false,
+      opensAt: Date.parse("2027-01-05T00:00:00+09:00"),
+    });
+    await act(async () => {
+      renderBar();
+    });
+    const locked = await screen.findByText("1월 5일 판매 시작");
+    expect(locked.getAttribute("aria-disabled")).toBe("true");
+    expect(screen.queryByRole("button", { name: /구매하기/ })).toBeNull();
+    expect(screen.getByText("1월 5일부터 판매해요.")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /출시 알림 신청/ })).toBeTruthy();
+  });
+
+  it("판매 중이면 → 지금처럼 구매하기", async () => {
+    await act(async () => {
+      renderBar();
+    });
+    expect(screen.getByRole("button", { name: "₩28,000 · 구매하기" })).toBeTruthy();
   });
 
   it("로그인에서 ?buy=1&qty=3 으로 돌아오면 → 고른 수량 3 그대로 시트를 연다", async () => {
@@ -181,6 +208,7 @@ describe("사기 바", () => {
 describe("재구매 시트", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetSalesStatusCache();
     sessionStorage.clear();
     localStorage.clear();
     authState.value = { status: "authenticated", user: { userId: "u1" } };
@@ -366,6 +394,7 @@ describe("재구매 시트", () => {
 describe("이어서 줄(사기 바 위)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetSalesStatusCache();
     sessionStorage.clear();
     authState.value = { status: "authenticated", user: { userId: "u1" } };
     selectMock.value = true;

@@ -6,6 +6,7 @@ const KNOWN_ORDER_ERRORS = [
   "PAYMENT_AMOUNT_MISMATCH",
   "OUT_OF_STOCK",
   "AUTH_REQUIRED",
+  "SALES_NOT_OPEN",
 ] as const;
 
 /**
