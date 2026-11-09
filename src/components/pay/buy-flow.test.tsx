@@ -167,10 +167,10 @@ describe("사기 바", () => {
     expect(decodeURIComponent(email.getAttribute("href") ?? "")).toContain("/?buy=1&qty=2");
   });
 
-  it("버튼은 상품가(배송비 빼고), 배송비는 위에 작게 — 국내 쇼핑몰 관례", () => {
+  it("버튼은 상품가(배송비 빼고) — 결제를 받을 땐 바 위 알약이 없다(배송비는 제품 섹션 가격 아래)", () => {
     renderBar();
     expect(screen.getByRole("button", { name: "₩28,000 · 구매하기" })).toBeTruthy();
-    expect(screen.getByText("배송비 ₩3,000 (₩50,000 이상 구매 시 무료)")).toBeTruthy();
+    expect(screen.queryByText("배송비 ₩3,000 (₩50,000 이상 구매 시 무료)")).toBeNull();
   });
 
   it("수량 2 → 버튼이 ₩56,000 · 구매하기 (상품가 × 수량)", () => {

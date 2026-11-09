@@ -63,11 +63,10 @@ export default function Moments() {
           className="mt-[clamp(0px,6vw,96px)] w-[max(21%,min(100%,220px))]"
           sizes="(max-width: 767px) 60vw, 21vw"
         />
-        {/* 제품이 나오는 컷은 실제 병 사진만(AI 시안 병은 실제 용기와 모양이 달랐다) — 오기 전엔 준비 중 자리 */}
+        {/* 제품이 나오는 컷은 실제 병 사진만(AI 시안 병은 실제 용기와 모양이 달랐다) — 오기 전엔 칸이 없다 */}
         <ProductShot
           src={PRODUCT_PHOTOS.moment}
           alt={t("bottleAlt")}
-          soonLabel={t("bottleSoon")}
           className="ml-auto w-[max(25%,min(100%,260px))]"
           sizes="(max-width: 767px) 70vw, 25vw"
         />

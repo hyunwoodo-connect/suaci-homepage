@@ -63,14 +63,24 @@ describe("ProductSection — 반품 제한 고지(전자상거래법 제17조제
     expect(body.textContent).not.toContain("준비 중");
   });
 
-  it("다른 브랜드 사진 없이 '제품 사진 준비 중' 자리만", () => {
+  it("실제 제품 사진이 오기 전 → 사진 칸도 '준비 중' 상자도 없다(다른 브랜드·AI 사진 없음)", () => {
     const { container } = render(
       <NextIntlClientProvider locale="ko" messages={ko}>
         <ProductSection />
       </NextIntlClientProvider>,
     );
-    expect(screen.getByRole("img", { name: "제품 사진 준비 중" })).toBeTruthy();
     expect(container.querySelector("img")).toBeNull();
+    expect(screen.queryByRole("img")).toBeNull();
+    expect(container.textContent).not.toContain("준비 중");
+  });
+
+  it("가격 바로 아래 배송비 한 줄(하단 바에서 내림)", () => {
+    render(
+      <NextIntlClientProvider locale="ko" messages={ko}>
+        <ProductSection />
+      </NextIntlClientProvider>,
+    );
+    expect(screen.getByText("배송비 ₩3,000 (₩50,000 이상 구매 시 무료)")).toBeTruthy();
   });
 
   it("전성분 → 1차 전성분표 한 줄(ko 한글 이름, 향료 속 리모넨·리날룰 끝)", () => {
