@@ -20,6 +20,8 @@ const KNOWN_CODES: readonly string[] = [
   "CLAIM_NOT_WITHDRAWABLE",
   "ADDRESS_CHANGE_NOT_ALLOWED",
   "ADDRESS_NOT_FOUND",
+  "CLAIM_PHOTO_NOT_FOUND",
+  "RATE_LIMITED",
 ];
 
 /** 실패 → `claims` 메시지 키(`error.{code}` 또는 `error.default`) */

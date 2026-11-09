@@ -341,7 +341,9 @@
       "CLAIM_NOT_WITHDRAWABLE": "we've already started on this request, so it can't be withdrawn. please check the latest status.",
       "ADDRESS_CHANGE_NOT_ALLOWED": "we've started preparing your order, so the address can't be changed here. please contact us.",
       "ADDRESS_NOT_FOUND": "we couldn't find that address. please check your saved addresses.",
-      "default": "we couldn't process your request. please try again in a moment."
+      "default": "we couldn't process your request. please try again in a moment.",
+      "CLAIM_PHOTO_NOT_FOUND": "we couldn't find an uploaded photo. please remove it and choose again.",
+      "RATE_LIMITED": "you can't upload more photos today. please try again tomorrow."
     },
     "cardNote": "depending on your card issuer, the refund may take another 3–7 business days to show on your card.",
     "type": {
@@ -367,6 +369,16 @@
         "AVAILABLE_FOR_PICKUP": "checking",
         "EXCEPTION": "checking"
       }
+    },
+    "photos": {
+      "label": "photos (optional, up to 3)",
+      "hint": "show the item's condition. only suaci sees them, and we remove photo info like location before uploading.",
+      "add": "choose photos ({left} more)",
+      "item": "photo {n}",
+      "remove": "remove photo {n}",
+      "uploading": "uploading",
+      "failed": "upload failed",
+      "count": "{n} photos"
     }
   },
   "returns": {

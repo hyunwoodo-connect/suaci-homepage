@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import { useTranslations } from "next-intl";
 
@@ -12,6 +12,7 @@ import type { Claim, ExchangeReason, Order } from "@/types";
 
 import { claimErrorKey } from "./claimError";
 import DetailField from "./DetailField";
+import PhotoPicker from "./PhotoPicker";
 import LinesPicker from "./LinesPicker";
 import ReasonPicker from "./ReasonPicker";
 import { useSubmitLock } from "./useSubmitLock";
@@ -48,12 +49,16 @@ export default function ExchangeRequestForm({
   const [detail, setDetail] = useState("");
   const { busy, run } = useSubmitLock();
   const [error, setError] = useState<string | null>(null);
+  const [photoIds, setPhotoIds] = useState<string[]>([]);
+  const [photosBusy, setPhotosBusy] = useState(false);
+  const handlePhotos = useCallback((ids: string[]) => setPhotoIds(ids), []);
+  const handlePhotosBusy = useCallback((isBusy: boolean) => setPhotosBusy(isBusy), []);
   const left = remainingQty(order, claims);
   const pick = useLineSelection(order, left);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pick.partialEmpty) return;
+    if (pick.partialEmpty || photosBusy) return;
     await run(async () => {
       setError(null);
       try {
@@ -62,6 +67,7 @@ export default function ExchangeRequestForm({
           reasonCode: reason,
           reasonDetail: detail.trim() || undefined,
           lines: pick.lines,
+          ...(photoIds.length > 0 && { photoIds }),
         });
       } catch (err) {
         const errorKey = claimErrorKey(err);
@@ -114,6 +120,12 @@ export default function ExchangeRequestForm({
         onChange={setDetail}
       />
 
+      <PhotoPicker
+        orderId={order.orderId}
+        onChange={handlePhotos}
+        onBusyChange={handlePhotosBusy}
+      />
+
       <LinesPicker
         order={order}
         left={left}
@@ -135,7 +147,7 @@ export default function ExchangeRequestForm({
       </p>
 
       <div className="flex flex-wrap items-center gap-[8px_20px]">
-        <Button type="submit" size="sm" disabled={busy || pick.partialEmpty}>
+        <Button type="submit" size="sm" disabled={busy || photosBusy || pick.partialEmpty}>
           {busy ? "…" : t("submit")}
         </Button>
         <Button type="button" variant="text" size="sm" disabled={busy} onClick={onClose}>

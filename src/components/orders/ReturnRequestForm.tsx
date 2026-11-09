@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import { useTranslations } from "next-intl";
 
@@ -13,6 +13,7 @@ import type { Claim, Order, ReturnReason } from "@/types";
 import { claimErrorKey } from "./claimError";
 import DetailField from "./DetailField";
 import LinesPicker from "./LinesPicker";
+import PhotoPicker from "./PhotoPicker";
 import ReasonPicker from "./ReasonPicker";
 import { useSubmitLock } from "./useSubmitLock";
 import { useLineSelection } from "./useLineSelection";
@@ -51,6 +52,10 @@ export default function ReturnRequestForm({
   const [unopened, setUnopened] = useState(false);
   const { busy, run } = useSubmitLock();
   const [error, setError] = useState<string | null>(null);
+  const [photoIds, setPhotoIds] = useState<string[]>([]);
+  const [photosBusy, setPhotosBusy] = useState(false);
+  const handlePhotos = useCallback((ids: string[]) => setPhotoIds(ids), []);
+  const handlePhotosBusy = useCallback((isBusy: boolean) => setPhotosBusy(isBusy), []);
 
   const left = remainingQty(order, claims);
   const pick = useLineSelection(order, left);
@@ -59,6 +64,7 @@ export default function ReturnRequestForm({
   // 고를 상품이 없거나(이미 다 돌려받음) 반품 배송비를 빼면 남는 돈이 없으면 보내지 않는다
   const blocked =
     busy ||
+    photosBusy ||
     pick.partialEmpty ||
     (needsUnopened && !unopened) ||
     quote.itemsAmount <= 0 ||
@@ -76,6 +82,7 @@ export default function ReturnRequestForm({
           reasonDetail: detail.trim() || undefined,
           lines: pick.lines,
           unopenedConfirmed: needsUnopened && unopened,
+          ...(photoIds.length > 0 && { photoIds }),
         });
       } catch (err) {
         const errorKey = claimErrorKey(err);
@@ -137,6 +144,12 @@ export default function ReturnRequestForm({
         placeholder={t("detailPlaceholder")}
         value={detail}
         onChange={setDetail}
+      />
+
+      <PhotoPicker
+        orderId={order.orderId}
+        onChange={handlePhotos}
+        onBusyChange={handlePhotosBusy}
       />
 
       <LinesPicker

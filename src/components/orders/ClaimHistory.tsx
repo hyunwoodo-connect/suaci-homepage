@@ -156,6 +156,9 @@ function ClaimRow({
         )}
         {refundDueDate && <span className="num">{tc("refundDue", { date: refundDueDate })}</span>}
         <span className="num">{tc("requestedAt", { date: requestedDate })}</span>
+        {(c.photoCount ?? 0) > 0 && (
+          <span className="num">{tc("photos.count", { n: c.photoCount ?? 0 })}</span>
+        )}
       </div>
       {c.status === "requested" && c.type !== "cancel" && (
         <p className="m-0 mt-[6px] text-[13px] leading-[1.6] text-grey">
