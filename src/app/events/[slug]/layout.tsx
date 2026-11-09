@@ -42,7 +42,7 @@ export default function EventLayout({ children }: { children: React.ReactNode })
       </head>
       <body className="antialiased">
         {children}
-        <Analytics />
+        <Analytics locale="ko" />
       </body>
     </html>
   );

@@ -1,6 +1,7 @@
 import { displayTotal } from "@/constants/checkout";
 import { PRODUCT } from "@/constants/product";
 import { api } from "@/lib/api";
+import { trackBeginCheckout } from "@/lib/analytics";
 import { saveMemo } from "@/lib/checkout/memo";
 
 import { clearPendingOrder, createOrderReusingPending, savePendingOrder } from "./pending";
@@ -60,6 +61,7 @@ export async function startPayment(input: StartPaymentInput): Promise<StartPayme
     addressId,
     memo,
   });
+  trackBeginCheckout(order.totals.grandTotal, qty);
   await adapter.request(method, {
     orderId: order.orderId,
     orderNo: order.orderNo,

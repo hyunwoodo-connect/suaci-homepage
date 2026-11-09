@@ -81,7 +81,7 @@ export default async function LocaleLayout({
         <NextIntlClientProvider>
           <AuthProvider>{children}</AuthProvider>
         </NextIntlClientProvider>
-        <Analytics />
+        <Analytics locale={locale} />
       </body>
     </html>
   );

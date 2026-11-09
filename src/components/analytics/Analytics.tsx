@@ -1,39 +1,24 @@
-import Script from "next/script";
+import { getTranslations } from "next-intl/server";
 
 import { analyticsIds } from "@/lib/analytics";
 
-import PixelPageViews from "./PixelPageViews";
+import ConsentedAnalytics from "./ConsentedAnalytics";
+
+interface AnalyticsProps {
+  /** 배너 문구 언어. 이벤트 화면(언어 접두사 없음)은 ko */
+  locale: string;
+}
 
 /**
- * GA4·메타 픽셀 스크립트. `NEXT_PUBLIC_GA4_ID`·`NEXT_PUBLIC_META_PIXEL_ID`가 있을 때만 싣는다(없으면 아무것도 안 그린다).
+ * GA4·메타 픽셀. `NEXT_PUBLIC_GA4_ID`·`NEXT_PUBLIC_META_PIXEL_ID`가 있을 때만, 그리고 방문자가 허용한 뒤에만 싣는다.
+ * ID 가 하나도 없으면 아무것도 안 그린다(동의 배너도 없다 — 물어볼 도구가 없다).
  * GA4는 화면 이동(history)을 스스로 세고, 픽셀은 이동마다 PageView를 따로 보낸다
  */
-export default function Analytics() {
-  const { ga4, pixel } = analyticsIds(
-    process.env.NEXT_PUBLIC_GA4_ID,
-    process.env.NEXT_PUBLIC_META_PIXEL_ID,
-  );
-  return (
-    <>
-      {ga4 && (
-        <>
-          <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${ga4}`}
-            strategy="afterInteractive"
-          />
-          <Script id="ga4" strategy="afterInteractive">
-            {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','${ga4}');`}
-          </Script>
-        </>
-      )}
-      {pixel && (
-        <>
-          <Script id="meta-pixel" strategy="afterInteractive">
-            {`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${pixel}');`}
-          </Script>
-          <PixelPageViews />
-        </>
-      )}
-    </>
-  );
+export default async function Analytics({ locale }: AnalyticsProps) {
+  const ids = analyticsIds(process.env.NEXT_PUBLIC_GA4_ID, process.env.NEXT_PUBLIC_META_PIXEL_ID);
+  if (!ids.ga4 && !ids.pixel) return null;
+  const t = await getTranslations({ locale, namespace: "consent" });
+  const copy = { body: t("body"), allow: t("allow"), decline: t("decline"), details: t("details") };
+  const privacyHref = locale === "ko" ? "/legal/privacy" : `/${locale}/legal/privacy`;
+  return <ConsentedAnalytics ids={ids} copy={copy} privacyHref={privacyHref} />;
 }

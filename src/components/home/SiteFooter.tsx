@@ -2,6 +2,8 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
+import ConsentSettingsButton from "@/components/analytics/ConsentSettingsButton";
+import { hasAnalytics } from "@/lib/analytics";
 import { HOME_MEDIA } from "@/constants/product";
 import { BUSINESS, SITE } from "@/constants/site";
 
@@ -17,6 +19,7 @@ const SMALL_LINK =
  */
 export default function SiteFooter() {
   const t = useTranslations("home.footer");
+  const tConsent = useTranslations("consent");
   const tp = useTranslations("home.hero");
 
   return (
@@ -68,6 +71,10 @@ export default function SiteFooter() {
             <Link href="/legal/privacy" className={`${SMALL_LINK} font-medium text-ink-soft`}>
               {t("privacy")}
             </Link>
+            {/* 분석 도구가 있는 빌드에서만 — 허용·거부를 다시 고르는 길 */}
+            {hasAnalytics() && (
+              <ConsentSettingsButton label={tConsent("settings")} className={SMALL_LINK} />
+            )}
             <span>{SITE.copyright}</span>
           </div>
         </div>

@@ -522,5 +522,12 @@
       "default": "we couldn't add you right now. please try again in a moment."
     },
     "retry": "try again"
+  },
+  "consent": {
+    "body": "can we use analytics and ad-measurement cookies? we count which pages get seen to improve the site and our ads.",
+    "allow": "allow",
+    "decline": "decline",
+    "details": "privacy policy",
+    "settings": "cookie settings"
   }
 }
