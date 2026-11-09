@@ -171,7 +171,12 @@
       "broken": "가입이 중간에 끊겼어요. 버튼을 다시 눌러 주세요.",
       "joinedElsewhere": "다른 방법으로 가입한 적 있나요?",
       "toLogin": "로그인으로 돌아가기"
-    }
+    },
+    "emailRequired": "이메일을 입력해 주세요.",
+    "emailInvalid": "이메일 주소를 확인해 주세요.",
+    "passwordRequired": "비밀번호를 입력해 주세요.",
+    "nameRequired": "이름을 입력해 주세요.",
+    "codeRequired": "인증 코드를 입력해 주세요."
   },
   "account": {
     "title": "내 계정",
@@ -406,7 +411,11 @@
       "failed": "못 올렸어요",
       "count": "사진 {n}장"
     },
-    "refundDoneNote": "카드사에 따라 3~7영업일 뒤 반영돼요."
+    "refundDoneNote": "카드사에 따라 3~7영업일 뒤 반영돼요.",
+    "pickReason": "사유를 골라 주세요.",
+    "confirmCancel": "취소하면 {amount}을 환불해 드려요. 취소할까요?",
+    "confirmYes": "네, 취소할게요",
+    "confirmNo": "돌아가기"
   },
   "returns": {
     "formTitle": "반품 사유 선택",
@@ -429,7 +438,8 @@
     "cancel": "닫기",
     "after": "보내실 곳과 방법을 메일로 안내해 드려요. 상품이 도착하면 확인한 뒤 3영업일 안에 환불해 드려요.",
     "returnFee": "반품 배송비 {amount} 차감",
-    "shippingBack": "처음 배송비 {amount} 포함"
+    "shippingBack": "처음 배송비 {amount} 포함",
+    "needUnopened": "위의 ‘밀봉을 뜯지 않았고 사용하지 않았어요’를 체크해 주세요."
   },
   "exchanges": {
     "formTitle": "교환 사유 선택",

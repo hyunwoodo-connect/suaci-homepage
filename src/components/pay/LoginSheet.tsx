@@ -5,8 +5,8 @@ import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 
 import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
+import ButtonLink from "@/components/ui/ButtonLink";
 import CloseButton from "@/components/ui/CloseButton";
-import { Link } from "@/i18n/navigation";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { useCloseOnBack } from "@/hooks/useCloseOnBack";
 
@@ -58,13 +58,15 @@ export default function LoginSheet({ next, onClose }: LoginSheetProps) {
         <p className="m-0 text-center text-[12px] text-grey">{t("hint")}</p>
         {/* 로그인 화면의 이메일 폼을 펼친 채로 열고, 끝나면 같은 구매로 돌아온다 */}
         {/* replace — 시트가 쌓은 기록 칸을 로그인 화면이 차지해 뒤로가기 한 번에 홈으로 돌아온다 */}
-        <Link
+        {/* 이메일로 가입한 손님도 같은 무게로 보이게 — 작은 밑줄 글자 대신 테두리 버튼(UX 리뷰 C2) */}
+        <ButtonLink
           href={{ pathname: "/login", query: { next, email: "1" } }}
           replace
-          className="-my-[6px] inline-flex min-h-[44px] items-center justify-center text-[14px] text-grey underline underline-offset-[3px] hover:text-ink"
+          variant="secondary"
+          className="w-full"
         >
           {ta("emailLogin")}
-        </Link>
+        </ButtonLink>
       </div>
     </div>
   );

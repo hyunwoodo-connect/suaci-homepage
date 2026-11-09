@@ -63,6 +63,24 @@ describe("로그인 페이지", () => {
     expect(screen.getByLabelText("비밀번호")).toBeTruthy();
   });
 
+  it("빈 칸·이메일 오타로 보내면 → 브라우저 말풍선 대신 칸 아래 우리 문구, 로그인 요청은 안 간다", async () => {
+    const { api } = await import("@/lib/api");
+    await renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "이메일로 로그인" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "로그인" }));
+    });
+    expect(screen.getByText("이메일을 입력해 주세요.")).toBeTruthy();
+    expect(screen.getByText("비밀번호를 입력해 주세요.")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("이메일"), { target: { value: "mina@mail" } });
+    expect(screen.queryByText("이메일을 입력해 주세요.")).toBeNull();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "로그인" }));
+    });
+    expect(screen.getByText("이메일 주소를 확인해 주세요.")).toBeTruthy();
+    expect(api.login).not.toHaveBeenCalled();
+  });
+
   it("비밀번호 칸의 '비밀번호 보기' → 글자가 보이고 단추 이름이 '비밀번호 숨기기'로", async () => {
     await renderPage();
     fireEvent.click(screen.getByRole("button", { name: "이메일로 로그인" }));

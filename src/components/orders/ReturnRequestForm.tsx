@@ -47,7 +47,8 @@ export default function ReturnRequestForm({
 
   const [now] = useState(Date.now);
   const { changeOfMindOpen } = returnWindow(order, now);
-  const [reason, setReason] = useState<ReturnReason>(changeOfMindOpen ? "단순변심" : "상품하자");
+  // 사유는 미리 고르지 않는다 — 불량인데 단순 변심으로 접수되면 반품 배송비가 빠진다(UX 리뷰 F1)
+  const [reason, setReason] = useState<ReturnReason | null>(null);
   const [detail, setDetail] = useState("");
   const [unopened, setUnopened] = useState(false);
   const { busy, run } = useSubmitLock();
@@ -60,19 +61,23 @@ export default function ReturnRequestForm({
   const left = remainingQty(order, claims);
   const pick = useLineSelection(order, left);
   const needsUnopened = reason === "단순변심";
-  const quote = returnQuote(order, claims, reason, pick.lines);
+  const quote = reason ? returnQuote(order, claims, reason, pick.lines) : null;
   // 고를 상품이 없거나(이미 다 돌려받음) 반품 배송비를 빼면 남는 돈이 없으면 보내지 않는다
   const blocked =
     busy ||
     photosBusy ||
     pick.partialEmpty ||
+    quote === null ||
     (needsUnopened && !unopened) ||
     quote.itemsAmount <= 0 ||
     quote.refundAmount <= 0;
+  // 버튼이 왜 잠겼는지 버튼 바로 옆에(UX 리뷰 F3) — 미개봉 체크는 사유 칩 아래라 폰에선 버튼과 멀다
+  const blockedHint =
+    reason === null ? tc("pickReason") : needsUnopened && !unopened ? t("needUnopened") : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (blocked) return;
+    if (blocked || reason === null) return;
     await run(async () => {
       setError(null);
       try {
@@ -97,7 +102,7 @@ export default function ReturnRequestForm({
 
   const returnFeeLabelKey =
     order.totals.shippingFee === 0 ? "quoteReturnFeeFree" : "quoteReturnFee";
-  const refundShown = Math.max(0, quote.refundAmount);
+  const refundShown = Math.max(0, quote?.refundAmount ?? 0);
 
   return (
     <form
@@ -169,23 +174,28 @@ export default function ReturnRequestForm({
       />
 
       {/* 예상 환불 금액 — 반품 배송비를 뺀 내역을 환불 전에 보여 준다(환불 정책 v2) */}
-      <section aria-label={t("quoteTitle")} className="border border-line p-[16px]">
-        <h3 className="m-0 mb-[8px] text-[14px] font-medium text-ink">{t("quoteTitle")}</h3>
-        <QuoteRow label={t("quoteItems")} value={formatKRW(quote.itemsAmount)} />
-        {quote.returnShippingFee > 0 && (
-          <QuoteRow label={t(returnFeeLabelKey)} value={`−${formatKRW(quote.returnShippingFee)}`} />
-        )}
-        {quote.refundedShipping > 0 && (
-          <QuoteRow
-            label={t("quoteShippingBack")}
-            value={`+${formatKRW(quote.refundedShipping)}`}
-          />
-        )}
-        <div className="mt-[8px] flex items-baseline justify-between border-t border-line pt-[8px]">
-          <span className="text-[15px] font-medium">{t("quoteTotal")}</span>
-          <b className="num text-[18px] font-medium">{formatKRW(refundShown)}</b>
-        </div>
-      </section>
+      {quote && (
+        <section aria-label={t("quoteTitle")} className="border border-line p-[16px]">
+          <h3 className="m-0 mb-[8px] text-[14px] font-medium text-ink">{t("quoteTitle")}</h3>
+          <QuoteRow label={t("quoteItems")} value={formatKRW(quote.itemsAmount)} />
+          {quote.returnShippingFee > 0 && (
+            <QuoteRow
+              label={t(returnFeeLabelKey)}
+              value={`−${formatKRW(quote.returnShippingFee)}`}
+            />
+          )}
+          {quote.refundedShipping > 0 && (
+            <QuoteRow
+              label={t("quoteShippingBack")}
+              value={`+${formatKRW(quote.refundedShipping)}`}
+            />
+          )}
+          <div className="mt-[8px] flex items-baseline justify-between border-t border-line pt-[8px]">
+            <span className="text-[15px] font-medium">{t("quoteTotal")}</span>
+            <b className="num text-[18px] font-medium">{formatKRW(refundShown)}</b>
+          </div>
+        </section>
+      )}
 
       <div className="flex flex-wrap items-center gap-[8px_20px]">
         <Button type="submit" size="sm" disabled={blocked}>
@@ -194,6 +204,7 @@ export default function ReturnRequestForm({
         <Button type="button" variant="text" size="sm" disabled={busy} onClick={onClose}>
           {t("cancel")}
         </Button>
+        {blockedHint && <p className="m-0 w-full text-[13px] text-grey">{blockedHint}</p>}
       </div>
 
       <p className="m-0 text-[13px] leading-[1.6] text-grey">{t("after")}</p>

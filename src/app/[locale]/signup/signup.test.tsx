@@ -82,6 +82,23 @@ describe("이메일 회원가입", () => {
     expect(signup).not.toHaveBeenCalled();
   });
 
+  it("비밀번호를 짧게 쓰고 칸을 벗어나면 → 보내기 전에 바로 오류", async () => {
+    await renderPage();
+    fill("비밀번호", "abc");
+    fireEvent.blur(screen.getByLabelText("비밀번호"));
+    expect(screen.getByText("비밀번호를 8자 이상 입력해 주세요.")).toBeTruthy();
+  });
+
+  it("이름·이메일이 비었으면 → 칸 아래 문구, 가입 요청은 안 간다", async () => {
+    await renderPage();
+    fill("비밀번호", "abcd1234");
+    fill("비밀번호 확인", "abcd1234");
+    await submit();
+    expect(screen.getByText("이름을 입력해 주세요.")).toBeTruthy();
+    expect(screen.getByText("이메일을 입력해 주세요.")).toBeTruthy();
+    expect(signup).not.toHaveBeenCalled();
+  });
+
   it("두 칸이 같고 8자 이상이면 → 가입 요청", async () => {
     signup.mockResolvedValue({ email: "jiwoo@example.com" });
     await renderPage();

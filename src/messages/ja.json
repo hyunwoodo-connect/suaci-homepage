@@ -171,7 +171,12 @@
       "broken": "登録が途中で切れました。もう一度ボタンを押してください。",
       "joinedElsewhere": "別の方法で登録済みですか？",
       "toLogin": "ログインに戻る"
-    }
+    },
+    "emailRequired": "メールアドレスを入力してください。",
+    "emailInvalid": "メールアドレスを確認してください。",
+    "passwordRequired": "パスワードを入力してください。",
+    "nameRequired": "お名前を入力してください。",
+    "codeRequired": "認証コードを入力してください。"
   },
   "account": {
     "title": "アカウント",
@@ -406,7 +411,11 @@
       "failed": "アップロードできませんでした",
       "count": "写真{n}枚"
     },
-    "refundDoneNote": "カード会社により、反映まで3〜7営業日かかります。"
+    "refundDoneNote": "カード会社により、反映まで3〜7営業日かかります。",
+    "pickReason": "理由を選んでください。",
+    "confirmCancel": "キャンセルすると{amount}を返金します。キャンセルしますか？",
+    "confirmYes": "はい、キャンセルします",
+    "confirmNo": "戻る"
   },
   "returns": {
     "formTitle": "返品理由を選択",
@@ -429,7 +438,8 @@
     "cancel": "閉じる",
     "after": "送り先と方法をメールでご案内します。商品の到着を確認後、3営業日以内に返金します。",
     "returnFee": "返品送料 {amount} を差し引き",
-    "shippingBack": "最初の送料 {amount} を含む"
+    "shippingBack": "最初の送料 {amount} を含む",
+    "needUnopened": "上の「未開封・未使用です」にチェックしてください。"
   },
   "exchanges": {
     "formTitle": "交換理由を選択",

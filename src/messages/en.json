@@ -171,7 +171,12 @@
       "broken": "sign-up got cut off. tap the button again.",
       "joinedElsewhere": "joined another way before?",
       "toLogin": "back to sign in"
-    }
+    },
+    "emailRequired": "please enter your email.",
+    "emailInvalid": "please check your email address.",
+    "passwordRequired": "please enter your password.",
+    "nameRequired": "please enter your name.",
+    "codeRequired": "please enter the code."
   },
   "account": {
     "title": "my account",
@@ -406,7 +411,11 @@
       "failed": "upload failed",
       "count": "{n} photos"
     },
-    "refundDoneNote": "it may take 3–7 business days to show on your statement."
+    "refundDoneNote": "it may take 3–7 business days to show on your statement.",
+    "pickReason": "please choose a reason.",
+    "confirmCancel": "we'll refund {amount}. cancel this order?",
+    "confirmYes": "yes, cancel",
+    "confirmNo": "go back"
   },
   "returns": {
     "formTitle": "reason for return",
@@ -429,7 +438,8 @@
     "cancel": "close",
     "after": "we'll email you where and how to send it. once it arrives and we've checked it, we refund within 3 business days.",
     "returnFee": "return shipping {amount} deducted",
-    "shippingBack": "includes original shipping {amount}"
+    "shippingBack": "includes original shipping {amount}",
+    "needUnopened": "please check ‘the seal is intact and i haven't used it’ above."
   },
   "exchanges": {
     "formTitle": "reason for exchange",
