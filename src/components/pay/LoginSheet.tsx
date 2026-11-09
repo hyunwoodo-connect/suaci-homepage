@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { useTranslations } from "next-intl";
 
@@ -9,6 +9,7 @@ import ButtonLink from "@/components/ui/ButtonLink";
 import CloseButton from "@/components/ui/CloseButton";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { useCloseOnBack } from "@/hooks/useCloseOnBack";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 
 interface LoginSheetProps {
   /** 로그인 뒤 돌아갈 경로(구매 이어가기) */
@@ -26,6 +27,9 @@ export default function LoginSheet({ next, onClose }: LoginSheetProps) {
   const ta = useTranslations("auth");
   useBodyScrollLock(true);
   const close = useCloseOnBack(true, onClose);
+  // 열리면 시트로 초점, Tab 은 시트 안에서만, 닫히면 '구매하기'로 돌아간다(UX 리뷰 H1)
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(panelRef);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -42,10 +46,12 @@ export default function LoginSheet({ next, onClose }: LoginSheetProps) {
       {/* 바깥 누르기 — 읽는 길은 X 버튼이 맡는다 */}
       <div aria-hidden="true" onClick={close} className="absolute inset-0 bg-ink/30" />
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="login-sheet-title"
-        className="relative flex w-full max-w-[480px] flex-col gap-[16px] rounded-t-[20px] bg-paper px-[20px] pb-[32px] pt-[20px]"
+        tabIndex={-1}
+        className="relative flex w-full max-w-[480px] flex-col gap-[16px] rounded-t-[20px] bg-paper px-[20px] pb-[32px] pt-[20px] outline-none"
       >
         <div className="-mr-[12px] -mt-[8px] flex items-center justify-between gap-[12px]">
           <h2 id="login-sheet-title" className="m-0 text-[17px] font-medium">

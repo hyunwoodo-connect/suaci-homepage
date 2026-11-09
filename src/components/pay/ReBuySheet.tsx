@@ -14,6 +14,7 @@ import { CHIP_OFF, CHIP_ON } from "@/components/pay/chip";
 import { orderErrorKey } from "@/components/pay/orderError";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { useCloseOnBack } from "@/hooks/useCloseOnBack";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { api, isAuthRequired } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { readLastProvider } from "@/lib/auth/social";
@@ -103,9 +104,10 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
   }, [defaults.lastPaymentMethod, methods]);
 
   const close = useCloseOnBack(true, onClose);
+  // 열리면 시트로 초점, Tab 은 시트 안에서만, 닫히면 연 버튼으로(UX 리뷰 H1)
+  useFocusTrap(panelRef);
 
   useEffect(() => {
-    panelRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") close();
     };
