@@ -13,7 +13,10 @@ import { readConsent, saveConsent } from "@/lib/analytics-consent";
 import ConsentedAnalytics from "./ConsentedAnalytics";
 
 const COPY = {
+  title: "[선택] 방문 분석 동의",
   body: "쿠키를 써도 될까요?",
+  disclosures: ["목적: 사이트 이용 분석", "동의하지 않아도 이용에 제한이 없어요."],
+  more: "자세히 보기",
   allow: "허용",
   decline: "거부",
   details: "개인정보처리방침",
@@ -32,6 +35,9 @@ describe("ConsentedAnalytics", () => {
   it("아직 고르지 않았으면 → 배너만, 도구는 싣지 않는다", () => {
     renderIt();
     expect(screen.getByText(/쿠키를 써도 될까요/)).toBeTruthy();
+    // 동의에 꼭 알릴 것은 '자세히' 안에 있다(목적·불이익 없음…)
+    expect(screen.getByText("자세히 보기")).toBeTruthy();
+    expect(screen.getByText("동의하지 않아도 이용에 제한이 없어요.")).toBeTruthy();
     expect(screen.getByRole("link", { name: "개인정보처리방침" }).getAttribute("href")).toBe(
       "/legal/privacy",
     );

@@ -15,6 +15,7 @@ interface ConsentedAnalyticsProps {
 }
 
 /**
+ * GA4 는 구글 신호·광고 개인화를 끈 채로 싣는다(보관이 26개월로 늘거나 구글이 자기 광고에 쓰지 않게 — 처리방침의 보유 기간 2개월과 맞춘다).
  * 동의에 따라 GA4·메타 픽셀을 싣는다 — 허용이면 싣고, 거부면 아무것도, 아직 고르지 않았으면 배너만.
  * 서버 그림에서는 동의를 모르므로 아무것도 그리지 않는다(첫 그림 뒤에 정해진다).
  */
@@ -32,7 +33,7 @@ export default function ConsentedAnalytics({ ids, copy, privacyHref }: Consented
             strategy="afterInteractive"
           />
           <Script id="ga4" strategy="afterInteractive">
-            {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','${ga4}');`}
+            {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config','${ga4}',{allow_google_signals:false,allow_ad_personalization_signals:false});`}
           </Script>
         </>
       )}

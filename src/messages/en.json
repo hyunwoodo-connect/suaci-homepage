@@ -524,10 +524,20 @@
     "retry": "try again"
   },
   "consent": {
-    "body": "can we use analytics and ad-measurement cookies? we count which pages get seen to improve the site and our ads.",
+    "title": "[optional] analytics and ad measurement",
+    "body": "we count which pages get seen to improve the site and our ads. if you allow it, google and meta analytics tools use cookies.",
+    "disclosures": [
+      "purpose: site usage analytics, ad performance measurement",
+      "data: pages viewed, taps, how you arrived, device and browser info, cookie ids (_ga, _fbp), and item count and amount when you buy",
+      "recipients and country: google llc (usa), meta platforms, inc. (usa)",
+      "when and how: sent right away by cookies and tags while you use the site",
+      "kept for: google analytics 2 months, meta up to 2 years",
+      "saying no doesn't limit your shopping. you can change this anytime under 'cookie settings' at the bottom."
+    ],
+    "more": "see details",
     "allow": "allow",
     "decline": "decline",
-    "details": "privacy policy",
+    "details": "read the privacy policy",
     "settings": "cookie settings"
   }
 }

@@ -18,7 +18,16 @@ export default async function Analytics({ locale }: AnalyticsProps) {
   const ids = analyticsIds(process.env.NEXT_PUBLIC_GA4_ID, process.env.NEXT_PUBLIC_META_PIXEL_ID);
   if (!ids.ga4 && !ids.pixel) return null;
   const t = await getTranslations({ locale, namespace: "consent" });
-  const copy = { body: t("body"), allow: t("allow"), decline: t("decline"), details: t("details") };
+  const disclosures = t.raw("disclosures") as string[];
+  const copy = {
+    title: t("title"),
+    body: t("body"),
+    disclosures,
+    more: t("more"),
+    allow: t("allow"),
+    decline: t("decline"),
+    details: t("details"),
+  };
   const privacyHref = locale === "ko" ? "/legal/privacy" : `/${locale}/legal/privacy`;
   return <ConsentedAnalytics ids={ids} copy={copy} privacyHref={privacyHref} />;
 }
