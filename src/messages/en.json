@@ -353,7 +353,21 @@
     "withdraw": "withdraw request",
     "withdrawConfirm": "withdraw this request? you can request again later while the window is open.",
     "withdrawYes": "withdraw",
-    "withdrawNo": "go back"
+    "withdrawNo": "go back",
+    "pickup": {
+      "title": "pickup tracking",
+      "status": {
+        "UNKNOWN": "checking",
+        "INFORMATION_RECEIVED": "pickup booked",
+        "AT_PICKUP": "picked up",
+        "IN_TRANSIT": "in transit",
+        "OUT_FOR_DELIVERY": "arriving soon",
+        "ATTEMPT_FAIL": "pickup delayed",
+        "DELIVERED": "arrived at suaci",
+        "AVAILABLE_FOR_PICKUP": "checking",
+        "EXCEPTION": "checking"
+      }
+    }
   },
   "returns": {
     "formTitle": "reason for return",

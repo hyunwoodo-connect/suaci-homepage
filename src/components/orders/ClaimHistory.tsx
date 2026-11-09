@@ -24,6 +24,19 @@ interface ClaimHistoryProps {
   onChanged: () => Promise<void>;
 }
 
+/** 배송 조회(딜리버리트래커) 상태 코드 — 메시지 `claims.pickup.status.*` 가 있는 것만 이름을 보인다 */
+const PICKUP_STATUSES: readonly string[] = [
+  "UNKNOWN",
+  "INFORMATION_RECEIVED",
+  "AT_PICKUP",
+  "IN_TRANSIT",
+  "OUT_FOR_DELIVERY",
+  "ATTEMPT_FAIL",
+  "DELIVERED",
+  "AVAILABLE_FOR_PICKUP",
+  "EXCEPTION",
+];
+
 /**
  * 주문의 취소·반품·교환 내역 — 상태 이름은 종류마다(`claims.status.{type}.{status}`, 관리 툴·메일과 같은 이름).
  * 돈이 오가는 줄(취소·반품)은 금액·환불 기한, 교환은 새 제품 택배사·송장과 '배송 조회'를 보인다
@@ -75,6 +88,11 @@ function ClaimRow({
     (c.type === "cancel" || (c.type === "return" && isRefunding(c))) &&
     formatDateKST(c.refundDueAt);
   const requestedDate = formatDateKST(c.createdAt);
+  // 모르는 상태 코드는 이름 없이(송장·조회 링크만)
+  const pickupStatusLabel =
+    c.pickupStatus && PICKUP_STATUSES.includes(c.pickupStatus)
+      ? tc(`pickup.status.${c.pickupStatus}`)
+      : undefined;
 
   return (
     <li className="border-t border-line py-[14px]">
@@ -107,6 +125,20 @@ function ClaimRow({
         <p className="m-0 mb-[6px] text-[13px] leading-[1.6] text-ink">
           {tc("rejectReason", { reason: c.rejectReason })}
         </p>
+      )}
+      {/* 회수 송장 — 회사가 택배사에 회수를 접수하면 보인다. 상태는 배송 조회가 채운다 */}
+      {c.type !== "cancel" && c.pickupCarrier && c.pickupTrackingNumber && (
+        <div className="mb-[6px] flex flex-col gap-[4px]">
+          <p className="m-0 text-[13px] text-ink">
+            {tc("pickup.title")}
+            {pickupStatusLabel && ` · ${pickupStatusLabel}`}
+          </p>
+          <TrackingLine
+            carrier={c.pickupCarrier}
+            trackingNumber={c.pickupTrackingNumber}
+            trackingUrl={c.pickupTrackingUrl}
+          />
+        </div>
       )}
       {isExchange && c.carrier && c.trackingNumber && (
         <div className="mb-[6px]">

@@ -353,7 +353,21 @@
     "withdraw": "申請を取り下げる",
     "withdrawConfirm": "この申請を取り下げますか?期限内であれば後でもう一度申請できます。",
     "withdrawYes": "取り下げる",
-    "withdrawNo": "戻る"
+    "withdrawNo": "戻る",
+    "pickup": {
+      "title": "回収の送り状",
+      "status": {
+        "UNKNOWN": "確認中",
+        "INFORMATION_RECEIVED": "回収受付済み",
+        "AT_PICKUP": "回収済み",
+        "IN_TRANSIT": "輸送中",
+        "OUT_FOR_DELIVERY": "まもなく到着",
+        "ATTEMPT_FAIL": "回収遅延",
+        "DELIVERED": "suaciに到着",
+        "AVAILABLE_FOR_PICKUP": "確認中",
+        "EXCEPTION": "確認中"
+      }
+    }
   },
   "returns": {
     "formTitle": "返品理由を選択",

@@ -40,6 +40,12 @@ export interface Claim {
   receivedAt?: number;
   rejectedAt?: number;
   rejectReason?: string;
+  /** 반품·교환 회수 송장(회사가 택배사에 회수를 접수한 송장) — 택배사 코드·송장·조회 링크·배송 조회가 본 상태(트래커 코드)·회사 도착 시각 */
+  pickupCarrier?: string;
+  pickupTrackingNumber?: string;
+  pickupTrackingUrl?: string;
+  pickupStatus?: string;
+  pickupArrivedAt?: number;
   /** 교환 새 제품의 택배사 코드(cj·epost·hanjin·lotte·logen)·송장번호·택배사 배송 조회 링크(서버가 만든다)·발송 시각 */
   carrier?: string;
   trackingNumber?: string;

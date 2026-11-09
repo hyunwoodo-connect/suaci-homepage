@@ -709,6 +709,34 @@ describe("주문 상세", () => {
       expect(screen.queryByText("₩0")).toBeNull();
     });
 
+    it("회수 송장이 들어오면 → '회수 송장 · 상태'·택배사·송장·배송 조회, 모르는 상태는 이름 없이", async () => {
+      signIn();
+      getOrder.mockResolvedValue(delivered(5));
+      listClaims.mockResolvedValue([
+        returnClaim({
+          claimId: "r1",
+          pickupCarrier: "cj",
+          pickupTrackingNumber: "555566667777",
+          pickupTrackingUrl: "https://cj.example/555566667777",
+          pickupStatus: "IN_TRANSIT",
+        }),
+        returnClaim({
+          claimId: "r2",
+          status: "withdrawn",
+          pickupCarrier: "epost",
+          pickupTrackingNumber: "1234567890123",
+          pickupStatus: "SOMETHING_NEW",
+        }),
+      ]);
+      await renderPage();
+      expect(screen.getByText("회수 송장 · 이동 중")).toBeTruthy();
+      expect(screen.getByText("CJ대한통운 555566667777")).toBeTruthy();
+      const links = screen.getAllByRole("link", { name: "배송 조회" });
+      expect(links.map((a) => a.getAttribute("href"))).toContain("https://cj.example/555566667777");
+      expect(screen.getByText("우체국택배 1234567890123")).toBeTruthy();
+      expect(screen.getByText("회수 송장")).toBeTruthy();
+    });
+
     it("거절된 교환 → '교환 거절'과 이유, 철회한 반품 → '신청 철회'", async () => {
       signIn();
       getOrder.mockResolvedValue(delivered(5));

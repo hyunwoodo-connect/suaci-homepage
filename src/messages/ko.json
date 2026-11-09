@@ -353,7 +353,21 @@
     "withdraw": "신청 철회",
     "withdrawConfirm": "이 신청을 철회할까요? 기한 안이면 나중에 다시 신청할 수 있어요.",
     "withdrawYes": "철회하기",
-    "withdrawNo": "돌아가기"
+    "withdrawNo": "돌아가기",
+    "pickup": {
+      "title": "회수 송장",
+      "status": {
+        "UNKNOWN": "확인 중",
+        "INFORMATION_RECEIVED": "수거 접수됨",
+        "AT_PICKUP": "수거됨",
+        "IN_TRANSIT": "이동 중",
+        "OUT_FOR_DELIVERY": "곧 도착",
+        "ATTEMPT_FAIL": "수거 지연",
+        "DELIVERED": "회사 도착",
+        "AVAILABLE_FOR_PICKUP": "확인 중",
+        "EXCEPTION": "확인 중"
+      }
+    }
   },
   "returns": {
     "formTitle": "반품 사유 선택",
