@@ -16,7 +16,10 @@ function renderSheet() {
   render(<PostSheet card={CARD_BLOB} slug="take-four" />);
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  // 앞 테스트의 시트가 닫히며 부른 history.back()의 popstate 가 늦게 와서 이 테스트의 시트를 닫지 않게 먼저 흘려보낸다
+  // (기록은 테스트끼리 이어진다 — 실제 화면에선 같은 시트가 그 사이에 다시 열리지 않는다)
+  await new Promise((resolve) => setTimeout(resolve, 20));
   wall.postStrip.mockReset().mockResolvedValue({ stripId: "01J" });
   router.push.mockReset();
   router.replace.mockReset();
