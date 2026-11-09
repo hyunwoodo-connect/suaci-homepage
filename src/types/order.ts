@@ -52,8 +52,23 @@ export interface Order {
   deliveredAt?: number;
   /** 발송기한(Unix ms, 결제한 날부터 3영업일째 끝) — 보낼 주문(결제됨·발송 전)만, 테스트 결제는 없음 */
   shipBy?: number;
+  /** 결제한 때(Unix ms) */
+  paidAt?: number;
+  /** 결제 대기 주문의 결제 마감(Unix ms) — 결제 대기일 때만 */
+  paymentDueAt?: number;
+  /** 토스 영수증(매출전표) 주소 — 있을 때만 */
+  receiptUrl?: string;
   createdAt: number;
   createdDtm: string;
+}
+/** 목록 한 줄의 품목 요약(주문 때 스냅샷) — 옛 주문엔 없다 */
+export interface OrderItemSummary {
+  productName: string;
+  productNameKo?: string;
+  /** 모든 줄의 수량 합 */
+  quantity: number;
+  /** 줄 수 — 2 이상이면 '외 N건' */
+  lineCount: number;
 }
 /** 주문 목록의 한 줄(`GET /orders`) */
 export interface OrderSummary {
@@ -63,6 +78,9 @@ export interface OrderSummary {
   paymentStatus: PaymentStatus;
   fulfillmentStatus: FulfillmentStatus;
   grandTotal: number;
+  itemSummary?: OrderItemSummary;
+  /** 진행 중인 반품·교환이 있다 */
+  hasOpenClaim?: boolean;
   createdAt: number;
   createdDtm: string;
 }

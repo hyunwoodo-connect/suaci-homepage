@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isShipDelayed, orderState } from "./orderState";
+import { isShipDelayed, orderState, orderStepIndex } from "./orderState";
 
 describe("orderState", () => {
   it("결제 전(pending) → 결제 대기", () => {
@@ -95,10 +95,76 @@ describe("orderState", () => {
     ).toBe("refunding");
   });
 
+  it("배송 완료 뒤 반품·교환 진행 중 → 그 이름(배송완료로만 보이지 않게), 목록은 종류 없이", () => {
+    const delivered = {
+      status: "open",
+      paymentStatus: "paid",
+      fulfillmentStatus: "delivered",
+    } as const;
+    expect(orderState({ ...delivered, openClaim: "return" })).toBe("returnInProgress");
+    expect(orderState({ ...delivered, openClaim: "exchange" })).toBe("exchangeInProgress");
+    expect(orderState({ ...delivered, openClaim: "any" })).toBe("claimInProgress");
+  });
+
+  it("받은 뒤 일부 환불(반품 환불) → 배송완료보다 부분환불", () => {
+    expect(
+      orderState({
+        status: "open",
+        paymentStatus: "partially_refunded",
+        fulfillmentStatus: "delivered",
+      }),
+    ).toBe("partiallyRefunded");
+  });
+
+  it("끝난 주문(환불완료)은 진행 중 클레임 표시보다 먼저", () => {
+    expect(
+      orderState({
+        status: "cancelled",
+        paymentStatus: "refunded",
+        fulfillmentStatus: "delivered",
+        openClaim: "return",
+      }),
+    ).toBe("refunded");
+  });
+
   it("배송 전 결제 주문 → 결제완료", () => {
     expect(
       orderState({ status: "open", paymentStatus: "paid", fulfillmentStatus: "unfulfilled" }),
     ).toBe("paid");
+  });
+});
+
+describe("orderStepIndex", () => {
+  it("결제완료 0 → 상품준비중 1 → 배송중 2 → 배송완료 3", () => {
+    const paid = { status: "open", paymentStatus: "paid" } as const;
+    expect(orderStepIndex({ ...paid, fulfillmentStatus: "unfulfilled" })).toBe(0);
+    expect(orderStepIndex({ ...paid, fulfillmentStatus: "preparing" })).toBe(1);
+    expect(orderStepIndex({ ...paid, fulfillmentStatus: "shipped" })).toBe(2);
+    expect(orderStepIndex({ ...paid, fulfillmentStatus: "delivered" })).toBe(3);
+  });
+
+  it("결제 대기·취소·전액 환불 → 단계 없음", () => {
+    expect(
+      orderStepIndex({
+        status: "pending",
+        paymentStatus: "pending",
+        fulfillmentStatus: "unfulfilled",
+      }),
+    ).toBeNull();
+    expect(
+      orderStepIndex({
+        status: "cancelled",
+        paymentStatus: "voided",
+        fulfillmentStatus: "unfulfilled",
+      }),
+    ).toBeNull();
+    expect(
+      orderStepIndex({
+        status: "cancelled",
+        paymentStatus: "refunded",
+        fulfillmentStatus: "delivered",
+      }),
+    ).toBeNull();
   });
 });
 

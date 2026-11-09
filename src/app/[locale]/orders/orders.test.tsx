@@ -64,6 +64,52 @@ describe("주문 내역", () => {
     expect(screen.queryByText(/pending/)).toBeNull();
   });
 
+  it("한 줄에 무엇을 몇 개 — 여러 줄이면 '외 N건', 진행 중 반품·교환은 그 상태로", async () => {
+    listOrders.mockResolvedValue({
+      data: [
+        {
+          orderId: "o1",
+          orderNo: "20261109-AAA111",
+          status: "open",
+          paymentStatus: "paid",
+          fulfillmentStatus: "delivered",
+          grandTotal: 31000,
+          itemSummary: {
+            productName: "mist",
+            productNameKo: "라임바질 미스트",
+            quantity: 1,
+            lineCount: 1,
+          },
+          hasOpenClaim: true,
+          createdAt: Date.UTC(2026, 10, 9),
+          createdDtm: "",
+        },
+        {
+          orderId: "o2",
+          orderNo: "20261109-BBB222",
+          status: "open",
+          paymentStatus: "paid",
+          fulfillmentStatus: "unfulfilled",
+          grandTotal: 90000,
+          itemSummary: {
+            productName: "mist",
+            productNameKo: "라임바질 미스트",
+            quantity: 3,
+            lineCount: 2,
+          },
+          hasOpenClaim: false,
+          createdAt: Date.UTC(2026, 10, 9),
+          createdDtm: "",
+        },
+      ],
+    });
+    await renderPage();
+    expect(screen.getByText("라임바질 미스트 × 1")).toBeTruthy();
+    expect(screen.getByText("라임바질 미스트 외 1건 · 3개")).toBeTruthy();
+    expect(screen.getByText("반품·교환 진행 중")).toBeTruthy();
+    expect(screen.queryByText("배송완료")).toBeNull();
+  });
+
   it("없으면 → 안내 + 제품으로 가는 길", async () => {
     listOrders.mockResolvedValue({ data: [] });
     await renderPage();
