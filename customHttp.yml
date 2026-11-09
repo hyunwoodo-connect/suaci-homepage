@@ -1,0 +1,16 @@
+# Amplify 정적 파일 응답 머리글(UX 리뷰 H2). 이 파일이 있으면 콘솔의 사용자 지정 머리글을 덮는다 — 머리글은 여기 한 곳.
+# v5 폴더의 그림·영상은 경로에 판이 있어 바뀌지 않는다 → 1년 그대로 쓴다. 파일을 바꿀 땐 새 이름이나 새 폴더(v6)로.
+# brand/(로고·아이콘)는 이름에 판이 없다 → 하루만 두고 그 뒤엔 다시 확인한다.
+customHeaders:
+  - pattern: "/image/v5/**"
+    headers:
+      - key: Cache-Control
+        value: public, max-age=31536000, immutable
+  - pattern: "/video/v5/**"
+    headers:
+      - key: Cache-Control
+        value: public, max-age=31536000, immutable
+  - pattern: "/brand/**"
+    headers:
+      - key: Cache-Control
+        value: public, max-age=86400, stale-while-revalidate=604800

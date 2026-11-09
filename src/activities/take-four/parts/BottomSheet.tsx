@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { useCloseOnBack } from "@/hooks/useCloseOnBack";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 
 interface BottomSheetProps {
   isOpen: boolean;
@@ -15,8 +16,6 @@ interface BottomSheetProps {
   tone?: "cream" | "paper";
   children: ReactNode;
 }
-
-const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 /** 아래서 올라오는 시트. 뒤를 어둡게 덮고, Esc·바깥 탭·폰 뒤로가기로 닫힌다. 열린 동안 포커스는 시트 안에서만 돈다. */
 export default function BottomSheet({
@@ -31,41 +30,17 @@ export default function BottomSheet({
   // close 는 늘 같은 함수라 열린 동안 포커스를 다시 잡지 않는다
   const close = useCloseOnBack(isOpen, onClose);
 
+  // 열리면 시트로 초점, Tab 은 시트 안에서만, 닫히면 연 버튼으로(공용 훅)
+  useFocusTrap(dialogRef, isOpen);
+
   useEffect(() => {
     if (!isOpen) return;
-    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    dialogRef.current?.focus();
-
     function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        close();
-        return;
-      }
-      if (e.key !== "Tab" || !dialogRef.current) return;
-      // 시트 밖으로 Tab이 새지 않게 처음 ↔ 끝을 잇는다
-      const focusables = Array.from(
-        dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE),
-      ).filter((el) => !el.hasAttribute("disabled"));
-      if (focusables.length === 0) {
-        e.preventDefault();
-        return;
-      }
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      const active = document.activeElement;
-      if (e.shiftKey && (active === first || active === dialogRef.current)) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && active === last) {
-        e.preventDefault();
-        first.focus();
-      }
+      if (e.key === "Escape") close();
     }
     document.addEventListener("keydown", handleKey);
     return () => {
       document.removeEventListener("keydown", handleKey);
-      // 닫히면 연 버튼으로 포커스를 돌려준다
-      opener?.focus();
     };
   }, [isOpen, close]);
 
