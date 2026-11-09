@@ -63,6 +63,21 @@ describe("로그인 페이지", () => {
     expect(screen.getByLabelText("비밀번호")).toBeTruthy();
   });
 
+  it("비밀번호 칸의 '비밀번호 보기' → 글자가 보이고 단추 이름이 '비밀번호 숨기기'로", async () => {
+    await renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "이메일로 로그인" }));
+    const input = screen.getByLabelText("비밀번호");
+    expect(input.getAttribute("type")).toBe("password");
+    fireEvent.click(screen.getByRole("button", { name: "비밀번호 보기" }));
+    expect(input.getAttribute("type")).toBe("text");
+    expect(
+      screen.getByRole("button", { name: "비밀번호 숨기기" }).getAttribute("aria-pressed"),
+    ).toBe("true");
+    // 로그인에는 확인 칸·규칙 안내가 없다
+    expect(screen.queryByLabelText("비밀번호 확인")).toBeNull();
+    expect(screen.queryByText("8자 이상 입력해 주세요.")).toBeNull();
+  });
+
   it("지난번에 카카오로 들어왔으면 → 그 버튼을 알려 준다(다른 버튼이면 계정이 하나 더 생긴다)", async () => {
     localStorage.setItem("suaci.auth.lastProvider", "kakao");
     await renderPage();

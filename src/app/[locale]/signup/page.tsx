@@ -8,10 +8,17 @@ import { useSearchParams } from "next/navigation";
 import { Link, useRouter } from "@/i18n/navigation";
 import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
+import PasswordField from "@/components/ui/PasswordField";
 import PageShell from "@/components/shell/PageShell";
 import ConsentChecks from "@/components/auth/ConsentChecks";
-import { api } from "@/lib/api";
+import { api, ApiClientError } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
+import {
+  isPasswordMismatch,
+  passwordProblem,
+  WEAK_PASSWORD_CODES,
+  type PasswordProblem,
+} from "@/lib/auth/password";
 import { afterLoginPath } from "@/lib/auth/social";
 import type { Consents } from "@/types";
 
@@ -43,6 +50,9 @@ function SignupBody() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  // 보내려다 막힌 비밀번호 문제 — 고치기 시작하면 지운다(틀린 확인 칸은 쓰는 동안 바로 보인다)
+  const [passwordIssue, setPasswordIssue] = useState<PasswordProblem | null>(null);
   const [consents, setConsents] = useState<Consents>({
     terms: false,
     privacy: false,
@@ -55,6 +65,11 @@ function SignupBody() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    const problem = passwordProblem(password, passwordConfirm);
+    if (problem) {
+      setPasswordIssue(problem);
+      return;
+    }
     if (!consents.terms || !consents.privacy || !consents.age) {
       const consentMessage = t("consent.required");
       setError(consentMessage);
@@ -65,7 +80,11 @@ function SignupBody() {
     try {
       await api.signup({ email, password, name, consents });
       setStep("confirm");
-    } catch {
+    } catch (err) {
+      if (err instanceof ApiClientError && WEAK_PASSWORD_CODES.includes(err.code)) {
+        setPasswordIssue("tooShort");
+        return;
+      }
       const errorMessage = t("error");
       setError(errorMessage);
     } finally {
@@ -114,16 +133,33 @@ function SignupBody() {
                 setEmail(e.target.value);
               }}
             />
-            <InputField
+            <PasswordField
               label={t("password")}
-              type="password"
               required
-              minLength={8}
               autoComplete="new-password"
               placeholder="••••••••"
+              hint={t("passwordRule")}
+              error={passwordIssue === "tooShort" ? t("passwordTooShort") : null}
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
+                setPasswordIssue(null);
+              }}
+            />
+            <PasswordField
+              label={t("passwordConfirm")}
+              required
+              autoComplete="new-password"
+              placeholder="••••••••"
+              error={
+                isPasswordMismatch(password, passwordConfirm) || passwordIssue === "mismatch"
+                  ? t("passwordMismatch")
+                  : null
+              }
+              value={passwordConfirm}
+              onChange={(e) => {
+                setPasswordConfirm(e.target.value);
+                setPasswordIssue(null);
               }}
             />
             <div className="mt-[8px]">

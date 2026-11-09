@@ -8,6 +8,7 @@ import { useSearchParams } from "next/navigation";
 import { Link, useRouter } from "@/i18n/navigation";
 import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
+import PasswordField from "@/components/ui/PasswordField";
 import PageShell from "@/components/shell/PageShell";
 import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
 import {
@@ -137,9 +138,8 @@ function LoginBody() {
                     setEmail(e.target.value);
                   }}
                 />
-                <InputField
+                <PasswordField
                   label={t("password")}
-                  type="password"
                   required
                   autoComplete="current-password"
                   placeholder="••••••••"
