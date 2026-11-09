@@ -43,20 +43,33 @@ export interface SalesLock {
   opensOn?: string;
 }
 
-/** 출시 전 구매 차단 상태(#286) */
+/** setTimeout 이 받는 가장 긴 지연(약 24.8일) — 더 먼 시작 시각은 다시 읽을 때 정한다 */
+const MAX_TIMER_MS = 2_147_483_647;
+
+/** 출시 전 구매 차단 상태(#286). 시작 시각을 알면 그 시각에 저절로 풀린다(열어 둔 탭도 새로고침 없이) */
 export function useSalesLock(): SalesLock {
   const locale = useLocale();
   const [lock, setLock] = useState<SalesLock>({ locked: false });
   useEffect(() => {
     let alive = true;
+    let unlockTimer: ReturnType<typeof setTimeout> | undefined;
     void readStatus().then((status) => {
       if (!alive || !status || status.open || isPreview()) return;
       const opensOn =
         status.opensAt === undefined ? undefined : formatSalesDate(status.opensAt, locale);
       setLock({ locked: true, opensOn });
+      if (status.opensAt === undefined) return;
+      const waitMs = status.opensAt - Date.now();
+      if (waitMs > MAX_TIMER_MS) return;
+      unlockTimer = setTimeout(() => {
+        // 다음 화면도 새로 묻게 한 페이지 캐시를 비운다 — 서버도 같은 시각에 연다
+        statusRead = undefined;
+        setLock({ locked: false });
+      }, waitMs);
     });
     return () => {
       alive = false;
+      clearTimeout(unlockTimer);
     };
   }, [locale]);
   return lock;

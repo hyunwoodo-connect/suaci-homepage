@@ -3,6 +3,8 @@ import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ko from "@/messages/ko.json";
+import { resetSalesStatusCache } from "@/lib/sales/sales-lock";
+import type { SalesStatus } from "@/types";
 
 const {
   listAddresses,
@@ -13,6 +15,7 @@ const {
   searchParams,
   payReady,
   recheckSession,
+  getSalesStatus,
 } = vi.hoisted(() => ({
   listAddresses: vi.fn(),
   createAddress: vi.fn(),
@@ -22,12 +25,13 @@ const {
   searchParams: { value: new URLSearchParams("qty=1") },
   payReady: { value: true },
   recheckSession: vi.fn(),
+  getSalesStatus: vi.fn((): Promise<SalesStatus> => Promise.resolve({ open: true })),
 }));
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>();
   return {
     ...actual,
-    api: { listAddresses, createAddress, createOrder },
+    api: { listAddresses, createAddress, createOrder, getSalesStatus },
   };
 });
 vi.mock("@/lib/auth/auth-context", () => ({
@@ -91,6 +95,7 @@ function renderPage() {
 describe("주문서(첫 구매)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetSalesStatusCache();
     sessionStorage.clear();
     localStorage.clear();
     searchParams.value = new URLSearchParams("qty=1");
@@ -125,6 +130,26 @@ describe("주문서(첫 구매)", () => {
     });
     expect(createOrder).not.toHaveBeenCalled();
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("판매 전(출시 전 구매 차단) → 결제 버튼이 '1월 5일 판매 시작'으로 막히고 주문을 만들지 않는다", async () => {
+    getSalesStatus.mockResolvedValueOnce({
+      open: false,
+      opensAt: Date.parse("2027-01-05T00:00:00+09:00"),
+    });
+    listAddresses.mockResolvedValue([ADDRESS]);
+    await act(async () => {
+      renderPage();
+    });
+    const cta = (await screen.findByRole("button", {
+      name: "1월 5일 판매 시작",
+    })) as HTMLButtonElement;
+    expect(cta.disabled).toBe(true);
+    expect(screen.getByRole("link", { name: "출시 알림 신청" })).toHaveAttribute("href", "/notify");
+    await act(async () => {
+      fireEvent.click(cta);
+    });
+    expect(createOrder).not.toHaveBeenCalled();
   });
 
   it("주소 없음 → '배송지 입력' + 주소 폼", async () => {

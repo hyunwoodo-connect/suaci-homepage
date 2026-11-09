@@ -36,6 +36,20 @@ describe("useSalesLock", () => {
     await waitFor(() => expect(result.current).toEqual({ locked: true, opensOn: undefined }));
   });
 
+  it("시작 시각이 되면 → 새로고침 없이 저절로 풀린다(열어 둔 탭)", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    vi.setSystemTime(OPENS - 5_000);
+    getSalesStatus.mockResolvedValue({ open: false, opensAt: OPENS });
+    const { result } = renderHook(() => useSalesLock());
+    await act(async () => {});
+    expect(result.current.locked).toBe(true);
+    await act(async () => {
+      vi.advanceTimersByTime(5_000);
+    });
+    expect(result.current).toEqual({ locked: false });
+    vi.useRealTimers();
+  });
+
   it("상태를 못 읽으면 → 막지 않는다(서버가 다시 막는다)", async () => {
     getSalesStatus.mockRejectedValue(new Error("net"));
     const { result } = renderHook(() => useSalesLock());

@@ -145,12 +145,13 @@ export default function BuyBar() {
             </div>
             {salesLock.locked ? (
               // 판매 전 — 누를 수 없는 버튼에 판매 시작 날짜(서버도 주문·결제 승인을 막는다)
-              <span
-                aria-disabled="true"
-                className="ml-[4px] flex h-[44px] items-center whitespace-nowrap rounded-full bg-paper/80 px-[14px] text-[14px] font-semibold text-ink/70 min-[390px]:px-[18px]"
+              <button
+                type="button"
+                disabled
+                className="ml-[4px] flex h-[44px] cursor-not-allowed items-center whitespace-nowrap rounded-full bg-paper/80 px-[14px] text-[14px] font-semibold text-ink/70 min-[390px]:px-[18px]"
               >
                 {salesDate ? t("salesStartsOn", { date: salesDate }) : t("soon")}
-              </span>
+              </button>
             ) : (
               <button
                 type="button"

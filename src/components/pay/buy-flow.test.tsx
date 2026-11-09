@@ -116,11 +116,30 @@ describe("사기 바", () => {
     await act(async () => {
       renderBar();
     });
-    const locked = await screen.findByText("1월 5일 판매 시작");
-    expect(locked.getAttribute("aria-disabled")).toBe("true");
+    const locked = await screen.findByRole("button", { name: "1월 5일 판매 시작" });
+    expect((locked as HTMLButtonElement).disabled).toBe(true);
     expect(screen.queryByRole("button", { name: /구매하기/ })).toBeNull();
     expect(screen.getByText("1월 5일부터 판매해요.")).toBeTruthy();
     expect(screen.getByRole("link", { name: /출시 알림 신청/ })).toBeTruthy();
+  });
+
+  it("판매 전에 로그인에서 ?buy=1 로 돌아와 시트가 열려도 → 결제 버튼이 '1월 5일 판매 시작'으로 막힌다", async () => {
+    searchState.value = "buy=1&qty=3";
+    getSalesStatus.mockResolvedValueOnce({
+      open: false,
+      opensAt: Date.parse("2027-01-05T00:00:00+09:00"),
+    });
+    getCheckoutDefaults.mockResolvedValue({ address: ADDRESS, lastPaymentMethod: null });
+    await act(async () => {
+      renderBar();
+    });
+    await screen.findByText("주문 정보를 확인해 주세요");
+    const pay = screen
+      .getAllByRole("button", { name: "1월 5일 판매 시작" })
+      .find((b) => b.closest("[role=dialog]")) as HTMLButtonElement;
+    expect(pay.disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: /결제하기/ })).toBeNull();
+    expect(createOrder).not.toHaveBeenCalled();
   });
 
   it("판매 중이면 → 지금처럼 구매하기", async () => {
