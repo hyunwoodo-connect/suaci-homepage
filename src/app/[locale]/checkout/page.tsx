@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
@@ -11,9 +11,10 @@ import ReturnNotice from "@/components/legal/ReturnNotice";
 import AddressForm from "@/components/pay/AddressForm";
 import MemoPicker from "@/components/pay/MemoPicker";
 import MethodPicker from "@/components/pay/MethodPicker";
+import OrderTotals from "@/components/pay/OrderTotals";
 import { CHIP, CHIP_OFF } from "@/components/pay/chip";
 import { orderErrorKey } from "@/components/pay/orderError";
-import { CHECKOUT_PRICING, DELIVERY_MEMOS, displayTotal } from "@/constants/checkout";
+import { DELIVERY_MEMOS, displayTotal } from "@/constants/checkout";
 import { PRODUCT } from "@/constants/product";
 import { api, isAuthRequired } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -55,7 +56,6 @@ function CheckoutBody() {
   const t = useTranslations("checkout");
   const tp = useTranslations("pay");
   const tc = useTranslations("common");
-  const tProduct = useTranslations("home.product");
   const router = useRouter();
   const search = useSearchParams();
   const { status, user, recheckSession } = useAuth();
@@ -116,7 +116,11 @@ function CheckoutBody() {
     if (status === "authenticated") refreshAddresses();
   }, [status, refreshAddresses]);
 
-  // 저장한 메모·기본 수단(지난 수단 없음 → 프로바이더 페이 → 카드)
+  const adapters = useMemo(() => browserPaymentAdapters(), []);
+  const methods = useMemo(() => availableMethods(adapters), [adapters]);
+
+  // 저장한 메모·기본 수단 — 재구매 시트와 같은 규칙(지난 수단 → 로그인 프로바이더 페이 → 카드, 지금 열린 수단 안에서).
+  // 두 화면의 기본이 다르면 손님이 어느 쪽으로 결제되는지 모른다(UX 리뷰 D2). 지난 수단을 못 읽으면 없는 것으로
   useEffect(() => {
     Promise.resolve().then(() => {
       const saved = readSavedMemo();
@@ -124,14 +128,24 @@ function CheckoutBody() {
         setMemo(saved.memo);
         if (saved.isCustom) setCustomMemo(true);
       }
-      const loginProvider = readLastProvider();
-      const initialMethod = defaultMethod({ lastPaymentMethod: null, loginProvider });
-      setMethod(initialMethod);
     });
   }, []);
-
-  const adapters = browserPaymentAdapters();
-  const methods = availableMethods(adapters);
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const loginProvider = readLastProvider();
+    void api
+      .getCheckoutDefaults()
+      .then((d) => d.lastPaymentMethod)
+      .catch(() => null)
+      .then((lastPaymentMethod) => {
+        const initialMethod = defaultMethod({
+          lastPaymentMethod,
+          loginProvider,
+          available: methods,
+        });
+        setMethod(initialMethod);
+      });
+  }, [status, methods]);
   // 출시 전 구매 차단(#286) — 판매 전이면 결제 버튼을 판매 시작 날짜로 막는다(서버도 막는다)
   const salesLock = useSalesLock();
   const ready = adapters.length > 0 && !salesLock.locked;
@@ -198,7 +212,6 @@ function CheckoutBody() {
     );
   }
 
-  const itemsSubtotal = CHECKOUT_PRICING.price * qty;
   const totalLabel = formatKRW(total);
 
   return (
@@ -334,25 +347,7 @@ function CheckoutBody() {
 
         {/* ── 합계 + CTA ── */}
         <section>
-          <div className="mb-[16px] border border-line p-[16px]">
-            <TotalRow
-              label={`${tProduct("name")} × ${String(qty)}`}
-              value={formatKRW(itemsSubtotal)}
-            />
-            <TotalRow
-              label={t("shipping")}
-              value={
-                total === itemsSubtotal
-                  ? t("freeShipping")
-                  : formatKRW(CHECKOUT_PRICING.shippingFee)
-              }
-              muted
-            />
-            <div className="mt-[12px] flex items-baseline justify-between border-t border-line pt-[12px]">
-              <span className="text-[15px] font-medium">{t("grandTotal")}</span>
-              <b className="num text-[20px] font-medium">{totalLabel}</b>
-            </div>
-          </div>
+          <OrderTotals qty={qty} className="mb-[16px]" />
           <ReturnNotice className="mb-[14px]" />
           {note && (
             <p role="alert" className="mb-[14px] text-[13px] text-alert">
@@ -397,15 +392,4 @@ function CheckoutBody() {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return <h2 className="mb-[12px] mt-0 text-[14px] font-medium text-ink">{children}</h2>;
-}
-
-function TotalRow({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
-  return (
-    <div className="flex items-baseline justify-between gap-[12px] py-[4px]">
-      <span className="text-[14px] text-grey">{label}</span>
-      <span className={`num shrink-0 text-[14px] ${muted ? "text-grey" : "text-ink"}`}>
-        {value}
-      </span>
-    </div>
-  );
 }

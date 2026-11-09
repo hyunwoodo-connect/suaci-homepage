@@ -489,7 +489,10 @@
       "preparing": "payments are coming soon.",
       "preparingCta": "payments coming soon",
       "paying": "heading to payment…",
-      "testNotice": "this is a test payment. no money moves and nothing ships."
+      "testNotice": "this is a test payment. no money moves and nothing ships.",
+      "addressLoading": "loading your addresses…",
+      "addressAdd": "add a new address",
+      "addressLoadFailed": "couldn't load your addresses. please tap again."
     },
     "checkout": {
       "whereTo": "where should we send it?",

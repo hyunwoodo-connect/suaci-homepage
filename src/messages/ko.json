@@ -489,7 +489,10 @@
       "preparing": "지금은 결제할 수 없어요.",
       "preparingCta": "결제 준비 중",
       "paying": "결제창을 여는 중이에요…",
-      "testNotice": "테스트 결제예요. 실제로 결제되지 않고 상품도 발송되지 않아요."
+      "testNotice": "테스트 결제예요. 실제로 결제되지 않고 상품도 발송되지 않아요.",
+      "addressLoading": "배송지를 불러오는 중이에요…",
+      "addressAdd": "새 배송지 추가",
+      "addressLoadFailed": "배송지를 불러오지 못했어요. 다시 눌러 주세요."
     },
     "checkout": {
       "whereTo": "배송지 입력",

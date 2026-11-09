@@ -489,7 +489,10 @@
       "preparing": "決済はまだ準備中です。",
       "preparingCta": "決済準備中",
       "paying": "決済へ移動中…",
-      "testNotice": "テスト決済です。お金は動かず、商品も届きません。"
+      "testNotice": "テスト決済です。お金は動かず、商品も届きません。",
+      "addressLoading": "お届け先を読み込み中です…",
+      "addressAdd": "新しいお届け先を追加",
+      "addressLoadFailed": "お届け先を読み込めませんでした。もう一度タップしてください。"
     },
     "checkout": {
       "whereTo": "どこへ送りますか？",
