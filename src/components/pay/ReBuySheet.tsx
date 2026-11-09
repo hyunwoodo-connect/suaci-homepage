@@ -9,12 +9,15 @@ import { DELIVERY_MEMOS, displayTotal } from "@/constants/checkout";
 import ReturnNotice from "@/components/legal/ReturnNotice";
 import MemoPicker, { memoLabel } from "@/components/pay/MemoPicker";
 import MethodPicker from "@/components/pay/MethodPicker";
+import OrderTotals from "@/components/pay/OrderTotals";
+import { CHIP_OFF, CHIP_ON } from "@/components/pay/chip";
 import { orderErrorKey } from "@/components/pay/orderError";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { useCloseOnBack } from "@/hooks/useCloseOnBack";
-import { isAuthRequired } from "@/lib/api";
+import { api, isAuthRequired } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { readLastProvider } from "@/lib/auth/social";
+import { addressName } from "@/lib/checkout/address";
 import { readSavedMemo } from "@/lib/checkout/memo";
 import { formatKRW } from "@/lib/format";
 import {
@@ -28,7 +31,7 @@ import {
 import { useSalesLock } from "@/lib/sales/sales-lock";
 import { startPayment } from "@/lib/payment/start-payment";
 import { isTestClientKey } from "@/lib/payment/toss";
-import type { CheckoutDefaults } from "@/types";
+import type { Address, CheckoutDefaults } from "@/types";
 import Button from "@/components/ui/Button";
 import CloseButton from "@/components/ui/CloseButton";
 
@@ -55,6 +58,11 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
   const [customMemo, setCustomMemo] = useState(false);
   const [pickMethod, setPickMethod] = useState(false);
   const [pickMemo, setPickMemo] = useState(false);
+  // 배송지 바꾸기 — 시트 안에서 저장된 배송지 중 고른다(주문서로 넘어가면 흐름이 끊긴다, UX 리뷰 D3). 새 주소는 주문서에서
+  const [pickAddress, setPickAddress] = useState(false);
+  const [addresses, setAddresses] = useState<Address[] | null>(null);
+  const [addressLoadFailed, setAddressLoadFailed] = useState(false);
+  const [pickedAddress, setPickedAddress] = useState<Address | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   // 결제를 시작하지 못한 이유 — 주문서와 같은 문구
@@ -109,7 +117,26 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
 
   const total = displayTotal(qty);
   const totalLabel = formatKRW(total);
-  const address = defaults.address;
+  const address = pickedAddress ?? defaults.address;
+
+  const toggleAddressPicker = () => {
+    const opening = !pickAddress;
+    setPickAddress(opening);
+    if (!opening || addresses) return;
+    setAddressLoadFailed(false);
+    void api
+      .listAddresses()
+      .then(setAddresses)
+      .catch((err: unknown) => {
+        if (isAuthRequired(err)) {
+          // 로그인이 풀렸다 — 주문서가 로그인으로 보낸다
+          router.replace(`/checkout?qty=${String(qty)}`);
+          return;
+        }
+        setAddressLoadFailed(true);
+        setPickAddress(false);
+      });
+  };
 
   const pay = async () => {
     if (busy || !ready || !address) return;
@@ -161,7 +188,8 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
         aria-modal="true"
         aria-labelledby="rebuy-title"
         tabIndex={-1}
-        className="relative flex w-full max-w-[480px] flex-col gap-[16px] rounded-t-[20px] bg-paper px-[20px] pb-[32px] pt-[16px] outline-none"
+        // 합계·배송지 목록·고르기가 다 펼쳐져도 폰 화면 안에서 스크롤(시트가 화면 밖으로 넘치지 않게)
+        className="relative flex max-h-[92dvh] w-full max-w-[480px] flex-col gap-[16px] overflow-y-auto overscroll-contain rounded-t-[20px] bg-paper px-[20px] pb-[32px] pt-[16px] outline-none"
       >
         <span aria-hidden="true" className="mx-auto h-[4px] w-[36px] rounded-full bg-line" />
         <div className="-mr-[12px] -my-[8px] flex items-center justify-between gap-[12px]">
@@ -171,16 +199,30 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
           <CloseButton label={tCommon("close")} onClick={close} />
         </div>
 
-        <SheetRow
-          label={t("address")}
-          onChange={() => {
-            // replace — 시트가 쌓은 기록 칸을 주문서가 차지해 뒤로가기 한 번에 홈으로 돌아온다
-            router.replace(`/checkout?qty=${String(qty)}`);
-          }}
-          changeLabel={t("change")}
-        >
+        <SheetRow label={t("address")} onChange={toggleAddressPicker} changeLabel={t("change")}>
           {address ? `${address.addr1} ${address.addr2 ?? ""} · ${address.recipient}` : ""}
         </SheetRow>
+        {addressLoadFailed && (
+          <p role="alert" className="-mt-[8px] m-0 text-[13px] text-alert">
+            {t("addressLoadFailed")}
+          </p>
+        )}
+        {pickAddress && (
+          <AddressPicker
+            addresses={addresses}
+            selectedId={address?.addressId ?? null}
+            loadingLabel={t("addressLoading")}
+            addLabel={t("addressAdd")}
+            onPick={(a) => {
+              setPickedAddress(a);
+              setPickAddress(false);
+            }}
+            onAdd={() => {
+              // 새 주소는 우편번호 찾기가 있는 주문서에서. replace — 뒤로가기 한 번에 홈으로 돌아온다
+              router.replace(`/checkout?qty=${String(qty)}`);
+            }}
+          />
+        )}
 
         {/* 결제창이 없으면 고를 수단도 없다 — '변경'을 두지 않는다 */}
         <SheetRow
@@ -227,6 +269,8 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
           <p className="m-0 text-[13px] text-grey">{tPay("checkout.brandpayHint")}</p>
         )}
 
+        <OrderTotals qty={qty} />
+
         <ReturnNotice />
 
         <Button
@@ -254,6 +298,62 @@ export default function ReBuySheet({ qty, defaults, onClose }: ReBuySheetProps) 
 }
 
 /* ─── 하위 컴포넌트 ─────────────────────────── */
+
+interface AddressPickerProps {
+  /** 아직 못 받았으면 null */
+  addresses: Address[] | null;
+  selectedId: string | null;
+  loadingLabel: string;
+  addLabel: string;
+  onPick: (a: Address) => void;
+  onAdd: () => void;
+}
+
+/** 저장된 배송지 고르기 — 지금 배송지에 체크, 맨 아래 '새 배송지 추가'(주문서로) */
+function AddressPicker({
+  addresses,
+  selectedId,
+  loadingLabel,
+  addLabel,
+  onPick,
+  onAdd,
+}: AddressPickerProps) {
+  if (!addresses) {
+    return (
+      <p role="status" className="m-0 text-[13px] text-grey">
+        {loadingLabel}
+      </p>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-[8px]">
+      {addresses.map((a) => {
+        const isOn = a.addressId === selectedId;
+        return (
+          <button
+            key={a.addressId}
+            type="button"
+            aria-pressed={isOn}
+            onClick={() => onPick(a)}
+            className={`flex min-h-[44px] w-full cursor-pointer flex-col items-start gap-[2px] rounded-[12px] border px-[14px] py-[10px] text-left transition-colors ${isOn ? CHIP_ON : CHIP_OFF}`}
+          >
+            <span className="text-[14px] font-medium">{addressName(a)}</span>
+            <span className="text-[13px] opacity-80">
+              {a.addr1} {a.addr2 ?? ""} · {a.recipient}
+            </span>
+          </button>
+        );
+      })}
+      <button
+        type="button"
+        onClick={onAdd}
+        className="flex h-[44px] cursor-pointer items-center self-start text-[14px] text-grey underline underline-offset-[3px] hover:text-ink"
+      >
+        {addLabel}
+      </button>
+    </div>
+  );
+}
 
 function SheetRow({
   label,

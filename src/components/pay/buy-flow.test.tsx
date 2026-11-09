@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -12,6 +12,7 @@ import type { SalesStatus } from "@/types";
 
 const {
   getCheckoutDefaults,
+  listAddresses,
   createOrder,
   getSalesStatus,
   authState,
@@ -22,6 +23,7 @@ const {
   searchState,
 } = vi.hoisted(() => ({
   getCheckoutDefaults: vi.fn(),
+  listAddresses: vi.fn(),
   createOrder: vi.fn(),
   getSalesStatus: vi.fn((): Promise<SalesStatus> => Promise.resolve({ open: true })),
   authState: {
@@ -35,7 +37,7 @@ const {
 }));
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
-  api: { getCheckoutDefaults, createOrder, getSalesStatus },
+  api: { getCheckoutDefaults, listAddresses, createOrder, getSalesStatus },
 }));
 vi.mock("@/lib/auth/auth-context", () => ({
   useAuth: () => authState.value,
@@ -236,6 +238,10 @@ describe("재구매 시트", () => {
   });
 
   async function openSheet() {
+    // 앞 테스트의 시트가 닫히며 부른 history.back()의 popstate 가 늦게 와서 새 시트를 닫지 않게 먼저 흘려보낸다
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
     renderBar();
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "₩28,000 · 구매하기" }));
@@ -248,6 +254,46 @@ describe("재구매 시트", () => {
     expect(screen.getByText(/서울 중구 세종대로 110/)).toBeTruthy();
     expect(screen.getByText("suaci 바로결제")).toBeTruthy();
     expect(screen.getByText("문 앞에 놓아 주세요")).toBeTruthy();
+  });
+
+  it("합계 칸: 상품 × 수량 · 배송비 · 결제 금액 — 바의 상품가가 왜 결제 버튼에서 커지는지 보인다", async () => {
+    await openSheet();
+    expect(screen.getByText("라임바질 페이셜 세럼 미스트 × 1")).toBeTruthy();
+    expect(screen.getByText("₩28,000")).toBeTruthy();
+    expect(screen.getByText("₩3,000")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "₩31,000 결제하기" })).toBeTruthy();
+  });
+
+  it("배송지 '변경' → 시트 안에서 저장된 배송지를 고른다(주문서로 넘어가지 않는다)", async () => {
+    const office = {
+      ...ADDRESS,
+      addressId: "a2",
+      label: "회사",
+      addr1: "서울 강남구 테헤란로 1",
+      isDefault: false,
+    };
+    listAddresses.mockResolvedValueOnce([ADDRESS, office]);
+    await openSheet();
+    const addressRow = screen.getByText("배송지").parentElement?.parentElement as HTMLElement;
+    await act(async () => {
+      fireEvent.click(within(addressRow).getByRole("button", { name: "변경" }));
+    });
+    const officeChoice = await screen.findByRole("button", { name: /회사/ });
+    fireEvent.click(officeChoice);
+    expect(screen.getByText(/서울 강남구 테헤란로 1/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /회사/ })).toBeNull();
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("배송지 목록의 '새 배송지 추가' → 우편번호 찾기가 있는 주문서로(수량 그대로)", async () => {
+    listAddresses.mockResolvedValueOnce([ADDRESS]);
+    await openSheet();
+    const addressRow = screen.getByText("배송지").parentElement?.parentElement as HTMLElement;
+    await act(async () => {
+      fireEvent.click(within(addressRow).getByRole("button", { name: "변경" }));
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "새 배송지 추가" }));
+    expect(replace).toHaveBeenCalledWith("/checkout?qty=1");
   });
 
   it("반품 제한 고지(개봉·사용 후 단순 변심 불가) + 배송·교환·환불 안내 링크", async () => {

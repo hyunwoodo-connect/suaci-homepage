@@ -4,10 +4,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ko from "@/messages/ko.json";
 import { resetSalesStatusCache } from "@/lib/sales/sales-lock";
-import type { SalesStatus } from "@/types";
+import type { SalesStatus, CheckoutDefaults } from "@/types";
 
 const {
   listAddresses,
+  getCheckoutDefaults,
   createAddress,
   createOrder,
   navigate,
@@ -18,6 +19,10 @@ const {
   getSalesStatus,
 } = vi.hoisted(() => ({
   listAddresses: vi.fn(),
+  // 지난 결제수단 — 기본은 없음(첫 구매)
+  getCheckoutDefaults: vi.fn((): Promise<CheckoutDefaults> =>
+    Promise.resolve({ address: null, lastPaymentMethod: null }),
+  ),
   createAddress: vi.fn(),
   createOrder: vi.fn(),
   navigate: vi.fn(),
@@ -31,7 +36,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>();
   return {
     ...actual,
-    api: { listAddresses, createAddress, createOrder, getSalesStatus },
+    api: { listAddresses, getCheckoutDefaults, createAddress, createOrder, getSalesStatus },
   };
 });
 vi.mock("@/lib/auth/auth-context", () => ({
@@ -177,6 +182,36 @@ describe("주문서(첫 구매)", () => {
     });
     expect(await screen.findByText("배송지 입력")).toBeTruthy();
     expect(recheckSession).not.toHaveBeenCalled();
+  });
+
+  it("기본 결제수단은 재구매 시트와 같은 규칙 — 지난 수단(카드)이 로그인 프로바이더 페이(카카오)보다 먼저", async () => {
+    localStorage.setItem("suaci.auth.lastProvider", "kakao");
+    getCheckoutDefaults.mockResolvedValueOnce({ address: null, lastPaymentMethod: "카드" });
+    listAddresses.mockResolvedValue([ADDRESS]);
+    await act(async () => {
+      renderPage();
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByRole("radio", { name: "신용·체크카드" }).getAttribute("aria-checked"),
+      ).toBe("true"),
+    );
+    expect(screen.getByRole("radio", { name: "카카오페이" }).getAttribute("aria-checked")).toBe(
+      "false",
+    );
+  });
+
+  it("지난 수단이 없으면 로그인 프로바이더의 페이(카카오 → 카카오페이)", async () => {
+    localStorage.setItem("suaci.auth.lastProvider", "kakao");
+    listAddresses.mockResolvedValue([ADDRESS]);
+    await act(async () => {
+      renderPage();
+    });
+    await waitFor(() =>
+      expect(screen.getByRole("radio", { name: "카카오페이" }).getAttribute("aria-checked")).toBe(
+        "true",
+      ),
+    );
   });
 
   it("주소 있으면 카드 + 결제하기 → createOrder(screen checkout) → 목업 결제창", async () => {
