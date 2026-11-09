@@ -276,11 +276,24 @@
       "refunding": "返金処理中",
       "partiallyRefunded": "一部返金",
       "refunded": "返金完了",
-      "cancelled": "注文キャンセル"
+      "cancelled": "注文キャンセル",
+      "returnInProgress": "返品手続き中",
+      "exchangeInProgress": "交換手続き中",
+      "claimInProgress": "返品・交換手続き中"
     },
     "shippedNoCancel": "発送済みのご注文はキャンセルできません。お受け取り後に返品・交換をお申し込みください。",
     "contact": "お困りの際は注文番号を添えて<mail>{email}</mail>までご連絡ください。",
-    "notFound": "ご注文が見つかりません。注文履歴からもう一度お探しください。"
+    "notFound": "ご注文が見つかりません。注文履歴からもう一度お探しください。",
+    "payNow": "この注文を決済する",
+    "payLeft": "残り{minutes}分です。",
+    "payExpiredSoon": "まもなく自動でキャンセルされます。",
+    "paymentMethod": "お支払い方法",
+    "paidAt": "決済日時",
+    "receipt": "領収書を見る",
+    "free": "無料",
+    "itemLine": "{name} × {qty}",
+    "itemLineMore": "{name} ほか{more}件 · {qty}点",
+    "progressLabel": "進行状況"
   },
   "claims": {
     "formTitle": "キャンセル理由を選択",
@@ -392,7 +405,8 @@
       "uploading": "アップロード中",
       "failed": "アップロードできませんでした",
       "count": "写真{n}枚"
-    }
+    },
+    "refundDoneNote": "カード会社により、反映まで3〜7営業日かかります。"
   },
   "returns": {
     "formTitle": "返品理由を選択",

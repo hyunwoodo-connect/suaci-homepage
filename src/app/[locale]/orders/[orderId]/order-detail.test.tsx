@@ -119,6 +119,13 @@ async function renderPage() {
   });
 }
 
+/** 맨 위 상태 칩 — 진행 단계에도 같은 이름이 있어 단계 목록 밖의 것을 고른다 */
+function stateBadge(name: string): HTMLElement {
+  const badge = screen.getAllByText(name).find((el) => !el.closest("ol"));
+  if (!badge) throw new Error(`상태 칩 '${name}' 없음`);
+  return badge;
+}
+
 describe("주문 상세", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -159,7 +166,7 @@ describe("주문 상세", () => {
     signIn();
     getOrder.mockResolvedValue(ORDER);
     await renderPage();
-    expect(screen.getByText("결제완료")).toBeTruthy();
+    expect(stateBadge("결제완료")).toBeTruthy();
     expect(screen.queryByText("배송 전")).toBeNull();
     expect(screen.getByRole("heading", { name: "결제 정보" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "주문 관리" })).toBeTruthy();
@@ -197,7 +204,7 @@ describe("주문 상세", () => {
     };
     listClaims.mockResolvedValue([cancelling]);
     await renderPage();
-    expect(screen.getByText("결제완료")).toBeTruthy();
+    expect(stateBadge("결제완료")).toBeTruthy();
     expect(screen.queryByText(/발송이 늦어지고 있어요/)).toBeNull();
   });
 
@@ -205,16 +212,98 @@ describe("주문 상세", () => {
     signIn();
     getOrder.mockResolvedValue({ ...ORDER, shipBy: Date.now() + 60_000 });
     await renderPage();
-    expect(screen.getByText("결제완료")).toBeTruthy();
+    expect(stateBadge("결제완료")).toBeTruthy();
     expect(screen.queryByText(/발송이 늦어지고 있어요/)).toBeNull();
   });
 
-  it("결제 대기 → 30분 안에 결제하라는 한 줄", async () => {
+  it("결제 대기 → 30분 안에 결제하라는 한 줄 + 남은 분 + '이 주문 결제하기'(주문서로, 수량 그대로)", async () => {
     signIn();
-    getOrder.mockResolvedValue({ ...ORDER, status: "pending", paymentStatus: "pending" });
+    const dueAt = Date.now() + 24 * 60_000;
+    getOrder.mockResolvedValue({
+      ...ORDER,
+      status: "pending",
+      paymentStatus: "pending",
+      paymentDueAt: dueAt,
+    });
     await renderPage();
     expect(screen.getByText("결제 대기")).toBeTruthy();
     expect(screen.getByText(/30분 안에 결제해 주세요/)).toBeTruthy();
+    expect(screen.getByText(/24분 남았어요/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "이 주문 결제하기" }).getAttribute("href")).toBe(
+      `/checkout?qty=${String(ORDER.items[0].quantity)}`,
+    );
+    // 결제 대기엔 진행 단계가 없다
+    expect(screen.queryByRole("list", { name: "진행 단계" })).toBeNull();
+  });
+
+  it("결제한 주문 → 진행 단계·결제수단·결제일시·영수증(새 탭), 할인 0원 줄은 없다", async () => {
+    signIn();
+    getOrder.mockResolvedValue({
+      ...ORDER,
+      fulfillmentStatus: "shipped",
+      paymentMethod: "간편결제(카카오페이)",
+      paidAt: Date.parse("2026-11-09T15:05:00Z"),
+      receiptUrl: "https://receipt.test/r1",
+    });
+    await renderPage();
+    const steps = screen.getByRole("list", { name: "진행 단계" });
+    expect(steps.querySelector('[aria-current="step"]')?.textContent).toBe("배송중");
+    expect(screen.getByText("카카오페이")).toBeTruthy();
+    expect(screen.getByText("2026.11.10 00:05")).toBeTruthy();
+    const receipt = screen.getByRole("link", { name: "영수증 보기" });
+    expect(receipt.getAttribute("href")).toBe("https://receipt.test/r1");
+    expect(receipt.getAttribute("target")).toBe("_blank");
+    expect(screen.queryByText("할인")).toBeNull();
+  });
+
+  it("받은 뒤 반품 진행 중 → 상태 칩은 '반품 진행 중'(배송완료 아님)", async () => {
+    signIn();
+    getOrder.mockResolvedValue({
+      ...ORDER,
+      fulfillmentStatus: "delivered",
+      deliveredAt: Date.now(),
+    });
+    listClaims.mockResolvedValue([
+      {
+        claimId: "r1",
+        orderId: "o1",
+        type: "return",
+        status: "requested",
+        reasonCode: "상품하자",
+        lines: [{ lineId: "l1", productId: "p1", variantId: "v1", quantity: 1 }],
+        refundAmount: 31000,
+        refundedShipping: 3000,
+        returnShippingFee: 0,
+        createdAt: 0,
+        createdDtm: "",
+      },
+    ]);
+    await renderPage();
+    expect(screen.getByText("반품 진행 중")).toBeTruthy();
+  });
+
+  it("끝난 취소 환불 → '환불 예정' 대신 카드사 반영 안내", async () => {
+    signIn();
+    getOrder.mockResolvedValue({ ...ORDER, paymentStatus: "refunded", status: "cancelled" });
+    listClaims.mockResolvedValue([
+      {
+        claimId: "c1",
+        orderId: "o1",
+        type: "cancel",
+        status: "completed",
+        reasonCode: "단순변심",
+        lines: [{ lineId: "l1", productId: "p1", variantId: "v1", quantity: 1 }],
+        refundAmount: 31000,
+        refundedShipping: 3000,
+        returnShippingFee: 0,
+        refundDueAt: Date.parse("2026-11-12T14:59:59Z"),
+        createdAt: 0,
+        createdDtm: "",
+      },
+    ]);
+    await renderPage();
+    expect(screen.queryByText(/환불 예정/)).toBeNull();
+    expect(screen.getByText("카드사에 따라 3~7영업일 뒤 반영돼요.")).toBeTruthy();
   });
 
   it("결제 대기 주문 취소는 한 번 더 묻는다 — '돌아가기'면 취소하지 않는다", async () => {
@@ -467,7 +556,7 @@ describe("주문 상세", () => {
     signIn();
     getOrder.mockResolvedValue({ ...ORDER, fulfillmentStatus: "preparing" });
     await renderPage();
-    expect(screen.getByText("상품준비중")).toBeTruthy();
+    expect(stateBadge("상품준비중")).toBeTruthy();
     expect(screen.getByRole("button", { name: "주문 취소 요청" })).toBeTruthy();
   });
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
 import LoginRequired from "@/components/shell/LoginRequired";
@@ -14,7 +14,7 @@ import Chevron from "@/components/ui/Chevron";
 import Skeleton from "@/components/ui/Skeleton";
 import { api, isAuthRequired } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
-import { formatDateKST, formatKRW } from "@/lib/format";
+import { formatDateKST, formatKRW, itemName } from "@/lib/format";
 import type { OrderSummary } from "@/types";
 
 import { ORDER_STATE_TONE, orderState } from "./orderState";
@@ -28,6 +28,7 @@ const ROW = "flex min-h-[76px] items-center gap-[16px] py-[14px]";
  */
 export default function OrdersPage() {
   const t = useTranslations("orders");
+  const locale = useLocale();
   const tc = useTranslations("common");
   const ta = useTranslations("account");
   const { status, recheckSession } = useAuth();
@@ -93,7 +94,9 @@ export default function OrdersPage() {
         ) : (
           <ul className="m-0 list-none border-t border-line p-0">
             {items.map((o) => {
-              const state = orderState(o);
+              const openClaim = o.hasOpenClaim ? "any" : undefined;
+              const state = orderState({ ...o, openClaim });
+              const itemsLine = summaryLine(o, locale, t);
               return (
                 <li key={o.orderId} className="border-b border-line">
                   <Link href={`/orders/${o.orderId}`} className={ROW}>
@@ -104,7 +107,15 @@ export default function OrdersPage() {
                           {formatDateKST(o.createdAt)}
                         </span>
                       </span>
-                      <span className="num truncate text-[15px] leading-[22px] text-ink">
+                      {/* 무엇을 몇 개 — 같은 날 주문도 구별된다(UX 리뷰 E4). 옛 주문은 요약이 없어 번호만 */}
+                      {itemsLine && (
+                        <span className="num truncate text-[15px] leading-[22px] text-ink">
+                          {itemsLine}
+                        </span>
+                      )}
+                      <span
+                        className={`num truncate leading-[22px] ${itemsLine ? "text-[13px] text-grey" : "text-[15px] text-ink"}`}
+                      >
                         {o.orderNo}
                       </span>
                     </span>
@@ -157,4 +168,20 @@ function OrdersSkeleton({ label }: { label: string }) {
       ))}
     </ul>
   );
+}
+
+/* ─── 내부 ─────────────────────────── */
+
+/** 목록 한 줄의 품목 — '이름 × 수량', 여러 줄이면 '이름 외 N건 · 수량'. 요약이 없는 옛 주문은 null */
+function summaryLine(
+  o: OrderSummary,
+  locale: string,
+  t: (key: "itemLine" | "itemLineMore", values: Record<string, string | number>) => string,
+): string | null {
+  const s = o.itemSummary;
+  if (!s) return null;
+  const name = itemName(s, locale);
+  const more = s.lineCount - 1;
+  if (more > 0) return t("itemLineMore", { name, more, qty: s.quantity });
+  return t("itemLine", { name, qty: s.quantity });
 }

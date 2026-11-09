@@ -128,6 +128,12 @@ export function hasOpenAfterDelivery(claims: Claim[]): boolean {
   return claims.some((c) => OPEN_AFTER_DELIVERY[c.type]?.includes(c.status));
 }
 
+/** 진행 중인 받은 뒤 클레임의 종류(반품·교환) — 주문 상태 이름이 '배송완료'로만 보이지 않게. 없으면 undefined */
+export function openAfterDeliveryType(claims: Claim[]): "return" | "exchange" | undefined {
+  const open = claims.find((c) => OPEN_AFTER_DELIVERY[c.type]?.includes(c.status));
+  return open?.type === "return" || open?.type === "exchange" ? open.type : undefined;
+}
+
 /** 환불을 시작했지만 끝나지 않은 취소·반품이 있나 — 그동안 다른 환불·교환을 시작하지 않는다(서버 환불 잠금) */
 export function hasRefundInFlight(claims: Claim[]): boolean {
   return claims.some((c) => REFUND_TYPES.includes(c.type) && IN_FLIGHT.includes(c.status));

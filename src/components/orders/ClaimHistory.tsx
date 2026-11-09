@@ -82,11 +82,12 @@ function ClaimRow({
     c.type === "return" && c.returnShippingFee > 0 && formatKRW(c.returnShippingFee);
   const shippingBack =
     c.type === "return" && c.refundedShipping > 0 && formatKRW(c.refundedShipping);
-  // 반품은 회수 확인 뒤 환불 중일 때만 기한을 보인다(취소는 늘 보여 왔다)
+  // 환불 기한은 환불이 진행 중일 때만 — 끝난 환불에 '…까지 환불 예정'이 같이 뜨면 말이 부딪친다(UX 리뷰 E2)
+  const isMoneyClaim = c.type === "cancel" || c.type === "return";
   const refundDueDate =
-    c.refundDueAt !== undefined &&
-    (c.type === "cancel" || (c.type === "return" && isRefunding(c))) &&
-    formatDateKST(c.refundDueAt);
+    c.refundDueAt !== undefined && isMoneyClaim && isRefunding(c) && formatDateKST(c.refundDueAt);
+  // 끝난 환불엔 카드사 반영 안내 한 줄(돈이 오간 취소·반품만)
+  const showRefundDone = isMoneyClaim && c.status === "completed" && c.refundAmount > 0;
   const requestedDate = formatDateKST(c.createdAt);
   // 모르는 상태 코드는 이름 없이(송장·조회 링크만)
   const pickupStatusLabel =
@@ -155,6 +156,7 @@ function ClaimRow({
           <span className="num">{tr("shippingBack", { amount: shippingBack })}</span>
         )}
         {refundDueDate && <span className="num">{tc("refundDue", { date: refundDueDate })}</span>}
+        {showRefundDone && <span>{tc("refundDoneNote")}</span>}
         <span className="num">{tc("requestedAt", { date: requestedDate })}</span>
         {(c.photoCount ?? 0) > 0 && (
           <span className="num">{tc("photos.count", { n: c.photoCount ?? 0 })}</span>

@@ -276,11 +276,24 @@
       "refunding": "refund in progress",
       "partiallyRefunded": "partially refunded",
       "refunded": "refunded",
-      "cancelled": "cancelled"
+      "cancelled": "cancelled",
+      "returnInProgress": "return in progress",
+      "exchangeInProgress": "exchange in progress",
+      "claimInProgress": "return or exchange in progress"
     },
     "shippedNoCancel": "shipped orders can't be cancelled. once it arrives, you can request a return or exchange.",
     "contact": "need help? email <mail>{email}</mail> with your order number.",
-    "notFound": "we couldn't find this order. please look for it in your orders."
+    "notFound": "we couldn't find this order. please look for it in your orders.",
+    "payNow": "pay for this order",
+    "payLeft": "{minutes} min left.",
+    "payExpiredSoon": "this order will be cancelled soon.",
+    "paymentMethod": "payment method",
+    "paidAt": "paid on",
+    "receipt": "view receipt",
+    "free": "free",
+    "itemLine": "{name} × {qty}",
+    "itemLineMore": "{name} and {more} more · {qty} items",
+    "progressLabel": "order progress"
   },
   "claims": {
     "formTitle": "choose a reason for cancelling",
@@ -392,7 +405,8 @@
       "uploading": "uploading",
       "failed": "upload failed",
       "count": "{n} photos"
-    }
+    },
+    "refundDoneNote": "it may take 3–7 business days to show on your statement."
   },
   "returns": {
     "formTitle": "reason for return",

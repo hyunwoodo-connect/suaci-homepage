@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatKRW, effectivePrice, formatDateKST, itemName } from "./format";
+import { formatKRW, effectivePrice, formatDateKST, itemName, formatDateTimeKST } from "./format";
 import type { Money } from "@/types";
 
 const money = (list: number, sale?: number): Money => ({ list, sale, currency: "KRW" });
@@ -32,5 +32,11 @@ describe("itemName", () => {
   it("영어·일본어 화면 → 원래(영문) 이름", () => {
     expect(itemName(item, "en")).toBe("lime & basil facial serum mist");
     expect(itemName(item, "ja")).toBe("lime & basil facial serum mist");
+  });
+});
+
+describe("formatDateTimeKST", () => {
+  it("UTC 15:05 → KST 다음 날 00:05(24시간)", () => {
+    expect(formatDateTimeKST(Date.parse("2026-11-09T15:05:00Z"))).toBe("2026.11.10 00:05");
   });
 });

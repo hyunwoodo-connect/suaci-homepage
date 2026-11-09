@@ -25,18 +25,25 @@ import { trackPurchase } from "@/lib/analytics";
 import { useAnalyticsConsent } from "@/lib/analytics-consent";
 import { api, isAuthRequired, isNotFound } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
-import { paymentEnv } from "@/lib/payment/providers";
+import { methodFromLabel, paymentEnv } from "@/lib/payment/providers";
 import { isLiveClientKey } from "@/lib/payment/toss";
-import { formatKRW, itemName } from "@/lib/format";
+import { formatDateTimeKST, formatKRW, itemName } from "@/lib/format";
 import {
   canRequestCancel,
   canRequestAfterDelivery,
   hasOpenAfterDelivery,
   isShippedPaid,
+  openAfterDeliveryType,
 } from "@/lib/claims/rules";
 import type { Claim, ClaimType, Order } from "@/types";
 
-import { isShipDelayed, ORDER_STATE_TONE, orderState } from "../orderState";
+import {
+  isShipDelayed,
+  ORDER_STATE_TONE,
+  ORDER_STEPS,
+  orderState,
+  orderStepIndex,
+} from "../orderState";
 
 // 실제 화면과 뼈대가 같은 크기가 되도록 상자·줄 틀을 한 곳에서 쓴다
 const BOX = "border border-line p-[16px]";
@@ -68,6 +75,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ orderId:
 function OrderDetail({ orderId }: { orderId: string }) {
   const t = useTranslations("orders");
   const tc = useTranslations("common");
+  const tPay = useTranslations("pay");
   const locale = useLocale();
   const { status, recheckSession } = useAuth();
   const searchParams = useSearchParams();
@@ -179,7 +187,12 @@ function OrderDetail({ orderId }: { orderId: string }) {
   }
 
   const { order, claims, isShipDelayed: shipDelayed } = data;
-  const state = orderState(order);
+  const openClaim = openAfterDeliveryType(claims);
+  const state = orderState({ ...order, openClaim });
+  const step = orderStepIndex(order);
+  const totalQty = order.items.reduce((sum, i) => sum + i.quantity, 0);
+  const methodId = methodFromLabel(order.paymentMethod ?? null);
+  const methodName = methodId ? tPay(`method.${methodId}`) : order.paymentMethod;
 
   return (
     <PageShell title={t("detailTitle")} meta={order.orderNo}>
@@ -189,9 +202,19 @@ function OrderDetail({ orderId }: { orderId: string }) {
         {/* 상태 — 세 축을 이름 하나로 */}
         <div className="mb-[24px] flex flex-col items-start gap-[8px]">
           <Badge tone={ORDER_STATE_TONE[state]}>{t(`state.${state}`)}</Badge>
+          {/* 결제 대기 — 결제를 이어 갈 길이 주 버튼(UX 리뷰 E3). 주문서가 이 브라우저의 보류 주문을 이어 쓴다 */}
           {state === "awaitingPayment" && (
-            <p className="m-0 text-[13px] text-grey">{t("payWithin")}</p>
+            <>
+              <p className="m-0 text-[13px] text-grey">
+                {t("payWithin")} <PayDeadline dueAt={order.paymentDueAt} />
+              </p>
+              <ButtonLink href={`/checkout?qty=${String(totalQty)}`} size="sm">
+                {t("payNow")}
+              </ButtonLink>
+            </>
           )}
+          {/* 진행 단계 — 상태 칩이 반품·환불을 말할 때도 배송이 어디까지 왔는지 보인다(UX 리뷰 E5) */}
+          {step !== null && <OrderSteps current={step} />}
           {/* 안내가 '아래 주문 취소 요청'을 가리키므로 그 버튼이 있을 때만(남은 수량이 모두 취소 중이면 없다) */}
           {shipDelayed && canRequestCancel(order, claims) && (
             <p className="m-0 max-w-[560px] text-[13px] leading-[1.6] text-ink-soft">
@@ -229,14 +252,36 @@ function OrderDetail({ orderId }: { orderId: string }) {
           <div className={BOX}>
             <SectionTitle>{t("payment")}</SectionTitle>
             <TotalRow label={t("subtotal")} value={formatKRW(order.totals.itemsSubtotal)} />
-            <TotalRow label={t("shipping")} value={formatKRW(order.totals.shippingFee)} />
-            <TotalRow label={t("discount")} value={`−${formatKRW(order.totals.discountTotal)}`} />
+            <TotalRow
+              label={t("shipping")}
+              value={
+                order.totals.shippingFee === 0 ? t("free") : formatKRW(order.totals.shippingFee)
+              }
+            />
+            {order.totals.discountTotal > 0 && (
+              <TotalRow label={t("discount")} value={`−${formatKRW(order.totals.discountTotal)}`} />
+            )}
             <div className="mt-[10px] flex items-baseline justify-between border-t border-line pt-[10px]">
               <span className="text-[15px] font-medium leading-[32px]">{t("grandTotal")}</span>
               <b className="num text-[20px] font-medium leading-[32px]">
                 {formatKRW(order.totals.grandTotal)}
               </b>
             </div>
+            {/* 결제수단·결제일시·영수증 — 결제한 주문만 */}
+            {methodName && <TotalRow label={t("paymentMethod")} value={methodName} />}
+            {order.paidAt !== undefined && (
+              <TotalRow label={t("paidAt")} value={formatDateTimeKST(order.paidAt)} />
+            )}
+            {order.receiptUrl && (
+              <a
+                href={order.receiptUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-[4px] inline-flex min-h-[44px] items-center text-[14px] text-ink underline underline-offset-[3px]"
+              >
+                {t("receipt")}
+              </a>
+            )}
           </div>
           <ShippingAddressBox
             order={order}
@@ -443,10 +488,11 @@ function OrderActions({ order, claims, reload }: OrderActionsProps) {
         )}
         {error && <ErrorNote text={error} />}
 
+        {/* 결제 대기 주문의 취소는 보조 — 주 버튼은 위 '이 주문 결제하기'(UX 리뷰 E3) */}
         {canCancel &&
           (!confirmCancel ? (
             <Button
-              variant="danger"
+              variant="secondary"
               size="sm"
               className="self-start"
               disabled={busy}
@@ -559,6 +605,47 @@ function ContactNote() {
       })}
     </p>
   );
+}
+
+/** 진행 단계 막대 — 결제완료 → 상품준비중 → 배송중 → 배송완료, 지금 단계까지 먹색 */
+function OrderSteps({ current }: { current: number }) {
+  const t = useTranslations("orders");
+  return (
+    <ol
+      aria-label={t("progressLabel")}
+      className="m-0 mt-[4px] flex w-full max-w-[560px] list-none gap-[4px] p-0"
+    >
+      {ORDER_STEPS.map((s, i) => {
+        const isDone = i <= current;
+        return (
+          <li
+            key={s}
+            aria-current={i === current ? "step" : undefined}
+            className="flex flex-1 flex-col gap-[6px]"
+          >
+            <span
+              aria-hidden="true"
+              className={`h-[3px] rounded-full ${isDone ? "bg-ink" : "bg-line"}`}
+            />
+            <span className={`text-[12px] leading-[16px] ${isDone ? "text-ink" : "text-grey"}`}>
+              {t(`state.${s}`)}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/** 결제 마감까지 남은 분 — 처음 그릴 때 한 번 센다 */
+function PayDeadline({ dueAt }: { dueAt?: number }) {
+  const t = useTranslations("orders");
+  const [now] = useState(Date.now);
+  if (dueAt === undefined) return null;
+  const leftMs = dueAt - now;
+  const leftMinutes = leftMs / 60_000;
+  const minutes = Math.ceil(leftMinutes);
+  return <>{minutes > 0 ? t("payLeft", { minutes }) : t("payExpiredSoon")}</>;
 }
 
 function SectionTitle({ children }: { children: ReactNode }) {
