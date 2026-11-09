@@ -81,7 +81,42 @@ describe("ProductSection — 반품 제한 고지(전자상거래법 제17조제
     );
     const body = screen.getByText(/^정제수, 다이프로필렌글라이콜/);
     expect(body.closest("details")?.textContent).toContain("전성분");
-    expect(body.textContent?.endsWith("리모넨, 리날룰")).toBe(true);
+    expect(body.textContent?.endsWith("포타슘하이알루로네이트")).toBe(true);
+    // 향료 속 알레르기 유발 성분은 바로 아래 따로
+    expect(screen.getByText("향료 속 알레르기 유발 성분: 리모넨, 리날룰")).toBeTruthy();
+  });
+
+  it("상품정보제공 고시 → 펼친 채 11칸, 정하지 못한 칸은 사유(임의 값 없음)", () => {
+    render(
+      <NextIntlClientProvider locale="ko" messages={ko}>
+        <ProductSection />
+      </NextIntlClientProvider>,
+    );
+    const title = screen.getByText("상품 정보 제공 고시");
+    const details = title.closest("details");
+    expect(details?.open).toBe(true);
+    const terms = details?.querySelectorAll("dt") ?? [];
+    expect(terms).toHaveLength(11);
+    expect(terms[0]?.textContent).toBe("내용물의 용량 또는 중량");
+    const text = details?.textContent ?? "";
+    expect(text).toContain("100 ml");
+    expect(text).toContain("해당 없음(일반 화장품)");
+    expect(text).toContain("화장품책임판매업자: 수아시 (화장품책임판매업 제53463호)");
+    expect(text).toContain("상품 입고 후 표시 예정");
+    expect(text).toContain("010-6227-7918 · hello@takesuaci.com");
+    expect(text).not.toContain("모든 피부");
+    // 고시가 다른 접이 칸보다 먼저
+    const firstDetails = document.querySelector("details");
+    expect(firstDetails).toBe(details);
+  });
+
+  it("사용법 → 표시 문구가 정해지기 전에는 칸을 숨긴다", () => {
+    render(
+      <NextIntlClientProvider locale="ko" messages={ko}>
+        <ProductSection />
+      </NextIntlClientProvider>,
+    );
+    expect(screen.queryByText("사용법")).toBeNull();
   });
 
   it("en → 전성분은 INCI 이름", () => {

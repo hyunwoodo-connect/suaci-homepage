@@ -49,9 +49,18 @@ export const FRAGRANCE_ALLERGENS: readonly Ingredient[] = [
   { ko: "리날룰", inci: "Linalool" },
 ];
 
-/** 화면에 보일 전성분 한 줄 — 한국어 화면은 한글 이름, 그 밖은 INCI */
+/** 화면에 보일 전성분 한 줄(향료까지) — 한국어 화면은 한글 이름, 그 밖은 INCI. 알레르기 유발 성분은 `allergenLine` 으로 바로 아래 따로 */
 export function ingredientLine(locale: string): string {
-  return [...INGREDIENTS, ...FRAGRANCE_ALLERGENS]
-    .map((i) => (locale === "ko" ? i.ko : i.inci))
-    .join(", ");
+  return names(INGREDIENTS, locale);
+}
+
+/** 향료 속 알레르기 유발 성분 이름들 — 전성분 바로 아래 한 줄로 따로 보인다(긴 목록 끝에 묻히지 않게) */
+export function allergenLine(locale: string): string {
+  return names(FRAGRANCE_ALLERGENS, locale);
+}
+
+/* ─── 내부 ─────────────────────────── */
+
+function names(list: readonly Ingredient[], locale: string): string {
+  return list.map((i) => (locale === "ko" ? i.ko : i.inci)).join(", ");
 }
