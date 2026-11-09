@@ -82,6 +82,8 @@ export default function PhotoPicker({ orderId, onChange, onBusyChange }: PhotoPi
   }
 
   function remove(key: string) {
+    const removed = photos.find((p) => p.key === key);
+    if (removed) URL.revokeObjectURL(removed.previewUrl);
     setPhotos((list) => list.filter((p) => p.key !== key));
   }
 

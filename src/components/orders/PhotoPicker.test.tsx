@@ -86,6 +86,7 @@ describe("PhotoPicker", () => {
     expect(onChange).toHaveBeenLastCalledWith([]);
     fireEvent.click(screen.getByRole("button", { name: "사진 1 빼기" }));
     expect(screen.queryByText("못 올렸어요")).toBeNull();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:preview");
     expect(screen.getByLabelText(/사진 고르기 \(3장 더\)/)).toBeTruthy();
   });
 
