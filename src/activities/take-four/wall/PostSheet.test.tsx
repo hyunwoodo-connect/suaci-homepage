@@ -87,7 +87,8 @@ describe("PostSheet", () => {
     renderSheet();
     fireEvent.click(screen.getByRole("button", { name: "벽에 붙이기" }));
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "붙이기" })));
-    expect(screen.getByRole("alert")).toHaveTextContent(
+    // 거절이 몇 번의 await 뒤에 그려진다 — 부하가 큰 전체 실행에서도 기다려서 본다
+    expect(await screen.findByRole("alert")).toHaveTextContent(
       "오늘은 여기까지 붙일 수 있어요. 내일 또 붙여 주세요.",
     );
     expect(screen.queryByRole("button", { name: "다시 보내기" })).toBeNull();
