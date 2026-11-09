@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Claim, Order } from "@/types";
 
 import {
+  cancelQuote,
   canChangeShippingAddress,
   canRequestCancel,
   canRequestAfterDelivery,
@@ -205,6 +206,40 @@ describe("canRequestAfterDelivery", () => {
     expect(
       canRequestAfterDelivery(ORDER, [claim({ type: "exchange", status: "completed" })], now),
     ).toBe(true);
+  });
+});
+
+describe("cancelQuote", () => {
+  const paid = { ...ORDER, fulfillmentStatus: "unfulfilled" as const };
+
+  it("전체 취소 → 상품 금액 + 처음 배송비", () => {
+    expect(cancelQuote(paid, [])).toEqual({
+      itemsAmount: 56000,
+      refundedShipping: 3000,
+      refundAmount: 59000,
+    });
+  });
+
+  it("일부 취소(2개 중 1개) → 상품 금액만, 배송비는 남은 게 없을 때", () => {
+    expect(cancelQuote(paid, [], [{ lineId: "l1", quantity: 1 }])).toEqual({
+      itemsAmount: 28000,
+      refundedShipping: 0,
+      refundAmount: 28000,
+    });
+  });
+
+  it("앞서 1개 취소 뒤 남은 1개 취소 → 그 1개 + 처음 배송비(아직 안 돌려줬으면)", () => {
+    const first = claim({
+      type: "cancel",
+      status: "completed",
+      refundAmount: 28000,
+      refundedShipping: 0,
+    });
+    expect(cancelQuote(paid, [first])).toEqual({
+      itemsAmount: 28000,
+      refundedShipping: 3000,
+      refundAmount: 31000,
+    });
   });
 });
 

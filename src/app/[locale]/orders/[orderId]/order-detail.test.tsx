@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import { formatKRW } from "@/lib/format";
 import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -116,6 +117,20 @@ async function renderPage() {
         </AuthProvider>
       </NextIntlClientProvider>,
     );
+  });
+}
+
+/**
+ * 취소 폼 보내기 — 사유를 아직 안 골랐으면 '단순 변심'을 고르고, '취소 요청하기' → 확인 '네, 취소할게요'.
+ * 취소는 환불 금액을 보여 주고 한 번 더 묻는다(UX 리뷰 F2)
+ */
+async function sendCancel() {
+  if (screen.queryByText("사유를 골라 주세요.")) {
+    fireEvent.click(screen.getByRole("button", { name: "단순 변심" }));
+  }
+  fireEvent.click(screen.getByRole("button", { name: "취소 요청하기" }));
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "네, 취소할게요" }));
   });
 }
 
@@ -325,9 +340,7 @@ describe("주문 상세", () => {
     expect(screen.getByText("취소 사유 선택")).toBeTruthy();
     expect(screen.getByText(/3~7영업일이 더 걸릴 수 있어요/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "상품 불량(파손·누액 포함)" }));
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "취소 요청하기" }));
-    });
+    await sendCancel();
     expect(createClaim).toHaveBeenCalledWith(
       "o1",
       expect.objectContaining({ reasonCode: "상품하자", lines: undefined }),
@@ -340,12 +353,8 @@ describe("주문 상세", () => {
     createClaim.mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValueOnce({});
     await renderPage();
     fireEvent.click(screen.getByRole("button", { name: "주문 취소 요청" }));
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "취소 요청하기" }));
-    });
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "취소 요청하기" }));
-    });
+    await sendCancel();
+    await sendCancel();
     expect(createClaim).toHaveBeenCalledTimes(2);
     const [first, second] = createClaim.mock.calls.map(
       (c) => (c[1] as { idempotencyKey: string }).idempotencyKey,
@@ -375,9 +384,7 @@ describe("주문 상세", () => {
 
     async function submitCancel() {
       fireEvent.click(screen.getByRole("button", { name: "주문 취소 요청" }));
-      await act(async () => {
-        fireEvent.click(screen.getByRole("button", { name: "취소 요청하기" }));
-      });
+      await sendCancel();
     }
 
     it("실패 뒤 폼을 닫고 다시 열어 보내도 → 같은 멱등키(응답만 늦었던 환불이 두 번 되지 않게)", async () => {
@@ -448,13 +455,36 @@ describe("주문 상세", () => {
     });
   });
 
+  it("취소 요청 → 환불 예정 금액을 보이고, 한 번 더 묻는다 — '돌아가기'면 보내지 않는다", async () => {
+    signIn();
+    getOrder.mockResolvedValue(ORDER);
+    await renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "주문 취소 요청" }));
+    // 사유를 고르기 전엔 보낼 수 없다
+    expect(screen.getByRole("button", { name: "취소 요청하기" })).toHaveProperty("disabled", true);
+    fireEvent.click(screen.getByRole("button", { name: "단순 변심" }));
+    const quote = screen.getByRole("region", { name: "예상 환불 금액" });
+    expect(quote.textContent).toContain(`환불 예정 금액${formatKRW(ORDER.totals.grandTotal)}`);
+    fireEvent.click(screen.getByRole("button", { name: "취소 요청하기" }));
+    expect(
+      screen.getByText(
+        `취소하면 ${formatKRW(ORDER.totals.grandTotal)}을 환불해 드려요. 취소할까요?`,
+      ),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "돌아가기" }));
+    expect(createClaim).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "취소 요청하기" })).toBeTruthy();
+  });
+
   it("취소 요청하기 연타 → 요청은 한 번", async () => {
     signIn();
     getOrder.mockResolvedValue(ORDER);
     createClaim.mockReturnValue(new Promise(() => {}));
     await renderPage();
     fireEvent.click(screen.getByRole("button", { name: "주문 취소 요청" }));
-    const submit = screen.getByRole("button", { name: "취소 요청하기" });
+    fireEvent.click(screen.getByRole("button", { name: "단순 변심" }));
+    fireEvent.click(screen.getByRole("button", { name: "취소 요청하기" }));
+    const submit = screen.getByRole("button", { name: "네, 취소할게요" });
     await act(async () => {
       fireEvent.click(submit);
       fireEvent.click(submit);
@@ -510,9 +540,7 @@ describe("주문 상세", () => {
     createClaim.mockRejectedValue(new ApiClientError("REFUND_IN_PROGRESS", "x", 409));
     await renderPage();
     fireEvent.click(screen.getByRole("button", { name: "주문 취소 요청" }));
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "취소 요청하기" }));
-    });
+    await sendCancel();
     expect(screen.getByRole("alert").textContent).toBe(
       "아직 끝나지 않은 환불이 있어요. 잠시 뒤에 다시 시도해 주세요.",
     );
@@ -524,9 +552,7 @@ describe("주문 상세", () => {
     createClaim.mockRejectedValue(new ApiClientError("CLAIM_NOT_ALLOWED", "x", 409));
     await renderPage();
     fireEvent.click(screen.getByRole("button", { name: "주문 취소 요청" }));
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "취소 요청하기" }));
-    });
+    await sendCancel();
     expect(screen.getByRole("alert").textContent).toBe(
       "이 주문은 지금 취소·반품을 신청할 수 없어요. 고객센터로 문의해 주세요.",
     );
@@ -696,11 +722,16 @@ describe("주문 상세", () => {
       createReturn.mockResolvedValue({});
       await renderPage();
       fireEvent.click(screen.getByRole("button", { name: "반품 신청" }));
+      // 사유를 고르기 전엔 금액 칸이 없고 신청 버튼 옆에 이유가 보인다(UX 리뷰 F1·F3)
+      expect(screen.queryByRole("region", { name: "예상 환불 금액" })).toBeNull();
+      expect(screen.getByText("사유를 골라 주세요.")).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "단순 변심" }));
       const quote = screen.getByRole("region", { name: "예상 환불 금액" });
       expect(quote.textContent).toContain("반품 배송비 (고객 부담)−₩3,000");
       expect(quote.textContent).toContain("환불 예정 금액₩25,000");
       const submit = screen.getByRole("button", { name: "반품 신청하기" });
       expect(submit).toHaveProperty("disabled", true);
+      expect(screen.getByText(/체크해 주세요/)).toBeTruthy();
       fireEvent.click(
         screen.getByRole("checkbox", { name: "밀봉을 뜯지 않았고 사용하지 않았어요" }),
       );
@@ -733,7 +764,7 @@ describe("주문 상세", () => {
       );
     });
 
-    it("받은 지 열흘 → 단순 변심은 고를 수 없고 하자 쪽으로 시작한다", async () => {
+    it("받은 지 열흘 → 단순 변심은 고를 수 없고, 어느 사유도 미리 골라 두지 않는다", async () => {
       signIn();
       getOrder.mockResolvedValue(delivered(10));
       await renderPage();
@@ -743,7 +774,7 @@ describe("주문 상세", () => {
         screen
           .getByRole("button", { name: "상품 불량(파손·누액 포함)" })
           .getAttribute("aria-pressed"),
-      ).toBe("true");
+      ).toBe("false");
       expect(screen.getByText(/단순 변심 반품은 받은 날부터 7일까지/)).toBeTruthy();
     });
 
@@ -950,6 +981,7 @@ describe("주문 상세", () => {
       createExchange.mockRejectedValue(new ApiClientError("EXCHANGE_WINDOW_CLOSED", "x", 409));
       await renderPage();
       fireEvent.click(screen.getByRole("button", { name: "교환 신청" }));
+      fireEvent.click(screen.getByRole("button", { name: "상품 불량(파손·누액 포함)" }));
       await act(async () => {
         fireEvent.click(screen.getByRole("button", { name: "교환 신청하기" }));
       });

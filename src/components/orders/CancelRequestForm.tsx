@@ -6,7 +6,8 @@ import { useTranslations } from "next-intl";
 
 import Button from "@/components/ui/Button";
 import { api } from "@/lib/api";
-import { remainingQty } from "@/lib/claims/rules";
+import { cancelQuote, remainingQty } from "@/lib/claims/rules";
+import { formatKRW } from "@/lib/format";
 import { REASON_CODES, type Claim, type Order, type ReasonCode } from "@/types";
 
 import { claimErrorKey } from "./claimError";
@@ -43,14 +44,25 @@ export default function CancelRequestForm({
   const tc = useTranslations("claims");
   const { busy, run } = useSubmitLock();
   const [error, setError] = useState<string | null>(null);
-  const [reasonCode, setReasonCode] = useState<ReasonCode>("단순변심");
+  // 사유는 미리 고르지 않는다 — 손님이 안 바꾸면 그 사유로 접수된다(UX 리뷰 F1)
+  const [reasonCode, setReasonCode] = useState<ReasonCode | null>(null);
   const [detail, setDetail] = useState("");
+  // 보내기 전에 환불 금액과 함께 한 번 더 묻는다(UX 리뷰 F2) — 돈이 바로 움직이는 요청이다
+  const [confirming, setConfirming] = useState(false);
   const left = remainingQty(order, claims);
   const pick = useLineSelection(order, left);
+  const quote = cancelQuote(order, claims, pick.lines);
+  const tr = useTranslations("returns");
+  const refundLabel = formatKRW(quote.refundAmount);
+  const blocked = busy || pick.partialEmpty || reasonCode === null || quote.itemsAmount <= 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pick.partialEmpty) return;
+    if (blocked || reasonCode === null) return;
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
     await run(async () => {
       setError(null);
       try {
@@ -64,6 +76,7 @@ export default function CancelRequestForm({
         const errorKey = claimErrorKey(err);
         const errorMessage = tc(errorKey);
         setError(errorMessage);
+        setConfirming(false);
         await onFailed();
         return;
       }
@@ -86,7 +99,10 @@ export default function CancelRequestForm({
         legend={tc("formTitle")}
         reasons={REASON_CODES}
         value={reasonCode}
-        onChange={setReasonCode}
+        onChange={(r) => {
+          setReasonCode(r);
+          setConfirming(false);
+        }}
       />
 
       <DetailField
@@ -101,9 +117,15 @@ export default function CancelRequestForm({
         order={order}
         left={left}
         scope={pick.scope}
-        onScope={pick.setScope}
+        onScope={(s) => {
+          pick.setScope(s);
+          setConfirming(false);
+        }}
         qty={pick.qty}
-        onQty={pick.setLineQty}
+        onQty={(lineId, n) => {
+          pick.setLineQty(lineId, n);
+          setConfirming(false);
+        }}
         labels={{
           legend: tc("scope"),
           full: tc("scopeFull"),
@@ -113,16 +135,66 @@ export default function CancelRequestForm({
         partialEmpty={pick.partialEmpty}
       />
 
-      <div className="flex flex-wrap items-center gap-[8px_20px]">
-        <Button type="submit" variant="danger" size="sm" disabled={busy || pick.partialEmpty}>
-          {busy ? "…" : tc("submit")}
-        </Button>
-        <Button type="button" variant="text" size="sm" disabled={busy} onClick={onClose}>
-          {tc("cancel")}
-        </Button>
-      </div>
+      {/* 환불 예정 금액 — 반품 폼과 같은 칸(서버 규칙과 같은 계산, 금액의 권위는 서버) */}
+      <section aria-label={tr("quoteTitle")} className="border border-line p-[16px]">
+        <h3 className="m-0 mb-[8px] text-[14px] font-medium text-ink">{tr("quoteTitle")}</h3>
+        <QuoteRow label={tr("quoteItems")} value={formatKRW(quote.itemsAmount)} />
+        {quote.refundedShipping > 0 && (
+          <QuoteRow
+            label={tr("quoteShippingBack")}
+            value={`+${formatKRW(quote.refundedShipping)}`}
+          />
+        )}
+        <div className="mt-[8px] flex items-baseline justify-between border-t border-line pt-[8px]">
+          <span className="text-[15px] font-medium">{tr("quoteTotal")}</span>
+          <b className="num text-[18px] font-medium">{refundLabel}</b>
+        </div>
+      </section>
+
+      {!confirming ? (
+        <div className="flex flex-wrap items-center gap-[8px_20px]">
+          <Button type="submit" variant="danger" size="sm" disabled={blocked}>
+            {tc("submit")}
+          </Button>
+          <Button type="button" variant="text" size="sm" disabled={busy} onClick={onClose}>
+            {tc("cancel")}
+          </Button>
+          {reasonCode === null && (
+            <p className="m-0 w-full text-[13px] text-grey">{tc("pickReason")}</p>
+          )}
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-[8px]">
+          <p className="m-0 w-full text-[15px] leading-[1.6] text-ink">
+            {tc("confirmCancel", { amount: refundLabel })}
+          </p>
+          <Button type="submit" variant="danger" size="sm" disabled={busy}>
+            {busy ? "…" : tc("confirmYes")}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={busy}
+            onClick={() => setConfirming(false)}
+          >
+            {tc("confirmNo")}
+          </Button>
+        </div>
+      )}
 
       <p className="m-0 text-[13px] leading-[1.6] text-grey">{tc("cardNote")}</p>
     </form>
+  );
+}
+
+/* ─── 하위 컴포넌트 ─────────────────────────── */
+
+function QuoteRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex min-h-[28px] items-center justify-between gap-[12px]">
+      <span className="text-[14px] text-grey">{label}</span>
+      <span className="num shrink-0 text-[14px]">{value}</span>
+    </div>
   );
 }

@@ -13,8 +13,10 @@ import PageShell from "@/components/shell/PageShell";
 import ConsentChecks from "@/components/auth/ConsentChecks";
 import { api, ApiClientError } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
+import { EMAIL_ERROR_KEY, emailProblem, isBlank, type EmailProblem } from "@/lib/auth/fields";
 import {
   isPasswordMismatch,
+  PASSWORD_MIN_LENGTH,
   passwordProblem,
   WEAK_PASSWORD_CODES,
   type PasswordProblem,
@@ -55,6 +57,11 @@ function SignupBody() {
   const [passwordConfirm, setPasswordConfirm] = useState("");
   // 보내려다 막힌 비밀번호 문제 — 고치기 시작하면 지운다(틀린 확인 칸은 쓰는 동안 바로 보인다)
   const [passwordIssue, setPasswordIssue] = useState<PasswordProblem | null>(null);
+  // 칸 아래 오류(보낼 때 본다) — 고쳐 쓰기 시작하면 지운다
+  const [nameMissing, setNameMissing] = useState(false);
+  const [emailIssue, setEmailIssue] = useState<EmailProblem | null>(null);
+  const emailErrorKey = emailIssue ? EMAIL_ERROR_KEY[emailIssue] : null;
+  const emailError = emailErrorKey ? t(emailErrorKey) : null;
   const [consents, setConsents] = useState<Consents>({
     terms: false,
     privacy: false,
@@ -67,6 +74,12 @@ function SignupBody() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    // 빈 칸·이메일 모양은 칸 아래 우리 문구로(브라우저 기본 말풍선 대신, UX 리뷰 C4)
+    const nextNameMissing = isBlank(name);
+    const nextEmailIssue = emailProblem(email);
+    setNameMissing(nextNameMissing);
+    setEmailIssue(nextEmailIssue);
+    if (nextNameMissing || nextEmailIssue) return;
     const problem = passwordProblem(password, passwordConfirm);
     if (problem) {
       setPasswordIssue(problem);
@@ -114,14 +127,16 @@ function SignupBody() {
     <PageShell title={t("signupTitle")} meta={step === "form" ? t("signupSub") : t("confirmSub")}>
       <div className="max-w-[440px]">
         {step === "form" ? (
-          <form onSubmit={handleSignup} className="flex flex-col gap-[16px]">
+          <form noValidate onSubmit={handleSignup} className="flex flex-col gap-[16px]">
             <InputField
               label={t("name")}
               required
               autoComplete="name"
               value={name}
+              error={nameMissing ? t("nameRequired") : null}
               onChange={(e) => {
                 setName(e.target.value);
+                setNameMissing(false);
               }}
             />
             <InputField
@@ -131,8 +146,10 @@ function SignupBody() {
               autoComplete="email"
               placeholder="you@email.com"
               value={email}
+              error={emailError}
               onChange={(e) => {
                 setEmail(e.target.value);
+                setEmailIssue(null);
               }}
             />
             <PasswordField
@@ -146,6 +163,12 @@ function SignupBody() {
               onChange={(e) => {
                 setPassword(e.target.value);
                 setPasswordIssue(null);
+              }}
+              // 칸을 벗어날 때 길이를 본다 — 쓰는 중엔 말하지 않고, 짧은 채로 넘어가면 바로 알린다
+              onBlur={() => {
+                if (password.length > 0 && password.length < PASSWORD_MIN_LENGTH) {
+                  setPasswordIssue("tooShort");
+                }
               }}
             />
             <PasswordField

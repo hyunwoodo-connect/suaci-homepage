@@ -18,6 +18,7 @@ import {
   visibleProviders,
 } from "@/lib/auth/social";
 import { useAuth } from "@/lib/auth/auth-context";
+import { EMAIL_ERROR_KEY, emailProblem, isBlank, type EmailProblem } from "@/lib/auth/fields";
 import { tokenStore } from "@/lib/auth/token-store";
 import type { SocialProvider } from "@/types";
 
@@ -52,6 +53,9 @@ function LoginBody() {
   const [lastProvider, setLastProvider] = useState<SocialProvider | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // 칸 아래 오류(보낼 때 본다) — 고쳐 쓰기 시작하면 지운다
+  const [emailIssue, setEmailIssue] = useState<EmailProblem | null>(null);
+  const [passwordMissing, setPasswordMissing] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -79,6 +83,12 @@ function LoginBody() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // 칸 아래 우리 문구로(브라우저 기본 말풍선 대신) — 비었거나 이메일 모양이 틀리면 보내지 않는다
+    const nextEmailIssue = emailProblem(email);
+    const nextPasswordMissing = isBlank(password);
+    setEmailIssue(nextEmailIssue);
+    setPasswordMissing(nextPasswordMissing);
+    if (nextEmailIssue || nextPasswordMissing) return;
     setBusy(true);
     setHasError(false);
     try {
@@ -92,6 +102,8 @@ function LoginBody() {
   };
 
   const lastProviderName = lastProvider && t(`provider.${lastProvider}`);
+  const emailErrorKey = emailIssue ? EMAIL_ERROR_KEY[emailIssue] : null;
+  const emailError = emailErrorKey ? t(emailErrorKey) : null;
 
   return (
     <PageShell title={tp("title")} meta={t("loginSub")}>
@@ -125,7 +137,7 @@ function LoginBody() {
             </button>
           ) : (
             <>
-              <form onSubmit={handleSubmit} className="flex flex-col gap-[16px]">
+              <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-[16px]">
                 <InputField
                   label={t("email")}
                   type="email"
@@ -134,8 +146,10 @@ function LoginBody() {
                   autoComplete="email"
                   placeholder="you@email.com"
                   value={email}
+                  error={emailError}
                   onChange={(e) => {
                     setEmail(e.target.value);
+                    setEmailIssue(null);
                   }}
                 />
                 <PasswordField
@@ -144,8 +158,10 @@ function LoginBody() {
                   autoComplete="current-password"
                   placeholder="••••••••"
                   value={password}
+                  error={passwordMissing ? t("passwordRequired") : null}
                   onChange={(e) => {
                     setPassword(e.target.value);
+                    setPasswordMissing(false);
                   }}
                 />
                 {hasError && (

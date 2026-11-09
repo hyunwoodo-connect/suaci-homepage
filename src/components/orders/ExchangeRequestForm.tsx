@@ -45,7 +45,8 @@ export default function ExchangeRequestForm({
 }: ExchangeRequestFormProps) {
   const t = useTranslations("exchanges");
   const tc = useTranslations("claims");
-  const [reason, setReason] = useState<ExchangeReason>("상품하자");
+  // 사유는 미리 고르지 않는다(UX 리뷰 F1)
+  const [reason, setReason] = useState<ExchangeReason | null>(null);
   const [detail, setDetail] = useState("");
   const { busy, run } = useSubmitLock();
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +59,7 @@ export default function ExchangeRequestForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pick.partialEmpty || photosBusy) return;
+    if (pick.partialEmpty || photosBusy || reason === null) return;
     await run(async () => {
       setError(null);
       try {
@@ -147,12 +148,17 @@ export default function ExchangeRequestForm({
       </p>
 
       <div className="flex flex-wrap items-center gap-[8px_20px]">
-        <Button type="submit" size="sm" disabled={busy || photosBusy || pick.partialEmpty}>
+        <Button
+          type="submit"
+          size="sm"
+          disabled={busy || photosBusy || pick.partialEmpty || reason === null}
+        >
           {busy ? "…" : t("submit")}
         </Button>
         <Button type="button" variant="text" size="sm" disabled={busy} onClick={onClose}>
           {t("cancel")}
         </Button>
+        {reason === null && <p className="m-0 w-full text-[13px] text-grey">{tc("pickReason")}</p>}
       </div>
 
       <p className="m-0 text-[13px] leading-[1.6] text-grey">{t("after")}</p>

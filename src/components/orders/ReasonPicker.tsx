@@ -10,7 +10,8 @@ import type { ReasonCode } from "@/types";
 interface ReasonPickerProps<R extends ReasonCode> {
   legend: string;
   reasons: readonly R[];
-  value: R;
+  /** 아직 고르지 않았으면 null — 사유는 미리 골라 두지 않는다(손님이 안 바꾸면 그 사유로 접수되므로) */
+  value: R | null;
   onChange: (r: R) => void;
   /** 고를 수 없는 사유(기한 지난 단순 변심) */
   isDisabled?: (r: R) => boolean;
