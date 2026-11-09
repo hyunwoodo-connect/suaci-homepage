@@ -152,6 +152,61 @@ describe("http client", () => {
   });
 });
 
+describe("uploadClaimPhoto", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.restoreAllMocks();
+    tokenStore.save({ accessToken: "a", idToken: "i", refreshToken: "r", expiresIn: 3600 });
+  });
+
+  it("올릴 자리를 받고 S3 에 칸을 먼저·파일을 마지막에 POST → photoId", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        text: async () =>
+          JSON.stringify({
+            data: {
+              photoId: "01JC0000000000000000000001",
+              url: "https://bucket.s3.test",
+              fields: { key: "pending/u1/o1/x.jpg", Policy: "p" },
+              maxBytes: 5242880,
+            },
+          }),
+      })
+      .mockResolvedValueOnce({ ok: true, status: 204 });
+    vi.stubGlobal("fetch", fetchMock);
+    const api = createHttpClient("https://api.test");
+    const photo = new Blob(["x"], { type: "image/jpeg" });
+    await expect(api.uploadClaimPhoto("o1", photo)).resolves.toBe("01JC0000000000000000000001");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.test/orders/o1/claim-photos");
+    const [s3Url, s3Init] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(s3Url).toBe("https://bucket.s3.test");
+    const names = [...(s3Init.body as FormData).keys()];
+    expect(names).toEqual(["key", "Policy", "file"]);
+  });
+
+  it("S3 가 거절하면 → PHOTO_UPLOAD_FAILED", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        text: async () =>
+          JSON.stringify({ data: { photoId: "P", url: "https://s3", fields: {}, maxBytes: 1 } }),
+      })
+      .mockResolvedValueOnce({ ok: false, status: 403 });
+    vi.stubGlobal("fetch", fetchMock);
+    const api = createHttpClient("https://api.test");
+    const photo = new Blob(["x"]);
+    await expect(api.uploadClaimPhoto("o1", photo)).rejects.toMatchObject({
+      code: "PHOTO_UPLOAD_FAILED",
+      status: 403,
+    });
+  });
+});
+
 describe("createFetcher", () => {
   beforeEach(() => {
     vi.restoreAllMocks();

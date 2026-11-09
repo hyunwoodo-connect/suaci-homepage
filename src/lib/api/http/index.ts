@@ -26,9 +26,18 @@ import type {
   PageParams,
   SalesStatus,
 } from "@/types";
+import { ApiClientError } from "../errors";
 import type { ApiClient } from "../client";
 import { createFetcher } from "./fetcher";
 import type { Envelope } from "./fetcher";
+
+/** 사진 올릴 자리(`POST /orders/{orderId}/claim-photos`) */
+interface ClaimPhotoSlot {
+  photoId: string;
+  url: string;
+  fields: Record<string, string>;
+  maxBytes: number;
+}
 
 /** 실서버 커머스 API. 주소를 안 주면 `NEXT_PUBLIC_API_BASE_URL` 을 쓴다 */
 export function createHttpClient(baseUrl?: string): ApiClient {
@@ -180,6 +189,22 @@ export function createHttpClient(baseUrl?: string): ApiClient {
           body: r,
         }),
       );
+    },
+    async uploadClaimPhoto(orderId: string, photo: Blob) {
+      const slot = unwrap(
+        await authedRequest<Envelope<ClaimPhotoSlot>>(`/orders/${orderId}/claim-photos`, {
+          method: "POST",
+        }),
+      );
+      // S3 POST — 받은 칸을 먼저, 파일을 마지막에(S3 규칙). 실패는 우리 오류로 바꾼다(본문은 XML)
+      const form = new FormData();
+      for (const [name, value] of Object.entries(slot.fields)) form.append(name, value);
+      form.append("file", photo);
+      const response = await fetch(slot.url, { method: "POST", body: form });
+      if (!response.ok) {
+        throw new ApiClientError("PHOTO_UPLOAD_FAILED", "photo upload failed", response.status);
+      }
+      return slot.photoId;
     },
     async createReturn(orderId: string, r: CreateReturnRequest) {
       return unwrap(

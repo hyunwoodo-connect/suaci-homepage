@@ -56,6 +56,8 @@ export interface ApiClient {
   confirmPayment(orderId: string, r: ConfirmPaymentRequest): Promise<Order>;
   listClaims(orderId: string): Promise<Claim[]>;
   createClaim(orderId: string, r: CreateClaimRequest): Promise<Claim>;
+  /** 반품·교환 신청에 붙일 사진 한 장을 올린다(비공개, 회사만 본다) → 신청의 `photoIds` 에 넣을 ID */
+  uploadClaimPhoto(orderId: string, photo: Blob): Promise<string>;
   createReturn(orderId: string, r: CreateReturnRequest): Promise<Claim>;
   createExchange(orderId: string, r: CreateExchangeRequest): Promise<Claim>;
   /** 신청 상태(requested)인 반품·교환을 손님이 거둔다 */

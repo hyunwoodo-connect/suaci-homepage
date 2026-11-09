@@ -40,6 +40,8 @@ export interface Claim {
   receivedAt?: number;
   rejectedAt?: number;
   rejectReason?: string;
+  /** 신청 때 붙인 사진 수(사진은 회사만 본다) */
+  photoCount?: number;
   /** 반품·교환 회수 송장(회사가 택배사에 회수를 접수한 송장) — 택배사 코드·송장·조회 링크·배송 조회가 본 상태(트래커 코드)·회사 도착 시각 */
   pickupCarrier?: string;
   pickupTrackingNumber?: string;
@@ -72,6 +74,8 @@ export interface CreateReturnRequest {
   reasonDetail?: string;
   lines?: { lineId: string; quantity: number }[];
   unopenedConfirmed: boolean;
+  /** 미리 올린 사진(`api.uploadClaimPhoto`) 0~3장 */
+  photoIds?: string[];
 }
 /** 교환 신청. lines 를 빼면 남은 수량 전부 */
 export interface CreateExchangeRequest {
@@ -79,4 +83,6 @@ export interface CreateExchangeRequest {
   reasonCode: ExchangeReason;
   reasonDetail?: string;
   lines?: { lineId: string; quantity: number }[];
+  /** 미리 올린 사진 0~3장 */
+  photoIds?: string[];
 }

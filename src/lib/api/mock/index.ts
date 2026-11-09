@@ -482,6 +482,9 @@ export function createMockClient(): ApiClient {
       return claim;
     },
     // 반품 신청 — 서버와 같은 규칙(lib/claims/rules)으로 막고 금액을 정한다. 돈은 움직이지 않는다(관리자가 회수 확인 뒤 환불)
+    async uploadClaimPhoto(): Promise<string> {
+      return `MOCKPHOTO${String(Date.now()).padStart(17, "0")}`;
+    },
     async createReturn(orderId: string, r: CreateReturnRequest): Promise<Claim> {
       requireAuth();
       const claims = store.readClaims();
