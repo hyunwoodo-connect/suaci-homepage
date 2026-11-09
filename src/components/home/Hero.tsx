@@ -3,13 +3,15 @@ import { preload } from "react-dom";
 import { useTranslations } from "next-intl";
 
 import LoopVideo from "@/components/home/LoopVideo";
-import { HOME_MEDIA } from "@/constants/product";
+import { HOME_MEDIA, PRODUCT } from "@/constants/product";
+import { formatKRW } from "@/lib/format";
 
 /** 폰 포스터를 쓰는 폭 — 잘라 둔 폰 포스터(1100×1440)가 높이 600 칸을 늘리지 않고 덮는 데까지(458px) */
 const MOBILE_POSTER_MEDIA = "(max-width: 458px)";
 
 /**
  * v5 히어로 — 풀블리드 룩북 루프 영상(무음·자동재생) + 하단 소문자 캡션.
+ * 캡션 둘째 줄은 무엇을 얼마에 파는지(상품·용량·가격) — 첫 화면에서 바로 읽히게(UX 리뷰 A2).
  * 영상 로딩 전/저전력 모드에선 poster(같은 첫 프레임)가 보인다.
  */
 export default function Hero() {
@@ -28,6 +30,7 @@ export default function Hero() {
   });
 
   const heroVideoName = tv("hero");
+  const price = formatKRW(PRODUCT.price);
 
   return (
     <section
@@ -63,7 +66,9 @@ export default function Hero() {
         {/* 헤더 로고·본문과 같은 최대 폭 — 넓은 화면에서도 캡션 왼쪽 선이 로고와 맞는다 */}
         <h1 className="m-0 mx-auto flex max-w-[1344px] pr-[44px] flex-wrap items-baseline gap-x-[16px] gap-y-[4px] text-[clamp(22px,2.4vw,32px)] font-normal leading-[1.15] tracking-[-0.03em]">
           {t("title")}
-          <span className="text-[13px] tracking-normal text-ink-soft">{t("product")}</span>
+          <span className="num text-[15px] tracking-normal text-ink md:text-[16px]">
+            {t("productLine", { price })}
+          </span>
         </h1>
       </div>
     </section>

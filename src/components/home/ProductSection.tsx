@@ -15,9 +15,15 @@ import { formatKRW } from "@/lib/format";
  */
 export default function ProductSection() {
   const t = useTranslations("home.product");
+  const tb = useTranslations("pay.bar");
   const locale = useLocale();
 
   const roundTripFee = CHECKOUT_PRICING.shippingFee * 2;
+  // 배송비는 가격 바로 아래 — 하단 바에서 내렸다(바가 본문을 가리지 않게). 결제 시트·주문서가 총액을 더한다
+  const shippingLine = tb("shipping", {
+    fee: formatKRW(CHECKOUT_PRICING.shippingFee),
+    freeOver: formatKRW(CHECKOUT_PRICING.freeShippingOver),
+  });
   const allergens = allergenLine(locale);
   const noticeLocale = hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
   // 고시 표 — 값이 없는 칸은 사유(고시 Ⅱ.3). 사용방법은 '사용법' 칸과 같은 글
@@ -39,7 +45,6 @@ export default function ProductSection() {
         <ProductShot
           src={PRODUCT_PHOTOS.main}
           alt={t("photoAlt")}
-          soonLabel={t("photoSoon")}
           className="w-[max(40%,min(100%,320px))]"
           sizes="(max-width: 767px) 100vw, 40vw"
         />
@@ -51,7 +56,10 @@ export default function ProductSection() {
             </h2>
             <p className="m-0 text-[14px] text-grey">{t("descriptor")}</p>
           </div>
-          <p className="num m-0 text-[20px] tracking-[-0.02em]">{formatKRW(PRODUCT.price)}</p>
+          <div className="flex flex-col gap-[4px]">
+            <p className="num m-0 text-[20px] tracking-[-0.02em]">{formatKRW(PRODUCT.price)}</p>
+            <p className="num m-0 text-[13px] text-grey">{shippingLine}</p>
+          </div>
           <p className="m-0 max-w-[340px] text-[14px] leading-[1.6] text-ink-soft">{t("note")}</p>
 
           <div className="border-t border-line">

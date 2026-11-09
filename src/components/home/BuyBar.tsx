@@ -34,7 +34,8 @@ export default function BuyBar() {
   const [busy, setBusy] = useState(false);
   const [autoOpened, setAutoOpened] = useState(false);
 
-  // 버튼엔 상품가만(국내 쇼핑몰 관례) — 배송비는 위 작은 줄, 총액은 주문서·재구매 시트에서 더한다
+  // 버튼엔 상품가만(국내 쇼핑몰 관례) — 배송비는 제품 섹션 가격 아래, 총액은 주문서·재구매 시트에서 더한다.
+  // 바 위 알약은 판매 전 안내가 있을 때만 — 늘 떠 있으면 바가 화면 13%를 가리고 본문을 끊는다(UX 리뷰 A7)
   const price = CHECKOUT_PRICING.price * qty;
   const shippingLine = t("shipping", {
     fee: formatKRW(CHECKOUT_PRICING.shippingFee),
@@ -97,11 +98,7 @@ export default function BuyBar() {
             }}
           />
           {/* 본문 큰 제목 위에 떠도 읽히게 — 반투명·얇은 띠는 아래 글자가 비쳐 섞인다 */}
-          {!showNotify ? (
-            <p className="pointer-events-none m-0 rounded-full bg-paper px-[12px] py-[5px] text-[12px] text-grey shadow-[0_2px_10px_rgba(20,20,20,0.10)]">
-              {shippingLine}
-            </p>
-          ) : (
+          {showNotify && (
             // 결제를 열기 전에도 사기는 결제 직전까지 간다(카드 심사) — 출시 알림 길은 여기 남긴다.
             // 아래 줄 전체가 링크(누르는 자리 44px 안팎)
             <div className="pointer-events-auto flex flex-col items-center rounded-[16px] bg-paper text-center text-[12px] leading-[1.5] text-grey shadow-[0_2px_10px_rgba(20,20,20,0.10)]">
