@@ -328,6 +328,7 @@
     "historyTitle": "취소·반품·교환 내역",
     "refundDue": "{date}까지 환불 예정",
     "requestedAt": "{date} 신청",
+    "compensatedAt": "{date} 보상",
     "status": {
       "cancel": {
         "requested": "환불 처리 중",
@@ -337,7 +338,8 @@
         "shipped": "환불 처리 중",
         "completed": "환불 완료",
         "rejected": "취소 거절",
-        "withdrawn": "신청 철회"
+        "withdrawn": "신청 철회",
+        "expired": "신청 만료"
       },
       "return": {
         "requested": "반품 신청됨",
@@ -347,7 +349,8 @@
         "shipped": "환불 처리 중",
         "completed": "환불 완료",
         "rejected": "반품 거절",
-        "withdrawn": "신청 철회"
+        "withdrawn": "신청 철회",
+        "expired": "신청 만료"
       },
       "exchange": {
         "requested": "교환 신청됨",
@@ -357,7 +360,19 @@
         "failed": "회수 확인",
         "completed": "교환 완료",
         "rejected": "교환 거절",
-        "withdrawn": "신청 철회"
+        "withdrawn": "신청 철회",
+        "expired": "신청 만료"
+      },
+      "compensation": {
+        "requested": "환불 처리 중",
+        "approved": "환불 처리 중",
+        "failed": "환불 처리 중",
+        "received": "환불 처리 중",
+        "shipped": "환불 처리 중",
+        "completed": "환불 완료",
+        "rejected": "환불 거절",
+        "withdrawn": "신청 철회",
+        "expired": "신청 만료"
       }
     },
     "error": {
@@ -385,7 +400,8 @@
     "type": {
       "cancel": "취소",
       "return": "반품",
-      "exchange": "교환"
+      "exchange": "교환",
+      "compensation": "보상 환불"
     },
     "rejectReason": "거절 이유: {reason}",
     "withdraw": "신청 철회",
@@ -543,6 +559,7 @@
       "home": "홈으로 가기",
       "declined": "결제가 승인되지 않았어요. 카드 한도나 잔액을 확인하거나 다른 결제수단으로 시도해 주세요.",
       "expired": "결제 시간이 지나 승인하지 못했어요. 결제된 금액은 없어요. 다시 결제해 주세요.",
+      "amountInvalid": "결제 금액이 주문 금액과 달라 결제를 승인하지 않았어요. 결제된 금액은 없어요. 다시 결제해 주세요.",
       "backToCheckout": "결제수단 변경하기",
       "hiccup": "결제 확인이 늦어지고 있어요. 다시 시도해도 중복 결제되지 않아요. 계속 안 되면 주문 내역을 확인하거나 고객센터로 문의해 주세요.",
       "orders": "주문 내역",

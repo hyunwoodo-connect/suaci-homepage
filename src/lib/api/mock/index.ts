@@ -336,7 +336,7 @@ export function createMockClient(): ApiClient {
       const order = orders[idx];
       if (order.paymentStatus === "paid") return order;
       if (r.amount !== order.totals.grandTotal) {
-        throw new ApiClientError("PAYMENT_AMOUNT_MISMATCH", "결제 금액이 일치하지 않습니다", 400);
+        throw new ApiClientError("PAYMENT_AMOUNT_INVALID", "결제 금액이 주문 금액과 다릅니다", 400);
       }
       // 데이터 원칙: 목업도 수단을 남긴다 — paymentKey 가 mock_{수단}_… 모양이면 그 수단
       const m = /^mock_(CARD|BRANDPAY|TOSSPAY|NAVERPAY|KAKAOPAY)_/.exec(r.paymentKey);

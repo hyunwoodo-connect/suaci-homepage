@@ -134,9 +134,12 @@ export function openAfterDeliveryType(claims: Claim[]): "return" | "exchange" | 
   return open?.type === "return" || open?.type === "exchange" ? open.type : undefined;
 }
 
-/** 환불을 시작했지만 끝나지 않은 취소·반품이 있나 — 그동안 다른 환불·교환을 시작하지 않는다(서버 환불 잠금) */
+/** 환불 잠금에 걸리는 종류 — 취소·반품과 회사가 준 보상 환불(줄이 없어 남은 수량에는 세지 않는다) */
+const LOCKING_TYPES: readonly ClaimType[] = [...REFUND_TYPES, "compensation"];
+
+/** 환불을 시작했지만 끝나지 않은 취소·반품·보상 환불이 있나 — 그동안 다른 환불·교환을 시작하지 않는다(서버 환불 잠금) */
 export function hasRefundInFlight(claims: Claim[]): boolean {
-  return claims.some((c) => REFUND_TYPES.includes(c.type) && IN_FLIGHT.includes(c.status));
+  return claims.some((c) => LOCKING_TYPES.includes(c.type) && IN_FLIGHT.includes(c.status));
 }
 
 /** 줄마다 남은 수량(취소·반품·교환할 수 있는 수량) = 주문 수량 − 환불이 시작됐거나 끝난 취소·반품 수량 */

@@ -328,6 +328,7 @@
     "historyTitle": "cancellations, returns & exchanges",
     "refundDue": "refund expected by {date}",
     "requestedAt": "requested {date}",
+    "compensatedAt": "compensated {date}",
     "status": {
       "cancel": {
         "requested": "refund in progress",
@@ -337,7 +338,8 @@
         "shipped": "refund in progress",
         "completed": "refunded",
         "rejected": "cancellation declined",
-        "withdrawn": "request withdrawn"
+        "withdrawn": "request withdrawn",
+        "expired": "request closed"
       },
       "return": {
         "requested": "return requested",
@@ -347,7 +349,8 @@
         "shipped": "refund in progress",
         "completed": "refunded",
         "rejected": "return declined",
-        "withdrawn": "request withdrawn"
+        "withdrawn": "request withdrawn",
+        "expired": "request closed"
       },
       "exchange": {
         "requested": "exchange requested",
@@ -357,7 +360,19 @@
         "failed": "item received",
         "completed": "exchanged",
         "rejected": "exchange declined",
-        "withdrawn": "request withdrawn"
+        "withdrawn": "request withdrawn",
+        "expired": "request closed"
+      },
+      "compensation": {
+        "requested": "refund in progress",
+        "approved": "refund in progress",
+        "failed": "refund in progress",
+        "received": "refund in progress",
+        "shipped": "refund in progress",
+        "completed": "refunded",
+        "rejected": "refund declined",
+        "withdrawn": "request withdrawn",
+        "expired": "request closed"
       }
     },
     "error": {
@@ -385,7 +400,8 @@
     "type": {
       "cancel": "cancellation",
       "return": "return",
-      "exchange": "exchange"
+      "exchange": "exchange",
+      "compensation": "compensation"
     },
     "rejectReason": "reason: {reason}",
     "withdraw": "withdraw request",
@@ -543,6 +559,7 @@
       "home": "home",
       "declined": "the card company said no. try another way?",
       "expired": "the payment window timed out, so we didn't approve it. you haven't been charged. please pay again.",
+      "amountInvalid": "the payment amount didn't match your order, so we didn't approve it. you haven't been charged. please pay again.",
       "backToCheckout": "back to checkout",
       "hiccup": "a little hiccup. tap once more.",
       "orders": "my orders",

@@ -146,6 +146,31 @@ describe("/pay/complete", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
+  it("PAYMENT_AMOUNT_INVALID(승인 전 금액 다름) → 결제된 금액 없다는 문구 + 다시 결제하기, 닫혔다는 말은 없다", async () => {
+    savePendingOrder(pendingBase);
+    searchParams.value = new URLSearchParams({
+      o: "o1",
+      paymentKey: "k12345678",
+      orderId: "n",
+      amount: "1",
+    });
+    confirmPayment.mockRejectedValue(
+      new ApiClientError("PAYMENT_AMOUNT_INVALID", "금액 다름", 400),
+    );
+    await act(async () => {
+      renderComplete();
+    });
+    expect(
+      await screen.findByText(
+        "결제 금액이 주문 금액과 달라 결제를 승인하지 않았어요. 결제된 금액은 없어요. 다시 결제해 주세요.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText("다시 결제하기").closest("a")?.getAttribute("href")).toBe(
+      "/checkout?qty=2",
+    );
+    expect(screen.queryByText(/닫혔어요/)).toBeNull();
+  });
+
   it.each([
     ["OUT_OF_STOCK", 409, /재고가 모자라 주문을 받지 못했어요/],
     ["ORDER_NOT_PAYABLE", 409, /결제를 마치지 못하고 닫혔어요/],
