@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { formatKRW } from "@/lib/format";
 import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -676,6 +676,38 @@ describe("주문 상세", () => {
     expect(screen.queryByText(/발송된 주문은 취소할 수 없어요/)).toBeNull();
     expect(screen.getByRole("button", { name: "반품 신청" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "hello@takesuaci.com" })).toBeTruthy();
+  });
+
+  it("보상 환불(회사가 금액만 돌려줌) → 내역에 '보상 환불'·금액·사유 글·보상 날짜, 품목 줄·신청 날짜 없음", async () => {
+    signIn();
+    getOrder.mockResolvedValue({
+      ...ORDER,
+      fulfillmentStatus: "delivered",
+      paymentStatus: "partially_refunded",
+    });
+    listClaims.mockResolvedValue([
+      {
+        claimId: "cp1",
+        orderId: "o1",
+        type: "compensation",
+        status: "completed",
+        reasonCode: "상품하자",
+        reasonDetail: "누액으로 일부를 못 써서 보상해 드려요",
+        lines: [],
+        refundAmount: 10000,
+        refundedShipping: 0,
+        returnShippingFee: 0,
+        createdAt: Date.parse("2026-11-20T10:00:00+09:00"),
+        createdDtm: "",
+      },
+    ]);
+    await renderPage();
+    const item = (await screen.findByText(/보상 환불 ·/)).closest("li") as HTMLElement;
+    expect(within(item).getByText("환불 완료")).toBeTruthy();
+    expect(within(item).getByText("누액으로 일부를 못 써서 보상해 드려요")).toBeTruthy();
+    expect(within(item).getByText(/보상$/)).toBeTruthy();
+    expect(within(item).queryByText(/ × /)).toBeNull();
+    expect(within(item).queryByText(/신청$/)).toBeNull();
   });
 
   it("배송 완료 3개월이 지나 반품 버튼이 없어도 → 막다른 길이 아니게 문의 메일", async () => {

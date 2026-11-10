@@ -10,6 +10,7 @@ const REFUND_TONE = {
   shipped: "neutral",
   completed: "muted",
   withdrawn: "muted",
+  expired: "muted",
   rejected: "problem",
 } as const satisfies Record<ClaimStatus, BadgeTone>;
 
@@ -20,6 +21,7 @@ const REFUND_TONE = {
 export const CLAIM_STATUS_TONE = {
   cancel: REFUND_TONE,
   return: REFUND_TONE,
+  compensation: REFUND_TONE,
   exchange: {
     requested: "neutral",
     received: "neutral",
@@ -28,6 +30,7 @@ export const CLAIM_STATUS_TONE = {
     failed: "neutral",
     completed: "done",
     withdrawn: "muted",
+    expired: "muted",
     rejected: "problem",
   },
 } as const satisfies Record<ClaimType, Record<ClaimStatus, BadgeTone>>;

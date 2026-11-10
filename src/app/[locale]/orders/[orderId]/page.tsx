@@ -35,7 +35,7 @@ import {
   isShippedPaid,
   openAfterDeliveryType,
 } from "@/lib/claims/rules";
-import type { Claim, ClaimType, Order } from "@/types";
+import type { Claim, ClaimFormType, Order } from "@/types";
 
 import {
   isShipDelayed,
@@ -428,7 +428,7 @@ function OrderActions({ order, claims, reload }: OrderActionsProps) {
   const { busy, run } = useSubmitLock();
   const [confirmCancel, setConfirmCancel] = useState(false);
   // 신청 폼은 한 번에 하나만 펼친다(취소·반품·교환)
-  const [openForm, setOpenForm] = useState<ClaimType | null>(null);
+  const [openForm, setOpenForm] = useState<ClaimFormType | null>(null);
   // 신청 종류마다 멱등키 하나 — 폼이 닫혀도 남고, 신청이 됐을 때만 바뀐다
   const keys = useClaimKeys();
   const [error, setError] = useState<string | null>(null);
@@ -442,18 +442,18 @@ function OrderActions({ order, claims, reload }: OrderActionsProps) {
   const [now] = useState(Date.now);
   const canAfterDelivery = canRequestAfterDelivery(order, claims, now);
 
-  const open = (form: ClaimType) => {
+  const open = (form: ClaimFormType) => {
     setError(null);
     setOpenForm(form);
   };
   const closeForm = () => setOpenForm(null);
-  const formDone = (type: ClaimType) => async () => {
+  const formDone = (type: ClaimFormType) => async () => {
     keys.renew(type);
     setOpenForm(null);
     await reload();
   };
   // 실패로 보여도 서버에선 됐을 수 있다(응답만 늦음) — 다시 읽어 그 종류의 새 신청이 생겼으면 된 것으로 본다
-  const formFailed = (type: ClaimType) => async () => {
+  const formFailed = (type: ClaimFormType) => async () => {
     const known = new Set(claims.filter((c) => c.type === type).map((c) => c.claimId));
     const next = await reload();
     if (next?.claims.some((c) => c.type === type && !known.has(c.claimId))) {

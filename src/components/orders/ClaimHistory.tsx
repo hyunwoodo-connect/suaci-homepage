@@ -83,12 +83,14 @@ function ClaimRow({
   const shippingBack =
     c.type === "return" && c.refundedShipping > 0 && formatKRW(c.refundedShipping);
   // 환불 기한은 환불이 진행 중일 때만 — 끝난 환불에 '…까지 환불 예정'이 같이 뜨면 말이 부딪친다(UX 리뷰 E2)
-  const isMoneyClaim = c.type === "cancel" || c.type === "return";
+  const isMoneyClaim = !isExchange;
   const refundDueDate =
     c.refundDueAt !== undefined && isMoneyClaim && isRefunding(c) && formatDateKST(c.refundDueAt);
   // 끝난 환불엔 카드사 반영 안내 한 줄(돈이 오간 취소·반품만)
   const showRefundDone = isMoneyClaim && c.status === "completed" && c.refundAmount > 0;
   const requestedDate = formatDateKST(c.createdAt);
+  // 보상 환불은 손님이 신청한 게 아니라 회사가 돌려준 것 — 날짜 말을 바꾼다
+  const dateKey = c.type === "compensation" ? "compensatedAt" : "requestedAt";
   // 모르는 상태 코드는 이름 없이(송장·조회 링크만)
   const pickupStatusLabel =
     c.pickupStatus && PICKUP_STATUSES.includes(c.pickupStatus)
@@ -111,14 +113,16 @@ function ClaimRow({
             : formatKRW(c.refundAmount)}
         </b>
       </div>
-      <p className="num m-0 mb-[6px] text-[13px] leading-[1.6] text-ink">
-        {c.lines
-          .map((l) => {
-            const item = items.find((i) => i.lineId === l.lineId);
-            return `${item ? itemName(item, locale) : ""} × ${String(l.quantity)}`;
-          })
-          .join(" · ")}
-      </p>
+      {c.lines.length > 0 && (
+        <p className="num m-0 mb-[6px] text-[13px] leading-[1.6] text-ink">
+          {c.lines
+            .map((l) => {
+              const item = items.find((i) => i.lineId === l.lineId);
+              return `${item ? itemName(item, locale) : ""} × ${String(l.quantity)}`;
+            })
+            .join(" · ")}
+        </p>
+      )}
       {c.reasonDetail && (
         <p className="m-0 mb-[6px] text-[13px] leading-[1.6] text-ink-soft">{c.reasonDetail}</p>
       )}
@@ -157,7 +161,7 @@ function ClaimRow({
         )}
         {refundDueDate && <span className="num">{tc("refundDue", { date: refundDueDate })}</span>}
         {showRefundDone && <span>{tc("refundDoneNote")}</span>}
-        <span className="num">{tc("requestedAt", { date: requestedDate })}</span>
+        <span className="num">{tc(dateKey, { date: requestedDate })}</span>
         {(c.photoCount ?? 0) > 0 && (
           <span className="num">{tc("photos.count", { n: c.photoCount ?? 0 })}</span>
         )}

@@ -12,6 +12,7 @@ import {
   remainingQty,
   returnQuote,
   returnWindow,
+  hasRefundInFlight,
 } from "./rules";
 
 const ORDER: Order = {
@@ -284,5 +285,27 @@ describe("returnQuote", () => {
       itemsAmount: 28000,
       refundedShipping: 0,
     });
+  });
+});
+
+describe("hasRefundInFlight", () => {
+  const base: Omit<Claim, "claimId" | "type" | "status"> = {
+    orderId: "o1",
+    reasonCode: "상품하자",
+    lines: [],
+    refundAmount: 5000,
+    refundedShipping: 0,
+    returnShippingFee: 0,
+    createdAt: 0,
+    createdDtm: "",
+  };
+  it.each([
+    ["보상 환불 처리 중(approved)", "compensation", "approved", true],
+    ["보상 환불 재시도 중(failed)", "compensation", "failed", true],
+    ["보상 환불 끝남", "compensation", "completed", false],
+    ["취소 재시도 중", "cancel", "failed", true],
+    ["교환 회수 확인(돈 없음)", "exchange", "approved", false],
+  ] as const)("%s → %s", (_label, type, status, expected) => {
+    expect(hasRefundInFlight([{ ...base, claimId: "c1", type, status }])).toBe(expected);
   });
 });

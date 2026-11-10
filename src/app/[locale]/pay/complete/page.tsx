@@ -15,7 +15,8 @@ import { parsePaymentReturn } from "@/lib/payment/providers";
 
 /**
  * 결제 성공 복귀 — 결제창(또는 목업)이 paymentKey·orderId·amount 를 들고 오는 곳.
- * 금액은 쿼리 그대로 승인에 보낸다 — 변조면 서버가 PAYMENT_AMOUNT_MISMATCH 로 거절한다(스펙 §4).
+ * 금액은 쿼리 그대로 승인에 보낸다 — 주문 금액과 다르면 서버가 승인 전에 PAYMENT_AMOUNT_INVALID 로 거절한다(돈은 안 나감).
+ * 토스가 실제로 다른 금액을 승인했으면 서버가 취소·환불하고 주문을 닫는다(PAYMENT_AMOUNT_MISMATCH).
  */
 export default function PayCompletePage() {
   return (
@@ -32,6 +33,7 @@ type Phase =
   | "badLink"
   | "declined"
   | "expired"
+  | "amountInvalid"
   | "hiccup"
   | "refundedOutOfStock"
   | "refundedClosed"
@@ -56,6 +58,8 @@ const CLOSED_BY_SERVER: Readonly<Record<string, Phase>> = {
 const RETRY_WITH_NEW_PAYMENT: Readonly<Record<string, Phase>> = {
   PAYMENT_DECLINED: "declined",
   PAYMENT_SESSION_EXPIRED: "expired",
+  // 승인 요청 금액이 주문 금액과 달라 서버가 토스를 부르지 않았다(주문은 결제 대기 그대로)
+  PAYMENT_AMOUNT_INVALID: "amountInvalid",
 };
 
 function PayCompleteBody() {
@@ -119,7 +123,7 @@ function PayCompleteBody() {
       </PayResult>
     );
   }
-  if (phase === "declined" || phase === "expired") {
+  if (phase === "declined" || phase === "expired" || phase === "amountInvalid") {
     const checkoutHref = pendingQty ? `/checkout?qty=${String(pendingQty)}` : "/checkout";
     const buttonLabel = phase === "declined" ? t("backToCheckout") : t("continue");
     return (

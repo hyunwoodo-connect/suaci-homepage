@@ -2,9 +2,13 @@ import type { ReasonCode, ClaimStatus } from "./common";
 
 /**
  * 클레임 종류 — 발송 전 취소(바로 환불) / 받은 뒤 반품(신청 → 회수 확인 뒤 환불 또는 거절) /
- * 받은 뒤 교환(같은 제품의 새 제품으로 — 신청 → 회수 확인 → 새 제품 발송 → 완료, 돈은 움직이지 않는다)
+ * 받은 뒤 교환(같은 제품의 새 제품으로 — 신청 → 회수 확인 → 새 제품 발송 → 완료, 돈은 움직이지 않는다) /
+ * 보상 환불(회사가 회수 없이 금액만 돌려줌 — 손님은 신청하지 않고 내역에서 보기만, 줄 없음)
  */
-export type ClaimType = "cancel" | "return" | "exchange";
+export type ClaimType = "cancel" | "return" | "exchange" | "compensation";
+
+/** 손님이 주문 상세에서 신청하는 종류 — 보상 환불은 회사만 연다 */
+export type ClaimFormType = Exclude<ClaimType, "compensation">;
 
 /** 반품 사유 — 단순 변심(손님 부담·7일·미개봉)과 회사 탓 셋(3개월·배송비 회사 부담) */
 export type ReturnReason = Extract<ReasonCode, "단순변심" | "상품하자" | "오배송" | "표시광고상이">;
@@ -55,6 +59,8 @@ export interface Claim {
   shippedAt?: number;
   /** 손님이 신청을 철회한 시각 */
   withdrawnAt?: number;
+  /** 반품: 회수 송장 없이 14일이 지나 서버가 신청을 닫은 때 */
+  expiredAt?: number;
   createdAt: number;
   createdDtm: string;
   resolvedAt?: number;

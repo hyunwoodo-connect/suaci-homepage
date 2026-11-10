@@ -82,7 +82,7 @@ describe("mock client", () => {
     const order = await api.createOrder({ addressId: addr.addressId, idempotencyKey: "i2", items });
     await expect(
       api.confirmPayment(order.orderId, { paymentKey: "k", amount: order.totals.grandTotal + 1 }),
-    ).rejects.toMatchObject({ code: "PAYMENT_AMOUNT_MISMATCH" });
+    ).rejects.toMatchObject({ code: "PAYMENT_AMOUNT_INVALID" });
     const paid = await api.confirmPayment(order.orderId, {
       paymentKey: "k",
       amount: order.totals.grandTotal,
