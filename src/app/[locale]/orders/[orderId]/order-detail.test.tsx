@@ -596,6 +596,29 @@ describe("주문 상세", () => {
     expect(screen.queryByRole("button", { name: "주문 취소" })).toBeNull();
   });
 
+  it.each([
+    [
+      "PAYMENT_GATEWAY_UNAVAILABLE",
+      503,
+      "결제 상태를 확인하지 못해 아직 취소하지 않았어요. 잠시 후 다시 시도해 주세요.",
+    ],
+    [
+      "PAYMENT_IN_PROGRESS",
+      409,
+      "결제를 확인하고 있어요. 잠시 후 다시 시도해 주세요. 결제가 끝나지 않았다면 10분 안에 자동으로 닫혀요.",
+    ],
+  ])("결제 대기 취소가 %s → 이 버튼의 안내(주문은 그대로)", async (code, status, text) => {
+    signIn();
+    getOrder.mockResolvedValue({ ...ORDER, status: "pending", paymentStatus: "pending" });
+    cancelOrder.mockRejectedValueOnce(new ApiClientError(code, "x", status));
+    await renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "주문 취소" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "취소하기" }));
+    });
+    expect(screen.getByRole("alert").textContent).toBe(text);
+  });
+
   it("자동 환불 중인 주문(status pending · 결제 refunding) → 환불 처리 중, 결제하기·주문 취소 버튼 없음", async () => {
     signIn();
     getOrder.mockResolvedValue({ ...ORDER, status: "pending", paymentStatus: "refunding" });

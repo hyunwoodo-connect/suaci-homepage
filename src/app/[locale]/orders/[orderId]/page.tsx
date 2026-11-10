@@ -56,6 +56,11 @@ interface OrderDetailData {
   isShipDelayed: boolean;
 }
 
+/** 결제 대기 주문 취소가 막힌 이유 중 그 버튼의 말로 알리는 서버 코드 — 메시지 `orders.cancelError.{code}` */
+const PENDING_CANCEL_ERRORS: readonly string[] = [
+  "PAYMENT_GATEWAY_UNAVAILABLE",
+  "PAYMENT_IN_PROGRESS",
+];
 /**
  * 주문 상세 — getOrder + listClaims 를 같이 받아 한 번에 그린다(취소 내역이 늦게 튀어나오지 않게).
  * 로그인 토큰이 브라우저에만 있어 서버에서 미리 못 받는다 — 받는 동안은 같은 틀의 뼈대.
@@ -473,8 +478,16 @@ function OrderActions({ order, claims, reload }: OrderActionsProps) {
         setConfirmCancel(false);
         await reload();
       } catch (err) {
-        const errorKey = claimErrorKey(err);
-        const errorMessage = tc(errorKey);
+        // 결제 전 취소에서만 나는 막힘(토스를 못 읽음·승인 처리 중)은 이 버튼의 말로 — 취소 요청(환불)의 503 과 뜻이 다르다
+        const code = err instanceof ApiClientError ? err.code : "";
+        let errorMessage: string;
+        if (PENDING_CANCEL_ERRORS.includes(code)) {
+          const messageKey = `cancelError.${code}`;
+          errorMessage = t(messageKey);
+        } else {
+          const errorKey = claimErrorKey(err);
+          errorMessage = tc(errorKey);
+        }
         setError(errorMessage);
         // 토스가 이미 승인해 서버가 결제완료로 확정했다 — 다시 읽어 결제된 주문(취소 요청 버튼)을 보여 준다
         if (err instanceof ApiClientError && err.code === "ORDER_ALREADY_PAID") {

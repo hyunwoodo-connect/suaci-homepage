@@ -258,6 +258,10 @@
     "cancelConfirm": "cancel this order?",
     "cancelYes": "cancel it",
     "cancelNo": "go back",
+    "cancelError": {
+      "PAYMENT_GATEWAY_UNAVAILABLE": "we couldn't check the payment, so the order isn't cancelled yet. please try again in a little while.",
+      "PAYMENT_IN_PROGRESS": "we're still checking this payment. please try again in a little while. if it didn't go through, the order closes on its own within 10 minutes."
+    },
     "goLogin": "sign in",
     "requestCancel": "request cancellation",
     "requestReturn": "request a return",
@@ -375,8 +379,7 @@
       "default": "we couldn't process your request. please try again in a moment.",
       "CLAIM_PHOTO_NOT_FOUND": "we couldn't find an uploaded photo. please remove it and choose again.",
       "RATE_LIMITED": "you can't upload more photos today. please try again tomorrow.",
-      "ORDER_ALREADY_PAID": "this order is already paid. we reloaded it. to cancel, tap 'request cancellation' below.",
-      "PAYMENT_GATEWAY_UNAVAILABLE": "we couldn't check the payment, so the order isn't cancelled yet. please try again in a little while."
+      "ORDER_ALREADY_PAID": "this order is already paid. we reloaded it. to cancel, tap 'request cancellation' below."
     },
     "cardNote": "depending on your card issuer, the refund may take another 3–7 business days to show on your card.",
     "type": {

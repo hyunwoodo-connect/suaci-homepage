@@ -258,6 +258,10 @@
     "cancelConfirm": "이 주문을 취소할까요?",
     "cancelYes": "취소하기",
     "cancelNo": "돌아가기",
+    "cancelError": {
+      "PAYMENT_GATEWAY_UNAVAILABLE": "결제 상태를 확인하지 못해 아직 취소하지 않았어요. 잠시 후 다시 시도해 주세요.",
+      "PAYMENT_IN_PROGRESS": "결제를 확인하고 있어요. 잠시 후 다시 시도해 주세요. 결제가 끝나지 않았다면 10분 안에 자동으로 닫혀요."
+    },
     "goLogin": "로그인",
     "requestCancel": "주문 취소 요청",
     "requestReturn": "반품 신청",
@@ -375,8 +379,7 @@
       "default": "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.",
       "CLAIM_PHOTO_NOT_FOUND": "올린 사진을 찾지 못했어요. 사진을 빼고 다시 골라 주세요.",
       "RATE_LIMITED": "오늘은 사진을 더 올릴 수 없어요. 내일 다시 시도해 주세요.",
-      "ORDER_ALREADY_PAID": "결제가 이미 끝난 주문이에요. 주문을 다시 불러왔어요. 취소하려면 아래 '주문 취소 요청'을 눌러 주세요.",
-      "PAYMENT_GATEWAY_UNAVAILABLE": "결제 상태를 확인하지 못해 아직 취소하지 않았어요. 잠시 후 다시 시도해 주세요."
+      "ORDER_ALREADY_PAID": "결제가 이미 끝난 주문이에요. 주문을 다시 불러왔어요. 취소하려면 아래 '주문 취소 요청'을 눌러 주세요."
     },
     "cardNote": "카드사 사정에 따라 환불이 카드에 반영되기까지 3~7영업일이 더 걸릴 수 있어요.",
     "type": {

@@ -8,8 +8,6 @@ const KNOWN_CODES: readonly string[] = [
   "ORDER_NOT_CANCELLABLE",
   // 결제 전 취소인데 토스가 이미 승인했다 — 서버가 결제완료로 확정했다(다시 읽어 보여 준다)
   "ORDER_ALREADY_PAID",
-  // 결제 전 취소인데 토스 결제 상태를 못 읽어 닫지 않았다
-  "PAYMENT_GATEWAY_UNAVAILABLE",
   "CLAIM_NOT_ALLOWED",
   "OVER_REFUND",
   "INVALID_CLAIM_QUANTITY",
