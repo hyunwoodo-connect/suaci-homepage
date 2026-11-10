@@ -23,7 +23,7 @@ import Skeleton from "@/components/ui/Skeleton";
 import { BUSINESS } from "@/constants/site";
 import { trackPurchase } from "@/lib/analytics";
 import { useAnalyticsConsent } from "@/lib/analytics-consent";
-import { api, isAuthRequired, isNotFound } from "@/lib/api";
+import { api, ApiClientError, isAuthRequired, isNotFound } from "@/lib/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { methodFromLabel, paymentEnv } from "@/lib/payment/providers";
 import { isLiveClientKey } from "@/lib/payment/toss";
@@ -429,7 +429,8 @@ function OrderActions({ order, claims, reload }: OrderActionsProps) {
   const [error, setError] = useState<string | null>(null);
 
   // 결제 전 → 바로 취소(한 번 더 묻는다). 결제했고 아직 안 보냄 → 취소 요청(사유 폼이 확인 단계)
-  const canCancel = order.status === "pending";
+  // 서버(결제 전 취소)와 같은 조건 — 멈춘 자동 환불(status pending·결제 refunding)은 결제 전이 아니다
+  const canCancel = order.paymentStatus === "pending";
   const canCancelPaid = canRequestCancel(order, claims);
   // 받은 뒤 → 반품·교환 신청(조건이 같다 — 기한·진행 중 신청은 rules 가 본다)
   // 기한은 화면을 연 때 기준(렌더마다 시계를 읽지 않는다)
@@ -475,6 +476,11 @@ function OrderActions({ order, claims, reload }: OrderActionsProps) {
         const errorKey = claimErrorKey(err);
         const errorMessage = tc(errorKey);
         setError(errorMessage);
+        // 토스가 이미 승인해 서버가 결제완료로 확정했다 — 다시 읽어 결제된 주문(취소 요청 버튼)을 보여 준다
+        if (err instanceof ApiClientError && err.code === "ORDER_ALREADY_PAID") {
+          setConfirmCancel(false);
+          await reload();
+        }
       }
     });
 

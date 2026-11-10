@@ -374,7 +374,9 @@
       "ADDRESS_NOT_FOUND": "we couldn't find that address. please check your saved addresses.",
       "default": "we couldn't process your request. please try again in a moment.",
       "CLAIM_PHOTO_NOT_FOUND": "we couldn't find an uploaded photo. please remove it and choose again.",
-      "RATE_LIMITED": "you can't upload more photos today. please try again tomorrow."
+      "RATE_LIMITED": "you can't upload more photos today. please try again tomorrow.",
+      "ORDER_ALREADY_PAID": "this order is already paid. we reloaded it. to cancel, tap 'request cancellation' below.",
+      "PAYMENT_GATEWAY_UNAVAILABLE": "we couldn't check the payment, so the order isn't cancelled yet. please try again in a little while."
     },
     "cardNote": "depending on your card issuer, the refund may take another 3–7 business days to show on your card.",
     "type": {
@@ -537,6 +539,7 @@
       "badLink": "this link doesn't look right.",
       "home": "home",
       "declined": "the card company said no. try another way?",
+      "expired": "the payment window timed out, so we didn't approve it. you haven't been charged. please pay again.",
       "backToCheckout": "back to checkout",
       "hiccup": "a little hiccup. tap once more.",
       "orders": "my orders",

@@ -578,6 +578,32 @@ describe("주문 상세", () => {
     );
   });
 
+  it("결제 대기 취소인데 토스가 이미 승인했으면(ORDER_ALREADY_PAID) → 그 안내 + 다시 읽어 결제된 주문(취소 요청 버튼)", async () => {
+    signIn();
+    getOrder
+      .mockResolvedValueOnce({ ...ORDER, status: "pending", paymentStatus: "pending" })
+      .mockResolvedValue(ORDER);
+    cancelOrder.mockRejectedValueOnce(new ApiClientError("ORDER_ALREADY_PAID", "x", 409));
+    await renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "주문 취소" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "취소하기" }));
+    });
+    expect(screen.getByRole("alert").textContent).toBe(
+      "결제가 이미 끝난 주문이에요. 주문을 다시 불러왔어요. 취소하려면 아래 '주문 취소 요청'을 눌러 주세요.",
+    );
+    expect(screen.getByRole("button", { name: "주문 취소 요청" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "주문 취소" })).toBeNull();
+  });
+
+  it("자동 환불 중인 주문(status pending · 결제 refunding) → 환불 처리 중, 결제하기·주문 취소 버튼 없음", async () => {
+    signIn();
+    getOrder.mockResolvedValue({ ...ORDER, status: "pending", paymentStatus: "refunding" });
+    await renderPage();
+    expect(screen.queryByRole("button", { name: "주문 취소" })).toBeNull();
+    expect(screen.queryByText("이 주문 결제하기")).toBeNull();
+  });
+
   it("상품 준비 중(발송 전) → 아직 취소 요청할 수 있다", async () => {
     signIn();
     getOrder.mockResolvedValue({ ...ORDER, fulfillmentStatus: "preparing" });

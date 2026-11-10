@@ -36,7 +36,9 @@ const OPEN_CLAIM_STATE = {
 
 /**
  * 세 축(+진행 중 반품·교환) → 상태 이름 하나. 위에서부터 먼저 걸리는 것이 이긴다:
- * 끝난 주문(환불·취소) → 결제 전 → 진행 중 반품·교환 → 환불 진행 → 받은 뒤 일부 환불 → 배송 단계 → 일부 환불 → 결제완료.
+ * 환불완료 → 환불 진행 → 취소 → 결제 전 → 진행 중 반품·교환 → 받은 뒤 일부 환불 → 배송 단계 → 일부 환불 → 결제완료.
+ * 결제 단위 환불 진행(refunding)은 자동 환불(재고 부족·닫힌 뒤 잡힌 결제)뿐이고 그때 주문 status 는 pending·cancelled 그대로라
+ * 그보다 먼저 본다 — 멈춘 자동 환불이 '결제 대기'로 보여 결제하기·취소 버튼이 뜨지 않게(유즈케이스 리뷰 E1).
  * 손님에게 가장 최근에 일어난 일을 하나로 — 반품을 신청했거나 환불된 주문이 '배송완료'로만 보이지 않게(UX 리뷰 E1).
  * 배송 단계는 상세의 진행 단계가 따로 보인다. 백엔드는 전액 환불도 status 를 cancelled 로 두므로 환불완료를 주문취소보다 먼저 본다.
  */
@@ -47,10 +49,10 @@ export function orderState({
   openClaim,
 }: OrderStateInput): OrderState {
   if (paymentStatus === "refunded") return "refunded";
+  if (paymentStatus === "refunding") return "refunding";
   if (status === "cancelled" || paymentStatus === "voided") return "cancelled";
   if (status === "pending" || paymentStatus === "pending") return "awaitingPayment";
   if (openClaim) return OPEN_CLAIM_STATE[openClaim];
-  if (paymentStatus === "refunding") return "refunding";
   // 받은 뒤의 일부 환불(반품 환불)은 배송완료보다 새 소식이다 — 보내기 전·보내는 중의 일부 취소는 배송 단계가 먼저
   if (fulfillmentStatus === "delivered" && paymentStatus === "partially_refunded") {
     return "partiallyRefunded";
