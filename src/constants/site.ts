@@ -9,6 +9,12 @@ export const SITE = {
   copyright: "© 2026 suaci",
 } as const;
 
+/**
+ * 헤더 '이벤트' 메뉴를 보이는가. take four 를 닫아 둔 동안은 false — 메뉴만 숨기고 `/events` 목록·이벤트 페이지 주소는 그대로 열린다.
+ * 이벤트를 다시 열 땐 true 로 바꾼다(API 쪽 잠금은 suaci-api 템플릿 파라미터 `TakeFourWall=open`).
+ */
+export const IS_EVENTS_MENU_VISIBLE: boolean = false;
+
 /** 이벤트 페이지가 서는 운영 주소의 호스트. QR 옆 안내·스토리 주소·밖으로 넘기는 링크의 기준 */
 export const SITE_HOST = "takesuaci.com";
 

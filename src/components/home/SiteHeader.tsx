@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 
 import { Link, usePathname } from "@/i18n/navigation";
 import { HOME_MEDIA } from "@/constants/product";
+import { IS_EVENTS_MENU_VISIBLE } from "@/constants/site";
 import { useAuth } from "@/lib/auth/auth-context";
 
 import LanguageMenu from "./LanguageMenu";
@@ -17,7 +18,7 @@ interface SiteHeaderProps {
 }
 
 /**
- * v5 헤더 — 로고 / 이벤트 · 언어(지구본 + 지금 언어, 눌러서 고름) · 계정 아이콘.
+ * v5 헤더 — 로고 / 이벤트(`IS_EVENTS_MENU_VISIBLE` 일 때만) · 언어(지구본 + 지금 언어, 눌러서 고름) · 계정 아이콘.
  * 폰도 같은 헤더(따로 접는 메뉴 없음).
  * 구매 CTA는 두지 않는다(원클릭 바 하나만 남긴다).
  */
@@ -50,13 +51,15 @@ export default function SiteHeader({ overlay = false, minimal = false }: SiteHea
 
         {!minimal && (
           <div className="flex items-center gap-[2px] text-[13px] min-[360px]:gap-[4px] md:gap-[12px]">
-            <Link
-              href="/events"
-              aria-current={isEventsActive ? "page" : undefined}
-              className={`flex h-[44px] items-center whitespace-nowrap px-[4px] min-[360px]:px-[6px] ${isEventsActive ? "text-ink" : "text-grey hover:text-ink"}`}
-            >
-              {t("events")}
-            </Link>
+            {IS_EVENTS_MENU_VISIBLE && (
+              <Link
+                href="/events"
+                aria-current={isEventsActive ? "page" : undefined}
+                className={`flex h-[44px] items-center whitespace-nowrap px-[4px] min-[360px]:px-[6px] ${isEventsActive ? "text-ink" : "text-grey hover:text-ink"}`}
+              >
+                {t("events")}
+              </Link>
+            )}
             <LanguageMenu />
             <Link
               href={accountHref}
