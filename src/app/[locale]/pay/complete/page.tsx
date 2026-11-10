@@ -31,6 +31,7 @@ type Phase =
   | "confirming"
   | "badLink"
   | "declined"
+  | "expired"
   | "hiccup"
   | "refundedOutOfStock"
   | "refundedClosed"
@@ -46,6 +47,15 @@ const CLOSED_BY_SERVER: Readonly<Record<string, Phase>> = {
   PAYMENT_AMOUNT_MISMATCH: "refundedClosed",
   // 출시 전 구매 차단 — 서버가 토스 승인을 부르지 않았다(돈이 안 나갔다). 판매가 열리면 새로 주문한다
   SALES_NOT_OPEN: "salesNotOpen",
+};
+
+/**
+ * 승인되지 않아 같은 결제로 다시 확인해도 소용없는 실패 — 결제창을 새로 연다(같은 보류 주문). 돈은 나가지 않았다.
+ * 카드사·은행 거절이면 다른 수단으로, 결제창 인증(10분)이 지났으면 다시 결제. 일시 오류는 여기 없다(같은 결제로 '다시 확인')
+ */
+const RETRY_WITH_NEW_PAYMENT: Readonly<Record<string, Phase>> = {
+  PAYMENT_DECLINED: "declined",
+  PAYMENT_SESSION_EXPIRED: "expired",
 };
 
 function PayCompleteBody() {
@@ -84,7 +94,7 @@ function PayCompleteBody() {
         router.replace(`/orders/${orderId}`);
         return;
       }
-      const failedPhase = closed ?? (code === "PAYMENT_DECLINED" ? "declined" : "hiccup");
+      const failedPhase = closed ?? RETRY_WITH_NEW_PAYMENT[code] ?? "hiccup";
       setPhase(failedPhase);
     }
   }, [orderId, parsed, router]);
@@ -109,12 +119,12 @@ function PayCompleteBody() {
       </PayResult>
     );
   }
-  if (phase === "declined") {
+  if (phase === "declined" || phase === "expired") {
+    const checkoutHref = pendingQty ? `/checkout?qty=${String(pendingQty)}` : "/checkout";
+    const buttonLabel = phase === "declined" ? t("backToCheckout") : t("continue");
     return (
-      <PayResult message={t("declined")}>
-        <ButtonLink href={pendingQty ? `/checkout?qty=${String(pendingQty)}` : "/checkout"}>
-          {t("backToCheckout")}
-        </ButtonLink>
+      <PayResult message={t(phase)}>
+        <ButtonLink href={checkoutHref}>{buttonLabel}</ButtonLink>
       </PayResult>
     );
   }

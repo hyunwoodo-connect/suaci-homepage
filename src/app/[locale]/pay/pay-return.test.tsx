@@ -122,6 +122,30 @@ describe("/pay/complete", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
+  it("PAYMENT_SESSION_EXPIRED(결제창 인증 10분 지남) → 결제된 금액 없다는 문구 + 다시 결제하기(같은 수량 주문서), 다시 확인하기는 없다", async () => {
+    savePendingOrder(pendingBase);
+    searchParams.value = new URLSearchParams({
+      o: "o1",
+      paymentKey: "k12345678",
+      orderId: "n",
+      amount: "31000",
+    });
+    confirmPayment.mockRejectedValue(new ApiClientError("PAYMENT_SESSION_EXPIRED", "만료", 409));
+    await act(async () => {
+      renderComplete();
+    });
+    expect(
+      await screen.findByText(
+        "결제 시간이 지나 승인하지 못했어요. 결제된 금액은 없어요. 다시 결제해 주세요.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText("다시 결제하기").closest("a")?.getAttribute("href")).toBe(
+      "/checkout?qty=2",
+    );
+    expect(screen.queryByText("다시 확인하기")).toBeNull();
+    expect(replace).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["OUT_OF_STOCK", 409, /재고가 모자라 주문을 받지 못했어요/],
     ["ORDER_NOT_PAYABLE", 409, /결제를 마치지 못하고 닫혔어요/],

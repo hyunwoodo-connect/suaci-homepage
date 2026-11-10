@@ -95,6 +95,23 @@ describe("orderState", () => {
     ).toBe("refunding");
   });
 
+  it("자동 환불 중(재고 부족 — status pending, 닫힌 뒤 잡힌 결제 — status cancelled) → 결제 대기·취소가 아니라 환불 처리 중", () => {
+    expect(
+      orderState({
+        status: "pending",
+        paymentStatus: "refunding",
+        fulfillmentStatus: "unfulfilled",
+      }),
+    ).toBe("refunding");
+    expect(
+      orderState({
+        status: "cancelled",
+        paymentStatus: "refunding",
+        fulfillmentStatus: "unfulfilled",
+      }),
+    ).toBe("refunding");
+  });
+
   it("배송 완료 뒤 반품·교환 진행 중 → 그 이름(배송완료로만 보이지 않게), 목록은 종류 없이", () => {
     const delivered = {
       status: "open",
