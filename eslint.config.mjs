@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // suaci-api `yarn contract --sync` 가 만든 계약 타입 파일
+    "src/types/api.gen.d.ts",
   ]),
 ]);
 

@@ -59,6 +59,7 @@ function claim(over: Partial<Claim>): Claim {
     refundAmount: 25000,
     refundedShipping: 0,
     returnShippingFee: 3000,
+    photoCount: 0,
     createdAt: 0,
     createdDtm: "",
     ...over,
@@ -296,6 +297,7 @@ describe("hasRefundInFlight", () => {
     refundAmount: 5000,
     refundedShipping: 0,
     returnShippingFee: 0,
+    photoCount: 0,
     createdAt: 0,
     createdDtm: "",
   };
