@@ -449,7 +449,7 @@ export function createMockClient(): ApiClient {
         claimId: uuid(),
         orderId,
         type: "cancel",
-        status: "completed",
+        status: "refunded",
         reasonCode: r.reasonCode,
         reasonDetail: r.reasonDetail,
         lines,

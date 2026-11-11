@@ -303,7 +303,7 @@ describe("mock client", () => {
           claimId: "stuck",
           orderId: order.orderId,
           type: "cancel",
-          status: "failed",
+          status: "refund_failed",
           reasonCode: "단순변심",
           lines: [{ lineId: order.items[0].lineId, productId: "p", variantId: "v", quantity: 1 }],
           refundAmount: 28000,

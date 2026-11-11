@@ -331,23 +331,15 @@
     "compensatedAt": "{date} 補償",
     "status": {
       "cancel": {
-        "requested": "返金手続き中",
-        "approved": "返金手続き中",
-        "failed": "返金手続き中",
-        "received": "返金手続き中",
-        "shipped": "返金手続き中",
-        "completed": "返金完了",
-        "rejected": "キャンセル不可",
-        "withdrawn": "申請取り下げ",
-        "expired": "申請終了"
+        "refunding": "返金手続き中",
+        "refund_failed": "返金手続き中",
+        "refunded": "返金完了"
       },
       "return": {
         "requested": "返品申請済み",
-        "approved": "返金手続き中",
-        "failed": "返金手続き中",
-        "received": "返金手続き中",
-        "shipped": "返金手続き中",
-        "completed": "返金完了",
+        "refunding": "返金手続き中",
+        "refund_failed": "返金手続き中",
+        "refunded": "返金完了",
         "rejected": "返品不可",
         "withdrawn": "申請取り下げ",
         "expired": "申請終了"
@@ -356,23 +348,14 @@
         "requested": "交換申請済み",
         "received": "返送品を確認",
         "shipped": "交換品を発送",
-        "approved": "返送品を確認",
-        "failed": "返送品を確認",
         "completed": "交換完了",
         "rejected": "交換不可",
-        "withdrawn": "申請取り下げ",
-        "expired": "申請終了"
+        "withdrawn": "申請取り下げ"
       },
       "compensation": {
-        "requested": "返金手続き中",
-        "approved": "返金手続き中",
-        "failed": "返金手続き中",
-        "received": "返金手続き中",
-        "shipped": "返金手続き中",
-        "completed": "返金完了",
-        "rejected": "返金不可",
-        "withdrawn": "申請取り下げ",
-        "expired": "申請終了"
+        "refunding": "返金手続き中",
+        "refund_failed": "返金手続き中",
+        "refunded": "返金完了"
       }
     },
     "error": {

@@ -331,23 +331,15 @@
     "compensatedAt": "{date} 보상",
     "status": {
       "cancel": {
-        "requested": "환불 처리 중",
-        "approved": "환불 처리 중",
-        "failed": "환불 처리 중",
-        "received": "환불 처리 중",
-        "shipped": "환불 처리 중",
-        "completed": "환불 완료",
-        "rejected": "취소 거절",
-        "withdrawn": "신청 철회",
-        "expired": "신청 만료"
+        "refunding": "환불 처리 중",
+        "refund_failed": "환불 처리 중",
+        "refunded": "환불 완료"
       },
       "return": {
         "requested": "반품 신청됨",
-        "approved": "환불 처리 중",
-        "failed": "환불 처리 중",
-        "received": "환불 처리 중",
-        "shipped": "환불 처리 중",
-        "completed": "환불 완료",
+        "refunding": "환불 처리 중",
+        "refund_failed": "환불 처리 중",
+        "refunded": "환불 완료",
         "rejected": "반품 거절",
         "withdrawn": "신청 철회",
         "expired": "신청 만료"
@@ -356,23 +348,14 @@
         "requested": "교환 신청됨",
         "received": "회수 확인",
         "shipped": "교환 상품 발송",
-        "approved": "회수 확인",
-        "failed": "회수 확인",
         "completed": "교환 완료",
         "rejected": "교환 거절",
-        "withdrawn": "신청 철회",
-        "expired": "신청 만료"
+        "withdrawn": "신청 철회"
       },
       "compensation": {
-        "requested": "환불 처리 중",
-        "approved": "환불 처리 중",
-        "failed": "환불 처리 중",
-        "received": "환불 처리 중",
-        "shipped": "환불 처리 중",
-        "completed": "환불 완료",
-        "rejected": "환불 거절",
-        "withdrawn": "신청 철회",
-        "expired": "신청 만료"
+        "refunding": "환불 처리 중",
+        "refund_failed": "환불 처리 중",
+        "refunded": "환불 완료"
       }
     },
     "error": {

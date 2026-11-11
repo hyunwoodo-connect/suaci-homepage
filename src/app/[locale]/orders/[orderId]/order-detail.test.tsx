@@ -203,7 +203,7 @@ describe("주문 상세", () => {
       claimId: "c1",
       orderId: "o1",
       type: "cancel",
-      status: "approved",
+      status: "refunding",
       reasonCode: "단순변심",
       lines: ORDER.items.map((i) => ({
         lineId: i.lineId,
@@ -305,7 +305,7 @@ describe("주문 상세", () => {
         claimId: "c1",
         orderId: "o1",
         type: "cancel",
-        status: "completed",
+        status: "refunded",
         reasonCode: "단순변심",
         lines: [{ lineId: "l1", productId: "p1", variantId: "v1", quantity: 1 }],
         refundAmount: 31000,
@@ -368,7 +368,7 @@ describe("주문 상세", () => {
       claimId: "c-new",
       orderId: "o1",
       type: "cancel",
-      status: "completed",
+      status: "refunded",
       reasonCode: "단순변심",
       lines: [{ lineId: "l1", productId: "p1", variantId: "v1", quantity: 1 }],
       refundAmount: 28000,
@@ -515,7 +515,7 @@ describe("주문 상세", () => {
     it("이미 취소된 1개를 빼고 남은 1개까지만 고른다", async () => {
       signIn();
       getOrder.mockResolvedValue(TWO);
-      listClaims.mockResolvedValue([cancelled("completed", 1)]);
+      listClaims.mockResolvedValue([cancelled("refunded", 1)]);
       await renderPage();
       fireEvent.click(screen.getByRole("button", { name: "주문 취소 요청" }));
       fireEvent.click(screen.getByRole("button", { name: "일부 취소" }));
@@ -528,7 +528,7 @@ describe("주문 상세", () => {
     it("남은 수량이 없으면(환불 처리 중인 취소가 전부) → 취소 요청 버튼이 없다", async () => {
       signIn();
       getOrder.mockResolvedValue(TWO);
-      listClaims.mockResolvedValue([cancelled("approved", 2)]);
+      listClaims.mockResolvedValue([cancelled("refunding", 2)]);
       await renderPage();
       expect(screen.queryByRole("button", { name: "주문 취소 요청" })).toBeNull();
     });
@@ -690,7 +690,7 @@ describe("주문 상세", () => {
         claimId: "cp1",
         orderId: "o1",
         type: "compensation",
-        status: "completed",
+        status: "refunded",
         reasonCode: "상품하자",
         reasonDetail: "누액으로 일부를 못 써서 보상해 드려요",
         lines: [],
@@ -724,9 +724,9 @@ describe("주문 상세", () => {
   });
 
   it.each([
-    ["approved", "환불 처리 중"],
-    ["failed", "환불 처리 중"],
-    ["completed", "환불 완료"],
+    ["refunding", "환불 처리 중"],
+    ["refund_failed", "환불 처리 중"],
+    ["refunded", "환불 완료"],
   ] as const)("취소 클레임 %s → '%s'", async (status, label) => {
     signIn();
     getOrder.mockResolvedValue({ ...ORDER, paymentStatus: "partially_refunded" });
@@ -977,7 +977,7 @@ describe("주문 상세", () => {
     it("회수 확인 뒤(환불 처리 중) 반품 → 철회 버튼이 없다", async () => {
       signIn();
       getOrder.mockResolvedValue(delivered(2));
-      listClaims.mockResolvedValue([returnClaim({ status: "approved" })]);
+      listClaims.mockResolvedValue([returnClaim({ status: "refunding" })]);
       await renderPage();
       expect(screen.queryByRole("button", { name: "신청 철회" })).toBeNull();
     });

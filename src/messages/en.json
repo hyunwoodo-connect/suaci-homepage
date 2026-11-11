@@ -331,23 +331,15 @@
     "compensatedAt": "compensated {date}",
     "status": {
       "cancel": {
-        "requested": "refund in progress",
-        "approved": "refund in progress",
-        "failed": "refund in progress",
-        "received": "refund in progress",
-        "shipped": "refund in progress",
-        "completed": "refunded",
-        "rejected": "cancellation declined",
-        "withdrawn": "request withdrawn",
-        "expired": "request closed"
+        "refunding": "refund in progress",
+        "refund_failed": "refund in progress",
+        "refunded": "refunded"
       },
       "return": {
         "requested": "return requested",
-        "approved": "refund in progress",
-        "failed": "refund in progress",
-        "received": "refund in progress",
-        "shipped": "refund in progress",
-        "completed": "refunded",
+        "refunding": "refund in progress",
+        "refund_failed": "refund in progress",
+        "refunded": "refunded",
         "rejected": "return declined",
         "withdrawn": "request withdrawn",
         "expired": "request closed"
@@ -356,23 +348,14 @@
         "requested": "exchange requested",
         "received": "item received",
         "shipped": "replacement shipped",
-        "approved": "item received",
-        "failed": "item received",
         "completed": "exchanged",
         "rejected": "exchange declined",
-        "withdrawn": "request withdrawn",
-        "expired": "request closed"
+        "withdrawn": "request withdrawn"
       },
       "compensation": {
-        "requested": "refund in progress",
-        "approved": "refund in progress",
-        "failed": "refund in progress",
-        "received": "refund in progress",
-        "shipped": "refund in progress",
-        "completed": "refunded",
-        "rejected": "refund declined",
-        "withdrawn": "request withdrawn",
-        "expired": "request closed"
+        "refunding": "refund in progress",
+        "refund_failed": "refund in progress",
+        "refunded": "refunded"
       }
     },
     "error": {
