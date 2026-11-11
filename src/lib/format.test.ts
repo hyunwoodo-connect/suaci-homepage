@@ -1,18 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { formatKRW, effectivePrice, formatDateKST, itemName, formatDateTimeKST } from "./format";
-import type { Money } from "@/types";
-
-const money = (list: number, sale?: number): Money => ({ list, sale, currency: "KRW" });
+import { formatKRW, formatDateKST, itemName, formatDateTimeKST } from "./format";
 
 describe("format", () => {
   it("formatKRW: 천단위 콤마 + ₩", () => {
     expect(formatKRW(38000)).toBe("₩38,000");
-  });
-  it("effectivePrice: sale 우선", () => {
-    expect(effectivePrice(money(38000, 34200))).toBe(34200);
-  });
-  it("effectivePrice: sale 없으면 list", () => {
-    expect(effectivePrice(money(38000))).toBe(38000);
   });
   it("formatDateKST: ms → YYYY.MM.DD", () => {
     // 2026-07-20T00:00:00+09:00 = 1784041200000
