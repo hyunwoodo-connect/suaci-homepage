@@ -16,6 +16,12 @@ describe("orderErrorKey", () => {
     );
   });
 
+  it("회원 정보가 없다(탈퇴를 마친 계정의 남은 로그인) → 일시적인 문제가 아니라 다시 로그인 안내", () => {
+    expect(orderErrorKey(new ApiClientError("ACCOUNT_NOT_FOUND", "", 403))).toBe(
+      "error.AUTH_REQUIRED",
+    );
+  });
+
   it("ApiClientError 가 아닌 실패(네트워크·결제창) → GENERIC", () => {
     expect(orderErrorKey(new TypeError("Failed to fetch"))).toBe("error.GENERIC");
   });
