@@ -21,6 +21,7 @@ import CancelRequestForm from "./CancelRequestForm";
 const ORDER: Order = {
   orderId: "o1",
   orderNo: "20261106-ABC123",
+  state: "paid",
   status: "open",
   paymentStatus: "paid",
   fulfillmentStatus: "unfulfilled",

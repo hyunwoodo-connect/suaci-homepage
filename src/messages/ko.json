@@ -306,8 +306,7 @@
       "refunded": "환불완료",
       "cancelled": "주문취소",
       "returnInProgress": "반품 진행 중",
-      "exchangeInProgress": "교환 진행 중",
-      "claimInProgress": "반품·교환 진행 중"
+      "exchangeInProgress": "교환 진행 중"
     },
     "shippedNoCancel": "발송된 주문은 취소할 수 없어요. 받은 뒤 반품·교환을 신청해 주세요.",
     "contact": "도움이 필요하면 <mail>{email}</mail> 으로 주문번호와 함께 알려 주세요.",

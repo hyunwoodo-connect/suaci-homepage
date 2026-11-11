@@ -28,22 +28,10 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { methodFromLabel, paymentEnv } from "@/lib/payment/providers";
 import { isLiveClientKey } from "@/lib/payment/toss";
 import { formatDateTimeKST, formatKRW, itemName } from "@/lib/format";
-import {
-  canRequestCancel,
-  canRequestAfterDelivery,
-  hasOpenAfterDelivery,
-  isShippedPaid,
-  openAfterDeliveryType,
-} from "@/lib/claims/rules";
+import { canRequestCancel, canRequestAfterDelivery, isShippedPaid } from "@/lib/claims/rules";
 import type { Claim, ClaimFormType, Order } from "@/types";
 
-import {
-  isShipDelayed,
-  ORDER_STATE_TONE,
-  ORDER_STEPS,
-  orderState,
-  orderStepIndex,
-} from "../orderState";
+import { isShipDelayed, ORDER_STATE_TONE, ORDER_STEPS, orderStepIndex } from "../orderState";
 
 // 실제 화면과 뼈대가 같은 크기가 되도록 상자·줄 틀을 한 곳에서 쓴다
 const BOX = "border border-line p-[16px]";
@@ -192,8 +180,6 @@ function OrderDetail({ orderId }: { orderId: string }) {
   }
 
   const { order, claims, isShipDelayed: shipDelayed } = data;
-  const openClaim = openAfterDeliveryType(claims);
-  const state = orderState({ ...order, openClaim });
   const step = orderStepIndex(order);
   const totalQty = order.items.reduce((sum, i) => sum + i.quantity, 0);
   const methodId = methodFromLabel(order.paymentMethod ?? null);
@@ -204,11 +190,11 @@ function OrderDetail({ orderId }: { orderId: string }) {
       <div className="max-w-[860px]">
         {welcome && <WelcomeBand orderNo={order.orderNo} />}
 
-        {/* 상태 — 세 축을 이름 하나로 */}
+        {/* 상태 — 서버가 정한 이름 하나 */}
         <div className="mb-[24px] flex flex-col items-start gap-[8px]">
-          <Badge tone={ORDER_STATE_TONE[state]}>{t(`state.${state}`)}</Badge>
+          <Badge tone={ORDER_STATE_TONE[order.state]}>{t(`state.${order.state}`)}</Badge>
           {/* 결제 대기 — 결제를 이어 갈 길이 주 버튼(UX 리뷰 E3). 주문서가 이 브라우저의 보류 주문을 이어 쓴다 */}
-          {state === "awaitingPayment" && (
+          {order.state === "awaitingPayment" && (
             <>
               <p className="m-0 text-[13px] text-grey">
                 {t("payWithin")} <PayDeadline dueAt={order.paymentDueAt} />
@@ -464,9 +450,8 @@ function OrderActions({ order, claims, reload }: OrderActionsProps) {
 
   // 발송된 결제 주문은 취소 버튼이 사라진 자리에 이유와 다음 길(반품·교환, 안 되면 메일)을 둔다 — 막다른 화면이 되지 않게
   const isShipped = isShippedPaid(order);
-  // '받은 뒤 반품·교환' 안내는 배송 중일 때만 — 받은 뒤엔 버튼이 바로 있거나, 이미 신청이 진행 중이다
-  const showInTransitNote =
-    isShipped && order.fulfillmentStatus === "shipped" && !hasOpenAfterDelivery(claims);
+  // '받은 뒤 반품·교환' 안내는 배송 중일 때만 — 받은 뒤엔 버튼이 바로 있거나, 이미 신청이 진행 중이다(그때 상태는 반품·교환 진행 중)
+  const showInTransitNote = order.state === "shipping";
 
   if (!canCancel && !canCancelPaid && !canAfterDelivery && !isShipped) return null;
 

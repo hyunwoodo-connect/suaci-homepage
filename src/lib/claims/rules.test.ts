@@ -16,6 +16,8 @@ import {
 const ORDER: Order = {
   orderId: "o1",
   orderNo: "20261106-ABC123",
+  // 규칙은 상태 이름을 읽지 않는다(결제·배송 축과 날짜만) — 아래에서 축을 바꾼 주문도 이 값은 그대로 둔다
+  state: "delivered",
   status: "open",
   paymentStatus: "paid",
   fulfillmentStatus: "delivered",

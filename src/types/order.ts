@@ -6,6 +6,8 @@ export type OrderTotals = Api.OrderTotals;
 export type OrderItem = Api.OrderItemView;
 /** 주문에 박아 둔 배송지 */
 export type ShippingAddressSnapshot = Api.ShippingAddressSnapshot;
+/** 손님에게 보이는 주문 상태 이름 하나 — 서버가 정해 주문에 싣는다(`state`) */
+export type OrderState = Api.CustomerOrderState;
 /** 주문 한 건(상세) */
 export type Order = Api.OrderView;
 /** 주문 목록 한 줄의 품목 요약 */

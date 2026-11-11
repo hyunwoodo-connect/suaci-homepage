@@ -339,13 +339,18 @@ export interface AdminClaimView extends ClaimView {
   feeNote?: string
   /** 반품 환불·교환 회수 확인 때 재고를 되돌리는지(단순 변심만) — 관리 툴 확인 창 문구 */
   restock: boolean
+  /** 이 클레임이 손님 화면에서 보이는 상태 이름(한국어) — 관리 화면 이름과 다를 때 '고객 화면: …' */
+  customerStatusLabel: string
   /** 이 클레임으로 손님에게 간(또는 못 간) 메일 — 관리 툴 주문 상세의 메일 기록 */
   emails: ClaimEmailRecord[]
   /** 처리기한(Unix ms, 보여 주기만) — 교환 수거완료 뒤 재배송까지 3영업일(네이버 기준). 그 상태일 때만 */
   processBy?: number
 }
 
-/** 클레임 메일 한 종류의 기록. 보냈으면 sentAt, 다시 보내도 안 되는 실패면 failedAt·failedReason. */
+/**
+ * 클레임 메일 한 종류의 기록. 보냈으면 sentAt, 다시 보내도 안 되는 실패면 failedAt·failedReason
+ * (못 보냈다가 다시 보내 성공했으면 둘 다 — 메일 기록 줄 `types/mail-log` 에서 읽는다).
+ */
 export interface ClaimEmailRecord {
   kind: ClaimEmailKind
   sentAt?: number
@@ -593,6 +598,8 @@ export interface OrderItemView {
 export interface OrderView {
   orderId: string
   orderNo: string
+  /** 손님 화면 상태 이름 하나(세 축을 서버가 접은 값) — 화면은 이 값의 문구·색만 정한다 */
+  state: CustomerOrderState
   status: OrderStatus
   paymentStatus: PaymentStatus
   fulfillmentStatus: FulfillmentStatus
@@ -623,6 +630,8 @@ export interface OrderView {
 export interface OrderSummaryView {
   orderId: string
   orderNo: string
+  /** 손님 화면 상태 이름 하나(세 축을 서버가 접은 값) */
+  state: CustomerOrderState
   status: OrderStatus
   paymentStatus: PaymentStatus
   /** 손님 목록의 한 줄 상태 이름(배송 준비·배송 중 등)에 쓴다 */
@@ -640,6 +649,11 @@ export interface OrderSummaryView {
 export interface AdminOrderSummaryView {
   orderId: string
   orderNo: string
+  /** 관리 화면 주문 상태 하나(세 축을 서버가 접은 값) — 일부 취소는 `paymentStatus` 로 화면이 칩을 따로 보인다 */
+  state: AdminOrderState
+  /** 같은 주문이 손님 화면에서 보이는 상태와 그 한국어 이름 — 관리 화면 이름과 다를 때 '고객 화면: …' */
+  customerState: CustomerOrderState
+  customerStateLabel: string
   status: OrderStatus
   paymentStatus: PaymentStatus
   fulfillmentStatus: FulfillmentStatus
@@ -731,7 +745,10 @@ export interface AdminTxnView {
   createdAt: number
 }
 
-/** 손님 메일 한 통의 기록 — 주문 메일(확인·발송 안내·발송 지연·바뀐 송장)과 클레임 메일. `pending` 은 바뀐 송장 메일이 아직 안 나간 것 */
+/**
+ * 손님 메일 한 통의 기록 — 주문 메일(확인·발송 안내·발송 지연·바뀐 송장)과 클레임 메일. `pending` 은 바뀐 송장 메일이 아직 안 나간 것.
+ * 주문 파티션의 메일 기록 줄(`types/mail-log`)에서 만든다
+ */
 export interface AdminEmailRecord extends Omit<ClaimEmailRecord, 'kind'> {
   kind: ClaimEmailRecord['kind'] | OrderEmailKind | 'trackingCorrected'
   claimId?: string
@@ -1076,6 +1093,26 @@ export interface WaitlistEntryView {
   createdDtm: string
 }
 
+// ── src/shared/display-state.ts
+
+/** 손님에게 보이는 주문 상태 하나 */
+export type CustomerOrderState =
+  | 'awaitingPayment'
+  | 'paid'
+  | 'preparing'
+  | 'shipping'
+  | 'delivered'
+  | 'returnInProgress'
+  | 'exchangeInProgress'
+  | 'refunding'
+  | 'partiallyRefunded'
+  | 'refunded'
+  | 'cancelled'
+
+/** 관리 화면 주문 상태 하나(판매자 화면처럼 주문마다 하나 — 일부 취소는 상태를 바꾸지 않고 화면이 칩으로 따로 보인다) */
+export type AdminOrderState =
+  'paymentPending' | 'paid' | 'preparing' | 'shipping' | 'delivered' | 'cancelling' | 'cancelled' | 'refunded'
+
 // ── src/shared/shipping.ts
 
 export declare const CARRIERS: { readonly cj: "CJ대한통운"; readonly epost: "우체국택배"; readonly hanjin: "한진택배"; readonly lotte: "롯데택배"; readonly logen: "로젠택배"; }
@@ -1113,7 +1150,8 @@ export type SystemCancelReason = 'out_of_stock' | 'payment_after_close' | 'amoun
 export type ClaimType = 'cancel' | 'return' | 'exchange' | 'compensation'
 
 /**
- * 손님에게 가는 클레임 메일 종류 — 보낸 표시 속성 앞머리(`cancelCompletedEmailSentAt` …)이기도 하다.
+ * 손님에게 가는 클레임 메일 종류(클레임마다 한 번씩). 보낸 기록은 클레임 행이 아니라 주문 파티션의 메일 기록 줄
+ * (`types/mail-log`, `MAIL#CLAIM#{claimId}#{kind}`)에 남는다.
  * 대부분 스트림이 클레임 행의 상태 전이를 받아 고른다(`notification.service` 의 `claimEmailKind`).
  * 상태가 안 바뀌는 둘은 매일 정리가 보낸다: 반품 상품 기다림 안내(`returnReminder`, 7일째)·환불 지연(`refundDelayed`, 재시도 중 1시간 넘음).
  */
@@ -1141,19 +1179,11 @@ export interface ClaimLine {
 }
 
 /**
- * 손님 메일 보낸 표시(`{kind}EmailSentAt`·`SentDtm`·`MessageId`)·못 보낸 기록(`FailedAt`·`FailedDtm`·`FailedReason`) — 종류마다 한 번만.
- * 키 이름이 메일 종류에서 나와 한꺼번에 만든다(주문 헤더의 `confirmationEmailSentAt` 과 같은 방식).
- */
-export type ClaimEmailMarks = Partial<
-  Record<`${ClaimEmailKind}Email${'SentAt' | 'FailedAt'}`, number> &
-    Record<`${ClaimEmailKind}Email${'SentDtm' | 'MessageId' | 'FailedDtm' | 'FailedReason'}`, string>
->
-
-/**
  * 클레임의 종류·상태를 뺀 칸. 엔티티는 `Claim`(종류와 그 종류의 상태를 묶은 것).
  * 열린 일 키(`GSI3PK`·`GSI3SK`)는 끝나지 않은 상태일 때만 있다 — 정렬 키는 만들 때 한 번, 끝나는 쓰기가 둘 다 지운다.
+ * 손님 메일을 보냈는지는 이 행에 없다 — 같은 주문 파티션의 메일 기록 줄(`types/mail-log`)에 있다.
  */
-export interface ClaimFields extends ClaimEmailMarks, OpenWorkKeys<OpenClaimKey> {
+export interface ClaimFields extends OpenWorkKeys<OpenClaimKey> {
   PK: `ORDER#${string}`
   SK: `CLAIM#${string}`
   entityType: 'CLAIM'
@@ -1374,7 +1404,10 @@ export type OpenClaimKey = `OPEN#CLAIM#${OpenClaimStatus}`
  */
 export type OrderCancelReason = 'customer' | 'amount_mismatch' | 'payment_unpaid' | 'out_of_stock'
 
-/** 손님에게 가는 주문 메일 종류 — 보낸 표시 속성 앞머리(`confirmationEmailSentAt`·`shippedEmailSentAt`·`shipDelayEmailSentAt`)이기도 하다. */
+/**
+ * 손님에게 가는 주문 메일 종류(주문마다 한 번씩) — 결제 완료·발송·발송 지연. 보낸 기록은 주문 헤더가 아니라
+ * 주문 파티션의 메일 기록 줄(`types/mail-log`, `MAIL#ORDER#{kind}`)에 남는다. 바로잡을 때마다 보내는 바뀐 송장은 `OrderMailKind`.
+ */
 export type OrderEmailKind = 'confirmation' | 'shipped' | 'shipDelay'
 
 /** 주문 금액 분해 (정수 KRW). */
@@ -1403,6 +1436,7 @@ export interface ShippingAddressSnapshot {
 /**
  * 주문 헤더 엔티티. 금액은 totals, 환불 누적은 refundedAmount·shippingRefunded.
  * 열린 일 키(`GSI3PK`·`GSI3SK`)는 결제 대기(pending)·보낼 주문(to_ship)일 때만 있다 — 그 상태를 떠나는 쓰기가 같은 식에서 지운다.
+ * 손님 메일을 보냈는지는 헤더에 없다 — 같은 파티션의 메일 기록 줄(`types/mail-log`)에 있다.
  */
 export interface Order extends OpenWorkKeys<OpenOrderKey> {
   PK: `ORDER#${string}`
@@ -1461,13 +1495,11 @@ export interface Order extends OpenWorkKeys<OpenOrderKey> {
   trackingCorrectedDtm?: string
   trackingCorrectedBy?: string
   /**
-   * 바뀐 송장 메일 상태 — 송장을 바로잡으면 `due`, 메일을 보내면 `sent`(다시 보내도 안 되는 실패면 `failed`). 스트림 필터가 `due` 인 기록만 받는다
-   * (같은 주문을 여러 번 바로잡아도 다시 `due` 가 되어 다시 간다 — 한 번만 보내는 표시로는 안 된다)
+   * 바뀐 송장 메일을 보낼 차례인가 — 송장을 바로잡으면 `due`, 메일을 보내면 `sent`(다시 보내도 안 되는 실패면 `failed`). 스트림 필터가 `due` 인 기록만 받는다
+   * (같은 주문을 여러 번 바로잡아도 다시 `due` 가 되어 다시 간다 — 한 번만 보내는 기록으로는 안 된다).
+   * 스트림을 부르는 방아쇠라 헤더에 남는다. 보낸 때·메시지 ID·못 보낸 이유는 메일 기록 줄(`MAIL#ORDER#trackingCorrected`)에 — 이 값과 한 트랜잭션으로 쓴다
    */
   trackingNotice?: 'due' | 'sent' | 'failed'
-  trackingNoticeSentAt?: number
-  trackingNoticeMessageId?: string
-  trackingNoticeFailedReason?: string
   /** 배송지를 바꾼 때·사람(`customer` 또는 관리자 id). 주문의 배송지 스냅샷이 바뀐다 */
   addressChangedAt?: number
   addressChangedDtm?: string
@@ -1475,16 +1507,10 @@ export interface Order extends OpenWorkKeys<OpenOrderKey> {
   deliveredAt?: number
   deliveredDtm?: string
   deliveredBy?: string
-  /** 주문 확인 메일을 보낸 시각·SES 메시지 ID. 스트림이 같은 기록을 두 번 줘도 한 번만 보낸다 */
-  confirmationEmailSentAt?: number
-  confirmationEmailSentDtm?: string
-  confirmationEmailMessageId?: string
-  /** 다시 보내도 안 되는 실패(받는 주소 거부·SES 샌드박스 등)로 못 보낸 때·이유(SES 오류 이름). 보낸 표시가 없으니 나중에 다시 보낼 수 있다 */
-  confirmationEmailFailedAt?: number
-  confirmationEmailFailedDtm?: string
-  confirmationEmailFailedReason?: string
   /** 진행 중인 반품·교환 신청(claimId). 주문당 하나만 — 신청 때 조건식으로 세우고 거절·철회·환불 완료·교환 완료 때 지운다 */
   openReturnClaimId?: string
+  /** 그 진행 중 신청이 반품인지 교환인지 — 주문 목록·상세의 상태 이름('반품 진행 중'·'교환 진행 중')을 클레임을 읽지 않고 정한다. `openReturnClaimId` 와 같이 세우고 같이 지운다 */
+  openClaimType?: 'return' | 'exchange'
   /** 목록 한 줄에 보일 품목 요약(주문 때 스냅샷) — 첫 품목 이름 + 전체 수량·줄 수. 2026-11-09 전에 만든 주문엔 없다 */
   itemSummary?: OrderItemSummary
   /** 토스 영수증(매출전표) 주소 — 승인 응답의 receipt.url. 목업·2026-11-09 전 주문엔 없다 */
@@ -1494,20 +1520,6 @@ export interface Order extends OpenWorkKeys<OpenOrderKey> {
    * 두 환불이 겹치면 늦게 끝나는 쪽의 확정 조건(결제 상태)이 먼저 끝난 쪽 때문에 깨져 재고 복원이 빠지고 reconcile 이 영원히 다시 시도한다
    */
   refundingClaimId?: string
-  /** 발송 안내 메일(택배사·송장번호) — 확인 메일과 같은 모양의 보낸 표시·못 보낸 기록 */
-  shippedEmailSentAt?: number
-  shippedEmailSentDtm?: string
-  shippedEmailMessageId?: string
-  shippedEmailFailedAt?: number
-  shippedEmailFailedDtm?: string
-  shippedEmailFailedReason?: string
-  /** 발송 지연 안내 메일(발송기한을 넘긴 보낼 주문, 주문마다 한 번) — 같은 모양의 보낸 표시·못 보낸 기록 */
-  shipDelayEmailSentAt?: number
-  shipDelayEmailSentDtm?: string
-  shipDelayEmailMessageId?: string
-  shipDelayEmailFailedAt?: number
-  shipDelayEmailFailedDtm?: string
-  shipDelayEmailFailedReason?: string
   GSI1PK: `USER#${string}`
   GSI1SK: string
   GSI2PK: string
