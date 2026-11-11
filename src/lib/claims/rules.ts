@@ -23,12 +23,12 @@ export const EXCHANGE_REASONS: readonly ExchangeReason[] = ["상품하자", "오
 /** 돈을 돌려주는 클레임 — 교환은 환불하지 않아 남은 수량·진행 중 환불에 세지 않는다 */
 const REFUND_TYPES: readonly ClaimType[] = ["cancel", "return"];
 /** 환불이 시작됐거나 끝난 클레임 상태 — 그 수량·배송비는 이미 돌아간 것으로 센다 */
-const REFUNDING: readonly ClaimStatus[] = ["approved", "failed", "completed"];
+const REFUNDING: readonly ClaimStatus[] = ["refunding", "refund_failed", "refunded"];
 /** 환불이 시작됐지만 끝나지 않은 상태(취소·반품 모두) */
-const IN_FLIGHT: readonly ClaimStatus[] = ["approved", "failed"];
+const IN_FLIGHT: readonly ClaimStatus[] = ["refunding", "refund_failed"];
 /** 아직 끝나지 않은 반품·교환 상태 — 둘을 합쳐 주문당 하나만 열 수 있다(서버 RETURN_ALREADY_REQUESTED) */
 const OPEN_AFTER_DELIVERY: Readonly<Partial<Record<ClaimType, readonly ClaimStatus[]>>> = {
-  return: ["requested", "approved", "failed"],
+  return: ["requested", "refunding", "refund_failed"],
   exchange: ["requested", "received", "shipped"],
 };
 /** 손님이 철회할 수 있는 클레임 — 회수 확인 전(신청 상태)의 반품·교환 */
@@ -218,7 +218,7 @@ export function returnQuote(
   const shippingAlreadyBack = claims.some((c) => isRefunded(c) && c.refundedShipping > 0);
   // 무료 배송 주문의 처음 배송비는 주문당 한 번 — 앞선 단순 변심 반품이 냈으면(편도보다 많이 뺐으면) 다시 안 뺀다
   const outboundCharged = claims.some(
-    (c) => c.type === "return" && c.status === "completed" && c.returnShippingFee > fee,
+    (c) => c.type === "return" && c.status === "refunded" && c.returnShippingFee > fee,
   );
   const outbound = order.totals.shippingFee === 0 && !outboundCharged ? fee : 0;
   const returnShippingFee = customerFault ? fee + outbound : 0;

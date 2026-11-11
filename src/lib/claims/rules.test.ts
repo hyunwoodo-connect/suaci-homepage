@@ -116,7 +116,7 @@ describe("canRequestCancel", () => {
   it("남은 수량이 없으면(환불 중·끝난 취소가 전부 가져감) → 안 보인다", () => {
     const all = claim({
       type: "cancel",
-      status: "approved",
+      status: "refunding",
       lines: [{ lineId: "l1", productId: "p1", variantId: "v1", quantity: 2 }],
     });
     expect(canRequestCancel({ ...paid, paymentStatus: "partially_refunded" }, [all])).toBe(false);
@@ -128,7 +128,7 @@ describe("canWithdraw", () => {
     expect(canWithdraw(claim({ status: "requested" }))).toBe(true);
     expect(canWithdraw(claim({ type: "exchange", status: "requested" }))).toBe(true);
     expect(canWithdraw(claim({ type: "exchange", status: "received" }))).toBe(false);
-    expect(canWithdraw(claim({ status: "approved" }))).toBe(false);
+    expect(canWithdraw(claim({ status: "refunding" }))).toBe(false);
     expect(canWithdraw(claim({ type: "cancel", status: "requested" }))).toBe(false);
   });
 });
@@ -158,7 +158,7 @@ describe("remainingQty", () => {
   });
 
   it("환불이 시작됐거나 끝난 취소·반품 수량만 뺀다(신청·거절은 빼지 않는다)", () => {
-    const cancelled = claim({ type: "cancel", status: "failed" });
+    const cancelled = claim({ type: "cancel", status: "refund_failed" });
     const requested = claim({ status: "requested" });
     const rejected = claim({ status: "rejected" });
     expect(remainingQty(ORDER, [cancelled, requested, rejected])).toEqual({ l1: 1 });
@@ -180,11 +180,11 @@ describe("canRequestAfterDelivery", () => {
   });
 
   it("끝나지 않은 다른 환불(취소 failed)이 있거나 반품할 수량이 없으면 → 안 보인다", () => {
-    expect(canRequestAfterDelivery(ORDER, [claim({ type: "cancel", status: "failed" })], now)).toBe(
-      false,
-    );
+    expect(
+      canRequestAfterDelivery(ORDER, [claim({ type: "cancel", status: "refund_failed" })], now),
+    ).toBe(false);
     const allBack = claim({
-      status: "completed",
+      status: "refunded",
       lines: [{ lineId: "l1", productId: "p1", variantId: "v1", quantity: 2 }],
     });
     expect(
@@ -232,7 +232,7 @@ describe("cancelQuote", () => {
   it("앞서 1개 취소 뒤 남은 1개 취소 → 그 1개 + 처음 배송비(아직 안 돌려줬으면)", () => {
     const first = claim({
       type: "cancel",
-      status: "completed",
+      status: "refunded",
       refundAmount: 28000,
       refundedShipping: 0,
     });
@@ -261,7 +261,7 @@ describe("returnQuote", () => {
 
   it("무료 배송 주문의 두 번째 단순 변심 반품 → 처음 배송비는 이미 냈으니 편도만", () => {
     const free = { ...ORDER, totals: { ...ORDER.totals, shippingFee: 0, grandTotal: 56000 } };
-    const first = claim({ status: "completed", returnShippingFee: 6000 });
+    const first = claim({ status: "refunded", returnShippingFee: 6000 });
     expect(returnQuote(free, [first], "단순변심")).toMatchObject({
       itemsAmount: 28000,
       returnShippingFee: 3000,
@@ -279,7 +279,7 @@ describe("returnQuote", () => {
   });
 
   it("이미 환불된 수량은 빼고, 처음 배송비를 이미 돌려줬으면 다시 안 더한다", () => {
-    const done = claim({ status: "completed", reasonCode: "상품하자", refundedShipping: 3000 });
+    const done = claim({ status: "refunded", reasonCode: "상품하자", refundedShipping: 3000 });
     expect(remainingQty(ORDER, [done])).toEqual({ l1: 1 });
     expect(returnQuote(ORDER, [done], "오배송")).toMatchObject({
       itemsAmount: 28000,
@@ -300,11 +300,11 @@ describe("hasRefundInFlight", () => {
     createdDtm: "",
   };
   it.each([
-    ["보상 환불 처리 중(approved)", "compensation", "approved", true],
-    ["보상 환불 재시도 중(failed)", "compensation", "failed", true],
-    ["보상 환불 끝남", "compensation", "completed", false],
-    ["취소 재시도 중", "cancel", "failed", true],
-    ["교환 회수 확인(돈 없음)", "exchange", "approved", false],
+    ["보상 환불 처리 중(refunding)", "compensation", "refunding", true],
+    ["보상 환불 재시도 중(refund_failed)", "compensation", "refund_failed", true],
+    ["보상 환불 끝남", "compensation", "refunded", false],
+    ["취소 재시도 중", "cancel", "refund_failed", true],
+    ["교환 회수 확인(돈 없음)", "exchange", "received", false],
   ] as const)("%s → %s", (_label, type, status, expected) => {
     expect(hasRefundInFlight([{ ...base, claimId: "c1", type, status }])).toBe(expected);
   });

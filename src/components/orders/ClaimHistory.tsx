@@ -12,7 +12,7 @@ import { formatDateKST, formatKRW, itemName } from "@/lib/format";
 import type { Claim, OrderItem } from "@/types";
 
 import { claimErrorKey } from "./claimError";
-import { CLAIM_STATUS_TONE } from "./claimStatus";
+import { claimStatusKey, claimStatusTone } from "./claimStatus";
 import TrackingLine from "./TrackingLine";
 import { useSubmitLock } from "./useSubmitLock";
 
@@ -87,7 +87,9 @@ function ClaimRow({
   const refundDueDate =
     c.refundDueAt !== undefined && isMoneyClaim && isRefunding(c) && formatDateKST(c.refundDueAt);
   // 끝난 환불엔 카드사 반영 안내 한 줄(돈이 오간 취소·반품만)
-  const showRefundDone = isMoneyClaim && c.status === "completed" && c.refundAmount > 0;
+  const showRefundDone = isMoneyClaim && c.status === "refunded" && c.refundAmount > 0;
+  const statusTone = claimStatusTone(c);
+  const statusKey = claimStatusKey(c);
   const requestedDate = formatDateKST(c.createdAt);
   // 보상 환불은 손님이 신청한 게 아니라 회사가 돌려준 것 — 날짜 말을 바꾼다
   const dateKey = c.type === "compensation" ? "compensatedAt" : "requestedAt";
@@ -100,9 +102,7 @@ function ClaimRow({
   return (
     <li className="border-t border-line py-[14px]">
       <div className="mb-[6px] flex flex-wrap items-center gap-[10px]">
-        <Badge tone={CLAIM_STATUS_TONE[c.type][c.status]}>
-          {tc(`status.${c.type}.${c.status}`)}
-        </Badge>
+        <Badge tone={statusTone}>{tc(statusKey)}</Badge>
         <b className="text-[15px] font-medium">
           {tc(`type.${c.type}`)} · {tc(`reasonCode.${c.reasonCode}`)}
         </b>
@@ -252,5 +252,5 @@ function WithdrawControl({ claim, onChanged, onError }: WithdrawControlProps) {
 
 /** 회수 확인 뒤 환불이 진행 중인 반품(서버 재시도 포함) */
 function isRefunding(c: Claim): boolean {
-  return c.status === "approved" || c.status === "failed";
+  return c.status === "refunding" || c.status === "refund_failed";
 }

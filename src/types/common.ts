@@ -46,17 +46,20 @@ export const REASON_CODES = [
 /** 취소·반품 사유 코드 하나(`REASON_CODES` 의 값) */
 export type ReasonCode = (typeof REASON_CODES)[number];
 /**
- * 클레임 상태(취소·반품·교환 공용). 취소: approved → completed | failed(서버 재시도 → completed).
- * 반품: requested → approved(회수 확인·환불 시작) → completed | failed, requested → rejected | withdrawn(손님 철회) | expired(14일 지나도 상품이 안 와 서버가 닫음).
- * 교환: requested → received(회수 확인, 건너뛸 수 있음) → shipped(새 제품 발송) → completed, requested → rejected | withdrawn
+ * 환불이 있는 클레임(취소·반품·보상)의 환불 단계(백엔드와 같은 이름) — refunding(환불을 시작함) →
+ * refunded(돌려줌) | refund_failed(토스가 실패해 서버가 다시 보내는 중 — 손님에게는 계속 '환불 처리 중')
  */
-export type ClaimStatus =
-  | "requested"
-  | "approved"
-  | "rejected"
-  | "completed"
-  | "failed"
-  | "received"
-  | "shipped"
-  | "withdrawn"
-  | "expired";
+export type RefundStatus = "refunding" | "refund_failed" | "refunded";
+/**
+ * 종류마다 가질 수 있는 클레임 상태(백엔드 `ClaimStatusByType`). 취소·보상은 열리면 바로 환불이라 환불 단계 셋뿐.
+ * 반품: requested → refunding(회수 확인·환불 시작) → refunded | refund_failed, requested → rejected | withdrawn(손님 철회) | expired(14일 지나도 상품이 안 와 서버가 닫음).
+ * 교환: requested → received(회수 확인, 건너뛸 수 있음) → shipped(새 제품 발송) → completed, requested → rejected | withdrawn — 돈이 안 움직인다
+ */
+export interface ClaimStatusByType {
+  cancel: RefundStatus;
+  compensation: RefundStatus;
+  return: "requested" | RefundStatus | "rejected" | "withdrawn" | "expired";
+  exchange: "requested" | "received" | "shipped" | "completed" | "rejected" | "withdrawn";
+}
+/** 클레임 상태 전부(종류를 모를 때). 종류별로는 `ClaimStatusByType` */
+export type ClaimStatus = ClaimStatusByType[keyof ClaimStatusByType];
