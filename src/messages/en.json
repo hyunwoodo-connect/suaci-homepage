@@ -191,7 +191,26 @@
     "addressesNone": "none yet",
     "orders": "orders",
     "logout": "sign out",
-    "helloNoName": "hi there."
+    "helloNoName": "hi there.",
+    "withdraw": {
+      "link": "delete account",
+      "title": "delete account",
+      "lead": "here's what happens when you leave.",
+      "deletedTitle": "what we delete",
+      "deletedAccount": "account details (name, email, phone)",
+      "deletedAddresses": "saved addresses",
+      "deletedSocial": "kakao and naver sign-in links",
+      "keptTitle": "what we keep, as the law requires",
+      "keptOrders": "order, payment and delivery records · 5 years",
+      "keptClaims": "cancellation, return and exchange records · 3 years",
+      "leaveWaitlist": "stop the launch notice too",
+      "confirm": "i've read this",
+      "submit": "delete account",
+      "blocked": "an order or request is still in progress. you can leave once it's done.",
+      "viewOrders": "view orders",
+      "error": "we couldn't finish. please try again in a moment.",
+      "done": "your account is deleted."
+    }
   },
   "addresses": {
     "title": "addresses",

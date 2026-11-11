@@ -74,3 +74,8 @@ export interface ResetPasswordRequest {
   code: string;
   newPassword: string;
 }
+
+/** 회원 탈퇴 요청(`POST /me/withdrawal`) — 출시 알림 명단에서도 빠질지를 같이 보낸다(탈퇴와 출시 알림은 따로 동의한 것) */
+export interface WithdrawAccountRequest {
+  leaveWaitlist: boolean;
+}

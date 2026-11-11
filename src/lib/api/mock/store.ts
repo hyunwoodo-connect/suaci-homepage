@@ -44,4 +44,9 @@ export const store = {
   writeIdem: (v: Record<string, string>): void => write(MOCK_KEYS.idem, v),
   readRefunded: (): Record<string, number> => read<Record<string, number>>(MOCK_KEYS.refunded, {}),
   writeRefunded: (v: Record<string, number>): void => write(MOCK_KEYS.refunded, v),
+  /** 전부 비운다 — 목업은 회원이 하나라, 탈퇴하면 다음에 들어오는 사람이 빈 계정으로 시작한다 */
+  clear: (): void => {
+    if (!hasWindow()) return;
+    for (const key of Object.values(MOCK_KEYS)) localStorage.removeItem(key);
+  },
 };

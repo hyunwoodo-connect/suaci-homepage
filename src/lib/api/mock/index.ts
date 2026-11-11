@@ -120,6 +120,17 @@ function toOrderSummary(o: Order): OrderSummary {
   };
 }
 
+/**
+ * 끝나지 않은 주문인가 — 서버의 회원 탈퇴와 같은 규칙: 결제 대기, 결제됐고 배송 완료 전, 환불 중,
+ * 끝나지 않은 환불·반품·교환. `claims` 는 그 주문의 것만
+ */
+function isOrderInProgress(order: Order, claims: Claim[]): boolean {
+  if (order.status === "pending" || order.paymentStatus === "refunding") return true;
+  const isPaid = order.paymentStatus === "paid" || order.paymentStatus === "partially_refunded";
+  if (isPaid && order.fulfillmentStatus !== "delivered") return true;
+  return hasRefundInFlight(claims) || hasOpenAfterDelivery(claims);
+}
+
 function makeOrderNo(): string {
   const d = new Date();
   const yyyymmdd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
@@ -156,6 +167,25 @@ export function createMockClient(): ApiClient {
     async getMe(): Promise<User> {
       requireAuth();
       return demoUser;
+    },
+    // 회원 탈퇴 — 서버처럼 끝나지 않은 주문·신청이 있으면 막는다. 되면 이 브라우저의 목업 기록을 전부 비운다
+    // (목업은 회원이 하나라 다음에 들어오는 사람이 빈 계정으로 시작한다. 출시 알림 명단은 목업에 없다)
+    async withdrawAccount(): Promise<{ withdrawn: boolean }> {
+      requireAuth();
+      const claims = store.readClaims();
+      const hasOrderInProgress = store.readOrders().some((o) => {
+        const mine = claims.filter((c) => c.orderId === o.orderId);
+        return isOrderInProgress(o, mine);
+      });
+      if (hasOrderInProgress) {
+        throw new ApiClientError(
+          "ACCOUNT_WITHDRAWAL_BLOCKED",
+          "진행 중인 주문·신청이 있어 탈퇴할 수 없습니다",
+          409,
+        );
+      }
+      store.clear();
+      return { withdrawn: true };
     },
 
     // ---- social (dev 대역: 완료한 이름을 기억해 두 번째부터 바로 로그인) ----

@@ -8,6 +8,7 @@ import { useSearchParams } from "next/navigation";
 import { Link, useRouter } from "@/i18n/navigation";
 import { CHECKOUT_PRICING } from "@/constants/checkout";
 import { PRODUCT } from "@/constants/product";
+import WithdrawnNotice from "@/components/account/WithdrawnNotice";
 import LoginSheet from "@/components/pay/LoginSheet";
 import ReBuySheet from "@/components/pay/ReBuySheet";
 import ResumePrompt from "@/components/pay/ResumePrompt";
@@ -91,6 +92,7 @@ export default function BuyBar() {
           푸터 위로 띄우지 않으니 맨 아래 줄(개인정보처리방침)을 가리지 않는다 */}
       <div className="pointer-events-none sticky bottom-0 z-20">
         <div className="flex flex-col items-center gap-[6px] px-[8px] pb-[16px] min-[390px]:px-[16px]">
+          <WithdrawnNotice />
           <ResumePrompt
             onResume={(resumeQty) => {
               // 아까 하던 주문·담아 둔 수량 그대로 시트를 연다

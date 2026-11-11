@@ -10,6 +10,7 @@ import type {
   ConfirmRequest,
   LoginRequest,
   ResetPasswordRequest,
+  WithdrawAccountRequest,
   Address,
   CreateAddressRequest,
   UpdateAddressRequest,
@@ -41,6 +42,8 @@ export interface ApiClient {
   socialSignIn(provider: SocialProvider, r: SocialSignInRequest): Promise<SocialSignInResult>;
   socialComplete(r: SocialCompleteRequest): Promise<TokenResponse>;
   getMe(): Promise<User>;
+  /** 회원 탈퇴. 끝나지 않은 주문·신청이 있으면 409 `ACCOUNT_WITHDRAWAL_BLOCKED`. 실패한 뒤 다시 불러도 된다(서버가 남은 일을 이어서 끝낸다) */
+  withdrawAccount(r: WithdrawAccountRequest): Promise<{ withdrawn: boolean }>;
   /** 구매 시트가 미리 채울 기본 배송지·지난 결제수단. */
   getCheckoutDefaults(): Promise<CheckoutDefaults>;
   /** 판매 상태(공개) — 출시 전이면 구매 버튼을 막는다. 서버가 주문·결제 승인에서 다시 막는다 */
