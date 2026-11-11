@@ -3,12 +3,13 @@ import { describe, expect, it, vi } from "vitest";
 
 import { tokenStore } from "./token-store";
 
-const { getMe, login, logout } = vi.hoisted(() => ({
+const { getMe, login, logout, withdrawAccount } = vi.hoisted(() => ({
   getMe: vi.fn(),
   login: vi.fn(),
   logout: vi.fn(),
+  withdrawAccount: vi.fn(),
 }));
-vi.mock("@/lib/api", () => ({ api: { getMe, login, logout } }));
+vi.mock("@/lib/api", () => ({ api: { getMe, login, logout, withdrawAccount } }));
 
 const TOKENS = { idToken: "i", accessToken: "a", refreshToken: "r", expiresIn: 60 };
 
@@ -136,5 +137,29 @@ describe("logout", () => {
     expect(tokenStore.getAccessToken()).toBeNull();
     expect(result.current.status).toBe("anonymous");
     expect(result.current.sessionEnded).toBe(false);
+  });
+});
+
+describe("withdraw", () => {
+  it("탈퇴가 되면 → 토큰 지우고 anonymous, 서버 로그아웃은 부르지 않고 '풀렸어요' 안내도 없다", async () => {
+    const { result } = await renderSignedIn();
+    logout.mockClear();
+    withdrawAccount.mockResolvedValueOnce({ withdrawn: true });
+    await act(() => result.current.withdraw(true));
+    expect(withdrawAccount).toHaveBeenCalledWith({ leaveWaitlist: true });
+    expect(tokenStore.getAccessToken()).toBeNull();
+    expect(result.current.status).toBe("anonymous");
+    expect(result.current.user).toBeNull();
+    expect(result.current.sessionEnded).toBe(false);
+    expect(logout).not.toHaveBeenCalled();
+  });
+
+  it("막히거나 실패하면 → 던지고 로그인은 그대로", async () => {
+    const { result } = await renderSignedIn();
+    withdrawAccount.mockRejectedValueOnce(new Error("ACCOUNT_WITHDRAWAL_BLOCKED"));
+    await expect(act(() => result.current.withdraw(false))).rejects.toThrow();
+    expect(tokenStore.getAccessToken()).toBe("a");
+    expect(result.current.status).toBe("authenticated");
+    tokenStore.clear();
   });
 });

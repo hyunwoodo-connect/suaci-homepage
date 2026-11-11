@@ -191,7 +191,26 @@
     "addressesNone": "まだありません",
     "orders": "注文履歴",
     "logout": "ログアウト",
-    "helloNoName": "こんにちは。"
+    "helloNoName": "こんにちは。",
+    "withdraw": {
+      "link": "退会",
+      "title": "退会",
+      "lead": "退会すると、次のように整理します。",
+      "deletedTitle": "削除するもの",
+      "deletedAccount": "アカウント情報（名前・メール・電話番号）",
+      "deletedAddresses": "お届け先",
+      "deletedSocial": "suaciに保存されたカカオ・NAVERログインの連携情報",
+      "keptTitle": "法令に基づき保管するもの",
+      "keptOrders": "注文・決済・配送の記録 5年",
+      "keptClaims": "キャンセル・返品・交換の記録 3年",
+      "leaveWaitlist": "発売のお知らせも停止します",
+      "confirm": "内容を確認しました",
+      "submit": "退会する",
+      "blocked": "進行中の注文または申請があります。完了後に退会できます。",
+      "viewOrders": "注文履歴を見る",
+      "error": "退会を完了できませんでした。しばらくしてからもう一度お試しください。",
+      "done": "退会が完了しました。"
+    }
   },
   "addresses": {
     "title": "お届け先",

@@ -27,6 +27,7 @@ import type {
   User,
   PageParams,
   SalesStatus,
+  WithdrawAccountRequest,
 } from "@/types";
 import { ApiClientError } from "../errors";
 import type { ApiClient } from "../client";
@@ -129,6 +130,14 @@ export function createHttpClient(baseUrl?: string): ApiClient {
     },
     async getMe() {
       return unwrap(await authedRequest<Envelope<User>>("/auth/me", { method: "GET" }));
+    },
+    async withdrawAccount(r: WithdrawAccountRequest) {
+      return unwrap(
+        await authedRequest<Envelope<{ withdrawn: boolean }>>("/me/withdrawal", {
+          method: "POST",
+          body: r,
+        }),
+      );
     },
 
     // ---- address ----

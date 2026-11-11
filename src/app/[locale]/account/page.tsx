@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { Link, useRouter } from "@/i18n/navigation";
+import WithdrawSheet from "@/components/account/WithdrawSheet";
 import LoginRequired from "@/components/shell/LoginRequired";
 import PageShell from "@/components/shell/PageShell";
 import Button from "@/components/ui/Button";
@@ -18,10 +19,46 @@ import { formatDateKST } from "@/lib/format";
 const MENU_ROW = "flex min-h-[68px] items-center gap-[16px] py-[12px]";
 
 /**
- * 내 계정 — 이름·이메일(있을 때만)·가입일, 배송지·주문 내역 줄, 로그아웃.
- * 배송지 줄의 한 줄 요약(기본 배송지)까지 받은 뒤 한 번에 그린다 — 그동안은 같은 틀의 뼈대.
+ * 내 계정 — 이름·이메일(있을 때만)·가입일, 배송지·주문 내역 줄, 로그아웃, 맨 아래 조용한 '회원 탈퇴'.
+ * 탈퇴 시트는 계정 내용 밖에 둔다 — 탈퇴가 끝나 로그인이 비워져도(내용이 바뀌어도) 홈으로 넘어갈 때까지 그대로 있어야
+ * 시트가 쌓은 기록 칸을 홈이 차지한다(먼저 사라지면 칸을 걷는 뒤로가기가 홈으로 가는 길을 끊는다).
  */
 export default function AccountPage() {
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
+
+  return (
+    <>
+      <AccountContent
+        isLeaving={isLeaving}
+        onWithdraw={() => {
+          setIsWithdrawOpen(true);
+        }}
+      />
+      {isWithdrawOpen && (
+        <WithdrawSheet
+          onClose={() => {
+            setIsWithdrawOpen(false);
+          }}
+          onWithdrawn={() => {
+            setIsLeaving(true);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+/* ─── 하위 컴포넌트 ─────────────────────────── */
+
+interface AccountContentProps {
+  /** 탈퇴가 끝나 홈으로 넘어가는 중 — 로그인 안내 대신 뼈대를 둔다 */
+  isLeaving: boolean;
+  onWithdraw: () => void;
+}
+
+/** 계정 내용 — 배송지 줄의 한 줄 요약(기본 배송지)까지 받은 뒤 한 번에 그린다. 그동안은 같은 틀의 뼈대 */
+function AccountContent({ isLeaving, onWithdraw }: AccountContentProps) {
   const t = useTranslations("account");
   const tc = useTranslations("common");
   const router = useRouter();
@@ -49,7 +86,7 @@ export default function AccountPage() {
       });
   }, [status, noneLabel, recheckSession]);
 
-  if (status === "anonymous" || (status === "authenticated" && !user)) {
+  if (!isLeaving && (status === "anonymous" || (status === "authenticated" && !user))) {
     return (
       <LoginRequired
         title={t("title")}
@@ -60,7 +97,7 @@ export default function AccountPage() {
     );
   }
 
-  if (!user || addressSummary === undefined) {
+  if (isLeaving || !user || addressSummary === undefined) {
     return (
       <PageShell title={t("title")} meta={<Skeleton inline className="h-[12px] w-[96px]" />}>
         <AccountSkeleton label={tc("loading")} />
@@ -100,12 +137,21 @@ export default function AccountPage() {
         >
           {t("logout")}
         </Button>
+
+        {/* 자주 쓰는 길이 아니라 맨 아래 글자 링크로 — 누르면 확인 시트가 먼저 뜬다 */}
+        <Button
+          variant="text"
+          size="sm"
+          className="mt-[32px] self-start"
+          aria-haspopup="dialog"
+          onClick={onWithdraw}
+        >
+          {t("withdraw.link")}
+        </Button>
       </div>
     </PageShell>
   );
 }
-
-/* ─── 하위 컴포넌트 ─────────────────────────── */
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (

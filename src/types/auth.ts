@@ -24,3 +24,5 @@ export type SocialSignInResult = Api.SocialSignInResult;
 export type SocialCompleteRequest = Api.SocialCompleteInput;
 /** 비밀번호 재설정 요청 */
 export type ResetPasswordRequest = Api.ResetPasswordInput;
+/** 회원 탈퇴 요청(`POST /me/withdrawal`) — 출시 알림 명단에서도 빠질지를 같이 보낸다(탈퇴와 출시 알림은 따로 동의한 것) */
+export type WithdrawAccountRequest = Api.WithdrawInput;

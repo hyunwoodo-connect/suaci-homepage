@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { readSavedMemo, saveMemo } from "./memo";
+import { clearSavedMemo, readSavedMemo, saveMemo } from "./memo";
 
 describe("배송 메모 저장", () => {
   afterEach(() => {
@@ -24,6 +24,12 @@ describe("배송 메모 저장", () => {
   it("직접 쓴 메모 → 쓴 그대로, 직접 입력 칸으로", () => {
     saveMemo("벨 누르지 말아 주세요");
     expect(readSavedMemo()).toEqual({ memo: "벨 누르지 말아 주세요", isCustom: true });
+  });
+
+  it("지우면(회원 탈퇴) → 다시 null", () => {
+    saveMemo("벨 누르지 말아 주세요");
+    clearSavedMemo();
+    expect(readSavedMemo()).toBeNull();
   });
 
   it("저장소가 막혔으면(시크릿 모드 등) → 읽기는 null, 저장은 조용히 넘어간다", () => {

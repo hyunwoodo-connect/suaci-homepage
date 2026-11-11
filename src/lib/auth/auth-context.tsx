@@ -26,6 +26,11 @@ export interface AuthContextValue {
   /** 소셜 로그인이 받아 온 토큰을 입양 — 저장하고 내 정보를 불러 authenticated 로 */
   adoptTokens(tokens: TokenResponse): Promise<void>;
   logout(): Promise<void>;
+  /**
+   * 회원 탈퇴 — 서버가 계정을 지우면 이 브라우저의 로그인도 비운다(`leaveWaitlist`: 출시 알림 명단에서도 빠진다).
+   * 막혔거나(끝나지 않은 주문) 실패하면 그대로 던지고 로그인은 그대로 둔다
+   */
+  withdraw(leaveWaitlist: boolean): Promise<void>;
   /** 세션을 다시 확인한다. 로그인 중에 API 가 AUTH_REQUIRED 를 주면 부른다 — 토큰이 없거나 안 맞으면 세션 끝 */
   recheckSession(): Promise<void>;
 }
@@ -108,9 +113,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSessionEnded(false);
   }, []);
 
+  const withdraw = useCallback(async (leaveWaitlist: boolean) => {
+    await api.withdrawAccount({ leaveWaitlist });
+    // 계정이 지워졌다 — 서버 로그아웃은 부르지 않는다(지워진 계정의 토큰이라 401 만 돌아온다)
+    tokenStore.clear();
+    setUser(null);
+    setStatus("anonymous");
+    setSessionEnded(false);
+  }, []);
+
   const value = useMemo<AuthContextValue>(
-    () => ({ user, status, sessionEnded, login, adoptTokens, logout, recheckSession }),
-    [user, status, sessionEnded, login, adoptTokens, logout, recheckSession],
+    () => ({ user, status, sessionEnded, login, adoptTokens, logout, withdraw, recheckSession }),
+    [user, status, sessionEnded, login, adoptTokens, logout, withdraw, recheckSession],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
