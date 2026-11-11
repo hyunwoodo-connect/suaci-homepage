@@ -15,12 +15,6 @@ describe("orderState", () => {
     ).toBe("paid");
   });
 
-  it("승인(authorized)도 손님에겐 결제완료", () => {
-    expect(
-      orderState({ status: "open", paymentStatus: "authorized", fulfillmentStatus: "unfulfilled" }),
-    ).toBe("paid");
-  });
-
   it("관리 툴이 배송 준비를 시작 → 상품준비중", () => {
     expect(
       orderState({ status: "open", paymentStatus: "paid", fulfillmentStatus: "preparing" }),

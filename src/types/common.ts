@@ -28,10 +28,10 @@ export type ProductStatus = "draft" | "active" | "soldout" | "hidden";
 /** 옵션 판매 상태(백엔드 값 그대로) */
 export type VariantStatus = "active" | "soldout" | "hidden";
 /** 주문 자체의 상태(백엔드 값 그대로). 손님에게 보이는 이름은 `orderState` 가 결제·배송 상태와 합쳐 정한다 */
-export type OrderStatus = "pending" | "open" | "completed" | "cancelled";
+export type OrderStatus = "pending" | "open" | "cancelled";
 /** 결제 상태(백엔드 값 그대로) — `pending` 이 아니면 결제창을 다시 열지 않는다 */
 export type PaymentStatus =
-  "pending" | "authorized" | "paid" | "partially_refunded" | "refunded" | "voided" | "refunding";
+  "pending" | "paid" | "partially_refunded" | "refunded" | "voided" | "refunding";
 /** 배송 상태 — 결제 완료(unfulfilled) → 배송 준비 → 배송 중 → 배송 완료(관리 툴이 한 칸씩 바꾼다) */
 export type FulfillmentStatus = "unfulfilled" | "preparing" | "shipped" | "delivered";
 /** 취소·반품 사유 코드. 값은 백엔드 그대로(한국어), 화면 이름은 메시지 `claims.reasonCode.*` */
