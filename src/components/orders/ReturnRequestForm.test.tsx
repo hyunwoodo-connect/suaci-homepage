@@ -24,6 +24,7 @@ function deliveredOrder(shippingFee = 3000): Order {
   return {
     orderId: "o1",
     orderNo: "20261106-ABC123",
+    state: "delivered",
     status: "open",
     paymentStatus: "paid",
     fulfillmentStatus: "delivered",

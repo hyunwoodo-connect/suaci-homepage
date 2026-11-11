@@ -306,8 +306,7 @@
       "refunded": "返金完了",
       "cancelled": "注文キャンセル",
       "returnInProgress": "返品手続き中",
-      "exchangeInProgress": "交換手続き中",
-      "claimInProgress": "返品・交換手続き中"
+      "exchangeInProgress": "交換手続き中"
     },
     "shippedNoCancel": "発送済みのご注文はキャンセルできません。お受け取り後に返品・交換をお申し込みください。",
     "contact": "お困りの際は注文番号を添えて<mail>{email}</mail>までご連絡ください。",

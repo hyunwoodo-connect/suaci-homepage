@@ -17,7 +17,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { formatDateKST, formatKRW, itemName } from "@/lib/format";
 import type { OrderSummary } from "@/types";
 
-import { ORDER_STATE_TONE, orderState } from "./orderState";
+import { ORDER_STATE_TONE } from "./orderState";
 
 /** 주문 한 줄의 틀 — 실제 줄과 뼈대 줄이 같은 높이가 되도록 한 곳에서 */
 const ROW = "flex min-h-[76px] items-center gap-[16px] py-[14px]";
@@ -94,15 +94,13 @@ export default function OrdersPage() {
         ) : (
           <ul className="m-0 list-none border-t border-line p-0">
             {items.map((o) => {
-              const openClaim = o.hasOpenClaim ? "any" : undefined;
-              const state = orderState({ ...o, openClaim });
               const itemsLine = summaryLine(o, locale, t);
               return (
                 <li key={o.orderId} className="border-b border-line">
                   <Link href={`/orders/${o.orderId}`} className={ROW}>
                     <span className="flex min-w-0 flex-1 flex-col gap-[6px]">
                       <span className="flex items-center gap-[10px]">
-                        <Badge tone={ORDER_STATE_TONE[state]}>{t(`state.${state}`)}</Badge>
+                        <Badge tone={ORDER_STATE_TONE[o.state]}>{t(`state.${o.state}`)}</Badge>
                         <span className="num text-[13px] leading-[22px] text-grey">
                           {formatDateKST(o.createdAt)}
                         </span>

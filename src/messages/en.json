@@ -306,8 +306,7 @@
       "refunded": "refunded",
       "cancelled": "cancelled",
       "returnInProgress": "return in progress",
-      "exchangeInProgress": "exchange in progress",
-      "claimInProgress": "return or exchange in progress"
+      "exchangeInProgress": "exchange in progress"
     },
     "shippedNoCancel": "shipped orders can't be cancelled. once it arrives, you can request a return or exchange.",
     "contact": "need help? email <mail>{email}</mail> with your order number.",

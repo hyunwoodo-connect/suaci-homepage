@@ -65,13 +65,14 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams() }));
 
-import type { Claim, Order, RefundPreview } from "@/types";
+import type { Claim, Order, OrderState, RefundPreview } from "@/types";
 
 import OrderDetailPage from "./page";
 
 const ORDER: Order = {
   orderId: "o1",
   orderNo: "20261106-ABC123",
+  state: "paid",
   status: "open",
   paymentStatus: "paid",
   fulfillmentStatus: "unfulfilled",
@@ -105,6 +106,18 @@ const ORDER: Order = {
   createdAt: 0,
   createdDtm: "",
 };
+
+/** 결제 대기 주문 */
+const PENDING: Order = {
+  ...ORDER,
+  state: "awaitingPayment",
+  status: "pending",
+  paymentStatus: "pending",
+};
+/** 상품준비중(포장 시작) 주문 */
+const PREPARING: Order = { ...ORDER, state: "preparing", fulfillmentStatus: "preparing" };
+/** 배송중 주문 */
+const SHIPPING: Order = { ...ORDER, state: "shipping", fulfillmentStatus: "shipped" };
 
 /** 서버 미리 보기의 기본 답 — ORDER 를 다 돌려받을 때(상품 금액 + 처음 낸 배송비) */
 const FULL_REFUND: RefundPreview = {
@@ -255,12 +268,7 @@ describe("주문 상세", () => {
   it("결제 대기 → 30분 안에 결제하라는 한 줄 + 남은 분 + '이 주문 결제하기'(주문서로, 수량 그대로)", async () => {
     signIn();
     const dueAt = Date.now() + 24 * 60_000;
-    getOrder.mockResolvedValue({
-      ...ORDER,
-      status: "pending",
-      paymentStatus: "pending",
-      paymentDueAt: dueAt,
-    });
+    getOrder.mockResolvedValue({ ...PENDING, paymentDueAt: dueAt });
     await renderPage();
     expect(screen.getByText("결제 대기")).toBeTruthy();
     expect(screen.getByText(/30분 안에 결제해 주세요/)).toBeTruthy();
@@ -276,6 +284,7 @@ describe("주문 상세", () => {
     signIn();
     getOrder.mockResolvedValue({
       ...ORDER,
+      state: "shipping",
       fulfillmentStatus: "shipped",
       paymentMethod: "간편결제(카카오페이)",
       paidAt: Date.parse("2026-11-09T15:05:00Z"),
@@ -296,6 +305,7 @@ describe("주문 상세", () => {
     signIn();
     getOrder.mockResolvedValue({
       ...ORDER,
+      state: "returnInProgress",
       fulfillmentStatus: "delivered",
       deliveredAt: Date.now(),
     });
@@ -319,9 +329,34 @@ describe("주문 상세", () => {
     expect(screen.getByText("반품 진행 중")).toBeTruthy();
   });
 
+  // 세 축 값은 그대로 두고 state 만 바꾼다 — 상세는 상태 이름을 서버 값에서만 읽는다
+  it.each<[OrderState, string]>([
+    ["awaitingPayment", "결제 대기"],
+    ["paid", "결제완료"],
+    ["preparing", "상품준비중"],
+    ["shipping", "배송중"],
+    ["delivered", "배송완료"],
+    ["returnInProgress", "반품 진행 중"],
+    ["exchangeInProgress", "교환 진행 중"],
+    ["refunding", "환불 처리 중"],
+    ["partiallyRefunded", "부분환불"],
+    ["refunded", "환불완료"],
+    ["cancelled", "주문취소"],
+  ])("서버가 준 상태 %s → 맨 위 칩 '%s'", async (state, label) => {
+    signIn();
+    getOrder.mockResolvedValue({ ...ORDER, state });
+    await renderPage();
+    expect(stateBadge(label)).toBeTruthy();
+  });
+
   it("끝난 취소 환불 → '환불 예정' 대신 카드사 반영 안내", async () => {
     signIn();
-    getOrder.mockResolvedValue({ ...ORDER, paymentStatus: "refunded", status: "cancelled" });
+    getOrder.mockResolvedValue({
+      ...ORDER,
+      state: "refunded",
+      paymentStatus: "refunded",
+      status: "cancelled",
+    });
     listClaims.mockResolvedValue([
       {
         claimId: "c1",
@@ -346,7 +381,7 @@ describe("주문 상세", () => {
 
   it("결제 대기 주문 취소는 한 번 더 묻는다 — '돌아가기'면 취소하지 않는다", async () => {
     signIn();
-    getOrder.mockResolvedValue({ ...ORDER, status: "pending", paymentStatus: "pending" });
+    getOrder.mockResolvedValue(PENDING);
     await renderPage();
     fireEvent.click(screen.getByRole("button", { name: "주문 취소" }));
     expect(screen.getByRole("button", { name: "취소하기" })).toBeTruthy();
@@ -446,7 +481,11 @@ describe("주문 상세", () => {
 
     it("실패로 보였지만 다시 읽으니 신청이 생겼으면 → 성공으로 보고 폼을 닫고, 다음 신청은 새 키", async () => {
       signIn();
-      getOrder.mockResolvedValue({ ...TWO, paymentStatus: "partially_refunded" });
+      getOrder.mockResolvedValue({
+        ...TWO,
+        state: "partiallyRefunded",
+        paymentStatus: "partially_refunded",
+      });
       listClaims.mockResolvedValueOnce([]).mockResolvedValue([cancelClaim]);
       createClaim.mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValueOnce({});
       await renderPage();
@@ -461,6 +500,7 @@ describe("주문 상세", () => {
       signIn();
       getOrder.mockResolvedValue({
         ...TWO,
+        state: "delivered",
         fulfillmentStatus: "delivered",
         deliveredAt: Date.now() - 2 * 24 * 60 * 60 * 1000,
       });
@@ -522,6 +562,7 @@ describe("주문 상세", () => {
   describe("일부 취소 뒤", () => {
     const TWO: Order = {
       ...ORDER,
+      state: "partiallyRefunded",
       paymentStatus: "partially_refunded",
       items: [{ ...ORDER.items[0], quantity: 2, lineSubtotal: 56000 }],
     };
@@ -588,7 +629,7 @@ describe("주문 상세", () => {
 
   it("결제 대기 취소가 막히면(ORDER_NOT_CANCELLABLE) → 그 이유, 모르는 실패면 다시 시도 안내", async () => {
     signIn();
-    getOrder.mockResolvedValue({ ...ORDER, status: "pending", paymentStatus: "pending" });
+    getOrder.mockResolvedValue(PENDING);
     cancelOrder
       .mockRejectedValueOnce(new ApiClientError("ORDER_NOT_CANCELLABLE", "x", 409))
       .mockRejectedValueOnce(new TypeError("Failed to fetch"));
@@ -608,9 +649,7 @@ describe("주문 상세", () => {
 
   it("결제 대기 취소인데 토스가 이미 승인했으면(ORDER_ALREADY_PAID) → 그 안내 + 다시 읽어 결제된 주문(취소 요청 버튼)", async () => {
     signIn();
-    getOrder
-      .mockResolvedValueOnce({ ...ORDER, status: "pending", paymentStatus: "pending" })
-      .mockResolvedValue(ORDER);
+    getOrder.mockResolvedValueOnce(PENDING).mockResolvedValue(ORDER);
     cancelOrder.mockRejectedValueOnce(new ApiClientError("ORDER_ALREADY_PAID", "x", 409));
     await renderPage();
     fireEvent.click(screen.getByRole("button", { name: "주문 취소" }));
@@ -637,7 +676,7 @@ describe("주문 상세", () => {
     ],
   ])("결제 대기 취소가 %s → 이 버튼의 안내(주문은 그대로)", async (code, status, text) => {
     signIn();
-    getOrder.mockResolvedValue({ ...ORDER, status: "pending", paymentStatus: "pending" });
+    getOrder.mockResolvedValue(PENDING);
     cancelOrder.mockRejectedValueOnce(new ApiClientError(code, "x", status));
     await renderPage();
     fireEvent.click(screen.getByRole("button", { name: "주문 취소" }));
@@ -649,7 +688,12 @@ describe("주문 상세", () => {
 
   it("자동 환불 중인 주문(status pending · 결제 refunding) → 환불 처리 중, 결제하기·주문 취소 버튼 없음", async () => {
     signIn();
-    getOrder.mockResolvedValue({ ...ORDER, status: "pending", paymentStatus: "refunding" });
+    getOrder.mockResolvedValue({
+      ...ORDER,
+      state: "refunding",
+      status: "pending",
+      paymentStatus: "refunding",
+    });
     await renderPage();
     expect(screen.queryByRole("button", { name: "주문 취소" })).toBeNull();
     expect(screen.queryByText("이 주문 결제하기")).toBeNull();
@@ -657,7 +701,7 @@ describe("주문 상세", () => {
 
   it("상품 준비 중(발송 전) → 아직 취소 요청할 수 있다", async () => {
     signIn();
-    getOrder.mockResolvedValue({ ...ORDER, fulfillmentStatus: "preparing" });
+    getOrder.mockResolvedValue(PREPARING);
     await renderPage();
     expect(stateBadge("상품준비중")).toBeTruthy();
     expect(screen.getByRole("button", { name: "주문 취소 요청" })).toBeTruthy();
@@ -666,8 +710,7 @@ describe("주문 상세", () => {
   it("발송됨 → 택배사·송장번호와 배송 조회(새 탭), 취소 요청은 없다", async () => {
     signIn();
     getOrder.mockResolvedValue({
-      ...ORDER,
-      fulfillmentStatus: "shipped",
+      ...SHIPPING,
       carrier: "cj",
       trackingNumber: "123456789012",
       trackingUrl: "https://trace.cjlogistics.com/next/tracking.html?wblNo=123456789012",
@@ -685,7 +728,7 @@ describe("주문 상세", () => {
 
   it("배송중 → 취소 버튼 자리에 '발송된 주문은 취소할 수 없어요' 안내와 문의 메일", async () => {
     signIn();
-    getOrder.mockResolvedValue({ ...ORDER, fulfillmentStatus: "shipped" });
+    getOrder.mockResolvedValue(SHIPPING);
     await renderPage();
     expect(screen.getByText(/발송된 주문은 취소할 수 없어요/)).toBeTruthy();
     expect(screen.getByRole("link", { name: "hello@takesuaci.com" }).getAttribute("href")).toBe(
@@ -697,6 +740,7 @@ describe("주문 상세", () => {
     signIn();
     getOrder.mockResolvedValue({
       ...ORDER,
+      state: "delivered",
       fulfillmentStatus: "delivered",
       deliveredAt: Date.now() - 2 * 24 * 60 * 60 * 1000,
     });
@@ -710,6 +754,7 @@ describe("주문 상세", () => {
     signIn();
     getOrder.mockResolvedValue({
       ...ORDER,
+      state: "partiallyRefunded",
       fulfillmentStatus: "delivered",
       paymentStatus: "partially_refunded",
     });
@@ -743,6 +788,7 @@ describe("주문 상세", () => {
     signIn();
     getOrder.mockResolvedValue({
       ...ORDER,
+      state: "delivered",
       fulfillmentStatus: "delivered",
       deliveredAt: Date.now() - 120 * 24 * 60 * 60 * 1000,
     });
@@ -758,7 +804,11 @@ describe("주문 상세", () => {
     ["refunded", "환불 완료"],
   ] as const)("취소 클레임 %s → '%s'", async (status, label) => {
     signIn();
-    getOrder.mockResolvedValue({ ...ORDER, paymentStatus: "partially_refunded" });
+    getOrder.mockResolvedValue({
+      ...ORDER,
+      state: "partiallyRefunded",
+      paymentStatus: "partially_refunded",
+    });
     listClaims.mockResolvedValue([
       {
         claimId: "c1",
@@ -794,6 +844,7 @@ describe("주문 상세", () => {
     signIn();
     getOrder.mockResolvedValue({
       ...ORDER,
+      state: "delivered",
       fulfillmentStatus: "delivered",
       carrier: "dhl",
       trackingNumber: "ZX99",
@@ -805,8 +856,9 @@ describe("주문 상세", () => {
 
   describe("반품 신청", () => {
     const DAY = 24 * 60 * 60 * 1000;
-    const delivered = (daysAgo: number): Order => ({
+    const delivered = (daysAgo: number, state: OrderState = "delivered"): Order => ({
       ...ORDER,
+      state,
       fulfillmentStatus: "delivered",
       carrier: "cj",
       trackingNumber: "123456789012",
@@ -913,9 +965,20 @@ describe("주문 상세", () => {
       );
     });
 
+    it("배송중에 신청한 반품이 진행 중 → '받은 뒤 신청해 주세요' 안내 없이 배송 단계는 그대로", async () => {
+      signIn();
+      getOrder.mockResolvedValue({ ...SHIPPING, state: "returnInProgress" });
+      listClaims.mockResolvedValue([returnClaim({})]);
+      await renderPage();
+      expect(stateBadge("반품 진행 중")).toBeTruthy();
+      expect(screen.queryByText(/발송된 주문은 취소할 수 없어요/)).toBeNull();
+      const steps = screen.getByRole("list", { name: "진행 단계" });
+      expect(steps.querySelector('[aria-current="step"]')?.textContent).toBe("배송중");
+    });
+
     it("진행 중인 반품이 있으면 버튼 대신 내역에 '반품 신청됨'과 보낼 곳 안내", async () => {
       signIn();
-      getOrder.mockResolvedValue(delivered(2));
+      getOrder.mockResolvedValue(delivered(2, "returnInProgress"));
       listClaims.mockResolvedValue([returnClaim({})]);
       await renderPage();
       expect(screen.queryByRole("button", { name: "반품 신청" })).toBeNull();
@@ -926,7 +989,7 @@ describe("주문 상세", () => {
 
     it("교환 새 제품 발송 → '교환 상품 발송'·택배사·송장·배송 조회(새 탭), 금액 대신 수량", async () => {
       signIn();
-      getOrder.mockResolvedValue(delivered(5));
+      getOrder.mockResolvedValue(delivered(5, "exchangeInProgress"));
       listClaims.mockResolvedValue([
         returnClaim({
           type: "exchange",
@@ -952,7 +1015,7 @@ describe("주문 상세", () => {
 
     it("회수 송장이 들어오면 → '회수 송장 · 상태'·택배사·송장·배송 조회, 모르는 상태는 이름 없이", async () => {
       signIn();
-      getOrder.mockResolvedValue(delivered(5));
+      getOrder.mockResolvedValue(delivered(5, "returnInProgress"));
       listClaims.mockResolvedValue([
         returnClaim({
           claimId: "r1",
@@ -998,7 +1061,7 @@ describe("주문 상세", () => {
 
     it("신청 상태 반품 → '신청 철회'는 한 번 더 묻고, 철회하면 다시 불러온다", async () => {
       signIn();
-      getOrder.mockResolvedValue(delivered(2));
+      getOrder.mockResolvedValue(delivered(2, "returnInProgress"));
       listClaims.mockResolvedValue([returnClaim({})]);
       withdrawClaim.mockResolvedValue({});
       await renderPage();
@@ -1016,7 +1079,7 @@ describe("주문 상세", () => {
 
     it("회수 확인 뒤(환불 처리 중) 반품 → 철회 버튼이 없다", async () => {
       signIn();
-      getOrder.mockResolvedValue(delivered(2));
+      getOrder.mockResolvedValue(delivered(2, "returnInProgress"));
       listClaims.mockResolvedValue([returnClaim({ status: "refunding" })]);
       await renderPage();
       expect(screen.queryByRole("button", { name: "신청 철회" })).toBeNull();
@@ -1024,7 +1087,7 @@ describe("주문 상세", () => {
 
     it("이미 처리가 시작됐으면(CLAIM_NOT_WITHDRAWABLE) → 그 이유 + 내역을 다시 불러온다", async () => {
       signIn();
-      getOrder.mockResolvedValue(delivered(2));
+      getOrder.mockResolvedValue(delivered(2, "exchangeInProgress"));
       listClaims.mockResolvedValue([returnClaim({ type: "exchange" })]);
       withdrawClaim.mockRejectedValue(new ApiClientError("CLAIM_NOT_WITHDRAWABLE", "x", 409));
       await renderPage();
@@ -1055,6 +1118,7 @@ describe("주문 상세", () => {
     const DAY = 24 * 60 * 60 * 1000;
     const delivered = (daysAgo: number): Order => ({
       ...ORDER,
+      state: "delivered",
       fulfillmentStatus: "delivered",
       deliveredAt: Date.now() - daysAgo * DAY,
     });
@@ -1192,7 +1256,7 @@ describe("주문 상세", () => {
 
     it("상품준비중 → 변경 버튼 대신 메일 안내", async () => {
       signIn();
-      getOrder.mockResolvedValue({ ...ORDER, fulfillmentStatus: "preparing" });
+      getOrder.mockResolvedValue(PREPARING);
       await renderPage();
       expect(screen.queryByRole("button", { name: "배송지 변경" })).toBeNull();
       expect(screen.getByText(/포장을 시작해서 배송지를 바꾸려면/)).toBeTruthy();
@@ -1200,7 +1264,7 @@ describe("주문 상세", () => {
 
     it("배송중 → 변경 버튼도 안내도 없다", async () => {
       signIn();
-      getOrder.mockResolvedValue({ ...ORDER, fulfillmentStatus: "shipped" });
+      getOrder.mockResolvedValue(SHIPPING);
       await renderPage();
       expect(screen.queryByRole("button", { name: "배송지 변경" })).toBeNull();
       expect(screen.queryByText(/포장을 시작해서 배송지를 바꾸려면/)).toBeNull();

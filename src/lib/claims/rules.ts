@@ -123,14 +123,8 @@ export function canRequestAfterDelivery(order: Order, claims: Claim[], now: numb
 }
 
 /** 끝나지 않은 반품·교환이 있나 — 주문당 하나만 열 수 있다 */
-export function hasOpenAfterDelivery(claims: Claim[]): boolean {
+function hasOpenAfterDelivery(claims: Claim[]): boolean {
   return claims.some((c) => OPEN_AFTER_DELIVERY[c.type]?.includes(c.status));
-}
-
-/** 진행 중인 받은 뒤 클레임의 종류(반품·교환) — 주문 상태 이름이 '배송완료'로만 보이지 않게. 없으면 undefined */
-export function openAfterDeliveryType(claims: Claim[]): "return" | "exchange" | undefined {
-  const open = claims.find((c) => OPEN_AFTER_DELIVERY[c.type]?.includes(c.status));
-  return open?.type === "return" || open?.type === "exchange" ? open.type : undefined;
 }
 
 /** 환불 잠금에 걸리는 종류 — 취소·반품과 회사가 준 보상 환불(줄이 없어 남은 수량에는 세지 않는다) */

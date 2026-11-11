@@ -34,9 +34,7 @@ export default function ShippingAddressBox({
   const t = useTranslations("orders");
   const a = order.shippingAddress;
   const canChange = canChangeShippingAddress(order);
-  const isPreparing =
-    order.fulfillmentStatus === "preparing" &&
-    (order.paymentStatus === "paid" || order.paymentStatus === "partially_refunded");
+  const isPreparing = order.state === "preparing";
 
   const [picking, setPicking] = useState(false);
   const [changed, setChanged] = useState(false);
