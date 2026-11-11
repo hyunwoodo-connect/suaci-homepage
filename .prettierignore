@@ -1,2 +1,4 @@
 pnpm-lock.yaml
 public/
+# suaci-api `yarn contract --sync` 가 만든 파일
+src/types/api.gen.d.ts

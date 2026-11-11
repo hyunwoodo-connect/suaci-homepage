@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createHttpClient } from "./http";
-import { createMockClient } from "./mock";
 import { tokenStore } from "@/lib/auth/token-store";
 
 function mockFetchOnce(status: number, body: unknown) {
@@ -49,33 +48,6 @@ describe("소셜·체크아웃 http", () => {
     expect(url).toBe("https://api.test/checkout/defaults");
     // API Gateway Cognito authorizer 는 idToken 만 받는다 — accessToken 이면 실서버 401
     expect(init.headers.Authorization).toBe("Bearer id-tok");
-    tokenStore.clear();
-  });
-});
-
-describe("소셜·체크아웃 mock", () => {
-  it("처음 이름은 needs_consent, complete 후 같은 이름은 signed_in", async () => {
-    const api = createMockClient();
-    const first = await api.socialSignIn("kakao", { code: "mock:kakao:mina", redirectUri: "r" });
-    expect(first.status).toBe("needs_consent");
-    if (first.status !== "needs_consent") throw new Error("unreachable");
-    const tokens = await api.socialComplete({
-      signupToken: first.signupToken,
-      consents: { terms: true, privacy: true, marketing: false, age: true },
-    });
-    expect(tokens.accessToken).toBeTruthy();
-    tokenStore.save(tokens);
-    const again = await api.socialSignIn("kakao", { code: "mock:kakao:mina", redirectUri: "r" });
-    expect(again.status).toBe("signed_in");
-    tokenStore.clear();
-  });
-
-  it("getCheckoutDefaults: 기본 주소·마지막 결제수단(없으면 null)", async () => {
-    const api = createMockClient();
-    tokenStore.save({ idToken: "i", accessToken: "a", refreshToken: "r", expiresIn: 60 });
-    const out = await api.getCheckoutDefaults();
-    expect(out).toHaveProperty("address");
-    expect(out).toHaveProperty("lastPaymentMethod");
     tokenStore.clear();
   });
 });

@@ -191,7 +191,26 @@
     "addressesNone": "まだありません",
     "orders": "注文履歴",
     "logout": "ログアウト",
-    "helloNoName": "こんにちは。"
+    "helloNoName": "こんにちは。",
+    "withdraw": {
+      "link": "退会",
+      "title": "退会",
+      "lead": "退会すると、次のように整理します。",
+      "deletedTitle": "削除するもの",
+      "deletedAccount": "アカウント情報（名前・メール・電話番号）",
+      "deletedAddresses": "お届け先",
+      "deletedSocial": "suaciに保存されたカカオ・NAVERログインの連携情報",
+      "keptTitle": "法令に基づき保管するもの",
+      "keptOrders": "注文・決済・配送の記録 5年",
+      "keptClaims": "キャンセル・返品・交換の記録 3年",
+      "leaveWaitlist": "発売のお知らせも停止します",
+      "confirm": "内容を確認しました",
+      "submit": "退会する",
+      "blocked": "進行中の注文または申請があります。完了後に退会できます。",
+      "viewOrders": "注文履歴を見る",
+      "error": "退会を完了できませんでした。しばらくしてからもう一度お試しください。",
+      "done": "退会が完了しました。"
+    }
   },
   "addresses": {
     "title": "お届け先",
@@ -437,7 +456,10 @@
     "quoteReturnFee": "返品送料(お客様負担)",
     "quoteReturnFeeFree": "返品送料(送料無料のご注文のため最初の送料を含む)",
     "quoteShippingBack": "最初の送料の返金",
+    "quotePriorCompensation": "お支払い済みの補償",
     "quoteTotal": "返金予定額",
+    "quoteFailed": "返金額を読み込めませんでした。",
+    "quoteCompensated": "補償として残りの金額をすでにお返ししました。",
     "submit": "返品を申請する",
     "cancel": "閉じる",
     "after": "送り先と方法をメールでご案内します。商品の到着を確認後、3営業日以内に返金します。",

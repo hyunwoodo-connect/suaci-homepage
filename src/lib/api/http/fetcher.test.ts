@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createFetcher } from "./fetcher";
 import { createHttpClient } from "./index";
 import { tokenStore } from "@/lib/auth/token-store";
+import type { RefundPreviewRequest } from "@/types";
 
 function mockFetchOnce(status: number, body: unknown) {
   return vi.fn().mockResolvedValueOnce({
@@ -204,6 +205,46 @@ describe("uploadClaimPhoto", () => {
       code: "PHOTO_UPLOAD_FAILED",
       status: 403,
     });
+  });
+});
+
+describe("previewRefund", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.restoreAllMocks();
+    tokenStore.save({ accessToken: "a", idToken: "i", refreshToken: "r", expiresIn: 3600 });
+  });
+
+  it("POST /orders/{orderId}/claims/preview 에 종류·사유·줄을 보내고(인증 헤더) → 금액 나눠 보기", async () => {
+    const preview = {
+      itemsAmount: 28000,
+      refundedShipping: 0,
+      returnShippingFee: 3000,
+      priorCompensation: 5000,
+      refundAmount: 20000,
+    };
+    const fetchMock = mockFetchOnce(200, { data: preview });
+    vi.stubGlobal("fetch", fetchMock);
+    const api = createHttpClient("https://api.test");
+    const input: RefundPreviewRequest = {
+      type: "return",
+      reasonCode: "단순변심",
+      lines: [{ lineId: "l1", quantity: 1 }],
+    };
+    await expect(api.previewRefund("o1", input)).resolves.toEqual(preview);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://api.test/orders/o1/claims/preview");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual(input);
+    expect(init.headers.Authorization).toBe("Bearer i");
+  });
+
+  it("돌려드릴 금액이 없으면(409 NOTHING_TO_REFUND) → 그 코드로 던진다", async () => {
+    vi.stubGlobal("fetch", mockFetchOnce(409, { error: "NOTHING_TO_REFUND", message: "x" }));
+    const api = createHttpClient("https://api.test");
+    await expect(
+      api.previewRefund("o1", { type: "cancel", reasonCode: "기타" }),
+    ).rejects.toMatchObject({ code: "NOTHING_TO_REFUND", status: 409 });
   });
 });
 

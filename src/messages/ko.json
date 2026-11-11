@@ -191,7 +191,26 @@
     "addressesNone": "아직 없어요",
     "orders": "주문 내역",
     "logout": "로그아웃",
-    "helloNoName": "반가워요."
+    "helloNoName": "반가워요.",
+    "withdraw": {
+      "link": "회원 탈퇴",
+      "title": "회원 탈퇴",
+      "lead": "탈퇴하면 아래처럼 정리해요.",
+      "deletedTitle": "지우는 것",
+      "deletedAccount": "계정 정보(이름·이메일·전화번호)",
+      "deletedAddresses": "배송지",
+      "deletedSocial": "suaci에 저장된 카카오·네이버 로그인 연결 정보",
+      "keptTitle": "법에 따라 보관하는 것",
+      "keptOrders": "주문·결제·배송 기록 5년",
+      "keptClaims": "취소·반품·교환 기록 3년",
+      "leaveWaitlist": "출시 알림도 그만 받을게요",
+      "confirm": "안내를 확인했어요",
+      "submit": "탈퇴하기",
+      "blocked": "아직 진행 중인 주문이나 신청이 있어요. 끝난 뒤에 탈퇴할 수 있어요.",
+      "viewOrders": "주문 내역 보기",
+      "error": "탈퇴를 마치지 못했어요. 잠시 후 다시 시도해 주세요.",
+      "done": "탈퇴가 끝났어요."
+    }
   },
   "addresses": {
     "title": "배송지",
@@ -437,7 +456,10 @@
     "quoteReturnFee": "반품 배송비 (고객 부담)",
     "quoteReturnFeeFree": "반품 배송비 (무료 배송 주문이라 처음 배송비 포함)",
     "quoteShippingBack": "처음 낸 배송비 환불",
+    "quotePriorCompensation": "먼저 드린 보상",
     "quoteTotal": "환불 예정 금액",
+    "quoteFailed": "환불 금액을 불러오지 못했어요.",
+    "quoteCompensated": "보상으로 이미 남은 금액을 다 돌려드렸어요.",
     "submit": "반품 신청하기",
     "cancel": "닫기",
     "after": "보내실 곳과 방법을 메일로 안내해 드려요. 상품이 도착하면 확인한 뒤 3영업일 안에 환불해 드려요.",

@@ -1,4 +1,3 @@
-import { CHECKOUT_PRICING } from "@/constants/checkout";
 import type {
   Claim,
   ClaimStatus,
@@ -152,81 +151,4 @@ export function remainingQty(order: Order, claims: Claim[]): Record<string, numb
   return Object.fromEntries(
     order.items.map((i) => [i.lineId, Math.max(0, i.quantity - (taken[i.lineId] ?? 0))]),
   );
-}
-
-/** 예상 환불 금액 나눠 보기. 최종 금액은 서버가 신청 때 정한다(같은 규칙) */
-export interface ReturnQuote {
-  itemsAmount: number;
-  /** 손님 부담 반품 배송비(단순 변심) */
-  returnShippingFee: number;
-  /** 돌려주는 처음 배송비(회사 탓) */
-  refundedShipping: number;
-  refundAmount: number;
-}
-
-/** 취소 예상 환불 금액 — 상품 금액, 돌려받는 처음 배송비, 합계 */
-export interface CancelQuote {
-  itemsAmount: number;
-  refundedShipping: number;
-  refundAmount: number;
-}
-
-/**
- * 취소 예상 환불 금액(서버 computeRefund 와 같은 규칙) — 고른 수량의 상품 금액, 이 취소로 남은 수량이 0이 되면
- * 처음 낸 배송비까지(아직 안 돌려줬으면). `lines` 가 없으면 남은 수량 전부
- */
-export function cancelQuote(
-  order: Order,
-  claims: Claim[],
-  lines?: { lineId: string; quantity: number }[],
-): CancelQuote {
-  const left = remainingQty(order, claims);
-  const chosen =
-    lines ?? order.items.map((i) => ({ lineId: i.lineId, quantity: left[i.lineId] ?? 0 }));
-  const itemsAmount = chosen.reduce((sum, l) => {
-    const item = order.items.find((i) => i.lineId === l.lineId);
-    return sum + (item ? item.unitPrice * l.quantity : 0);
-  }, 0);
-  const emptiesOrder = order.items.every((i) => {
-    const picked = chosen.find((l) => l.lineId === i.lineId)?.quantity ?? 0;
-    return (left[i.lineId] ?? 0) - picked === 0;
-  });
-  const shippingAlreadyBack = claims.some((c) => isRefunded(c) && c.refundedShipping > 0);
-  const refundedShipping = emptiesOrder && !shippingAlreadyBack ? order.totals.shippingFee : 0;
-  return { itemsAmount, refundedShipping, refundAmount: itemsAmount + refundedShipping };
-}
-
-/**
- * 예상 환불 금액(환불 정책 v2). 단순 변심은 반품 배송비 편도(무료 배송 주문이면 처음 배송비까지)를 빼고,
- * 회사 탓은 처음 낸 배송비를 (아직 안 돌려줬으면) 더한다. `lines` 가 없으면 남은 수량 전부
- */
-export function returnQuote(
-  order: Order,
-  claims: Claim[],
-  reason: ReturnReason,
-  lines?: { lineId: string; quantity: number }[],
-): ReturnQuote {
-  const left = remainingQty(order, claims);
-  const chosen =
-    lines ?? order.items.map((i) => ({ lineId: i.lineId, quantity: left[i.lineId] ?? 0 }));
-  const itemsAmount = chosen.reduce((sum, l) => {
-    const item = order.items.find((i) => i.lineId === l.lineId);
-    return sum + (item ? item.unitPrice * l.quantity : 0);
-  }, 0);
-  const fee = CHECKOUT_PRICING.shippingFee;
-  const customerFault = reason === "단순변심";
-  const shippingAlreadyBack = claims.some((c) => isRefunded(c) && c.refundedShipping > 0);
-  // 무료 배송 주문의 처음 배송비는 주문당 한 번 — 앞선 단순 변심 반품이 냈으면(편도보다 많이 뺐으면) 다시 안 뺀다
-  const outboundCharged = claims.some(
-    (c) => c.type === "return" && c.status === "refunded" && c.returnShippingFee > fee,
-  );
-  const outbound = order.totals.shippingFee === 0 && !outboundCharged ? fee : 0;
-  const returnShippingFee = customerFault ? fee + outbound : 0;
-  const refundedShipping = !customerFault && !shippingAlreadyBack ? order.totals.shippingFee : 0;
-  return {
-    itemsAmount,
-    returnShippingFee,
-    refundedShipping,
-    refundAmount: itemsAmount + refundedShipping - returnShippingFee,
-  };
 }

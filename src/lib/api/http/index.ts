@@ -14,6 +14,8 @@ import type {
   LoginRequest,
   Order,
   OrderSummary,
+  RefundPreview,
+  RefundPreviewRequest,
   ResetPasswordRequest,
   SignupRequest,
   SocialCompleteRequest,
@@ -25,6 +27,7 @@ import type {
   User,
   PageParams,
   SalesStatus,
+  WithdrawAccountRequest,
 } from "@/types";
 import { ApiClientError } from "../errors";
 import type { ApiClient } from "../client";
@@ -128,6 +131,14 @@ export function createHttpClient(baseUrl?: string): ApiClient {
     async getMe() {
       return unwrap(await authedRequest<Envelope<User>>("/auth/me", { method: "GET" }));
     },
+    async withdrawAccount(r: WithdrawAccountRequest) {
+      return unwrap(
+        await authedRequest<Envelope<{ withdrawn: boolean }>>("/me/withdrawal", {
+          method: "POST",
+          body: r,
+        }),
+      );
+    },
 
     // ---- address ----
     async listAddresses() {
@@ -185,6 +196,14 @@ export function createHttpClient(baseUrl?: string): ApiClient {
     async createClaim(orderId: string, r: CreateClaimRequest) {
       return unwrap(
         await authedRequest<Envelope<Claim>>(`/orders/${orderId}/claims`, {
+          method: "POST",
+          body: r,
+        }),
+      );
+    },
+    async previewRefund(orderId: string, r: RefundPreviewRequest) {
+      return unwrap(
+        await authedRequest<Envelope<RefundPreview>>(`/orders/${orderId}/claims/preview`, {
           method: "POST",
           body: r,
         }),

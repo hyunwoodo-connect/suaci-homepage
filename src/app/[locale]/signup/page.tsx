@@ -2,10 +2,11 @@
 
 import { Suspense, useState } from "react";
 
-import { useLocale, useTranslations } from "next-intl";
+import { hasLocale, useLocale, useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 
 import { Link, useRouter } from "@/i18n/navigation";
+import { routing } from "@/i18n/routing";
 import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
 import PasswordField from "@/components/ui/PasswordField";
@@ -93,7 +94,9 @@ function SignupBody() {
     setBusy(true);
     setError(null);
     try {
-      await api.signup({ email, password, name, consents, locale });
+      // 인증 메일 언어 — 화면 언어가 사이트가 아는 언어일 때만 싣는다(아니면 서버 기본값)
+      const mailLocale = hasLocale(routing.locales, locale) ? locale : undefined;
+      await api.signup({ email, password, name, consents, locale: mailLocale });
       setStep("confirm");
     } catch (err) {
       if (err instanceof ApiClientError && WEAK_PASSWORD_CODES.includes(err.code)) {

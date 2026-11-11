@@ -6,16 +6,30 @@ import { useTranslations } from "next-intl";
 
 import Button from "@/components/ui/Button";
 import { api } from "@/lib/api";
-import { cancelQuote, remainingQty } from "@/lib/claims/rules";
+import { remainingQty } from "@/lib/claims/rules";
 import { formatKRW } from "@/lib/format";
-import { REASON_CODES, type Claim, type Order, type ReasonCode } from "@/types";
+import {
+  REASON_CODES,
+  type Claim,
+  type Order,
+  type ReasonCode,
+  type RefundPreviewRequest,
+} from "@/types";
 
 import { claimErrorKey } from "./claimError";
 import DetailField from "./DetailField";
 import LinesPicker from "./LinesPicker";
 import ReasonPicker from "./ReasonPicker";
+import RefundQuote from "./RefundQuote";
 import { useSubmitLock } from "./useSubmitLock";
 import { useLineSelection } from "./useLineSelection";
+import { useRefundPreview } from "./useRefundPreview";
+
+/**
+ * 사유를 고르기 전 미리 보기에 싣는 사유 — 취소 금액은 사유로 달라지지 않아(API 계약: 사유는 반품 금액만 바꾼다)
+ * 폼을 열자마자 금액을 보인다. 사유를 고르면 그 사유로 다시 묻는다
+ */
+const REASON_BEFORE_PICK: ReasonCode = "기타";
 
 interface CancelRequestFormProps {
   order: Order;
@@ -31,7 +45,8 @@ interface CancelRequestFormProps {
 
 /**
  * 결제했고 아직 안 보낸 주문의 취소 요청 — 백엔드에는 클레임(createClaim)으로 가고 서버가 바로 환불한다.
- * 이미 취소·환불된 수량은 고를 수 없다(남은 수량까지)
+ * 이미 취소·환불된 수량은 고를 수 없다(남은 수량까지). 환불 금액은 서버 미리 보기가 준 것만 보이고,
+ * 그 금액을 받기 전에는 보낼 수 없다
  */
 export default function CancelRequestForm({
   order,
@@ -51,10 +66,15 @@ export default function CancelRequestForm({
   const [confirming, setConfirming] = useState(false);
   const left = remainingQty(order, claims);
   const pick = useLineSelection(order, left);
-  const quote = cancelQuote(order, claims, pick.lines);
-  const tr = useTranslations("returns");
-  const refundLabel = formatKRW(quote.refundAmount);
-  const blocked = busy || pick.partialEmpty || reasonCode === null || quote.itemsAmount <= 0;
+  // 일부를 골랐는데 고른 줄이 없으면 묻지 않는다 — 빈 줄 목록은 서버가 '남은 수량 전부'로 읽는다
+  const previewInput: RefundPreviewRequest | null = pick.partialEmpty
+    ? null
+    : { type: "cancel", reasonCode: reasonCode ?? REASON_BEFORE_PICK, lines: pick.lines };
+  const preview = useRefundPreview(order.orderId, previewInput);
+  // 확인 단계에 보일 금액 — 서버가 준 것만. 받기 전(묻는 중·실패)에는 보낼 수 없다
+  const refundLabel =
+    preview.state.status === "loaded" ? formatKRW(preview.state.preview.refundAmount) : null;
+  const blocked = busy || reasonCode === null || refundLabel === null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,6 +98,8 @@ export default function CancelRequestForm({
         setError(errorMessage);
         setConfirming(false);
         await onFailed();
+        // 막힌 사이 주문이 바뀌었을 수 있다(다른 환불이 끝남) — 금액을 다시 묻는다
+        preview.retry();
         return;
       }
       await onDone();
@@ -135,23 +157,9 @@ export default function CancelRequestForm({
         partialEmpty={pick.partialEmpty}
       />
 
-      {/* 환불 예정 금액 — 반품 폼과 같은 칸(서버 규칙과 같은 계산, 금액의 권위는 서버) */}
-      <section aria-label={tr("quoteTitle")} className="border border-line p-[16px]">
-        <h3 className="m-0 mb-[8px] text-[14px] font-medium text-ink">{tr("quoteTitle")}</h3>
-        <QuoteRow label={tr("quoteItems")} value={formatKRW(quote.itemsAmount)} />
-        {quote.refundedShipping > 0 && (
-          <QuoteRow
-            label={tr("quoteShippingBack")}
-            value={`+${formatKRW(quote.refundedShipping)}`}
-          />
-        )}
-        <div className="mt-[8px] flex items-baseline justify-between border-t border-line pt-[8px]">
-          <span className="text-[15px] font-medium">{tr("quoteTotal")}</span>
-          <b className="num text-[18px] font-medium">{refundLabel}</b>
-        </div>
-      </section>
+      <RefundQuote state={preview.state} onRetry={preview.retry} />
 
-      {!confirming ? (
+      {!confirming || refundLabel === null ? (
         <div className="flex flex-wrap items-center gap-[8px_20px]">
           <Button type="submit" variant="danger" size="sm" disabled={blocked}>
             {tc("submit")}
@@ -185,16 +193,5 @@ export default function CancelRequestForm({
 
       <p className="m-0 text-[13px] leading-[1.6] text-grey">{tc("cardNote")}</p>
     </form>
-  );
-}
-
-/* ─── 하위 컴포넌트 ─────────────────────────── */
-
-function QuoteRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex min-h-[28px] items-center justify-between gap-[12px]">
-      <span className="text-[14px] text-grey">{label}</span>
-      <span className="num shrink-0 text-[14px]">{value}</span>
-    </div>
   );
 }

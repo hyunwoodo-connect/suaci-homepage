@@ -10,6 +10,7 @@ import type {
   ConfirmRequest,
   LoginRequest,
   ResetPasswordRequest,
+  WithdrawAccountRequest,
   Address,
   CreateAddressRequest,
   UpdateAddressRequest,
@@ -21,13 +22,15 @@ import type {
   CreateClaimRequest,
   CreateReturnRequest,
   CreateExchangeRequest,
+  RefundPreview,
+  RefundPreviewRequest,
   ChangeShippingAddressRequest,
   ApiPage,
   PageParams,
   SalesStatus,
 } from "@/types";
 
-/** 커머스 API 의 모양 — 실서버(`createHttpClient`)와 목업(`createMockClient`)이 같은 모양으로 구현한다 */
+/** 커머스 API 의 모양 — `createHttpClient` 가 구현하고, 화면 테스트는 이 모양으로 `@/lib/api` 를 바꿔 낀다 */
 export interface ApiClient {
   signup(r: SignupRequest): Promise<{ email: string }>;
   confirm(r: ConfirmRequest): Promise<{ confirmed: boolean }>;
@@ -41,6 +44,11 @@ export interface ApiClient {
   socialSignIn(provider: SocialProvider, r: SocialSignInRequest): Promise<SocialSignInResult>;
   socialComplete(r: SocialCompleteRequest): Promise<TokenResponse>;
   getMe(): Promise<User>;
+  /**
+   * 회원 탈퇴. 끝나지 않은 주문·신청이 있으면 409 `ACCOUNT_WITHDRAWAL_BLOCKED`, 관리자 계정이면 403 `ACCOUNT_WITHDRAWAL_ADMIN_FORBIDDEN`.
+   * 실패한 뒤 다시 불러도 된다(서버가 남은 일을 이어서 끝낸다)
+   */
+  withdrawAccount(r: WithdrawAccountRequest): Promise<{ withdrawn: boolean }>;
   /** 구매 시트가 미리 채울 기본 배송지·지난 결제수단. */
   getCheckoutDefaults(): Promise<CheckoutDefaults>;
   /** 판매 상태(공개) — 출시 전이면 구매 버튼을 막는다. 서버가 주문·결제 승인에서 다시 막는다 */
@@ -56,6 +64,8 @@ export interface ApiClient {
   confirmPayment(orderId: string, r: ConfirmPaymentRequest): Promise<Order>;
   listClaims(orderId: string): Promise<Claim[]>;
   createClaim(orderId: string, r: CreateClaimRequest): Promise<Claim>;
+  /** 이대로 취소·반품을 신청하면 돌아올 금액 — 서버가 신청 때와 같은 계산으로 알려 준다(아무것도 쓰지 않는다) */
+  previewRefund(orderId: string, r: RefundPreviewRequest): Promise<RefundPreview>;
   /** 반품·교환 신청에 붙일 사진 한 장을 올린다(비공개, 회사만 본다) → 신청의 `photoIds` 에 넣을 ID */
   uploadClaimPhoto(orderId: string, photo: Blob): Promise<string>;
   createReturn(orderId: string, r: CreateReturnRequest): Promise<Claim>;

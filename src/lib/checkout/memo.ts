@@ -21,3 +21,10 @@ export function saveMemo(memo: string): void {
     localStorage.setItem(KEY, memo);
   } catch {}
 }
+
+/** 저장된 배송 메모를 지운다 — 회원 탈퇴 뒤 이 브라우저에 직접 쓴 메모가 남지 않게 */
+export function clearSavedMemo(): void {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {}
+}
