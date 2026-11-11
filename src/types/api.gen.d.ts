@@ -242,6 +242,31 @@ export interface CreateClaimInput {
   metadata?: Metadata
 }
 
+/**
+ * 환불 금액 미리 보기 입력 — 신청 폼이 보내기 전에 "이대로 신청하면 얼마가 돌아오나"를 묻는다.
+ * `type` 은 발송 전 취소 또는 반품, `reasonCode` 는 반품일 때만 금액을 바꾼다(단순 변심은 반품 배송비를 뺀다). lines 생략 = 남은 수량 전부.
+ */
+export type RefundPreviewInput =
+  | { type: 'cancel'; reasonCode: ReasonCode; lines?: { lineId: string; quantity: number }[] }
+  | { type: 'return'; reasonCode: RequestReturnInput['reasonCode']; lines?: { lineId: string; quantity: number }[] }
+
+/**
+ * 환불 금액 미리 보기 — 신청을 만들 때와 같은 계산(`claim.quote`)이라 화면이 금액을 따로 셈하지 않는다.
+ * `refundAmount` = `itemsAmount` + `refundedShipping` − `returnShippingFee` − `priorCompensation`.
+ */
+export interface RefundPreviewView {
+  /** 고른 줄의 상품 금액 합 */
+  itemsAmount: number
+  /** 같이 돌려주는 처음 배송비(남은 것을 다 취소하거나 회사 탓 반품일 때) */
+  refundedShipping: number
+  /** 손님 부담 반품 배송비(단순 변심 반품 — 무료 배송 주문이면 처음 배송비까지) */
+  returnShippingFee: number
+  /** 먼저 드린 보상 환불 때문에 뺀 금액(없으면 0) */
+  priorCompensation: number
+  /** 돌려드릴 금액 */
+  refundAmount: number
+}
+
 /** 반품 신청 입력(환불 정책 v2). lines 생략 = 남은 수량 전부. 단순 변심은 미개봉·미사용 확인이 필수. */
 export interface RequestReturnInput {
   /** 필수 멱등키 (더블서브밋 방지). */
@@ -746,12 +771,11 @@ export interface AdminWorklistCounts {
 /** 재시도 중 환불 한 줄 — 클레임 관리자 뷰 + 주문번호 + 테스트 결제 주문인지(개수에서 빠진다). */
 export type AdminFailedRefund = AdminClaimView & { orderNo: string; test: boolean }
 
-/** 오늘 할 일(관리 툴 첫 화면). `months` 는 읽은 달(최근 6개월, 오래된 달 먼저). */
+/** 오늘 할 일(관리 툴 첫 화면) — 열린 일 인덱스에서 읽어 달 창이 없다(오래 묵은 일도 전부). 목록은 오래된 것 먼저. */
 export interface AdminWorklist {
   counts: AdminWorklistCounts
   toShip: AdminShipItem[]
   refundsFailed: AdminFailedRefund[]
-  months: string[]
 }
 
 /** 송장 일괄 한 줄 입력(검증 전 — 줄마다 결과로 알린다). */
@@ -993,6 +1017,46 @@ export interface UserProfile {
   createdDtm: string
 }
 
+/** POST /me/withdrawal 입력. */
+export interface WithdrawInput {
+  /** 출시 알림 명단에서도 빼 달라(탈퇴와 출시 알림은 따로 동의한 것이라 손님이 고른다). 기본 false */
+  leaveWaitlist: boolean
+}
+
+/** 탈퇴 요청의 맥락 — 기록에 남길 요청 번호와 유스케이스 진입 시각. */
+export interface WithdrawContext {
+  /** API Gateway requestId — 탈퇴 기록과 로그를 맞춰 볼 때 */
+  requestId: string
+  now: Date
+  /** 토큰이 admin 그룹인가 — 관리자 계정은 이 길로 탈퇴하지 못한다(403) */
+  isAdmin: boolean
+}
+
+/**
+ * 탈퇴 한 번(시도)에서 지운 것 — 탈퇴 기록(`AccountWithdrawal`)에 더해 적는다. 중간에 멈춰도 거기까지 지운 것을 남긴다.
+ * 연락처는 없다(수와 여부뿐).
+ */
+export interface WithdrawalProgress {
+  removedAddresses: number
+  removedConsents: number
+  /** 소셜 연결 파티션에서 지운 행(연결 + 해제 기록) */
+  removedSocialRows: number
+  providersUnlinked: SocialProvider[]
+  /** 카카오 쪽 연결 끊기 결과 — 이번 시도에서 불렀을 때만(이미 끊었거나 카카오 가입자가 아니면 없다) */
+  kakaoUnlinked?: boolean
+  /** 소셜 연결 행의 주인이 이 회원이 아니라 지우지 않았다 */
+  socialLinkMismatch: boolean
+  userRowRemoved: boolean
+  waitlistRemoved: boolean
+  cognitoDeleted: boolean
+  /** 이번 시도가 멈춘 단계와 이유(오류 이름) — 끝까지 갔으면 없다 */
+  failure?: { stage: WithdrawalStage; reason: string }
+}
+
+/** 완료 메일 한 번의 결과 — 탈퇴 기록에 따로 적는다(메일은 다 지운 뒤에 보낸다). */
+export type WithdrawalMailOutcome =
+  { status: 'sent'; messageId: string } | { status: 'failed'; reason: string } | { status: 'no_address' }
+
 // ── src/domains/waitlist/waitlist.types.ts
 
 /** POST /waitlist 입력. 두 동의는 검증에서 true 만 통과한다. */
@@ -1027,6 +1091,14 @@ export interface UploadTarget {
   fields: Record<string, string>
   key: string
 }
+
+// ── src/types/account-withdrawal.ts
+
+/**
+ * 탈퇴가 지우는 단계(순서대로). `cognito` 까지는 회원 행·로그인이 살아 있어 회원이 다시 불러 이어서 끝낼 수 있고,
+ * 그 뒤(`social`·`user_row`·`record`)에서 멈추면 로그인 계정이 이미 없어 사람이 끝내야 한다
+ */
+export type WithdrawalStage = 'addresses' | 'consents' | 'waitlist' | 'cognito' | 'social' | 'user_row' | 'record'
 
 // ── src/types/claim.ts
 
@@ -1077,8 +1149,11 @@ export type ClaimEmailMarks = Partial<
     Record<`${ClaimEmailKind}Email${'SentDtm' | 'MessageId' | 'FailedDtm' | 'FailedReason'}`, string>
 >
 
-/** 클레임의 종류·상태를 뺀 칸. 엔티티는 `Claim`(종류와 그 종류의 상태를 묶은 것) */
-export interface ClaimFields extends ClaimEmailMarks {
+/**
+ * 클레임의 종류·상태를 뺀 칸. 엔티티는 `Claim`(종류와 그 종류의 상태를 묶은 것).
+ * 열린 일 키(`GSI3PK`·`GSI3SK`)는 끝나지 않은 상태일 때만 있다 — 정렬 키는 만들 때 한 번, 끝나는 쓰기가 둘 다 지운다.
+ */
+export interface ClaimFields extends ClaimEmailMarks, OpenWorkKeys<OpenClaimKey> {
   PK: `ORDER#${string}`
   SK: `CLAIM#${string}`
   entityType: 'CLAIM'
@@ -1184,11 +1259,11 @@ export type Claim = { [T in ClaimType]: ClaimOf<T> }[ClaimType]
 /**
  * DynamoDB Single-Table 공통 타입.
  *
- * 테이블 `suaci-{stage}`, 키 PK/SK + 오버로드 GSI1·GSI2. 엔티티는 `entityType` 으로 구분한다.
+ * 테이블 `suaci-{stage}`, 키 PK/SK + 오버로드 GSI1·GSI2 + 열린 일 GSI3(sparse, `types/open-work`). 엔티티는 `entityType` 으로 구분한다.
  * 타임스탬프 컨벤션(`*At` Unix ms, `*Dtm` KST ISO)은 `shared/time.ts`.
  * 엔티티 타입은 `types/{entity}.ts` 에 하나씩 둔다.
  */
-/** 유저 상태. pending: 이메일 미인증, active: 정상, banned: 정지, withdrawn: 탈퇴. */
+/** 유저 상태. pending: 이메일 미인증, active: 정상, banned: 정지, withdrawn: 탈퇴하는 중(지우다 멈춘 계정도 이 상태 — 주문을 만들 수 없고, 다 지우면 회원 행이 없어진다). */
 export type UserStatus = 'pending' | 'active' | 'banned' | 'withdrawn'
 
 /** 클레임 사유 (전자상거래법 카테고리). 사업자귀책=하자/오배송/표시광고상이. */
@@ -1266,6 +1341,30 @@ export type LegalSlug = (typeof LEGAL_SLUGS)[number]
 /** 판 상태. `draft` 만 고칠 수 있고 `published` 는 불변. */
 export type LegalVersionStatus = 'draft' | 'published'
 
+// ── src/types/open-work.ts
+
+/** 열린 주문 상태 — pending(결제 대기), to_ship(보낼 주문). */
+export type OpenOrderState = 'pending' | 'to_ship'
+
+export declare const CLAIM_IS_OPEN: { readonly requested: true; readonly received: true; readonly shipped: true; readonly refunding: true; readonly refund_failed: true; readonly refunded: false; readonly completed: false; readonly rejected: false; readonly withdrawn: false; readonly expired: false; }
+
+/** 끝나지 않은 클레임 상태 — 열린 일 인덱스에 파티션이 있는 상태. */
+export type OpenClaimStatus = {
+  [S in ClaimStatus]: (typeof CLAIM_IS_OPEN)[S] extends true ? S : never
+}[ClaimStatus]
+
+/** 열린 일 키 두 칸(`K` = 그 엔티티의 파티션 키 모양). 열린 상태일 때만 있고, 둘이 같이 있거나 같이 없다. */
+export interface OpenWorkKeys<K extends string> {
+  GSI3PK?: K
+  GSI3SK?: string
+}
+
+/** 열린 주문 파티션 키 모양. */
+export type OpenOrderKey = `OPEN#ORDER#${OpenOrderState}`
+
+/** 열린 클레임 파티션 키 모양. */
+export type OpenClaimKey = `OPEN#CLAIM#${OpenClaimStatus}`
+
 // ── src/types/order.ts
 
 /**
@@ -1301,8 +1400,11 @@ export interface ShippingAddressSnapshot {
   addr2?: string
 }
 
-/** 주문 헤더 엔티티. 금액은 totals, 환불 누적은 refundedAmount·shippingRefunded. */
-export interface Order {
+/**
+ * 주문 헤더 엔티티. 금액은 totals, 환불 누적은 refundedAmount·shippingRefunded.
+ * 열린 일 키(`GSI3PK`·`GSI3SK`)는 결제 대기(pending)·보낼 주문(to_ship)일 때만 있다 — 그 상태를 떠나는 쓰기가 같은 식에서 지운다.
+ */
+export interface Order extends OpenWorkKeys<OpenOrderKey> {
   PK: `ORDER#${string}`
   SK: '#METADATA'
   entityType: 'ORDER'
@@ -1475,6 +1577,13 @@ export type ProductStatus = 'draft' | 'active' | 'soldout' | 'hidden'
 
 /** 옵션 상태. 주문은 active 만 받는다. */
 export type VariantStatus = 'active' | 'soldout' | 'hidden'
+
+// ── src/types/social.ts
+
+export declare const SOCIAL_PROVIDERS: readonly ["kakao", "naver"]
+
+/** `SOCIAL_PROVIDERS` 의 원소. */
+export type SocialProvider = (typeof SOCIAL_PROVIDERS)[number]
 
 // ── src/types/stock-ledger.ts
 
