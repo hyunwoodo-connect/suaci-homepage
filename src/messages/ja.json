@@ -199,7 +199,7 @@
       "deletedTitle": "削除するもの",
       "deletedAccount": "アカウント情報（名前・メール・電話番号）",
       "deletedAddresses": "お届け先",
-      "deletedSocial": "カカオ・NAVERログインの連携",
+      "deletedSocial": "suaciに保存されたカカオ・NAVERログインの連携情報",
       "keptTitle": "法令に基づき保管するもの",
       "keptOrders": "注文・決済・配送の記録 5年",
       "keptClaims": "キャンセル・返品・交換の記録 3年",

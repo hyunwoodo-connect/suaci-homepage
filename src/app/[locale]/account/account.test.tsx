@@ -226,6 +226,20 @@ describe("회원 탈퇴", () => {
     expect(replace).toHaveBeenCalledWith({ pathname: "/", query: { withdrawn: "1" } });
   });
 
+  it("서버가 받지 않는 계정(403 ACCOUNT_WITHDRAWAL_ADMIN_FORBIDDEN) → 다시 시도 안내, 로그인은 그대로", async () => {
+    withdrawAccount.mockRejectedValueOnce(
+      new ApiClientError("ACCOUNT_WITHDRAWAL_ADMIN_FORBIDDEN", "forbidden", 403),
+    );
+    const sheet = await openSheet();
+    await confirmAndSubmit(sheet);
+    expect(within(sheet).getByRole("alert").textContent).toBe(
+      "탈퇴를 마치지 못했어요. 잠시 후 다시 시도해 주세요.",
+    );
+    expect(within(sheet).getByRole("button", { name: "탈퇴하기" })).toBeTruthy();
+    expect(tokenStore.getAccessToken()).toBe("a");
+    expect(replace).not.toHaveBeenCalled();
+  });
+
   it("보내다 로그인이 풀리면(401) → 시트를 닫고 '로그인이 풀렸어요'", async () => {
     withdrawAccount.mockRejectedValueOnce(new ApiClientError("AUTH_REQUIRED", "Unauthorized", 401));
     const sheet = await openSheet();
