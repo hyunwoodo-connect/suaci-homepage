@@ -6,17 +6,18 @@ import { useTranslations } from "next-intl";
 
 import Button from "@/components/ui/Button";
 import { api } from "@/lib/api";
-import { formatKRW } from "@/lib/format";
-import { RETURN_REASONS, remainingQty, returnQuote, returnWindow } from "@/lib/claims/rules";
-import type { Claim, Order, ReturnReason } from "@/types";
+import { RETURN_REASONS, remainingQty, returnWindow } from "@/lib/claims/rules";
+import type { Claim, Order, RefundPreviewRequest, ReturnReason } from "@/types";
 
 import { claimErrorKey } from "./claimError";
 import DetailField from "./DetailField";
 import LinesPicker from "./LinesPicker";
 import PhotoPicker from "./PhotoPicker";
 import ReasonPicker from "./ReasonPicker";
+import RefundQuote from "./RefundQuote";
 import { useSubmitLock } from "./useSubmitLock";
 import { useLineSelection } from "./useLineSelection";
+import { useRefundPreview } from "./useRefundPreview";
 
 interface ReturnRequestFormProps {
   order: Order;
@@ -32,7 +33,8 @@ interface ReturnRequestFormProps {
 
 /**
  * 받은 뒤 반품 신청(환불 정책 v2) — 사유(단순 변심은 7일·미개봉 확인), 범위, 예상 환불 금액(반품 배송비 차감)을 보고 신청한다.
- * 돈은 여기서 움직이지 않는다: 상품이 돌아와 확인되면 관리자가 환불한다. 금액의 권위는 서버(같은 규칙으로 신청 때 정한다).
+ * 돈은 여기서 움직이지 않는다: 상품이 돌아와 확인되면 관리자가 환불한다. 예상 금액은 서버 미리 보기가 준 것만 보이고
+ * (신청 때와 같은 계산), 그 금액을 받기 전에는 보낼 수 없다.
  */
 export default function ReturnRequestForm({
   order,
@@ -61,16 +63,19 @@ export default function ReturnRequestForm({
   const left = remainingQty(order, claims);
   const pick = useLineSelection(order, left);
   const needsUnopened = reason === "단순변심";
-  const quote = reason ? returnQuote(order, claims, reason, pick.lines) : null;
-  // 고를 상품이 없거나(이미 다 돌려받음) 반품 배송비를 빼면 남는 돈이 없으면 보내지 않는다
+  // 사유를 고르기 전(사유가 금액을 바꾼다)이거나 일부인데 고른 줄이 없으면 묻지 않는다 — 빈 줄 목록은 서버가 '남은 수량 전부'로 읽는다
+  const previewInput: RefundPreviewRequest | null =
+    reason === null || pick.partialEmpty
+      ? null
+      : { type: "return", reasonCode: reason, lines: pick.lines };
+  const preview = useRefundPreview(order.orderId, previewInput);
+  // 금액을 받기 전(묻는 중·실패 — 반품 배송비를 빼면 남는 돈이 없다는 답 포함)에는 보내지 않는다
   const blocked =
     busy ||
     photosBusy ||
-    pick.partialEmpty ||
-    quote === null ||
+    reason === null ||
     (needsUnopened && !unopened) ||
-    quote.itemsAmount <= 0 ||
-    quote.refundAmount <= 0;
+    preview.state.status !== "loaded";
   // 버튼이 왜 잠겼는지 버튼 바로 옆에(UX 리뷰 F3) — 미개봉 체크는 사유 칩 아래라 폰에선 버튼과 멀다
   const blockedHint =
     reason === null ? tc("pickReason") : needsUnopened && !unopened ? t("needUnopened") : null;
@@ -94,15 +99,13 @@ export default function ReturnRequestForm({
         const errorMessage = tc(errorKey);
         setError(errorMessage);
         await onFailed();
+        // 막힌 사이 주문이 바뀌었을 수 있다(다른 환불이 끝남) — 금액을 다시 묻는다
+        preview.retry();
         return;
       }
       await onDone();
     });
   };
-
-  const returnFeeLabelKey =
-    order.totals.shippingFee === 0 ? "quoteReturnFeeFree" : "quoteReturnFee";
-  const refundShown = Math.max(0, quote?.refundAmount ?? 0);
 
   return (
     <form
@@ -173,28 +176,13 @@ export default function ReturnRequestForm({
         partialEmpty={pick.partialEmpty}
       />
 
-      {/* 예상 환불 금액 — 반품 배송비를 뺀 내역을 환불 전에 보여 준다(환불 정책 v2) */}
-      {quote && (
-        <section aria-label={t("quoteTitle")} className="border border-line p-[16px]">
-          <h3 className="m-0 mb-[8px] text-[14px] font-medium text-ink">{t("quoteTitle")}</h3>
-          <QuoteRow label={t("quoteItems")} value={formatKRW(quote.itemsAmount)} />
-          {quote.returnShippingFee > 0 && (
-            <QuoteRow
-              label={t(returnFeeLabelKey)}
-              value={`−${formatKRW(quote.returnShippingFee)}`}
-            />
-          )}
-          {quote.refundedShipping > 0 && (
-            <QuoteRow
-              label={t("quoteShippingBack")}
-              value={`+${formatKRW(quote.refundedShipping)}`}
-            />
-          )}
-          <div className="mt-[8px] flex items-baseline justify-between border-t border-line pt-[8px]">
-            <span className="text-[15px] font-medium">{t("quoteTotal")}</span>
-            <b className="num text-[18px] font-medium">{formatKRW(refundShown)}</b>
-          </div>
-        </section>
+      {/* 예상 환불 금액 — 반품 배송비를 뺀 내역을 환불 전에 보여 준다(환불 정책 v2). 사유를 골라야 금액이 정해진다 */}
+      {reason !== null && (
+        <RefundQuote
+          state={preview.state}
+          onRetry={preview.retry}
+          isFreeShipping={order.totals.shippingFee === 0}
+        />
       )}
 
       <div className="flex flex-wrap items-center gap-[8px_20px]">
@@ -209,16 +197,5 @@ export default function ReturnRequestForm({
 
       <p className="m-0 text-[13px] leading-[1.6] text-grey">{t("after")}</p>
     </form>
-  );
-}
-
-/* ─── 하위 컴포넌트 ─────────────────────────── */
-
-function QuoteRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex min-h-[28px] items-center justify-between gap-[12px]">
-      <span className="text-[14px] text-grey">{label}</span>
-      <span className="num shrink-0 text-[14px]">{value}</span>
-    </div>
   );
 }

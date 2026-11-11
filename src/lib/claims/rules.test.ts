@@ -3,14 +3,12 @@ import { describe, expect, it } from "vitest";
 import type { Claim, Order } from "@/types";
 
 import {
-  cancelQuote,
   canChangeShippingAddress,
   canRequestCancel,
   canRequestAfterDelivery,
   canWithdraw,
   kstDayEnd,
   remainingQty,
-  returnQuote,
   returnWindow,
   hasRefundInFlight,
 } from "./rules";
@@ -208,84 +206,6 @@ describe("canRequestAfterDelivery", () => {
     expect(
       canRequestAfterDelivery(ORDER, [claim({ type: "exchange", status: "completed" })], now),
     ).toBe(true);
-  });
-});
-
-describe("cancelQuote", () => {
-  const paid = { ...ORDER, fulfillmentStatus: "unfulfilled" as const };
-
-  it("전체 취소 → 상품 금액 + 처음 배송비", () => {
-    expect(cancelQuote(paid, [])).toEqual({
-      itemsAmount: 56000,
-      refundedShipping: 3000,
-      refundAmount: 59000,
-    });
-  });
-
-  it("일부 취소(2개 중 1개) → 상품 금액만, 배송비는 남은 게 없을 때", () => {
-    expect(cancelQuote(paid, [], [{ lineId: "l1", quantity: 1 }])).toEqual({
-      itemsAmount: 28000,
-      refundedShipping: 0,
-      refundAmount: 28000,
-    });
-  });
-
-  it("앞서 1개 취소 뒤 남은 1개 취소 → 그 1개 + 처음 배송비(아직 안 돌려줬으면)", () => {
-    const first = claim({
-      type: "cancel",
-      status: "refunded",
-      refundAmount: 28000,
-      refundedShipping: 0,
-    });
-    expect(cancelQuote(paid, [first])).toEqual({
-      itemsAmount: 28000,
-      refundedShipping: 3000,
-      refundAmount: 31000,
-    });
-  });
-});
-
-describe("returnQuote", () => {
-  it("단순 변심, 배송비 낸 주문 → 상품 금액 − 3,000원", () => {
-    expect(returnQuote(ORDER, [], "단순변심")).toEqual({
-      itemsAmount: 56000,
-      returnShippingFee: 3000,
-      refundedShipping: 0,
-      refundAmount: 53000,
-    });
-  });
-
-  it("단순 변심, 무료 배송 주문 → 처음 배송비까지 6,000원", () => {
-    const free = { ...ORDER, totals: { ...ORDER.totals, shippingFee: 0, grandTotal: 56000 } };
-    expect(returnQuote(free, [], "단순변심").returnShippingFee).toBe(6000);
-  });
-
-  it("무료 배송 주문의 두 번째 단순 변심 반품 → 처음 배송비는 이미 냈으니 편도만", () => {
-    const free = { ...ORDER, totals: { ...ORDER.totals, shippingFee: 0, grandTotal: 56000 } };
-    const first = claim({ status: "refunded", returnShippingFee: 6000 });
-    expect(returnQuote(free, [first], "단순변심")).toMatchObject({
-      itemsAmount: 28000,
-      returnShippingFee: 3000,
-      refundAmount: 25000,
-    });
-  });
-
-  it("하자 일부 반품 → 반품 배송비 0, 처음 배송비 3,000원 더함", () => {
-    expect(returnQuote(ORDER, [], "상품하자", [{ lineId: "l1", quantity: 1 }])).toEqual({
-      itemsAmount: 28000,
-      returnShippingFee: 0,
-      refundedShipping: 3000,
-      refundAmount: 31000,
-    });
-  });
-
-  it("이미 환불된 수량은 빼고, 처음 배송비를 이미 돌려줬으면 다시 안 더한다", () => {
-    const done = claim({ status: "refunded", reasonCode: "상품하자", refundedShipping: 3000 });
-    expect(remainingQty(ORDER, [done])).toEqual({ l1: 1 });
-    expect(returnQuote(ORDER, [done], "오배송")).toMatchObject({
-      itemsAmount: 28000,
-      refundedShipping: 0,
-    });
   });
 });
 

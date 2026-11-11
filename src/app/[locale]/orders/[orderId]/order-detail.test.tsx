@@ -1,5 +1,4 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
-import { formatKRW } from "@/lib/format";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -14,6 +13,7 @@ const {
   listClaims,
   cancelOrder,
   createClaim,
+  previewRefund,
   createReturn,
   createExchange,
   withdrawClaim,
@@ -25,6 +25,7 @@ const {
   listClaims: vi.fn(),
   cancelOrder: vi.fn(),
   createClaim: vi.fn(),
+  previewRefund: vi.fn(),
   createReturn: vi.fn(),
   createExchange: vi.fn(),
   withdrawClaim: vi.fn(),
@@ -41,6 +42,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
       listClaims,
       cancelOrder,
       createClaim,
+      previewRefund,
       createReturn,
       createExchange,
       withdrawClaim,
@@ -63,7 +65,7 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams() }));
 
-import type { Claim, Order } from "@/types";
+import type { Claim, Order, RefundPreview } from "@/types";
 
 import OrderDetailPage from "./page";
 
@@ -104,6 +106,15 @@ const ORDER: Order = {
   createdDtm: "",
 };
 
+/** 서버 미리 보기의 기본 답 — ORDER 를 다 돌려받을 때(상품 금액 + 처음 낸 배송비) */
+const FULL_REFUND: RefundPreview = {
+  itemsAmount: 28000,
+  refundedShipping: 3000,
+  returnShippingFee: 0,
+  priorCompensation: 0,
+  refundAmount: 31000,
+};
+
 function signIn() {
   tokenStore.save({ idToken: "i", accessToken: "a", refreshToken: "r", expiresIn: 60 });
 }
@@ -120,6 +131,13 @@ async function renderPage() {
   });
 }
 
+/** 신청 버튼 — 환불 금액(서버 미리 보기)을 받아 풀릴 때까지 기다린다. 그 전에는 보낼 수 없다 */
+async function readyButton(name: string): Promise<HTMLElement> {
+  const button = screen.getByRole("button", { name });
+  await waitFor(() => expect(button).toHaveProperty("disabled", false));
+  return button;
+}
+
 /**
  * 취소 폼 보내기 — 사유를 아직 안 골랐으면 '단순 변심'을 고르고, '취소 요청하기' → 확인 '네, 취소할게요'.
  * 취소는 환불 금액을 보여 주고 한 번 더 묻는다(UX 리뷰 F2)
@@ -128,7 +146,8 @@ async function sendCancel() {
   if (screen.queryByText("사유를 골라 주세요.")) {
     fireEvent.click(screen.getByRole("button", { name: "단순 변심" }));
   }
-  fireEvent.click(screen.getByRole("button", { name: "취소 요청하기" }));
+  const submit = await readyButton("취소 요청하기");
+  fireEvent.click(submit);
   await act(async () => {
     fireEvent.click(screen.getByRole("button", { name: "네, 취소할게요" }));
   });
@@ -145,6 +164,7 @@ describe("주문 상세", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     listClaims.mockResolvedValue([]);
+    previewRefund.mockResolvedValue(FULL_REFUND);
     getMe.mockResolvedValue({ userId: "u1", name: "지우", email: "" });
   });
 
@@ -449,8 +469,9 @@ describe("주문 상세", () => {
       for (let i = 0; i < 2; i++) {
         fireEvent.click(screen.getByRole("button", { name: "반품 신청" }));
         fireEvent.click(screen.getByRole("button", { name: "오배송" }));
+        const submit = await readyButton("반품 신청하기");
         await act(async () => {
-          fireEvent.click(screen.getByRole("button", { name: "반품 신청하기" }));
+          fireEvent.click(submit);
         });
         fireEvent.click(screen.getByRole("button", { name: "닫기" }));
       }
@@ -459,22 +480,23 @@ describe("주문 상세", () => {
     });
   });
 
-  it("취소 요청 → 환불 예정 금액을 보이고, 한 번 더 묻는다 — '돌아가기'면 보내지 않는다", async () => {
+  it("취소 요청 → 서버가 준 환불 예정 금액을 보이고, 한 번 더 묻는다 — '돌아가기'면 보내지 않는다", async () => {
     signIn();
     getOrder.mockResolvedValue(ORDER);
     await renderPage();
     fireEvent.click(screen.getByRole("button", { name: "주문 취소 요청" }));
-    // 사유를 고르기 전엔 보낼 수 없다
+    const quote = screen.getByRole("region", { name: "예상 환불 금액" });
+    await waitFor(() => expect(quote.textContent).toContain("환불 예정 금액₩31,000"));
+    // 금액을 받았어도 사유를 고르기 전엔 보낼 수 없다
     expect(screen.getByRole("button", { name: "취소 요청하기" })).toHaveProperty("disabled", true);
     fireEvent.click(screen.getByRole("button", { name: "단순 변심" }));
-    const quote = screen.getByRole("region", { name: "예상 환불 금액" });
-    expect(quote.textContent).toContain(`환불 예정 금액${formatKRW(ORDER.totals.grandTotal)}`);
-    fireEvent.click(screen.getByRole("button", { name: "취소 요청하기" }));
-    expect(
-      screen.getByText(
-        `취소하면 ${formatKRW(ORDER.totals.grandTotal)}을 환불해 드려요. 취소할까요?`,
-      ),
-    ).toBeTruthy();
+    const submit = await readyButton("취소 요청하기");
+    expect(previewRefund).toHaveBeenLastCalledWith("o1", {
+      type: "cancel",
+      reasonCode: "단순변심",
+    });
+    fireEvent.click(submit);
+    expect(screen.getByText("취소하면 ₩31,000을 환불해 드려요. 취소할까요?")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "돌아가기" }));
     expect(createClaim).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "취소 요청하기" })).toBeTruthy();
@@ -487,7 +509,8 @@ describe("주문 상세", () => {
     await renderPage();
     fireEvent.click(screen.getByRole("button", { name: "주문 취소 요청" }));
     fireEvent.click(screen.getByRole("button", { name: "단순 변심" }));
-    fireEvent.click(screen.getByRole("button", { name: "취소 요청하기" }));
+    const request = await readyButton("취소 요청하기");
+    fireEvent.click(request);
     const submit = screen.getByRole("button", { name: "네, 취소할게요" });
     await act(async () => {
       fireEvent.click(submit);
@@ -808,6 +831,12 @@ describe("주문 상세", () => {
     it("받은 지 이틀 → 단순 변심은 미개봉 확인 전엔 못 보내고, 반품 배송비를 뺀 예상 환불 금액을 보여 준 뒤 신청", async () => {
       signIn();
       getOrder.mockResolvedValue(delivered(2));
+      previewRefund.mockResolvedValue({
+        ...FULL_REFUND,
+        refundedShipping: 0,
+        returnShippingFee: 3000,
+        refundAmount: 25000,
+      });
       createReturn.mockResolvedValue({});
       await renderPage();
       fireEvent.click(screen.getByRole("button", { name: "반품 신청" }));
@@ -816,8 +845,9 @@ describe("주문 상세", () => {
       expect(screen.getByText("사유를 골라 주세요.")).toBeTruthy();
       fireEvent.click(screen.getByRole("button", { name: "단순 변심" }));
       const quote = screen.getByRole("region", { name: "예상 환불 금액" });
+      await waitFor(() => expect(quote.textContent).toContain("환불 예정 금액₩25,000"));
       expect(quote.textContent).toContain("반품 배송비 (고객 부담)−₩3,000");
-      expect(quote.textContent).toContain("환불 예정 금액₩25,000");
+      expect(previewRefund).toHaveBeenCalledWith("o1", { type: "return", reasonCode: "단순변심" });
       const submit = screen.getByRole("button", { name: "반품 신청하기" });
       expect(submit).toHaveProperty("disabled", true);
       expect(screen.getByText(/체크해 주세요/)).toBeTruthy();
@@ -845,8 +875,8 @@ describe("주문 상세", () => {
       fireEvent.click(screen.getByRole("button", { name: "상품 불량(파손·누액 포함)" }));
       expect(screen.queryByRole("checkbox")).toBeNull();
       const quote = screen.getByRole("region", { name: "예상 환불 금액" });
+      await waitFor(() => expect(quote.textContent).toContain("환불 예정 금액₩31,000"));
       expect(quote.textContent).toContain("처음 낸 배송비 환불+₩3,000");
-      expect(quote.textContent).toContain("환불 예정 금액₩31,000");
       expect(screen.getByRole("button", { name: "반품 신청하기" })).toHaveProperty(
         "disabled",
         false,
@@ -874,8 +904,9 @@ describe("주문 상세", () => {
       await renderPage();
       fireEvent.click(screen.getByRole("button", { name: "반품 신청" }));
       fireEvent.click(screen.getByRole("button", { name: "오배송" }));
+      const submit = await readyButton("반품 신청하기");
       await act(async () => {
-        fireEvent.click(screen.getByRole("button", { name: "반품 신청하기" }));
+        fireEvent.click(submit);
       });
       expect(screen.getByRole("alert").textContent).toBe(
         "반품 신청 기간이 지났어요. 고객센터로 문의해 주세요.",

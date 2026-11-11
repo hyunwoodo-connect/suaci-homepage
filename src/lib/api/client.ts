@@ -21,6 +21,8 @@ import type {
   CreateClaimRequest,
   CreateReturnRequest,
   CreateExchangeRequest,
+  RefundPreview,
+  RefundPreviewRequest,
   ChangeShippingAddressRequest,
   ApiPage,
   PageParams,
@@ -56,6 +58,8 @@ export interface ApiClient {
   confirmPayment(orderId: string, r: ConfirmPaymentRequest): Promise<Order>;
   listClaims(orderId: string): Promise<Claim[]>;
   createClaim(orderId: string, r: CreateClaimRequest): Promise<Claim>;
+  /** 이대로 취소·반품을 신청하면 돌아올 금액 — 서버가 신청 때와 같은 계산으로 알려 준다(아무것도 쓰지 않는다) */
+  previewRefund(orderId: string, r: RefundPreviewRequest): Promise<RefundPreview>;
   /** 반품·교환 신청에 붙일 사진 한 장을 올린다(비공개, 회사만 본다) → 신청의 `photoIds` 에 넣을 ID */
   uploadClaimPhoto(orderId: string, photo: Blob): Promise<string>;
   createReturn(orderId: string, r: CreateReturnRequest): Promise<Claim>;

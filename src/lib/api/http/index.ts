@@ -14,6 +14,8 @@ import type {
   LoginRequest,
   Order,
   OrderSummary,
+  RefundPreview,
+  RefundPreviewRequest,
   ResetPasswordRequest,
   SignupRequest,
   SocialCompleteRequest,
@@ -185,6 +187,14 @@ export function createHttpClient(baseUrl?: string): ApiClient {
     async createClaim(orderId: string, r: CreateClaimRequest) {
       return unwrap(
         await authedRequest<Envelope<Claim>>(`/orders/${orderId}/claims`, {
+          method: "POST",
+          body: r,
+        }),
+      );
+    },
+    async previewRefund(orderId: string, r: RefundPreviewRequest) {
+      return unwrap(
+        await authedRequest<Envelope<RefundPreview>>(`/orders/${orderId}/claims/preview`, {
           method: "POST",
           body: r,
         }),

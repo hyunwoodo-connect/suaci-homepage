@@ -18,3 +18,7 @@ export type CreateClaimRequest = Api.CreateClaimInput;
 export type CreateReturnRequest = Api.RequestReturnInput;
 /** 교환 신청 */
 export type CreateExchangeRequest = Api.RequestExchangeInput;
+/** 환불 금액 미리 보기 요청 — 취소·반품 폼이 보내기 전에 이대로 신청하면 얼마가 돌아오는지 묻는다 */
+export type RefundPreviewRequest = Api.RefundPreviewInput;
+/** 환불 금액 미리 보기 — 서버가 신청을 만들 때와 같은 계산으로 낸 금액 */
+export type RefundPreview = Api.RefundPreviewView;
