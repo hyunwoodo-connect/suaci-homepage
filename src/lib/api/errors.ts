@@ -11,9 +11,16 @@ export class ApiClientError extends Error {
   }
 }
 
-/** 로그인이 풀렸다(401) — 화면은 세션을 다시 확인해 로그인 안내로 넘어간다. */
+/**
+ * 로그인이 풀렸다(401) — 화면은 세션을 다시 확인해 로그인 안내로 넘어간다.
+ * 회원 정보가 없다는 답(403 `ACCOUNT_NOT_FOUND` — 탈퇴를 마친 계정의 다른 기기에 남은 로그인)도 같이 다룬다:
+ * 그 로그인으로는 더 할 수 있는 일이 없고, 세션을 다시 확인하면 로그인이 풀린다
+ */
 export function isAuthRequired(err: unknown): boolean {
-  return err instanceof ApiClientError && err.code === "AUTH_REQUIRED";
+  return (
+    err instanceof ApiClientError &&
+    (err.code === "AUTH_REQUIRED" || err.code === "ACCOUNT_NOT_FOUND")
+  );
 }
 
 /** 없는 자원(404). */

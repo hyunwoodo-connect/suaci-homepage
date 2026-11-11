@@ -9,6 +9,11 @@ describe("errors", () => {
     expect(isAuthRequired(new Error("AUTH_REQUIRED"))).toBe(false);
   });
 
+  it("isAuthRequired: 회원 정보가 없다(탈퇴를 마친 계정의 남은 로그인, 403 ACCOUNT_NOT_FOUND) → true — 로그인이 풀린 것과 같이 다룬다", () => {
+    expect(isAuthRequired(new ApiClientError("ACCOUNT_NOT_FOUND", "", 403))).toBe(true);
+    expect(isAuthRequired(new ApiClientError("ACCOUNT_WITHDRAWING", "", 403))).toBe(false);
+  });
+
   it("isNotFound: 404 → true, 다른 상태·다른 에러 → false", () => {
     expect(isNotFound(new ApiClientError("X_NOT_FOUND", "", 404))).toBe(true);
     expect(isNotFound(new ApiClientError("BOOM", "", 500))).toBe(false);
