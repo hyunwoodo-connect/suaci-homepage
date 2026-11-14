@@ -3,11 +3,14 @@ import * as THREE from "three";
 import type { Game } from "./state";
 import { S } from "./state";
 
-const sn = new THREE.Vector3();
+const sn = new THREE.Vector3(),
+  bt = new THREE.Vector3();
 
 /**
  * 속으로는 못 들어간다: v 둘레 core 안(높이 top 아래)에 있으면 둘레로 밀어내고,
  * 들어오던 속도는 옆으로 흘린다. 밀어냈으면 true.
+ * 정면으로 부딪혀도 서 버리지 않게 안으로 들어가던 속도만 지우고 둘레를 따라 미끄러진다(전에는 부딪힐 때마다
+ * 20%씩 느려져 닿아 있는 동안 금세 멈춰 섰다). 정면이라 옆 방향이 없으면 한쪽을 골라 준다.
  */
 export function blockAt(g: Game, v: THREE.Vector3, core: number, top: number): boolean {
   const pl = g.pl,
@@ -26,12 +29,22 @@ export function blockAt(g: Game, v: THREE.Vector3, core: number, top: number): b
   sn.addScaledVector(p, -snAlongP).normalize();
   const vn = vel.dot(sn);
   if (vn < 0) {
-    // 들어오던 성분을 1.5배로 되돌려 살짝 튕겨 나간다
-    const bounce = -1.5 * vn;
-    vel.addScaledVector(sn, bounce);
+    vel.addScaledVector(sn, -vn);
+    bt.crossVectors(p, sn).normalize();
+    const side = vel.dot(bt);
+    if (Math.abs(side) < 0.45) {
+      // 거의 정면: 옆으로 빠질 쪽이 뚜렷하면 그쪽, 아니면 보고 있는 쪽으로
+      let sg: number;
+      if (Math.abs(side) > 0.02) sg = Math.sign(side);
+      else sg = pl.h.dot(bt) >= 0 ? 1 : -1;
+      const nudge = sg * 0.6;
+      vel.addScaledVector(bt, nudge);
+    }
     const velRadial = vel.dot(p);
     vel.addScaledVector(p, -velRadial).normalize();
-    pl.spd *= 0.8;
+    // 닿아 있는 동안만 조금씩 느려진다
+    const slow = -1.2 * g.t.dt;
+    pl.spd *= Math.exp(slow);
   }
   return true;
 }

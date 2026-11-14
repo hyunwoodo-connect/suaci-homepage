@@ -33,9 +33,9 @@ export interface SeedField {
   dots: Bud[];
 }
 
-/** 구름 싹 하나 */
+/** 구름 싹 하나(덩이 여덟을 뭉친 구름) */
 export interface Sprout {
-  m: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>;
+  m: THREE.Group;
   v: THREE.Vector3;
   on: boolean;
   t: number;
@@ -79,13 +79,41 @@ export function createSeedFields(g: Game): SeedField[] {
   });
 }
 
-/** 구름 싹을 만든다(숨긴 채로) */
+/** 구름 싹 한 개를 이루는 덩이 여덟: [x, y, z, 반지름] */
+const SPROUT_LUMPS: readonly (readonly [number, number, number, number])[] = [
+  [0, 0.25, 0, 0.78],
+  [0.62, 0, 0.1, 0.52],
+  [-0.58, 0.02, 0.22, 0.5],
+  [0.12, 0, 0.66, 0.5],
+  [-0.2, 0, -0.64, 0.52],
+  [0.5, 0.05, -0.48, 0.44],
+  [-0.55, 0.05, -0.38, 0.42],
+  [0.1, 0.62, 0.05, 0.46],
+];
+
+/**
+ * 구름 싹을 만든다(숨긴 채로). 납작한 흰 공 하나였을 때는 위에서 보면 그냥 흰 원반이라 뭔지 알 수 없었다.
+ * 몽글몽글한 덩이 여러 개를 뭉쳐 구름으로 보이게 하고, 빛을 받아 볼륨이 살게 한다
+ */
 export function createSprouts(g: Game): Sprout[] {
+  const sproutGeo = new THREE.SphereGeometry(1, 16, 12),
+    sproutMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.95,
+      metalness: 0,
+      emissive: 0xffc9e0,
+      emissiveIntensity: 0.38,
+    });
   const sprouts: Sprout[] = [];
   for (let i = 0; i < 12; i++) {
-    const sproutGeo = new THREE.SphereGeometry(1, 18, 12);
-    const sproutMat = new THREE.MeshBasicMaterial({ color: 0xfafbfb });
-    const m = new THREE.Mesh(sproutGeo, sproutMat);
+    const m = new THREE.Group();
+    for (const [x, y, z, r] of SPROUT_LUMPS) {
+      const lump = new THREE.Mesh(sproutGeo, sproutMat);
+      lump.position.set(x, y, z);
+      lump.scale.setScalar(r);
+      lump.frustumCulled = false;
+      m.add(lump);
+    }
     m.visible = false;
     g.scene.add(m);
     const sprout: Sprout = { m, v: new THREE.Vector3(), on: false, t: 0, g: 0, cool: 0, sq: 0 };
