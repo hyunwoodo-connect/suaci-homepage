@@ -267,9 +267,11 @@ export class Sites implements Thing, Holder, HasHeights {
     if (sl && sl.model) {
       const slModel = sl.model;
       models.when("slide", () => {
-        // 시제품은 그린 뒤(세계 행렬이 찬 뒤)에 쟀다. 그리기 전에 와도 같게 자리의 세계 행렬을 먼저 채운다
+        // 미끄럼틀 자리(그룹) 좌표계에서 잰다 — 이 방향은 그룹의 돌림을 곱해 쓰므로 세계 좌표로 재면
+        // 행성 위 자리에 따라 엉뚱한 쪽(재 보니 128도 어긋남)으로 미끄러진다
         sl.g.updateWorldMatrix(true, false);
-        const t = topDir(slModel),
+        const frame = sl.g.matrixWorld.clone().invert();
+        const t = topDir(slModel, frame),
           l = Math.max(1e-6, t.len);
         sl.fx = -t.x / l;
         sl.fz = -t.z / l;
