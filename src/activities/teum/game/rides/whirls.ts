@@ -2,10 +2,10 @@ import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
 import { ease } from "../core/frame";
+import type { LayoutWhirl } from "../maps/layout";
 import type { Holder } from "../player/player";
 import type { Services } from "../services";
 import { S } from "../settings";
-import type { LayoutWhirl } from "../maps/layout";
 import { afterStreamAt } from "../world/paths";
 import { from, UP } from "../world/sphere";
 import type { Streams } from "./streams";

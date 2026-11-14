@@ -1,9 +1,9 @@
 import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
+import type { HeadedSpot } from "../maps/layout";
 import type { Services } from "../services";
 import { S } from "../settings";
-import type { HeadedSpot } from "../maps/layout";
 import { FWD, from, heading } from "../world/sphere";
 
 // 구름 골짜기 — 양쪽 벽을 오갈수록 점점 높이 솟는다. 양쪽 벽은 부푼 쿠션(한 번에 그리는 묶음)

@@ -6,12 +6,12 @@ import type { Fx } from "./fx/fx";
 import type { Ripples } from "./fx/ripples";
 import type { Hud } from "./hud";
 import type { Mats } from "./look";
+import type { Layout } from "./maps/layout";
+import type { GameMap } from "./maps/map";
 import type { ModelLibrary } from "./models/library";
 import type { CameraRig } from "./player/camera";
 import type { Player } from "./player/player";
 import type { Culler } from "./world/culler";
-import type { Layout } from "./maps/layout";
-import type { GameMap } from "./maps/map";
 import type { Occupancy } from "./world/occupancy";
 import type { Terrain } from "./world/terrain";
 

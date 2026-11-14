@@ -2,9 +2,9 @@ import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
 import { ease } from "../core/frame";
+import type { LayoutArch } from "../maps/layout";
 import type { Services } from "../services";
 import { S } from "../settings";
-import type { LayoutArch } from "../maps/layout";
 import { archPath } from "../world/paths";
 import type { PathNode } from "./streams";
 

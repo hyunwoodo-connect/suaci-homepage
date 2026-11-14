@@ -2,12 +2,12 @@ import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
 import { ease } from "../core/frame";
+import type { LayoutSite } from "../maps/layout";
 import type { Hold } from "../models/library";
 import { topDir } from "../models/extent";
 import type { Holder } from "../player/player";
 import type { Services } from "../services";
 import { S, WHITE } from "../settings";
-import type { LayoutSite } from "../maps/layout";
 import type { Places } from "./places";
 import { ball, Bin, label } from "./shapes";
 import { from, heading } from "./sphere";

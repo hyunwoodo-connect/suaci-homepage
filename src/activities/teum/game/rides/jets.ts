@@ -2,9 +2,9 @@ import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
 import { ease } from "../core/frame";
+import type { LayoutJet } from "../maps/layout";
 import type { Services } from "../services";
 import { S } from "../settings";
-import type { LayoutJet } from "../maps/layout";
 import { jetPath } from "../world/paths";
 import { START } from "../world/sphere";
 

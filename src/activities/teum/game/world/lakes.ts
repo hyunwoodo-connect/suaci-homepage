@@ -2,9 +2,9 @@ import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
 import { LOOK } from "../look";
+import type { RoundSpot } from "../maps/layout";
 import type { Services } from "../services";
 import { S } from "../settings";
-import type { RoundSpot } from "../maps/layout";
 import { fromInto, UP } from "./sphere";
 
 // 호수 — 수면을 스치면 빨라지고 물결이 남는다. 행성 곡면을 따라 붙는 얇은 덮개

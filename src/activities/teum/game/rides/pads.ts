@@ -5,9 +5,9 @@ import type { Frame, Thing } from "../core/frame";
 import type { Echoing, Tap, Tappable } from "../core/tap";
 import { ECHO_REACH, echoTime } from "../core/tap";
 import { LOOK } from "../look";
+import type { LayoutHop } from "../maps/layout";
 import type { Services } from "../services";
 import { S } from "../settings";
-import type { LayoutHop } from "../maps/layout";
 import { hopPath } from "../world/paths";
 import { from, UP } from "../world/sphere";
 

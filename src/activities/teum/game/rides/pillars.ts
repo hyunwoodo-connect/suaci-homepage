@@ -3,9 +3,9 @@ import * as THREE from "three";
 import type { Frame, Thing } from "../core/frame";
 import type { Echoing, Tap, Tappable } from "../core/tap";
 import { ECHO_REACH, echoTime } from "../core/tap";
+import type { LayoutRow } from "../maps/layout";
 import type { Services } from "../services";
 import { S } from "../settings";
-import type { LayoutRow } from "../maps/layout";
 import { rowPath } from "../world/paths";
 import { FWD, UP } from "../world/sphere";
 

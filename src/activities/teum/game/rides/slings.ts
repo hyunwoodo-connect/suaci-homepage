@@ -3,10 +3,10 @@ import * as THREE from "three";
 import type { Frame, Thing } from "../core/frame";
 import { ease } from "../core/frame";
 import type { GreyMesh } from "../look";
+import type { HeadedSpot } from "../maps/layout";
 import type { Holder } from "../player/player";
 import type { Services } from "../services";
 import { GREY_TOY, S } from "../settings";
-import type { HeadedSpot } from "../maps/layout";
 import { along, from, heading, UP } from "../world/sphere";
 import { placeBar } from "./bars";
 

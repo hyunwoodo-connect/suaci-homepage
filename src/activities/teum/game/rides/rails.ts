@@ -3,9 +3,9 @@ import * as THREE from "three";
 import type { Frame, Thing } from "../core/frame";
 import { ease } from "../core/frame";
 import type { Tappable } from "../core/tap";
+import type { LayoutPath } from "../maps/layout";
 import type { Services } from "../services";
 import { S } from "../settings";
-import type { LayoutPath } from "../maps/layout";
 import { railPath } from "../world/paths";
 
 // 무지개 레일 — 닿으면 붙어 점점 빠르게 미끄러지고, 칙 하면 뛰어오른다. 레일은 구슬을 꿴 것 같은 마디(한 번에 그리는 묶음)
