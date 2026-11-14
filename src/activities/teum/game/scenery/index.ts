@@ -673,6 +673,12 @@ export function fitSkyModels(g: Game) {
     const W = fit(g, "whale", 64, "z");
     W.rotation.y = Math.PI / 2; // 고래 모델은 머리가 +z라서 나아가는 방향(+x)으로 돌려 놓는다
     g.whale.g.add(W);
+    // 시제품은 줄 중간 주석이 이 두 줄을 삼켜, 도형 고래가 모델 곁에 남고 등에 타면 몸속에 있었다
+    const backH = W.userData.hh + 0.9;
+    whenModel(g, "whale", () => {
+      g.whale.rideH = backH;
+    });
+    swapWhenReady(g, "whale", [g.whale.prim]);
   }
   if (hasModel(g, "balloon"))
     for (const b of g.balloons) {
