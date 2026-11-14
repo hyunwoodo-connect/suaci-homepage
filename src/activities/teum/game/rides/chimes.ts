@@ -103,7 +103,11 @@ export class Chimes implements Thing, Tappable {
 
   /** 굴러온 큰 공이 v 둘레(2.8m)의 종을 울린다 */
   knock(v: THREE.Vector3) {
-    for (const c of this.list) if (c.lit < 0.3 && c.v.angleTo(v) * S.R < 2.8) c.lit = 1;
+    for (const c of this.list)
+      if (c.lit < 0.3 && c.v.angleTo(v) * S.R < 2.8) {
+        c.lit = 1;
+        this.s.events.emit("chimeRung", {});
+      }
   }
 
   /** 종이 차례로 울리고, 닿으면 울리며 둘레 꽃이 핀다. 그 차례에 기둥·구름·고리도 칙 소리에 반응한다 */
@@ -115,6 +119,7 @@ export class Chimes implements Thing, Tappable {
       if (c.ringAt > 0 && time >= c.ringAt) {
         c.ringAt = -1;
         c.lit = 1;
+        this.s.events.emit("chimeRung", {});
         hud.sayOnce("chime", "칙 — 가까운 것들이 차례로 울립니다");
       }
       if (!player.held) player.block(c.v, 2.6, 8);

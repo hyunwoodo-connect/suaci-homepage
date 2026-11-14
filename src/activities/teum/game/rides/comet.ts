@@ -20,6 +20,7 @@ const bx = new THREE.Vector3(),
 
 /** 혜성(나를 붙잡는다) */
 export class Comet implements Thing, Holder {
+  readonly rideName = "comet";
   /** 등에 타 있는 동안 카메라가 뒤로 물러나고, 중력이 멈춘다 */
   readonly cameraMode = "ride";
   readonly freezesGravity = true;

@@ -1,16 +1,18 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 
+import type { GameEventMap } from "../events";
+import { GameEvents } from "../events";
 import { S } from "../settings";
 import { offset } from "../world/sphere";
 import { Terrain } from "../world/terrain";
 import type { Holder } from "./player";
 import { Player } from "./player";
 
-// 땅이 평평한(큰 언덕 없음, 둔덕 끔) 세계의 나
-function flatPlayer(): Player {
+// 땅이 평평한(큰 언덕 없음, 둔덕 끔) 세계의 나. 알림판을 주면 거기에 알린다
+function flatPlayer(events = new GameEvents()): Player {
   const terrain = new Terrain(7, { flowers: 0, mounds: 0, clouds: 0 }, []);
-  const pl = new Player(terrain);
+  const pl = new Player(terrain, events);
   pl.goHome();
   return pl;
 }
@@ -98,8 +100,8 @@ describe("Player 나아가기", () => {
 });
 
 describe("Player 붙잡기", () => {
-  const cannon: Holder = { bodyScale: 0.6 },
-    whirl: Holder = { cameraMode: "spin" };
+  const cannon: Holder = { rideName: "cannon", bodyScale: 0.6 },
+    whirl: Holder = { rideName: "whirl", cameraMode: "spin" };
 
   it("다른 것이 붙잡고 있어도 → 새 놀이기구도 붙잡는다(시제품처럼 둘 다 몸을 옮긴다)", () => {
     const pl = flatPlayer();
@@ -120,7 +122,7 @@ describe("Player 붙잡기", () => {
 
   it("몸 크기·카메라 → 붙잡은 것 모두를 본다(가장 작게, 하나라도 바라면)", () => {
     const pl = flatPlayer();
-    const hole: Holder = { bodyScale: 0.05 };
+    const hole: Holder = { rideName: "hole", bodyScale: 0.05 };
     pl.grab(cannon);
     pl.grab(hole);
     pl.grab(whirl);
@@ -176,5 +178,53 @@ describe("Player 막히기", () => {
     const v = offset(pl.p as THREE.Vector3, 1, 0);
     expect(pl.block(v, 5, 1)).toBe(false);
     expect(pl.blockBody(v, 5)).toBe(true);
+  });
+});
+
+describe("Player 알림", () => {
+  // 알림판에 온 것을 차례대로 적는다
+  function recorded() {
+    const events = new GameEvents();
+    const log: string[] = [];
+    const names: (keyof GameEventMap)[] = ["grabbed", "released", "launched", "bounced"];
+    for (const name of names)
+      events.on(name, (payload) => log.push(`${name} ${JSON.stringify(payload)}`));
+    return { pl: flatPlayer(events), log };
+  }
+  const cannon: Holder = { rideName: "cannon" },
+    hole: Holder = { rideName: "hole" };
+
+  it("붙잡기 → 처음 한 번만 grabbed(같은 것이 또 붙잡으면 알리지 않는다)", () => {
+    const { pl, log } = recorded();
+    pl.grab(cannon);
+    pl.grab(cannon);
+    expect(log).toEqual(['grabbed {"by":"cannon"}']);
+  });
+
+  it("위로 날리며 놓기 → released 뒤 launched, 그냥 내려놓기 → released 만", () => {
+    const { pl, log } = recorded();
+    pl.grab(cannon);
+    pl.release(cannon, { vy: 10.5, boost: 6 });
+    pl.grab(hole);
+    pl.release(hole);
+    expect(log.slice(1)).toEqual([
+      'released {"by":"cannon"}',
+      'launched {"by":"cannon","vy":10.5,"boost":6}',
+      'grabbed {"by":"hole"}',
+      'released {"by":"hole"}',
+    ]);
+  });
+
+  it("붙잡지 않은 것이 놓기 → 아무것도 알리지 않는다", () => {
+    const { pl, log } = recorded();
+    pl.release(cannon, { vy: 3 });
+    expect(log).toEqual([]);
+  });
+
+  it("bounce·hop → bounced(튀는 세기)", () => {
+    const { pl, log } = recorded();
+    pl.bounce(9);
+    pl.hop(3.5);
+    expect(log).toEqual(['bounced {"vy":9}', 'bounced {"vy":3.5}']);
   });
 });

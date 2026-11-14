@@ -31,6 +31,7 @@ const ps = new THREE.Vector3();
 
 /** 로켓 풍선 전체(나를 붙잡는다) */
 export class Rockets implements Thing, Holder {
+  readonly rideName = "rocket";
   readonly list: Rocket[];
   /** 붙잡혀 있어도 중력은 그대로 받는다(놀이기구가 높이를 직접 정한다) */
   readonly freezesGravity = false;

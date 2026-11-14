@@ -16,6 +16,10 @@ const TYPES = {
   ".json": "application/json",
   ".jpg": "image/jpeg",
   ".webp": "image/webp",
+  ".mp3": "audio/mpeg",
+  ".m4a": "audio/mp4",
+  ".ogg": "audio/ogg",
+  ".webm": "audio/webm",
 };
 
 http

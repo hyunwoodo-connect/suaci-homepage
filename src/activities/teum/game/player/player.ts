@@ -1,6 +1,7 @@
 import * as THREE from "three";
 
 import { ease } from "../core/frame";
+import type { GameEvents, RideName } from "../events";
 import { FLIGHT, S } from "../settings";
 import { clamp, offset, START } from "../world/sphere";
 import type { Terrain } from "../world/terrain";
@@ -21,6 +22,8 @@ export interface Intent {
 
 /** 나를 붙잡는 놀이기구(대포·회오리·고래…) */
 export interface Holder {
+  /** 이름(붙잡고 놓을 때 알림판에 알린다) */
+  readonly rideName: RideName;
   /** 붙잡혀 있는 동안 중력을 멈춘다(고래 등·혜성) */
   readonly freezesGravity?: boolean;
   /** 대포 안에서처럼 몸이 작아진다(1 이 그대로) */
@@ -96,7 +99,11 @@ export class Player {
   private _jumps = 0;
   private readonly body: HeldBody;
 
-  constructor(private readonly terrain: Terrain) {
+  /** events: 붙잡힘·놓임·날림·튕김을 알리는 알림판 */
+  constructor(
+    private readonly terrain: Terrain,
+    private readonly events: GameEvents,
+  ) {
     // 붙잡은 쪽이 쓰는 손잡이: 몸의 벡터는 그대로 건네고, 높이·위아래 속도는 이 몸의 값을 읽고 쓴다
     const body = {
       p: this._p,
@@ -356,6 +363,7 @@ export class Player {
   bounce(vy: number) {
     this._vy = vy;
     this.takeOff();
+    this.events.emit("bounced", { vy });
   }
   /** 적어도 이만큼 튕겨 올린다 */
   lift(vy: number) {
@@ -370,6 +378,7 @@ export class Player {
   hop(vy: number) {
     this._vy = vy;
     this._air = 0.01;
+    this.events.emit("bounced", { vy });
   }
   /** 위로 미는 바람: 정한 세기로 서서히 */
   easeLift(target: number, k: number) {
@@ -483,7 +492,10 @@ export class Player {
   // ---- 요청: 붙잡기 ----
   /** 놀이기구가 나를 붙잡는다(다른 것이 붙잡고 있어도 — 그러면 둘 다 몸을 옮긴다). 손잡이를 돌려준다 */
   grab(h: Holder): HeldBody {
-    if (!this.holders.includes(h)) this.holders.push(h);
+    if (!this.holders.includes(h)) {
+      this.holders.push(h);
+      this.events.emit("grabbed", { by: h.rideName });
+    }
     return this.body;
   }
   /** 붙잡은 놀이기구가 지금 쓰는 손잡이(붙잡고 있지 않으면 null) */
@@ -500,6 +512,14 @@ export class Player {
     if (r.vy !== undefined) this._vy = r.vy;
     if (r.hop) this._air = 0.01;
     if (r.stun !== undefined) this._stun = r.stun;
+    const by = h.rideName;
+    this.events.emit("released", { by });
+    // 날려 보내는 놓기: 위로 띄우거나 방향을 주며 놓는다(구멍처럼 그냥 내려놓는 것은 아니다)
+    if (r.vel || (r.vy ?? 0) > 0) {
+      const vy = r.vy ?? 0,
+        boost = r.boost ?? 0;
+      this.events.emit("launched", { by, vy, boost });
+    }
   }
 
   // ---- 요청: 날개·풍선 ----

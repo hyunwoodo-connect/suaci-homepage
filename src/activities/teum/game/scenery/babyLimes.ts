@@ -92,6 +92,7 @@ export class BabyLimes implements Thing {
         if (!held && player.air < 4 && p.angleTo(b.v) * S.R < 2.6) {
           b.join = true;
           b.order = this.joined++;
+          this.s.events.emit("babyJoined", { count: this.joined });
           b.pos.copy(b.v);
           b.a = b.g;
           fx.burst(P, 8, 7);

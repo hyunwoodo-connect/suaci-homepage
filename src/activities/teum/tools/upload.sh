@@ -50,8 +50,9 @@ if [[ ! -d "${RAW}" ]]; then
   echo "원본 폴더 ${RAW} 가 없다" >&2
   exit 1
 fi
-# 아래 네 가지 말고는 올리지 않는다(형식이 빠진 채 올라가지 않게)
-others="$(find "${DIST}" -type f ! -name '.DS_Store' ! -name '*.glb' ! -name '*.json' ! -name '*.jpg' ! -name '*.webp')"
+# 아래 형식(모델·그림·소리·json) 말고는 올리지 않는다(Content-Type 이 빠진 채 올라가지 않게)
+others="$(find "${DIST}" -type f ! -name '.DS_Store' ! -name '*.glb' ! -name '*.json' ! -name '*.jpg' ! -name '*.webp' \
+  ! -name '*.mp3' ! -name '*.m4a' ! -name '*.ogg' ! -name '*.webm')"
 if [[ -n "${others}" ]]; then
   echo "형식을 정하지 않은 파일이 있다:" >&2
   echo "${others}" >&2
@@ -76,6 +77,10 @@ upload_type() {
 upload_type "*.glb" "model/gltf-binary"
 upload_type "*.jpg" "image/jpeg"
 upload_type "*.webp" "image/webp"
+upload_type "*.mp3" "audio/mpeg"
+upload_type "*.m4a" "audio/mp4"
+upload_type "*.ogg" "audio/ogg"
+upload_type "*.webm" "audio/webm"
 upload_type "*.json" "application/json"
 # manifest 가 올라가야 게임이 이 버전을 쓴다 — 파일이 다 올라간 뒤에
 aws_ s3 cp "${DIST}/manifest.json" "s3://${BUCKET}/${PREFIX}/manifest.json" --only-show-errors \

@@ -79,6 +79,7 @@ export class Clouds implements Thing {
       const rr = clouds.s[i] * 2.3;
       if (b < 0.4 && P.distanceToSquared(clouds.c[i]) < rr * rr) {
         b = 1;
+        this.s.events.emit("cloudBurst", {});
         if (!player.held) player.raise(2.6);
         fx.burst(P, 6, 5);
         hud.say("뭉게구름 — 뚫고 지나가면 흩어집니다");

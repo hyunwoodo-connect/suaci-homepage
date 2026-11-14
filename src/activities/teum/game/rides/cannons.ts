@@ -30,6 +30,7 @@ const gp = new THREE.Vector3();
 
 /** 대포 전체(나를 붙잡는다) */
 export class Cannons implements Thing, Holder {
+  readonly rideName = "cannon";
   readonly list: Cannon[];
   /** 대포 안에서는 몸이 작아진다 */
   readonly bodyScale = 0.6;

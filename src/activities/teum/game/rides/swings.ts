@@ -46,6 +46,7 @@ const tmp = new THREE.Vector3(),
 
 /** 그네 전체(나를 붙잡는다) */
 export class Swings implements Thing, Holder, Tappable {
+  readonly rideName = "swing";
   readonly list: Swing[];
   /** 붙잡혀 있어도 중력은 그대로 받는다(놀이기구가 높이를 직접 정한다) */
   readonly freezesGravity = false;

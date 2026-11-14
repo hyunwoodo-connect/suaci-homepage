@@ -614,12 +614,16 @@ export class Creatures implements Thing {
   private meet(c: Creature) {
     if (c.met) return;
     c.met = true;
+    const events = this.s.events,
+      kind = c.k;
     if (c.legend) {
       const at = c.v.clone();
       this.links.signature.stampAt(at);
+      events.emit("legendMet", { kind });
     }
     const first = !this.met.has(c.k);
     this.met.add(c.k);
+    events.emit("creatureMet", { kind, first });
     const sparkN = first ? 16 : 6;
     const sparkPower = first ? 9 : 6;
     this.s.fx.burst(c.pos, sparkN, sparkPower);

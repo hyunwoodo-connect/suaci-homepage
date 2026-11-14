@@ -17,6 +17,7 @@ const bx = new THREE.Vector3(),
 
 /** 고래(나를 등에 태운다) */
 export class Whale implements Thing, Holder {
+  readonly rideName = "whale";
   /** 등에 타 있는 동안 카메라가 뒤로 물러나고, 중력이 멈춘다 */
   readonly cameraMode = "ride";
   readonly freezesGravity = true;

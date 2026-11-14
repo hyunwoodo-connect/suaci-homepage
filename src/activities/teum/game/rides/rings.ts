@@ -124,6 +124,7 @@ export class Rings implements Thing, Tappable, Echoing {
         player.bounce(lift);
         r.cool = 1.6;
         r.lit = 1;
+        this.s.events.emit("ringPassed", { i: r.i });
         if (r.i === 0 && sgn > 0) hud.say("고리 줄 — 따라가면 하늘까지 올라갑니다");
       }
       if (r.lit > 0) {

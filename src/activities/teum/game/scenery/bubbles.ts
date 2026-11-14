@@ -142,6 +142,7 @@ export class Bubbles implements Thing {
         const combo = this.combo + 1;
         this.combo = Math.min(8, combo);
         this.comboT = 2.2;
+        this.s.events.emit("bubblePopped", { combo });
         if (!held) {
           const popLift = 2.6 + this.combo * 0.9;
           player.lift(popLift);

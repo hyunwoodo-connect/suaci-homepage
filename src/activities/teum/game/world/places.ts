@@ -153,7 +153,7 @@ export class Places implements Thing, Tappable {
       { cool: 0, lit: 0, r: 9, top: 6, msg: "미스트 분수 — 물기둥이 밀어 올립니다" },
       { cool: 0, lit: 0, r: 7, top: 9, msg: "뽑기 기계 — 덜컹 흔들립니다" },
     ];
-    this.lighthouse = new Lighthouse(s, this.PV, this.lamp, this.beam);
+    this.lighthouse = new Lighthouse(s, this.PV, this.lamp, this.beam, list[3].name);
     const spotBalls = this.spotBalls;
     this.spots = {
       update(f: Frame) {
@@ -274,6 +274,8 @@ export class Places implements Thing, Tappable {
     if (z.cool > 0) return;
     z.lit = 1;
     z.cool = 2.5;
+    const name = this.list[i].name;
+    this.s.events.emit("placeReacted", { name });
     hud.say(z.msg);
     const radius = S.R + terrain.featGround(PV[i]) + z.top;
     gp.copy(PV[i]).multiplyScalar(radius);
@@ -310,6 +312,7 @@ class Lighthouse implements Thing {
     private readonly PV: THREE.Vector3[],
     private readonly lamp: THREE.Mesh,
     private readonly beam: THREE.Mesh,
+    private readonly name: string,
   ) {
     const waveGeo = new THREE.RingGeometry(0.965, 1, 120);
     const waveMat = new THREE.MeshBasicMaterial({
@@ -336,6 +339,7 @@ class Lighthouse implements Thing {
       this.on = true;
       this.t = 0;
       hud.say("등대 — 불이 켜집니다");
+      this.s.events.emit("placeReacted", { name: this.name });
       this.wave.quaternion.setFromUnitVectors(FWD, PV[3]);
       const waveRadius = S.R + terrain.featGround(PV[3]) + 3;
       this.wave.position.copy(PV[3]).multiplyScalar(waveRadius);

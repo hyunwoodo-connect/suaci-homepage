@@ -33,6 +33,7 @@ interface Warp {
 
 /** 구멍 전체(빨려 드는 동안 나를 붙잡는다) */
 export class Holes implements Thing, Holder {
+  readonly rideName = "hole";
   readonly list: Hole[] = [];
   private warp: Warp | null = null;
   private readonly discGeo = new THREE.CircleGeometry(3, 32);

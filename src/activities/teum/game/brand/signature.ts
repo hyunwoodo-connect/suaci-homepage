@@ -405,6 +405,7 @@ export class Signature implements Thing {
       const altGap = altA - (b.g0 + b.top);
       if (!held && p.angleTo(b.v) * S.R < 9 && Math.abs(altGap) < 10) {
         b.cool = 22;
+        this.s.events.emit("highBalloonBurst", {});
         fx.burst(P, 30, 14);
         this.mist(P, 22);
         player.raise(2.5);
@@ -428,6 +429,7 @@ export class Signature implements Thing {
         altA > b.g0 + 0.8
       ) {
         b.ride = 3;
+        this.s.events.emit("logoBalloonCaught", {});
         fx.burst(P, 10, 9);
         this.sayTakeOnce();
       }

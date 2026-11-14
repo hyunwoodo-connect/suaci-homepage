@@ -9,11 +9,13 @@ import { CATALOG, RETIRED } from "../tools/catalog.mjs";
 import { ASSET_VERSION } from "./config";
 import manifestJson from "./manifest.v2.json";
 import {
+  BACKGROUND_MUSIC,
   BIG_FLOWERS,
   CREATURES,
   MODEL_STRIPES,
   MODEL_TINT,
   SCULPTURES,
+  SOUND_EFFECTS,
   TREE_CROWN_BASE,
 } from "./settings";
 
@@ -27,6 +29,8 @@ const INTENTIONALLY_UNUSED: Record<string, string> = {
 };
 
 const assets: Record<string, { category: string; box?: number[] }> = manifestJson.assets;
+/** 모델이 아닌 분류(하늘 그림·소리) — 크기 상자가 없다 */
+const isModel = (category: string) => category !== "sky" && !category.startsWith("audio/");
 const GAME_DIR = path.resolve(__dirname, "../game");
 
 describe("manifest 사본", () => {
@@ -46,7 +50,7 @@ describe("manifest 사본", () => {
 
   it("모든 모델 → 배치에 쓸 크기 상자(6개 숫자)가 있다", () => {
     for (const [k, a] of Object.entries(assets)) {
-      if (a.category === "sky") continue;
+      if (!isModel(a.category)) continue;
       expect(a.box?.length, k).toBe(6);
     }
   });
@@ -89,6 +93,8 @@ function referencedKeys(): Set<string> {
     ...maps.flatMap((m) => m.layout.site.map((s) => s.k)).filter((k) => k !== "ferris"),
     ...maps.flatMap((m) => m.layout.tree.map((t) => t.t)),
     ...maps.flatMap((m) => m.brand.objects.map((b) => b.key)),
+    ...Object.values(SOUND_EFFECTS).map((sound) => sound.key),
+    ...(BACKGROUND_MUSIC ? [BACKGROUND_MUSIC.key] : []),
   ]);
   // 모델 창구(models.fit·inst·batch·has·when·swapWhenReady·motionOf)와 장소 모델(placeModel)에 글자 그대로 넘긴 키.
   // 생물은 설정 표(CREATURES)의 키가 곧 에셋 키다

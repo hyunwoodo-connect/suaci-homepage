@@ -1,6 +1,8 @@
 import * as THREE from "three";
 
 import type { Manifest } from "../assets/manifest";
+import { assetUrl } from "../assets/manifest";
+import { BACKGROUND_MUSIC, SOUND_EFFECTS, SOUND_VOLUME } from "../assets/settings";
 import { Avatar } from "./avatar/avatar";
 import { Trail } from "./avatar/trail";
 import { BrandObjects } from "./brand/objects";
@@ -53,11 +55,13 @@ import { Trees } from "./scenery/trees";
 import { Sculptures } from "./sculptures/sculptures";
 import type { Services } from "./services";
 import { S } from "./settings";
+import { SoundManager } from "./sound";
 import { Clouds } from "./world/clouds";
 import { Culler } from "./world/culler";
 import { Flowers } from "./world/flowers";
 import { Ground } from "./world/ground";
 import { Lakes } from "./world/lakes";
+import { GameEvents } from "./events";
 import type { GameMap } from "./maps/map";
 import { cloneLayout } from "./maps/map";
 import { Occupancy } from "./world/occupancy";
@@ -138,6 +142,8 @@ export class Game {
   readonly director: Director;
   readonly creatures: Creatures;
   readonly input: Input;
+  /** 소리판(알림판을 듣는다 — 소리를 정하기 전에는 아무것도 하지 않는다) */
+  readonly sound: SoundManager;
   private readonly frameOrder: Step[];
   private readonly tapOrder: Tappable[];
   private readonly ray = new THREE.Raycaster();
@@ -157,7 +163,8 @@ export class Game {
     const mats = new Mats();
     const rng = new Random(seed);
     const terrain = new Terrain(map.seed, map.terrain, layout.hill);
-    const player = new Player(terrain);
+    const events = new GameEvents();
+    const player = new Player(terrain, events);
     const hudParent = canvas.parentElement ?? document.body;
     const hud = new Hud(hudParent);
     const models = new ModelLibrary(manifest, mats.lookU, scene);
@@ -166,6 +173,7 @@ export class Game {
     const s: Services = {
       scene,
       map,
+      events,
       layout,
       terrain,
       occ: new Occupancy(),
@@ -232,6 +240,16 @@ export class Game {
     this.trail = new Trail(s);
     this.stars.followTrail(this.trail);
     this.input = new Input(canvas, hud, (x, y) => this.tap(x, y));
+    this.sound = new SoundManager({
+      events,
+      manifest,
+      urlOf: assetUrl,
+      effects: SOUND_EFFECTS,
+      music: BACKGROUND_MUSIC,
+      volume: SOUND_VOLUME,
+    });
+    const sound = this.sound;
+    if (sound.hasSounds) hud.showMuteToggle(sound.isMuted, (muted) => sound.setMuted(muted));
     s.camera.resize(stage.renderer);
     // ---- 놓기: 자리표 → 행성 위 자리 ----
     this.layoutWorld();
@@ -431,6 +449,7 @@ export class Game {
   /** 멈추고 그리던 것·리스너·DOM 을 치운다 */
   dispose() {
     this.input.dispose();
+    this.sound.dispose();
     for (const t of this.frameOrder) if (typeof t !== "function") t.dispose();
     this.terrainView.dispose();
     this.brand.dispose();

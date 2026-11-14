@@ -41,6 +41,7 @@ const tmp = new THREE.Vector3(),
 
 /** 깔때기 전체(나를 붙잡는다) */
 export class Funnels implements Thing, Holder {
+  readonly rideName = "funnel";
   readonly list: Funnel[];
   /** 안에서는 화면이 같이 돌지 않게 */
   readonly cameraMode = "spin";

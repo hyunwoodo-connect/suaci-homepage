@@ -1,5 +1,8 @@
+import type { GameEventName } from "../game/events";
+
 // 에셋 종류마다의 설정. 시제품 곳곳에 있던 표(KIND·BAKE·SP·색조 tint·줄무늬 pat·조형물 목록)를 한곳에 모았다.
 // 생물·조형물을 늘릴 때: 파일을 raw/ 에 넣고 → tools/catalog.mjs 에 한 줄 → 여기 표에 한 줄.
+// 소리도 같다: 파일을 raw/ 에 넣고 → catalog 의 audio 분류에 한 줄 → 아래 SOUND_EFFECTS(또는 BACKGROUND_MUSIC)에 한 줄.
 
 /** 색조: 에셋 키 → [정해진 색, 세기]. 에셋의 명암은 두고 색만 바꾼다(흰 부분은 희게 남는다) */
 export const MODEL_TINT: Readonly<Record<string, readonly [number, number]>> = {
@@ -230,3 +233,26 @@ export function sculptureKeys(size: SculptureSetting["size"]): string[] {
     .filter(([, s]) => s.size === size)
     .map(([key]) => key);
 }
+
+// ---- 소리 ----
+
+/** 소리 채널: 배경 음악(bgm)과 효과음(sfx) — 크기를 따로 정한다 */
+export type SoundChannel = "bgm" | "sfx";
+
+/** 소리 하나: manifest 의 소리 에셋 키(분류 audio/…)와 크기(0..1, 없으면 1) */
+export interface SoundSetting {
+  key: string;
+  volume?: number;
+}
+
+/**
+ * 일어난 일(game/events) → 효과음. 기획이 정하면 한 줄씩 채운다.
+ * 비어 있으면(그리고 배경 음악도 없으면) 아무 소리도 받지 않고, 소리 끄기 단추도 보이지 않는다
+ */
+export const SOUND_EFFECTS: Readonly<Partial<Record<GameEventName, SoundSetting>>> = {};
+
+/** 배경 음악(되풀이). 정하기 전에는 null */
+export const BACKGROUND_MUSIC: SoundSetting | null = null;
+
+/** 채널 크기(0..1) */
+export const SOUND_VOLUME: Readonly<Record<SoundChannel, number>> = { bgm: 1, sfx: 1 };

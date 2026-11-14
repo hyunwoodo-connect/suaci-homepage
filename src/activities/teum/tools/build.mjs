@@ -1,5 +1,6 @@
 // 원본(<raw>/*.glb) → 배포본(<out>/<버전>/<분류>/<이름>.glb) + manifest.json
 // 하는 일: 폴리곤 줄이기(목표보다 많을 때만) → 텍스처 크기·webp → meshopt 압축. 뼈대가 있는 것은 줄이지 않는다.
+// 소리(<raw>/<이름>.mp3·.m4a·.ogg·.webm, 분류표의 audio/… 이름)는 그대로 <분류>/<이름>.<확장자> 로 싣는다.
 // manifest 에는 원본 기준 크기 상자(box)를 같이 적는다 — 게임이 모델을 받기 전에 배치를 끝내는 데 쓴다.
 // 사용: npm i && node build.mjs <raw 폴더> <out 폴더> <버전>   예: node build.mjs ~/teum/raw ~/teum/dist v2
 import { execFile } from "node:child_process";
@@ -8,7 +9,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 import { boxOf } from "./bounds.mjs";
-import { CATALOG, RETIRED, fileName } from "./catalog.mjs";
+import { AUDIO_EXTENSIONS, CATALOG, RETIRED, fileName, isAudioCategory } from "./catalog.mjs";
 
 const [rawArg, outArg, version] = process.argv.slice(2);
 if (!rawArg || !outArg || !version) {
@@ -41,9 +42,28 @@ const names = fs
   .filter((f) => f.endsWith(".glb"))
   .map((f) => f.slice(0, -4))
   .filter((n) => !RETIRED.has(n));
-const unknown = names.filter((n) => !CATALOG[n]);
+const unknown = names.filter((n) => !CATALOG[n] || isAudioCategory(CATALOG[n].cat));
 if (unknown.length) {
-  console.error("분류표에 없는 에셋: " + unknown.join(", "));
+  console.error("분류표에 모델로 없는 에셋: " + unknown.join(", "));
+  process.exit(1);
+}
+// 소리: 분류표의 audio/… 이름이어야 하고, 한 이름은 한 형식으로만
+const sounds = fs
+  .readdirSync(raw)
+  .filter((f) => AUDIO_EXTENSIONS.includes(path.extname(f).toLowerCase()))
+  .map((f) => {
+    const ext = path.extname(f).toLowerCase();
+    return { f, ext, k: f.slice(0, -ext.length) };
+  });
+const badSounds = sounds.filter(({ k }) => !CATALOG[k] || !isAudioCategory(CATALOG[k].cat));
+if (badSounds.length) {
+  console.error("분류표에 소리(audio/…)로 없는 소리: " + badSounds.map((x) => x.f).join(", "));
+  process.exit(1);
+}
+const soundKeys = sounds.map((x) => x.k);
+const twice = soundKeys.filter((k, i) => soundKeys.indexOf(k) !== i);
+if (twice.length) {
+  console.error("한 소리가 두 형식으로 있다: " + twice.join(", "));
   process.exit(1);
 }
 // 두 키가 같은 배포 파일로 가면 하나가 다른 하나를 덮는다
@@ -55,6 +75,14 @@ for (const n of names) {
     process.exit(1);
   }
   byFile.set(rel, n);
+}
+for (const { k, ext } of sounds) {
+  const rel = `${CATALOG[k].cat}/${fileName(k)}${ext}`;
+  if (byFile.has(rel)) {
+    console.error(`같은 파일로 간다: ${byFile.get(rel)}, ${k} → ${rel}`);
+    process.exit(1);
+  }
+  byFile.set(rel, k);
 }
 
 const manifest = { version, assets: {} };
@@ -115,6 +143,13 @@ for (const f of fs.readdirSync(raw).filter((f) => f.endsWith(".jpg"))) {
   const bytes = fs.statSync(path.join(raw, f)).size;
   manifest.assets[f.slice(0, -4)] = { file: rel, category: "sky", bytes };
 }
+for (const { f, ext, k } of sounds) {
+  const rel = `${CATALOG[k].cat}/${fileName(k)}${ext}`;
+  fs.mkdirSync(path.dirname(path.join(dist, rel)), { recursive: true });
+  fs.copyFileSync(path.join(raw, f), path.join(dist, rel));
+  const bytes = fs.statSync(path.join(raw, f)).size;
+  manifest.assets[k] = { file: rel, category: CATALOG[k].cat, bytes };
+}
 manifest.assets = Object.fromEntries(
   Object.entries(manifest.assets).sort(([, a], [, b]) => a.file.localeCompare(b.file)),
 );
@@ -125,3 +160,4 @@ const mb = (i) => (sum(i, "bytes") / 1e6).toFixed(1);
 console.log(
   `${rows.length}개 · ${mb(1)}MB → ${mb(2)}MB · 폴리곤 ${sum(1, "tris")} → ${sum(2, "tris")}`,
 );
+if (sounds.length) console.log(`소리 ${sounds.length}개(그대로 실음)`);

@@ -44,6 +44,7 @@ const tmp = new THREE.Vector3(),
 
 /** 고무줄 전체(나를 붙잡는다) */
 export class Slings implements Thing, Holder {
+  readonly rideName = "sling";
   readonly list: Sling[];
   /** 붙잡혀 있어도 중력은 그대로 받는다(놀이기구가 높이를 직접 정한다) */
   readonly freezesGravity = false;

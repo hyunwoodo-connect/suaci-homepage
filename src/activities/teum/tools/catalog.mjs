@@ -1,9 +1,15 @@
-// 에셋 분류표: 이름(게임 코드가 쓰는 키) → 폴더, 폴리곤 목표, 텍스처 크기.
+// 에셋 분류표: 이름(게임 코드가 쓰는 키) → 폴더, 폴리곤 목표, 텍스처 크기(모델) 또는 소리 분류(소리).
 // 새 에셋을 넣을 때는 여기에 한 줄을 더한다. 분류에 없는 이름은 빌드가 멈춘다.
 const group = (cat, tris, tex, names) =>
   Object.fromEntries(names.split(" ").map((n) => [n, { cat, tris, tex }]));
 
-/** 이름 → { cat 폴더, tris 폴리곤 목표, tex 텍스처 한 변 } */
+/** 소리 원본으로 받는 형식(확장자). 소리는 다시 누르지 않고 그대로 싣는다 — 형식·크기는 원본을 넣기 전에 정한다 */
+export const AUDIO_EXTENSIONS = [".mp3", ".m4a", ".ogg", ".webm"];
+
+/** 분류(cat)가 소리인가 — 'audio/sfx' 효과음·'audio/bgm' 배경 음악 */
+export const isAudioCategory = (cat) => cat.startsWith("audio/");
+
+/** 이름 → 모델 { cat 폴더, tris 폴리곤 목표, tex 텍스처 한 변 } · 소리 { cat 'audio/…' 폴더 } */
 export const CATALOG = {
   ...group("avatar/body", 0, 1024, "SUACI_AV"), // 뼈대가 있는 몸은 폴리곤을 줄이지 않는다(스키닝이 깨진다)
   ...group("avatar/hair", 5000, 512, "hair_bob"),
@@ -50,6 +56,7 @@ export const CATALOG = {
     "cannon bell bumper balloon hotairballoon star whale lime lime_half r_funnel r_bud w_butterfly",
   ),
   // suaci 프로모션 오브젝트(로고·제품 등)는 'brand' 분류로 넣는다. 예: ...group("brand", 5000, 1024, "logo_sign bottle"),
+  // 소리는 효과음 'audio/sfx'·배경 음악 'audio/bgm' 분류로 넣는다(v3 부터). 예: pop: { cat: "audio/sfx" },
 };
 
 /**

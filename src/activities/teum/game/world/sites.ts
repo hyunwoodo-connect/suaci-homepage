@@ -106,6 +106,7 @@ const siteCol = new THREE.Color(),
 
 /** 랜드마크·쉬는 곳 전체(미끄럼틀은 나를 붙잡는다) */
 export class Sites implements Thing, Holder, HasHeights {
+  readonly rideName = "slide";
   readonly list: Site[];
   /** 미끄럼틀을 타는 동안에도 몸 크기는 그대로 */
   readonly bodyScale = 1;
@@ -320,6 +321,7 @@ export class Sites implements Thing, Holder, HasHeights {
       st.hello = Math.max(0, helloLeft);
       if (nr && !st.wasNear) {
         st.hello = 1;
+        this.s.events.emit("landmarkGreeted", { kind: st.k });
         if (st.cool <= 0) {
           hud.say(st.msg);
           st.cool = 5;

@@ -1,6 +1,7 @@
 import type * as THREE from "three";
 
 import type { Random } from "./core/random";
+import type { GameEvents } from "./events";
 import type { Fx } from "./fx/fx";
 import type { Ripples } from "./fx/ripples";
 import type { Hud } from "./hud";
@@ -22,6 +23,8 @@ export interface Services {
   scene: THREE.Scene;
   /** 이번 판의 지도(읽기만 한다 — 자리표는 아래 layout 의 복사본을 쓴다) */
   map: GameMap;
+  /** 알림판: 일어난 일을 알린다(소리가 듣는다) */
+  events: GameEvents;
   /** 이번 판의 자리표(지도 자리표의 복사본. 배치가 값을 덧붙인다) */
   layout: Layout;
   /** 땅 높이 */

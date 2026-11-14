@@ -27,6 +27,7 @@ const tmp = new THREE.Vector3();
 
 /** 회오리 전체(나를 붙잡는다 — 안에서는 화면이 같이 돌지 않게 카메라가 들어올 때의 방향을 지킨다) */
 export class Whirls implements Thing, Holder {
+  readonly rideName = "whirl";
   readonly list: Whirl[];
   readonly cameraMode = "spin";
   /** 실려 있는 회오리와 실린 뒤 시간 */
