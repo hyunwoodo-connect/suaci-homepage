@@ -94,7 +94,8 @@ export class Bumpers implements Thing {
   fitModels() {
     const models = this.s.models;
     const count = this.list.length;
-    this.batch = models.batch("bumper", count, 6.2, "h");
+    const spots = this.list.map((b) => b.v);
+    this.batch = models.batch("bumper", count, 6.2, "h", 0, spots);
     if (this.batch) models.swapWhenReady("bumper", [this.prims]);
   }
 

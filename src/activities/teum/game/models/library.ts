@@ -58,6 +58,9 @@ export class ModelLibrary {
   private readonly instancers: Instancer[] = [];
   private readonly batches: ModelBatch[] = [];
   private readonly packs: StaticPack[] = [];
+  /** 놓인 자리(첫 화면에 받을 모델을 고르는 데 쓴다): 틀, 여러 번 찍는 묶음, 한꺼번에 그리는 묶음의 자리 */
+  private readonly holds: { k: string; hold: THREE.Object3D }[] = [];
+  private readonly batchSpots: { k: string; spots: readonly THREE.Vector3[] }[] = [];
 
   constructor(
     readonly manifest: Manifest,
@@ -142,6 +145,7 @@ export class ModelLibrary {
     box.getSize(sz);
     box.getCenter(ct);
     const hold = new THREE.Group() as Hold;
+    this.holds.push({ k, hold });
     const extent = extentBy(sz, by);
     const s = size / extent;
     hold.scale.setScalar(s);
@@ -182,9 +186,20 @@ export class ModelLibrary {
     return I;
   }
 
-  /** 같은 모델을 여럿 그리되 저마다 몸 휘기·라임이 다른 묶음(생물·별·범퍼·풍선). 없으면 null */
-  batch(k: string, capacity: number, size: number, by: string, motionKind = 0): ModelBatch | null {
+  /**
+   * 같은 모델을 여럿 그리되 저마다 몸 휘기·라임이 다른 묶음(생물·별·범퍼). 없으면 null.
+   * spots: 움직이지 않는 것이면 그 자리들(첫 화면에 받을지 고르는 데 쓴다)
+   */
+  batch(
+    k: string,
+    capacity: number,
+    size: number,
+    by: string,
+    motionKind = 0,
+    spots: readonly THREE.Vector3[] = [],
+  ): ModelBatch | null {
     if (!this.has(k)) return null;
+    this.batchSpots.push({ k, spots });
     const box = this.box(k),
       baked = Boolean(MODEL_BAKE[k]);
     const B = new ModelBatch(k, capacity, box, size, by, baked);
@@ -196,6 +211,22 @@ export class ModelLibrary {
   /** 가까운 것을 고른다(찍어 둔 묶음): cosCut 보다 가까운 것만 */
   cull(p: THREE.Vector3, cosCut: number) {
     for (const I of this.instancers) I.cull(p, cosCut);
+  }
+
+  /** 놓인 모델의 키와 행성 위 자리(틀은 지금 세계 자리, 묶음은 찍은 자리) — 첫 화면에 받을 것을 고른다 */
+  placements(): { key: string; v: THREE.Vector3 }[] {
+    const out: { key: string; v: THREE.Vector3 }[] = [];
+    for (const { k, hold } of this.holds) {
+      hold.updateWorldMatrix(true, false);
+      const v = new THREE.Vector3().setFromMatrixPosition(hold.matrixWorld);
+      // 아직 행성 위에 놓이지 않은 틀(아바타 몸에 붙은 것 등)은 원점 근처라 뺀다
+      if (v.lengthSq() < 1) continue;
+      v.normalize();
+      out.push({ key: k, v });
+    }
+    for (const I of this.instancers) for (const v of I.spots()) out.push({ key: I.key, v });
+    for (const { k, spots } of this.batchSpots) for (const v of spots) out.push({ key: k, v });
+    return out;
   }
 
   /** 거의 움직이지 않는 도형 묶음(레일 구슬·쿠션 벽·뭉게구름…)을 시야 거르기에 맡긴다 */

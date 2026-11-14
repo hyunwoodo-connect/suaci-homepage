@@ -75,6 +75,11 @@ export class Instancer {
     });
   }
 
+  /** 찍은 것들의 행성 위 자리 */
+  spots(): THREE.Vector3[] {
+    return this.items.map((it) => it.v);
+  }
+
   /** 하나 찍는다(행렬 그대로). 번호를 돌려준다 */
   add(m: THREE.Matrix4): number {
     const i = this.items.length;

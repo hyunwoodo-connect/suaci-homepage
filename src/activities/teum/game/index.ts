@@ -1,4 +1,4 @@
-import { firstScreenKeys, nearbyCreatureKeys } from "../assets/firstScreen";
+import { firstScreenKeys } from "../assets/firstScreen";
 import { createAssetLoader } from "../assets/load";
 import type { LoadedAsset } from "../assets/load";
 import type { Manifest } from "../assets/manifest";
@@ -20,7 +20,7 @@ export interface RunningGame {
 }
 
 /**
- * 게임을 시작한다: 세계를 만들고 배치를 끝낸 뒤, 첫 화면 에셋(아바타·하늘·첫 화면에 보이는 모델·가까운 생물)을 받고 나서 그리기 시작한다.
+ * 게임을 시작한다: 세계를 만들고 배치를 끝낸 뒤, 첫 화면 에셋(아바타·하늘·시작 자리 가까이 놓인 모델과 생물)을 받고 나서 그리기 시작한다.
  * 나머지 에셋은 뒤에서 받고, 오는 대로 제자리에 선다.
  */
 export function start(
@@ -57,10 +57,9 @@ export function start(
     onProgress?.(ratio);
   };
   const loader = createAssetLoader(assets);
-  const creatureSpots = game.creatures.list.map((c) => ({ key: c.k, v: c.v }));
-  const startAt = game.s.player.p;
-  const nearby = nearbyCreatureKeys(creatureSpots, startAt);
-  const first = firstScreenKeys(assets, nearby);
+  // 시작 화면에 실제로 보이는 것(떠도는 무리는 판마다 자리가 달라 그 판의 자리로)
+  const inView = game.startViewKeys();
+  const first = firstScreenKeys(assets, inView);
   const waiting = game.s.models.waiting;
   const rest = Object.keys(assets.assets).filter((k) => !first.includes(k) && waiting.has(k));
   loader

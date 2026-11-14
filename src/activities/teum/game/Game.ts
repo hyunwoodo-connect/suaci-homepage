@@ -52,6 +52,7 @@ import { Footsteps } from "./scenery/footsteps";
 import { Trees } from "./scenery/trees";
 import { Sculptures } from "./sculptures/sculptures";
 import type { Services } from "./services";
+import { S } from "./settings";
 import { Clouds } from "./world/clouds";
 import { Culler } from "./world/culler";
 import { Flowers } from "./world/flowers";
@@ -73,6 +74,12 @@ import { TerrainView } from "./world/terrainView";
 //   2) 한 프레임의 순서(frameOrder) — 놀이기구는 차례로 나를 건드리고, 뒤의 것은 앞의 것이 바꾼 높이·속도를 본다
 //   3) 칙에 반응하는 순서(tapOrder)
 // 세계 위의 것들은 서로의 상태를 직접 만지지 않는다. 필요한 다른 것은 여기서 만들 때 넘겨 준다
+
+/** 첫 화면 고르기: 놓인 자리에서 이만큼 위를 가운데로, 이 반지름의 공이 시야에 걸리면 첫 화면에 받는다(m) */
+const START_VIEW_LIFT = 30,
+  START_VIEW_RADIUS = 60,
+  /** 생물을 그리는 거리(행성 위 각도의 cos) */
+  CREATURE_VIEW_COS = 0.9;
 
 /** 한 프레임에 부르는 것: 세계 위의 것(update) 또는 몸·입력처럼 한 줄로 끝나는 일 */
 type Step = Thing | (() => void);
@@ -370,6 +377,43 @@ export class Game {
     this.s.models.flush(this.frustum, this.s.player.p, this.s.culler.cut);
     this.terrainView.flush(this.frustum);
     this.stage.renderer.render(this.stage.scene, camera);
+  }
+
+  /**
+   * 첫 화면에 보이는 모델의 키: 첫 프레임과 같은 자리에 모두를 놓아 보고(그리지는 않는다), 시작 카메라의 시야 안이면서
+   * 가까운 것만 그리기 거리 안에 놓인 모델·생물. 추측이 아니라 실제로 놓인 자리로 고른다
+   */
+  startViewKeys(): string[] {
+    const dt = this.frame.dt;
+    this.frame.dt = 0;
+    for (const t of this.frameOrder) {
+      if (typeof t === "function") t();
+      else t.update(this.frame);
+    }
+    this.frame.dt = dt;
+    const camera = this.stage.camera,
+      p = this.s.player.p,
+      cut = this.s.culler.cut;
+    camera.updateMatrixWorld();
+    this.viewProj.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    this.frustum.setFromProjectionMatrix(this.viewProj);
+    // 생물은 그리는 거리(v·p > 0.9)부터 좁다
+    const creatures = this.creatures.list
+      .filter((c) => c.v.dot(p) > CREATURE_VIEW_COS)
+      .map((c) => ({ key: c.k, v: c.v }));
+    const placed = this.s.models.placements(),
+      all = [...placed, ...creatures];
+    const keys = new Set<string>();
+    const probe = new THREE.Sphere();
+    for (const { key, v } of all) {
+      if (keys.has(key) || v.dot(p) <= cut) continue;
+      // 땅 위 것도 높이 떠 있는 것(고래·풍선)도 들어오게 넉넉한 공으로 본다
+      const lifted = S.R + START_VIEW_LIFT;
+      probe.center.copy(v).multiplyScalar(lifted);
+      probe.radius = START_VIEW_RADIUS;
+      if (this.frustum.intersectsSphere(probe)) keys.add(key);
+    }
+    return [...keys];
   }
 
   /** 받은 하늘 그림을 건다 */

@@ -124,7 +124,8 @@ export class Stars implements Thing, Tappable {
   fitModels() {
     const models = this.s.models;
     const count = this.list.length;
-    this.batch = models.batch("star", count, 1.7, "h");
+    const spots = this.list.map((st) => st.v);
+    this.batch = models.batch("star", count, 1.7, "h", 0, spots);
     if (this.batch) models.swapWhenReady("star", [this.prims]);
   }
 
