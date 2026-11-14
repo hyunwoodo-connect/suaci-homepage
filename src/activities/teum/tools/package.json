@@ -1,0 +1,13 @@
+{
+  "name": "teum-asset-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "bounds": "node bounds.mjs",
+    "serve": "node serve.mjs"
+  },
+  "dependencies": {
+    "@gltf-transform/cli": "4.5.1"
+  }
+}
