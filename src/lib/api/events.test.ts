@@ -59,15 +59,16 @@ describe("eventsApi (http)", () => {
 });
 
 describe("eventsApi (mock)", () => {
-  it("list: take-four 하나, live", async () => {
+  it("list: take-four·teum 둘, 모두 live", async () => {
     const list = await createMockEventsApi().list();
-    expect(list).toHaveLength(1);
-    expect(list[0]).toMatchObject({ slug: "take-four", phase: "live" });
+    expect(list.map((e) => e.slug)).toEqual(["take-four", "teum"]);
+    expect(list.every((e) => e.phase === "live")).toBe(true);
   });
 
-  it("get: take-four는 상세, 모르는 slug는 null", async () => {
+  it("get: take-four·teum 은 상세, 모르는 slug는 null", async () => {
     const api = createMockEventsApi();
     expect(await api.get("take-four")).toMatchObject({ slug: "take-four", locales: ["ko"] });
+    expect(await api.get("teum")).toMatchObject({ slug: "teum", activityId: "teum" });
     expect(await api.get("nope")).toBeNull();
   });
 });
@@ -81,7 +82,7 @@ describe("selectEventsApi", () => {
 
   it("개발 + 주소 없음 → mock", async () => {
     const api = selectEventsApi(undefined, "development");
-    expect(await api.list()).toHaveLength(1);
+    expect(await api.list()).toHaveLength(2);
   });
 
   it("주소가 있으면 운영에서도 http", async () => {
