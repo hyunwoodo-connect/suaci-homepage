@@ -80,25 +80,33 @@ export interface CreatureSetting {
   bake?: readonly [number, number, number];
   /** 땅 위 무리로 나올 때: 키 크기·걸음(walk 걷기, hop 통통)·마릿수 */
   herd?: { size: number; gait: "walk" | "hop"; count: number };
+  /**
+   * 종마다 다른 버릇(생김새만 다르고 하는 짓이 같으면 만나는 재미가 없다):
+   * roll 구르다 한 면으로 앉기, bow 꾸벅 인사, spin 빙그르르 돌며 꽃잎, bounce 반가우면 제자리 폴짝,
+   * lead 허둥지둥 앞장서 다른 무리로 데려가기, bolt 빛길을 남기며 달아났다 돌아보고 세 번째엔 쏘아 올리기
+   */
+  habit?: "roll" | "bow" | "spin" | "bounce" | "lead" | "bolt";
+  /** 다가오면 궤도를 벗어나 내 몸 둘레를 돈다(날개 하트·날개 왕관) */
+  orbits?: boolean;
 }
 
 /** 생물 설정. 무리(herd)가 있는 것은 이 순서대로 마을·떠도는 무리에 돌아가며 나온다(시제품 SP 순서) */
 export const CREATURES: Readonly<Record<string, CreatureSetting>> = {
   teapot: { motion: 1, bake: [0, -Math.PI / 2, 0], herd: { size: 2.5, gait: "walk", count: 3 } },
-  c_watch: { motion: 5, herd: { size: 2.4, gait: "walk", count: 3 } },
+  c_watch: { motion: 5, herd: { size: 2.4, gait: "walk", count: 3 }, habit: "lead" },
   card: { motion: 5, herd: { size: 2.8, gait: "walk", count: 4 } },
-  c_hat: { motion: 5, herd: { size: 2.6, gait: "hop", count: 3 } },
+  c_hat: { motion: 5, herd: { size: 2.6, gait: "hop", count: 3 }, habit: "bow" },
   mushroom: { motion: 5, bake: [0, 0, -0.42], herd: { size: 2.5, gait: "hop", count: 3 } },
-  c_rose: { motion: 5, herd: { size: 2.7, gait: "walk", count: 3 } },
+  c_rose: { motion: 5, herd: { size: 2.7, gait: "walk", count: 3 }, habit: "spin" },
   brabbit: { motion: 1, bake: [0, -Math.PI / 2, 0], herd: { size: 2.7, gait: "hop", count: 2 } },
-  c_dice: { motion: 5, herd: { size: 2.2, gait: "hop", count: 4 } },
-  c_cupcake: { motion: 5, herd: { size: 2.4, gait: "walk", count: 3 } },
+  c_dice: { motion: 5, herd: { size: 2.2, gait: "walk", count: 4 }, habit: "roll" },
+  c_cupcake: { motion: 5, herd: { size: 2.4, gait: "walk", count: 3 }, habit: "bounce" },
   bfish: { motion: 2, bake: [0, -Math.PI / 2, 0] },
   key: { motion: 3, bake: [0, -Math.PI / 2, 0] },
   umbrella: { motion: 4 },
-  c_wheart: { motion: 3 },
-  c_wcrown: { motion: 3 },
-  c_deer: { motion: 1, bake: [0, -Math.PI / 2, 0] },
+  c_wheart: { motion: 3, orbits: true },
+  c_wcrown: { motion: 3, orbits: true },
+  c_deer: { motion: 1, bake: [0, -Math.PI / 2, 0], habit: "bolt" },
 };
 
 /** 조형물 한 종류의 설정 */

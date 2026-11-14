@@ -46,6 +46,16 @@ describe("설정 표", () => {
     expect(MODEL_TINT.s_rook).toEqual([0xff4f9a, 0.7]);
   });
 
+  it("주사위 → 걷지 않고 구른다(무리 걸음 walk, 버릇 roll)", () => {
+    expect(CREATURES.c_dice.herd?.gait).toBe("walk");
+    expect(CREATURES.c_dice.habit).toBe("roll");
+  });
+
+  it("날개 하트·날개 왕관만 → 다가오면 내 둘레를 돈다", () => {
+    const orbiting = Object.keys(CREATURES).filter((k) => CREATURES[k].orbits);
+    expect(orbiting).toEqual(["c_wheart", "c_wcrown"]);
+  });
+
   it("버섯 → 기운 것을 바로 세우는 돌림", () => {
     expect(CREATURES.mushroom.bake).toEqual([0, 0, -0.42]);
   });

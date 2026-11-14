@@ -1,7 +1,6 @@
 import * as THREE from "three";
 
 import { CREATURES, herdSpecies } from "../../assets/settings";
-import { stampAt } from "../brand/signature";
 import { burst } from "../fx/sparks";
 import { ripple, splashAt } from "../fx/ripples";
 import type { Hold } from "../models";
@@ -11,6 +10,8 @@ import type { Game } from "../state";
 import { S } from "../state";
 import { fr } from "../world/flowers";
 import { modelMatData } from "../world/look";
+import { habitFrame, rollsItself } from "./habits";
+import { away, ez, face, go, meet, rnd } from "./moves";
 import { from, offset } from "../world/sphere";
 import { groundAt } from "../world/terrain";
 
@@ -65,6 +66,21 @@ export interface Creature {
   bt?: number;
   goal?: THREE.Vector3;
   rs?: number;
+  // ---- 종마다 다른 버릇(creatures/habits) ----
+  /** 구르기: 지난 자리와 구른 각 */
+  lp?: THREE.Vector3;
+  tum?: number;
+  /** 인사했나(멀어지면 다시) */
+  bowed?: boolean;
+  /** 다시 할 때까지(장미 돌기·사슴 달아나기) */
+  cd?: number;
+  /** 사슴을 따라간 횟수 */
+  n?: number;
+  /** 회중시계가 이미 앞장섰나 */
+  led?: boolean;
+  /** 날개 하트·왕관이 내 둘레를 도는 남은 시간과 다시 돌 때까지 */
+  vt?: number;
+  vc?: number;
 }
 
 /** 내가 멀어지면 내 앞쪽으로 옮겨 가는 무리 */
@@ -464,6 +480,10 @@ export function creaturesFrame(g: Game) {
       }
       const scare = dP < 9 && rush && Math.abs(dA) < 6,
         seen = dP < 13 && Math.abs(dA) < 7;
+      const pose = { amt, head };
+      habitFrame(g, c, { dP, dA, scare, seen }, pose);
+      amt = pose.amt;
+      head = pose.head;
       if (c.sp === "teapot") {
         const pourPhase = time * 0.7 + c.an.x;
         const pour = c.st === "graze" && Math.sin(pourPhase) > 0.25;
@@ -479,7 +499,8 @@ export function creaturesFrame(g: Game) {
           }
         }
       } // 찻주전자는 가끔 몸을 기울여 김을 뿜는다
-      else if (c.st !== "fall") c.pitch += (0 - c.pitch) * ez(8, dt);
+      else if (c.st !== "fall" && c.st !== "bow" && !rollsItself(c))
+        c.pitch += (0 - c.pitch) * ez(8, dt);
       if (
         c.sp === "mushroom" &&
         !held &&
@@ -630,20 +651,63 @@ export function creaturesFrame(g: Game) {
         c.hop = 0.01;
       } // 뛰는 손님은 걸음 대신 통통
     } else if (c.type === "flock") {
-      c.ph += dt * (9 + 6 * c.amt);
-      c.ang! += ((c.dir! * 6.5) / c.rad!) * 57.3 * dt;
-      const nv = offset(c.ctr!, c.rad!, c.ang!);
-      const lookAng = c.ang! + c.dir! * 10;
-      const lookAt = offset(c.ctr!, c.rad!, lookAng);
-      const turn = ez(8, dt);
-      face(c, lookAt, turn);
-      c.v.copy(nv);
-      const bobPhase = time * 0.6 + c.an.x;
-      c.a = c.g0! + c.alt! + 1.2 * Math.sin(bobPhase) + c.slot! * 0.5;
-      const flapPhase = time * 0.9 + c.an.x * 2;
-      amt = 0.55 + 0.45 * Math.sin(flapPhase);
-      c.roll = -c.dir! * 0.3;
-      if (dP < 9 && Math.abs(dA) < 6) meet(g, c);
+      const tame = Boolean(CREATURES[c.k]?.orbits);
+      if (tame) {
+        if ((c.vt ?? 0) > 0) c.vt! -= dt;
+        else {
+          c.vc = (c.vc || 0) - dt;
+          // 다가오면 궤도를 벗어나 내 몸 둘레를 돈다. 왕관(전설)은 크게 빨라지게도 해 준다
+          const reach = c.legend ? 26 : 17,
+            reachUp = c.legend ? 24 : 12;
+          if (c.vc <= 0 && !held && dP < reach && Math.abs(dA) < reachUp) {
+            c.vt = 6;
+            c.vc = 28;
+            meet(g, c);
+            if (c.legend) {
+              pl.boost = Math.max(pl.boost, 2);
+              const flashAt = P.clone();
+              burst(g, flashAt, 20, 12);
+            }
+          }
+        }
+      }
+      if (tame && (c.vt ?? 0) > 0) {
+        const rr = c.legend ? 7 : 4.2,
+          an = c.ang! + c.slot! * 120;
+        c.ph += dt * 15;
+        c.ang! += c.dir! * 75 * dt;
+        const nv = offset(p, rr, an);
+        const lookAng = an + c.dir! * 14;
+        const lookAt = offset(p, rr, lookAng);
+        const turn = ez(8, dt);
+        face(c, lookAt, turn);
+        const follow = ez(4, dt);
+        c.v.lerp(nv, follow).normalize();
+        const bobPhase = time * 2 + c.slot!;
+        const targetA = altA + 0.7 + 0.5 * Math.sin(bobPhase);
+        c.a += (targetA - c.a) * follow;
+        amt = 1;
+        c.roll = -c.dir! * 0.42;
+      } else {
+        c.ph += dt * (9 + 6 * c.amt);
+        c.ang! += ((c.dir! * 6.5) / c.rad!) * 57.3 * dt;
+        const nv = offset(c.ctr!, c.rad!, c.ang!);
+        const lookAng = c.ang! + c.dir! * 10;
+        const lookAt = offset(c.ctr!, c.rad!, lookAng);
+        const turn = ez(8, dt);
+        face(c, lookAt, turn);
+        // 길들인 것(하트·왕관)은 제 궤도로 천천히 돌아온다
+        const settleRate = tame ? 2.5 : 30;
+        const settle = ez(settleRate, dt);
+        c.v.lerp(nv, settle).normalize();
+        const bobPhase = time * 0.6 + c.an.x;
+        const targetA = c.g0! + c.alt! + 1.2 * Math.sin(bobPhase) + c.slot! * 0.5;
+        c.a += (targetA - c.a) * settle;
+        const flapPhase = time * 0.9 + c.an.x * 2;
+        amt = 0.55 + 0.45 * Math.sin(flapPhase);
+        c.roll = -c.dir! * 0.3;
+        if (dP < 9 && Math.abs(dA) < 6) meet(g, c);
+      }
     } else if (c.type === "fish") {
       const wsp = c.st === "jump" ? 5.5 : c.st === "visit" ? 0 : c.st === "dive" ? 4.5 : 1.3;
       c.ph += dt * (5 + wsp * 2.2);
@@ -783,17 +847,6 @@ export function creaturesFrame(g: Game) {
 
 /* ─── 내부 ─────────────────────────── */
 
-// a~b 사이 난수. Math.random 을 한 번 부른다 — 부르는 순서가 바뀌면 무리 자리·행동이 달라진다
-function rnd(a: number, b: number): number {
-  return a + (b - a) * Math.random();
-}
-
-// 프레임 길이(dt)가 달라도 같은 빠르기로 다가가게 하는 섞는 비율
-function ez(r: number, dt: number): number {
-  const decay = -r * dt;
-  return 1 - Math.exp(decay);
-}
-
 // 떠도는 무리를 옮긴다: 처음엔 내 둘레 아무 데나, 그 뒤엔 내 앞쪽 먼 곳
 function placeRoam(g: Game, grp: RoamGroup, first: boolean) {
   const p = g.pl.p;
@@ -804,7 +857,7 @@ function placeRoam(g: Game, grp: RoamGroup, first: boolean) {
       const dist = rnd(25, 210);
       const bearing = 360 * Math.random();
       ctr = offset(p, dist, bearing);
-    } else ctr = ahead(g, 125, 200, 1.2);
+    } else ctr = ahead(g, 110, 190, 0.6); // 다시 나타나는 자리는 가는 방향 쪽으로 좁혔다
     if (grp.kind !== "sheep" || freeAt(g, ctr, 6)) break;
   }
   setGroup(g, grp, ctr!);
@@ -824,7 +877,10 @@ function ahead(g: Game, dmin: number, dmax: number, spread: number): THREE.Vecto
 function setGroup(g: Game, grp: RoamGroup, ctr: THREE.Vector3) {
   grp.ctr = ctr;
   grp.mem.forEach((c, j) => {
-    if (c.st === "follow") return;
+    // 앞장서는 중인 회중시계는 데려가던 길을 마저 간다
+    if (c.st === "follow" || c.st === "lead" || c.st === "beckon") return;
+    c.led = false;
+    c.bowed = false;
     if (c.type === "sheep") {
       c.hv = ctr;
       const bearing = (j * 360) / grp.mem.length + 20;
@@ -878,80 +934,6 @@ function putCreature(g: Game, c: Creature, dt: number) {
   c.an.y = c.ph;
   c.an.z = c.amt;
   c.an.w = c.head;
-}
-
-// 그쪽(tv)을 본다(k 만큼 돌린다)
-function face(c: Creature, tv: THREE.Vector3, k?: number) {
-  const upPart = tv.dot(c.v);
-  cv.copy(tv).addScaledVector(c.v, -upPart);
-  if (cv.lengthSq() < 1e-10) return;
-  cv.normalize();
-  const blend = k === undefined ? 0.15 : k;
-  c.f.lerp(cv, blend).normalize();
-}
-
-// 걸어서 간다: 몸을 먼저 돌리고, 보는 쪽으로 나아간다. 걸음 수는 간 거리만큼. 남은 거리를 돌려준다
-function go(
-  g: Game,
-  c: Creature,
-  tv: THREE.Vector3,
-  spd: number,
-  dt: number,
-  stride?: number,
-): number {
-  const d = c.v.angleTo(tv) * S.R;
-  if (d < 0.05) return d;
-  const turn = ez(5, dt);
-  face(c, tv, turn);
-  const reach = spd * dt;
-  const st = Math.min(d, reach);
-  const arc = st / S.R;
-  const step = Math.tan(arc);
-  c.v.addScaledVector(c.f, step).normalize();
-  const fUp = c.f.dot(c.v);
-  c.f.addScaledVector(c.v, -fUp).normalize();
-  c.ph += st * (stride || 4.6);
-  return d;
-}
-
-// 나에게서 멀어진다
-function away(g: Game, c: Creature, spd: number, dt: number, stride?: number) {
-  cv.copy(c.v).sub(g.pl.p);
-  const cvUp = cv.dot(c.v);
-  cv.addScaledVector(c.v, -cvUp);
-  if (cv.lengthSq() < 1e-10) cv.copy(c.f);
-  cv.normalize();
-  const turn = ez(7, dt);
-  c.f.lerp(cv, turn).normalize();
-  const arc = (spd * dt) / S.R;
-  const step = Math.tan(arc);
-  c.v.addScaledVector(c.f, step).normalize();
-  const fUp = c.f.dot(c.v);
-  c.f.addScaledVector(c.v, -fUp).normalize();
-  c.ph += spd * dt * (stride || 2.6);
-}
-
-// 만났다: 처음 보는 종류면 더 크게 반짝
-function meet(g: Game, c: Creature) {
-  if (c.met) return;
-  c.met = true;
-  // 전설의 손님을 만난 자리에는 그 방문 동안 작은 라임 워드마크가 남는다
-  if (c.legend) {
-    const at = c.v.clone();
-    stampAt(g, at);
-  }
-  const MET = g.creatures.MET,
-    first = !MET.has(c.k);
-  MET.add(c.k);
-  cv.copy(c.m.position);
-  const sparkAt = cv.clone();
-  const sparkN = first ? 16 : 6;
-  const sparkPower = first ? 9 : 6;
-  burst(g, sparkAt, sparkN, sparkPower);
-  if (first) {
-    const bigAt = cv.clone();
-    burst(g, bigAt, 10, 13);
-  }
 }
 
 // 줄지어 따라오기에 넣는다(여섯까지)
