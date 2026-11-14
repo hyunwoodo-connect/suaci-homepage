@@ -13,7 +13,7 @@ export const CATALOG = {
     "creatures/common",
     3500,
     512,
-    "teapot card mushroom brabbit bfish key umbrella c_watch c_hat c_dice c_rose c_cupcake c_wheart",
+    "teapot card mushroom brabbit bfish key umbrella c_watch c_hat c_dice c_rose c_cupcake c_wheart c_wletter c_wcup c_wbell c_narwhal c_seal",
   ),
   ...group("creatures/legend", 4500, 512, "c_deer c_wcrown"),
   ...group(
@@ -47,7 +47,7 @@ export const CATALOG = {
     "rides",
     4500,
     512,
-    "cannon bell bumper balloon hotairballoon star whale lime lime_half",
+    "cannon bell bumper balloon hotairballoon star whale lime lime_half r_funnel r_bud w_butterfly",
   ),
   // suaci 프로모션 오브젝트(로고·제품 등)는 'brand' 분류로 넣는다. 예: ...group("brand", 5000, 1024, "logo_sign bottle"),
 };
@@ -62,6 +62,6 @@ export const RETIRED = new Set(["avatar_base", "sheep", "fish", "bird", "turtle"
 export const fileName = (k) =>
   k
     .replace(/^SUACI_AV$/, "base")
-    .replace(/^(c|s|d)_/, "")
+    .replace(/^(c|s|d|r|w)_/, "")
     .replace(/_/g, "-")
     .toLowerCase();
