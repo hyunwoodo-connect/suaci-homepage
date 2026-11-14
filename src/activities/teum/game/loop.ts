@@ -1,4 +1,5 @@
 import { meFrame, shadowFrame } from "./avatar/me";
+import { signatureFrame } from "./brand/signature";
 import { cameraFrame } from "./camera";
 import { creaturesFrame, legendsFrame } from "./creatures";
 import { trailFrame } from "./fx/ribbons";
@@ -95,6 +96,7 @@ export function frame(g: Game, now: number, last: number) {
   sitesFrame(g);
   sceneryFrame(g);
   sculpturesFrame(g);
+  signatureFrame(g);
   bubbleTrailFrame(g);
   directorFrame(g);
   legendsFrame(g);

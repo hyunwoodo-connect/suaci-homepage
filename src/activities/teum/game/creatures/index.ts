@@ -1,6 +1,7 @@
 import * as THREE from "three";
 
 import { CREATURES, herdSpecies } from "../../assets/settings";
+import { stampAt } from "../brand/signature";
 import { burst } from "../fx/sparks";
 import { ripple, splashAt } from "../fx/ripples";
 import type { Hold } from "../models";
@@ -934,6 +935,11 @@ function away(g: Game, c: Creature, spd: number, dt: number, stride?: number) {
 function meet(g: Game, c: Creature) {
   if (c.met) return;
   c.met = true;
+  // 전설의 손님을 만난 자리에는 그 방문 동안 작은 라임 워드마크가 남는다
+  if (c.legend) {
+    const at = c.v.clone();
+    stampAt(g, at);
+  }
   const MET = g.creatures.MET,
     first = !MET.has(c.k);
   MET.add(c.k);

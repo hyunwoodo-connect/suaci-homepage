@@ -1,6 +1,7 @@
 import * as THREE from "three";
 
 import type { Me } from "./avatar/me";
+import type { Signature } from "./brand/signature";
 import type { Creatures } from "./creatures";
 import type { Fx } from "./fx/sparks";
 import type { Petals } from "./fx/petals";
@@ -238,6 +239,7 @@ export interface Game extends Stage {
   sculptures: Sculptures;
   bubbleTrail: BubbleTrail;
   director: Director;
+  signature: Signature;
   creatures: Creatures;
 }
 

@@ -7,6 +7,7 @@ import type { Manifest } from "../assets/manifest";
 import { createMe } from "./avatar/me";
 import { setupAvatar } from "./avatar/rig";
 import { placeBrand } from "./brand";
+import { createSignature } from "./brand/signature";
 import { resize } from "./camera";
 import { placeCreatures } from "./creatures";
 import { exposeGame, seedRandom } from "./debug";
@@ -236,6 +237,7 @@ function buildGame(canvas: HTMLCanvasElement, manifest: Manifest): Game {
   placeScenery(g);
   g.sculptures = placeSculptures(g);
   whalePath(g);
+  g.signature = createSignature(g, g.scenery.lawn!);
   g.bubbleTrail = createBubbleTrail(g);
   g.director = createDirector(g);
   placeCreatures(g);

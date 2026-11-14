@@ -1,6 +1,8 @@
 import * as THREE from "three";
 
 import { BIG_FLOWERS, TREE_CROWN_BASE } from "../../assets/settings";
+import type { Lawn } from "../brand/lawn";
+import { reserveLawn } from "../brand/lawn";
 import { blockAt } from "../collide";
 import { limeBallsFrame } from "../rides/balls";
 import { bumperModelsFrame } from "../rides/bumpers";
@@ -95,6 +97,8 @@ export interface Scenery {
   CULL: { o: THREE.Object3D; v: THREE.Vector3 }[];
   cullT: number;
   catModel: Hold | null;
+  /** 잔디 로고 자리(나무를 놓기 전에 맡아 둔다) */
+  lawn: Lawn | null;
 }
 
 const qI = new THREE.Quaternion(),
@@ -125,6 +129,7 @@ export function fitModels(g: Game) {
     CULL: [],
     cullT: 0,
     catModel: null,
+    lawn: null,
   };
   // 나와 고양이(뼈대 있는 몸은 avatar/rig 가 따로 받는다)
   if (hasModel(g, "cat_lime")) {
@@ -285,6 +290,8 @@ export function placeScenery(g: Game) {
     g.swings,
   ];
   for (const a of corLists) for (const o of a) corAdd(g, o.v, 8);
+  // suaci 잔디 로고 자리를 나무·꽃·조형물보다 먼저 맡아 둔다
+  sc.lawn = reserveLawn(g);
   const TREES = sc.TREES,
     BIGF = sc.BIGF;
   for (const [k, cb] of Object.entries(TREE_CROWN_BASE)) sc.TK[k] = { I: inst(g, k, 300), cb };
