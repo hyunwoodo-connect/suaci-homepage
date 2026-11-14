@@ -39,6 +39,13 @@ describe("Player 튕겨 올리기", () => {
     expect(pl.vy).toBe(9);
   });
 
+  it("standOn + lift → 지붕 높이에 세우고 적어도 그만큼 튕긴다(돔)", () => {
+    const pl = flatPlayer();
+    pl.standOn(12.5);
+    pl.lift(14);
+    expect([pl.air, pl.vy]).toEqual([12.5, 14]);
+  });
+
   it("raise → vy 만 올리고 몸은 띄우지 않는다", () => {
     const pl = flatPlayer();
     pl.raise(2.6);

@@ -440,12 +440,10 @@ export class Sites implements Thing, Holder, HasHeights {
         const capSq = 1 - across * across;
         const hd = dg < st.core ? st.top * Math.sqrt(capSq) : -1;
         if (hd < 0 || player.air >= hd + 0.4) return false;
-        // 지붕 위로 몸을 올려 세운다: 잠깐 붙잡아 높이만 정하고 바로 놓는다
-        const body = player.grab(this);
-        if (!body) return false;
-        body.air = hd + 0.5;
-        body.vy = Math.max(body.vy, 14);
-        player.release(this);
+        // 지붕 위로 몸을 올려 세우고 크게 튕긴다
+        const roof = hd + 0.5;
+        player.standOn(roof);
+        player.lift(14);
         return true;
       }
       case "slide": {

@@ -6,7 +6,7 @@ import { clamp, offset, START } from "../world/sphere";
 import type { Terrain } from "../world/terrain";
 
 // 나(몸)의 상태와 움직임. 다른 모듈은 이 상태를 직접 바꾸지 않고 아래의 좁은 요청으로만 부탁한다:
-//   튕겨 올리기(bounce·lift·raise·hop·easeLift) · 빨라지기(boost·boostAtLeast) · 잠깐 방향 안 먹기(stun) ·
+//   튕겨 올리기(bounce·lift·raise·hop·easeLift·standOn) · 빨라지기(boost·boostAtLeast) · 잠깐 방향 안 먹기(stun) ·
 //   방향 틀기(turnTo·lookTo·kick) · 길에 실어 가기(glide·keepOnLine) · 막히기(block·blockBody) · 느려지기(slowDown) ·
 //   붙잡기(grab → 붙잡은 쪽만 몸을 옮기는 손잡이, release) · 날개(giveWings·flap) · 풍선에 매달리기(hang·letGo).
 // 끌기·방향키로 가고, 곧게 오래 날수록 조금씩 빨라지고, 내리막에서 빨라진다. 떠오르면 천천히 활공해 내려온다
@@ -368,6 +368,11 @@ export class Player {
   easeLift(target: number, k: number) {
     this._vy += (target - this._vy) * k;
     this.takeOff();
+  }
+
+  /** 그 높이 위에 몸을 올려 세운다(돔 지붕처럼 막지 않고 위로 올리는 것) */
+  standOn(air: number) {
+    this._air = air;
   }
 
   // ---- 요청: 빠르기 ----
