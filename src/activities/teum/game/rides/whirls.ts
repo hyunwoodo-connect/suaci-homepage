@@ -132,7 +132,7 @@ export class Whirls implements Thing, Holder {
       }
     }
     // 회오리·깔때기에 실린 정도: 지금 붙잡은 것이 화면을 지키는 놀이기구인지로 정한다(깔때기는 아직 이번 프레임 전)
-    const spinning = player.holderCamera === "spin";
+    const spinning = player.heldWithCamera("spin");
     const spinTarget = spinning ? 1 : 0;
     const blendRate = spinning ? 5 : 1.5;
     const blendPull = ease(blendRate, dt);

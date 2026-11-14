@@ -8,7 +8,7 @@ import type { Terrain } from "../world/terrain";
 // 나(몸)의 상태와 움직임. 다른 모듈은 이 상태를 직접 바꾸지 않고 아래의 좁은 요청으로만 부탁한다:
 //   튕겨 올리기(bounce·lift·raise·hop·easeLift·standOn) · 빨라지기(boost·boostAtLeast) · 잠깐 방향 안 먹기(stun) ·
 //   방향 틀기(turnTo·lookTo·kick) · 길에 실어 가기(glide·keepOnLine) · 막히기(block·blockBody) · 느려지기(slowDown) ·
-//   붙잡기(grab → 붙잡은 쪽만 몸을 옮기는 손잡이, release) · 날개(giveWings·flap) · 풍선에 매달리기(hang·letGo).
+//   붙잡기(grab → 붙잡은 쪽만 몸을 옮기는 손잡이, release — 시제품처럼 여럿이 함께 붙잡을 수 있다) · 날개(giveWings·flap) · 풍선에 매달리기(hang·letGo).
 // 끌기·방향키로 가고, 곧게 오래 날수록 조금씩 빨라지고, 내리막에서 빨라진다. 떠오르면 천천히 활공해 내려온다
 
 /** 끌기 방향(fx 옆, fy 앞)과 세기(m). dragFx 는 손가락으로 끄는 옆 방향만(방향키 빼고 — 몸 기울기가 쓴다) */
@@ -84,7 +84,12 @@ export class Player {
   private _m0 = 0;
   private _dragFx = 0;
   // ---- 붙잡힘·날개·풍선 ----
-  private holder: Holder | null = null;
+  /**
+   * 지금 붙잡은 놀이기구들(붙잡은 차례). 시제품은 놀이기구마다 제 'on' 이 따로라, 다른 것에 실려 가는 중에도
+   * 붙잡을 수 있었다(예: 로켓으로 솟다가 고래 등에 올라탄다). 그러면 둘 다 프레임 순서대로 몸을 옮기고,
+   * 저마다 제 끝 조건에서 놓는다 — 그대로 둔다
+   */
+  private readonly holders: Holder[] = [];
   private hanger: object | null = null;
   private _held = false;
   private wingT = 0;
@@ -191,7 +196,7 @@ export class Player {
   }
   /** 지금 무엇엔가 붙잡혀 있다 */
   get isHeld(): boolean {
-    return this.holder !== null;
+    return this.holders.length > 0;
   }
   /** 순간 이동한 횟수(꼬리 리본이 끊어 다시 그린다) */
   get jumps(): number {
@@ -199,7 +204,7 @@ export class Player {
   }
   /** 이 놀이기구가 붙잡고 있나 */
   isHeldBy(h: Holder): boolean {
-    return this.holder === h;
+    return this.holders.includes(h);
   }
   /** 날개를 달고 있다(남은 시간) */
   get wingsLeft(): number {
@@ -209,13 +214,15 @@ export class Player {
   get isHanging(): boolean {
     return this.hanger !== null;
   }
-  /** 지금 붙잡은 놀이기구가 카메라에 바라는 것(없으면 null) */
-  get holderCamera(): "spin" | "ride" | null {
-    return this.holder?.cameraMode ?? null;
+  /** 붙잡은 놀이기구 가운데 카메라에 이것(spin·ride)을 바라는 것이 있나 — 시제품의 '회오리 또는 깔때기'·'고래 또는 혜성' */
+  heldWithCamera(mode: "spin" | "ride"): boolean {
+    return this.holders.some((h) => h.cameraMode === mode);
   }
-  /** 몸 크기(대포 안에서 작아진다) */
+  /** 몸 크기: 붙잡은 것 가운데 가장 작게(구멍 속 0.05 가 대포 0.6 보다 앞선다 — 시제품의 차례와 같다) */
   get bodyScale(): number {
-    return this.holder?.bodyScale ?? 1;
+    let k = 1;
+    for (const h of this.holders) k = Math.min(k, h.bodyScale ?? 1);
+    return k;
   }
   /** 다음 카메라를 바로 붙인다(한 번 읽으면 꺼진다) */
   takeSnap(): boolean {
@@ -238,7 +245,7 @@ export class Player {
     this._air = 0;
     this._vy = 0;
     this._snap = true;
-    this.holder = null;
+    this.holders.length = 0;
     this.hanger = null;
     this.wingT = 0;
     this._jumps++;
@@ -247,7 +254,7 @@ export class Player {
   /** 이번 프레임의 입력. 붙잡혀 있으면 끌어도 움직이지 않는다 */
   begin(dt: number, intent: Intent) {
     this.dt = dt;
-    this._held = this.holder !== null;
+    this._held = this.holders.length > 0;
     this._fx = intent.fx;
     this._dragFx = intent.dragFx;
     this._fy = intent.fy;
@@ -316,7 +323,7 @@ export class Player {
     const winged = this.wingT > 0;
     const G = winged ? FLIGHT.wingGravity : FLIGHT.gravity,
       VT = winged ? FLIGHT.wingFallLimit : FLIGHT.fallLimit;
-    const frozen = this.holder?.freezesGravity === true;
+    const frozen = this.holders.some((h) => h.freezesGravity === true);
     if (!frozen && (this._air > 0 || this._vy > 0)) {
       this._vy -= G * dt;
       if (this._vy < VT) this._vy = VT;
@@ -474,20 +481,20 @@ export class Player {
   }
 
   // ---- 요청: 붙잡기 ----
-  /** 놀이기구가 나를 붙잡는다. 이미 다른 것에 붙잡혀 있으면 null */
-  grab(h: Holder): HeldBody | null {
-    if (this.holder) return null;
-    this.holder = h;
+  /** 놀이기구가 나를 붙잡는다(다른 것이 붙잡고 있어도 — 그러면 둘 다 몸을 옮긴다). 손잡이를 돌려준다 */
+  grab(h: Holder): HeldBody {
+    if (!this.holders.includes(h)) this.holders.push(h);
     return this.body;
   }
   /** 붙잡은 놀이기구가 지금 쓰는 손잡이(붙잡고 있지 않으면 null) */
   bodyFor(h: Holder): HeldBody | null {
-    return this.holder === h ? this.body : null;
+    return this.holders.includes(h) ? this.body : null;
   }
-  /** 놓는다 — 놓으며 줄 것을 한꺼번에 */
+  /** 놓는다 — 놓으며 줄 것을 한꺼번에(다른 것이 아직 붙잡고 있으면 그것은 계속 몸을 옮긴다) */
   release(h: Holder, r: Release = {}) {
-    if (this.holder !== h) return;
-    this.holder = null;
+    const at = this.holders.indexOf(h);
+    if (at < 0) return;
+    this.holders.splice(at, 1);
     if (r.vel) this._vel.copy(r.vel);
     if (r.boost !== undefined) this._boost = r.boost;
     if (r.vy !== undefined) this._vy = r.vy;

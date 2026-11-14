@@ -40,7 +40,10 @@ export class Whale implements Thing, Holder {
   private t = 0;
   private cool = 0;
 
-  constructor(private readonly s: Services) {
+  constructor(
+    private readonly s: Services,
+    private readonly whirls: Holder,
+  ) {
     const primGeo = new THREE.SphereGeometry(1, 28, 18);
     const primMat = new THREE.MeshBasicMaterial({ color: 0xd7dad9 });
     this.prim = new THREE.Mesh(primGeo, primMat);
@@ -98,9 +101,11 @@ export class Whale implements Thing, Holder {
       dt = f.dt;
     if (this.cool > 0) this.cool -= dt;
     const altOffset = player.alt - (this.WH + 6);
+    // 다른 놀이기구에 실려 가는 중에도 올라탈 수 있다(시제품). 회오리에 실려 있을 때만은 아니다
     if (
       !this.on &&
       this.cool <= 0 &&
+      !player.isHeldBy(this.whirls) &&
       player.air > 3 &&
       player.p.angleTo(this.v) * S.R < 26 &&
       Math.abs(altOffset) < 15 &&
@@ -130,7 +135,8 @@ export class Whale implements Thing, Holder {
       }
     }
     // 고래·혜성에 탄 동안 카메라가 뒤로 물러난다
-    const rideTarget = player.holderCamera === "ride" ? 1 : 0;
+    const riding = player.heldWithCamera("ride");
+    const rideTarget = riding ? 1 : 0;
     const blendPull = ease(3, dt);
     camera.easeRide(rideTarget, blendPull);
   }

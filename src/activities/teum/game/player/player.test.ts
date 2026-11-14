@@ -101,11 +101,34 @@ describe("Player 붙잡기", () => {
   const cannon: Holder = { bodyScale: 0.6 },
     whirl: Holder = { cameraMode: "spin" };
 
-  it("이미 붙잡혀 있으면 → 다른 놀이기구는 붙잡지 못한다", () => {
+  it("다른 것이 붙잡고 있어도 → 새 놀이기구도 붙잡는다(시제품처럼 둘 다 몸을 옮긴다)", () => {
     const pl = flatPlayer();
-    expect(pl.grab(cannon)).not.toBeNull();
-    expect(pl.grab(whirl)).toBeNull();
-    expect(pl.isHeldBy(cannon)).toBe(true);
+    const a = pl.grab(cannon),
+      b = pl.grab(whirl);
+    expect(b).toBe(a);
+    expect([pl.isHeldBy(cannon), pl.isHeldBy(whirl)]).toEqual([true, true]);
+  });
+
+  it("하나가 놓아도 → 남은 것은 계속 붙잡고 있다", () => {
+    const pl = flatPlayer();
+    pl.grab(cannon);
+    pl.grab(whirl);
+    pl.release(cannon, { boost: 6 });
+    expect([pl.isHeld, pl.isHeldBy(cannon), pl.boostNow]).toEqual([true, false, 6]);
+    expect(pl.bodyFor(whirl)).not.toBeNull();
+  });
+
+  it("몸 크기·카메라 → 붙잡은 것 모두를 본다(가장 작게, 하나라도 바라면)", () => {
+    const pl = flatPlayer();
+    const hole: Holder = { bodyScale: 0.05 };
+    pl.grab(cannon);
+    pl.grab(hole);
+    pl.grab(whirl);
+    expect([pl.bodyScale, pl.heldWithCamera("spin"), pl.heldWithCamera("ride")]).toEqual([
+      0.05,
+      true,
+      false,
+    ]);
   });
 
   it("held → 프레임 처음의 값(프레임 도중에 붙잡혀도 그 프레임은 그대로)", () => {
