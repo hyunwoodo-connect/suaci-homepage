@@ -2,6 +2,7 @@ import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
 import { LOOK } from "../look";
+import type { StaticPack } from "../models/staticPack";
 import type { Services } from "../services";
 import { S } from "../settings";
 import type { Ground } from "./ground";
@@ -20,6 +21,7 @@ const q = new THREE.Quaternion(),
 
 /** 뭉게구름 */
 export class Clouds implements Thing {
+  private pack: StaticPack | null = null;
   private readonly m: THREE.InstancedMesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
 
   constructor(
@@ -52,6 +54,9 @@ export class Clouds implements Thing {
     }
     this.m.instanceColor!.needsUpdate = true;
     this.m.instanceMatrix.needsUpdate = true;
+    // 구름 1300 덩이는 하늘 사방에 있어 가까이·시야 안의 것만 그린다. 이 뒤로는 바뀐 덩이만 묶음에 알린다
+    this.pack = this.s.models.pack(this.m);
+    this.pack.capture();
   }
 
   /** 나무에 걸리는 구름을 높이 h 로 올린다 */
@@ -122,10 +127,15 @@ export class Clouds implements Thing {
       sc.set(sx, sy, sz);
       m4.compose(ps, q, sc);
       const slot = i * 5 + j;
-      this.m.setMatrixAt(slot, m4);
       const limeMix = b * 0.6;
       const color = tc.set(0xffffff).lerp(lime, limeMix);
-      this.m.setColorAt(slot, color);
+      if (this.pack) {
+        this.pack.setAt(slot, m4);
+        this.pack.setColorAt(slot, color);
+      } else {
+        this.m.setMatrixAt(slot, m4);
+        this.m.setColorAt(slot, color);
+      }
     }
   }
 }

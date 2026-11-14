@@ -3,7 +3,9 @@ import type * as THREE from "three";
 import type { Random } from "../core/random";
 import type { ModelBatch } from "../models/batch";
 
-// 생물 하나의 상태. 모양은 종마다 한 번에 그리는 묶음(ModelBatch)이 그리고, 여기에는 자리·상태만 있다
+// 생물 하나의 상태. 모양은 종마다 한 번에 그리는 묶음(ModelBatch)이 그리고, 여기에는 자리·상태만 있다.
+// 모든 칸을 처음부터 같은 모양으로 채운다(없는 값은 0·null) — 생물마다 칸이 달라지면 JS 엔진이 수를 상자에 담아
+// 매 프레임 가비지를 만든다(재 보니 초당 수 MB)
 
 /** 생물의 갈래: herd 땅 위 무리, flock 하늘을 도는 셋, jelly 해파리, fish 호수 */
 export type CreatureRole = "herd" | "flock" | "jelly" | "fish";
@@ -45,41 +47,41 @@ export interface Creature {
   roll: number;
   amt: number;
   head: number;
-  gait?: "walk" | "hop";
+  gait: "walk" | "hop";
   /** 무리의 중심(땅 위 무리) */
-  hv?: THREE.Vector3;
+  hv: THREE.Vector3 | null;
   /** 전설이면 1 */
-  legend?: number;
+  legend: number;
   // ---- 하늘을 도는 셋 ----
-  ctr?: THREE.Vector3;
-  rad?: number;
-  dir?: number;
-  alt?: number;
-  ang?: number;
-  slot?: number;
-  g0?: number;
+  ctr: THREE.Vector3 | null;
+  rad: number;
+  dir: number;
+  alt: number;
+  ang: number;
+  slot: number;
+  g0: number;
   // ---- 해파리·물고기 ----
-  base?: number;
-  jt?: number;
-  rt?: number;
-  bt?: number;
-  goal?: THREE.Vector3;
-  rs?: number;
+  base: number;
+  jt: number;
+  rt: number;
+  bt: number;
+  goal: THREE.Vector3 | null;
+  rs: number;
   // ---- 버릇이 쓰는 값 ----
   /** 구르기: 지난 자리와 구른 각 */
-  lp?: THREE.Vector3;
-  tum?: number;
+  lp: THREE.Vector3 | null;
+  tum: number;
   /** 인사했나(멀어지면 다시) */
-  bowed?: boolean;
+  bowed: boolean;
   /** 다시 할 때까지(장미 돌기·사슴 달아나기) */
-  cd?: number;
+  cd: number;
   /** 사슴을 따라간 횟수 */
-  n?: number;
+  n: number;
   /** 회중시계가 이미 앞장섰나 */
-  led?: boolean;
+  led: boolean;
   /** 내 둘레를 도는 남은 시간과 다시 돌 때까지 */
-  vt?: number;
-  vc?: number;
+  vt: number;
+  vc: number;
 }
 
 /** 이번 프레임 움직임 세기와 고개 — 버릇이 정하면 공통 상태 기계가 그 위에서 이어 간다 */

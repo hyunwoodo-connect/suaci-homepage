@@ -334,6 +334,8 @@ class Lighthouse implements Thing {
       depthWrite: false,
       fog: false,
       side: THREE.DoubleSide,
+      // 납작한 판이라 앞뒤를 두 번 나눠 그릴 까닭이 없다(나누면 three 가 프레임마다 셰이더를 다시 고른다)
+      forceSinglePass: true,
     });
     this.wave = new THREE.Mesh(waveGeo, waveMat);
     this.wave.visible = false;

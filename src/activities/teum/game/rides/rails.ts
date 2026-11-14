@@ -100,6 +100,8 @@ export class Rails implements Thing, Tappable {
       }
     }
     this.railM.instanceMatrix.needsUpdate = true;
+    // 구슬 972 개는 행성 곳곳에 흩어져 있어 가까이·시야 안의 것만 그린다
+    this.s.models.pack(this.railM).capture();
   }
 
   /** 자리 차지: 마디 둘레, 그리고 레일 길(비행 통로) */

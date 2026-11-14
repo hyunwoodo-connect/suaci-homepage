@@ -177,9 +177,13 @@ export class Jets implements Thing {
       hud.say(message);
     }
     this.wasJet = inJet;
+    // 흐르는 빛줄기는 가까운 마디(가까운 것만 그리기와 같은 기준)만 움직이고 그린다
+    const cut = this.s.culler.cut,
+      here = this.s.player.p;
     let ji = 0;
     for (const jt of this.list)
-      for (const nd of jt.nodes)
+      for (const nd of jt.nodes) {
+        if (nd.v.dot(here) <= cut) continue;
         for (let k = 0; k < 2; k++) {
           const al = ((time * 14 + (k * jt.gap) / 2 + nd.ph) % jt.gap) - jt.gap / 2,
             fade = 1 - Math.abs(al) / (jt.gap / 2);
@@ -200,6 +204,8 @@ export class Jets implements Thing {
           this.jetM.setMatrixAt(ji, m4);
           ji++;
         }
+      }
+    this.jetM.count = ji;
     this.jetM.instanceMatrix.needsUpdate = true;
   }
 

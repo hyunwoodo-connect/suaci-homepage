@@ -90,6 +90,8 @@ export class Pipes implements Thing {
         }
     }
     this.ramps.instanceMatrix.needsUpdate = true;
+    // 쿠션 벽은 골짜기마다 흩어져 있어 가까이·시야 안의 것만 그린다
+    this.s.models.pack(this.ramps).capture();
   }
 
   /** 자리 차지: 골짜기 전체 */

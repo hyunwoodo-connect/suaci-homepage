@@ -89,8 +89,11 @@ export class Arches implements Thing {
         [v, d] = step(v, d, a.gap, a.curve);
       }
     }
-    this.fill(-1);
-    this.s.culler.onCull((cut) => this.fill(cut));
+    // 발판은 다리마다 흩어져 있어 가까이·시야 안의 것만 그린다
+    const planks = this.planks;
+    this.anodes.forEach((nd, i) => planks.setMatrixAt(i, nd.M));
+    planks.count = this.anodes.length;
+    this.s.models.pack(planks).capture();
   }
 
   /** 자리 차지: 마디 둘레, 그리고 다리 길(비행 통로) */
@@ -135,15 +138,5 @@ export class Arches implements Thing {
     this.planks.geometry.dispose();
     this.planks.material.dispose();
     this.planks.dispose();
-  }
-
-  // 가까운 마디(v·p > cut)의 발판만 칸에 채운다(나머지 것들과 같은 기준·같은 때)
-  private fill(cut: number) {
-    const p = this.s.player.p,
-      planks = this.planks;
-    let n = 0;
-    for (const nd of this.anodes) if (nd.v.dot(p) > cut) planks.setMatrixAt(n++, nd.M);
-    planks.count = n;
-    planks.instanceMatrix.needsUpdate = true;
   }
 }

@@ -133,6 +133,9 @@ export class Game {
   private readonly frameOrder: Step[];
   private readonly tapOrder: Tappable[];
   private readonly ray = new THREE.Raycaster();
+  /** 그리기 직전의 시야(여럿을 한 번에 그리는 묶음이 시야 밖의 것을 뺀다) */
+  private readonly frustum = new THREE.Frustum();
+  private readonly viewProj = new THREE.Matrix4();
   private readonly ndc = new THREE.Vector2();
   /** 이번 프레임(모두가 같은 값을 본다) */
   readonly frame: Frame = { dt: 0, time: 0 };
@@ -360,7 +363,13 @@ export class Game {
       if (typeof t === "function") t();
       else t.update(this.frame);
     }
-    this.stage.renderer.render(this.stage.scene, this.stage.camera);
+    const camera = this.stage.camera;
+    camera.updateMatrixWorld();
+    this.viewProj.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    this.frustum.setFromProjectionMatrix(this.viewProj);
+    this.s.models.flush(this.frustum, this.s.player.p, this.s.culler.cut);
+    this.terrainView.flush(this.frustum);
+    this.stage.renderer.render(this.stage.scene, camera);
   }
 
   /** 받은 하늘 그림을 건다 */

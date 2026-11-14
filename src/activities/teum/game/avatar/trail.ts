@@ -183,6 +183,8 @@ function createRibbon(s: Services, wMul: number, aMul: number, add: boolean): Ri
     transparent: true,
     depthWrite: false,
     side: THREE.DoubleSide,
+    // 납작한 판이라 앞뒤를 두 번 나눠 그릴 까닭이 없다(나누면 three 가 프레임마다 셰이더를 다시 고른다)
+    forceSinglePass: true,
     fog: false,
     blending: add ? THREE.AdditiveBlending : THREE.NormalBlending,
   });

@@ -20,6 +20,9 @@ export interface Bubble {
   far?: boolean;
 }
 
+/** 방울 색: 흰색·분홍·하늘·노랑을 돌려 가며 */
+const BUBBLE_TINTS = [0xffffff, 0xffc4e0, 0xcfe0ff, 0xfff3b0];
+
 const BUB_N = 420;
 const qI = new THREE.Quaternion(),
   pI = new THREE.Vector3(),
@@ -80,9 +83,8 @@ export class Bubbles implements Thing {
         }
       }
     this.m.count = BUBS.length;
-    const bubbleTints = [0xffffff, 0xffc4e0, 0xcfe0ff, 0xfff3b0];
     for (let i = 0; i < BUBS.length; i++) {
-      const tint = bubbleTints[i % 4];
+      const tint = BUBBLE_TINTS[i % 4];
       tc.set(tint);
       this.m.setColorAt(i, tc);
     }
@@ -103,13 +105,12 @@ export class Bubbles implements Thing {
       this.comboT -= dt;
       if (this.comboT <= 0) this.combo = 0;
     }
+    // 가까이 있고 터지지 않은 방울만 앞 칸부터 채워 그린다(시제품은 먼 것·터진 것을 0 크기로 다 그렸다).
+    // 색은 방울마다 정해져 있어 칸을 옮길 때 같이 옮긴다
+    let n = 0;
     this.list.forEach((b, i) => {
       if (b.v.dot(p) < 0.8) {
-        if (!b.far) {
-          b.far = true;
-          mI.makeScale(0, 0, 0);
-          bubM.setMatrixAt(i, mI);
-        }
+        b.far = true;
         return;
       }
       b.far = false;
@@ -148,13 +149,20 @@ export class Bubbles implements Thing {
         wobble = 1 + 0.05 * Math.sin(wobblePhase),
         k = b.t > 0 ? 0.0001 : b.s * wobble,
         size = b.r * k;
+      if (b.t > 0) return;
       qI.identity();
       pI.copy(b.v).multiplyScalar(radius);
       sI.setScalar(size);
       mI.compose(pI, qI, sI);
-      bubM.setMatrixAt(i, mI);
+      bubM.setMatrixAt(n, mI);
+      const tint = BUBBLE_TINTS[i % 4];
+      tc.set(tint);
+      bubM.setColorAt(n, tc);
+      n++;
     });
+    bubM.count = n;
     bubM.instanceMatrix.needsUpdate = true;
+    if (bubM.instanceColor) bubM.instanceColor.needsUpdate = true;
   }
 
   /** 치운다 */

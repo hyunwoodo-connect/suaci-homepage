@@ -93,6 +93,9 @@ export class Creatures implements Thing {
   private readonly pPrev = new THREE.Vector3();
   private pspd = 0;
   private readonly ctx: HabitCtx;
+  /** 프레임마다 생물마다 새로 만들지 않게 돌려 쓰는 칸 */
+  private readonly pose: Pose = { amt: 0, head: 0 };
+  private readonly sense: Sense = { dP: 0, dA: 0, scare: false, seen: false };
   // ---- 가까운 것만 움직이기 ----
   private active: number[] = [];
   private readonly activeMark: Uint8Array;
@@ -170,7 +173,9 @@ export class Creatures implements Thing {
       } // 아주 먼 것은 쉬게 둔다
       const dP = c.v.angleTo(p) * S.R,
         dA = altA - c.a;
-      const pose: Pose = { amt: 0, head: 0 };
+      const pose = this.pose;
+      pose.amt = 0;
+      pose.head = 0;
       if (c.st === "follow") this.follow(c, pose);
       else if (c.role === "herd") this.herd(c, dP, dA, calm, rush, pose);
       else if (c.role === "flock") this.flock(c, dP, dA, pose);
@@ -259,7 +264,11 @@ export class Creatures implements Thing {
     }
     const scare = dP < 9 && rush && Math.abs(dA) < 6,
       seen = dP < 13 && Math.abs(dA) < 7;
-    const sense: Sense = { dP, dA, scare, seen };
+    const sense = this.sense;
+    sense.dP = dP;
+    sense.dA = dA;
+    sense.scare = scare;
+    sense.seen = seen;
     for (const h of sp.habits) h.before?.(c, sense, pose, x);
     let pitchOwned = false;
     for (const h of sp.habits) if (h.pitch?.(c, x)) pitchOwned = true;
@@ -398,7 +407,11 @@ export class Creatures implements Thing {
     const x = this.ctx,
       dt = x.dt,
       sp = this.species.get(c.k)!,
-      sense: Sense = { dP, dA, scare: false, seen: false };
+      sense = this.sense;
+    sense.dP = dP;
+    sense.dA = dA;
+    sense.scare = false;
+    sense.seen = false;
     let visiting = false;
     for (const h of sp.habits) if (h.fly?.(c, sense, pose, x)) visiting = true;
     if (visiting) return;
@@ -876,6 +889,30 @@ export class Creatures implements Thing {
       roll: 0,
       amt: 0,
       head: 0,
+      gait: "walk",
+      hv: null,
+      legend: 0,
+      ctr: null,
+      rad: 0,
+      dir: 0,
+      alt: 0,
+      ang: 0,
+      slot: 0,
+      g0: 0,
+      base: 0,
+      jt: 0,
+      rt: 0,
+      bt: 0,
+      goal: null,
+      rs: 0,
+      lp: null,
+      tum: 0,
+      bowed: false,
+      cd: 0,
+      n: 0,
+      led: false,
+      vt: 0,
+      vc: 0,
     };
     const c: Creature = Object.assign(base, o);
     const faceBearing = 360 * rng.next();

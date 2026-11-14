@@ -1,7 +1,8 @@
 // 행성 위 자리(단위 벡터)를 칸으로 나눠 두는 공간 분할. "이 둘레에 무엇이 있나"를 전부 훑지 않고 몇 칸만 본다.
 // 칸은 단위 벡터의 xyz 를 같은 간격(cell, 현 길이 단위)으로 자른 정육면체 — 공 표면에 걸친 칸만 생긴다.
 // 돌려주는 것은 후보(가까울 수 있는 것)이고, 정확한 거리 검사는 부른 쪽이 한다.
-// 후보는 넣은 번호 순으로 정렬해 돌려준다 — 전부 훑을 때와 같은 차례로 돌게(먼저 맞는 것이 이기는 셈이 그대로)
+// 후보의 차례는 칸 차례다 — 부르는 쪽(땅 높이의 최댓값, 빈자리의 '하나라도', 꽃 피우기)은 차례와 상관없는 셈만 한다.
+// 프레임마다 부르므로 정렬하지 않는다(정렬이 임시 배열을 만들어 가비지가 된다)
 
 /** 단위 벡터 하나(three 의 Vector3 도 된다) */
 export interface UnitLike {
@@ -14,8 +15,6 @@ export interface UnitLike {
 export class SphereGrid {
   private readonly cells = new Map<number, number[]>();
   private readonly keyOf: number[] = [];
-  private readonly stamp: number[] = [];
-  private visit = 0;
   /** 들어 있는 수 */
   size = 0;
 
@@ -27,7 +26,6 @@ export class SphereGrid {
     const id = this.size++;
     const key = this.key(v);
     this.keyOf.push(key);
-    this.stamp.push(0);
     this.bucket(key).push(id);
     return id;
   }
@@ -44,7 +42,7 @@ export class SphereGrid {
     this.bucket(key).push(id);
   }
 
-  /** v 에서 현 길이 chord 안에 있을 수 있는 것의 번호를 out 에(정렬해서) */
+  /** v 에서 현 길이 chord 안에 있을 수 있는 것의 번호를 out 에(칸 차례로, 겹치지 않게 — 하나는 한 칸에만 있다) */
   query(v: UnitLike, chord: number, out: number[]): number[] {
     out.length = 0;
     const spanCells = chord / this.cell,
@@ -52,20 +50,14 @@ export class SphereGrid {
     const ix = this.cellOf(v.x),
       iy = this.cellOf(v.y),
       iz = this.cellOf(v.z);
-    this.visit++;
     for (let x = ix - span; x <= ix + span; x++)
       for (let y = iy - span; y <= iy + span; y++)
         for (let z = iz - span; z <= iz + span; z++) {
           const key = pack(x, y, z);
           const list = this.cells.get(key);
           if (!list) continue;
-          for (const id of list) {
-            if (this.stamp[id] === this.visit) continue;
-            this.stamp[id] = this.visit;
-            out.push(id);
-          }
+          for (let i = 0; i < list.length; i++) out.push(list[i]);
         }
-    out.sort(byNumber);
     return out;
   }
 
@@ -103,8 +95,4 @@ export function chordOf(angle: number): number {
 // 칸 좌표(각각 0..1023)를 수 하나로
 function pack(x: number, y: number, z: number): number {
   return ((x + 512) * 1024 + (y + 512)) * 1024 + (z + 512);
-}
-
-function byNumber(a: number, b: number): number {
-  return a - b;
 }

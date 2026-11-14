@@ -6,11 +6,17 @@ import { styleModel } from "./shader";
 
 // 같은 모델 여럿을 한 번에 그리는 묶음: 생물·별·범퍼·풍선처럼 저마다 움직이고, 몸 휘기(aAn)·라임(aLime)이 다른 것.
 // 매 프레임 그릴 것만 begin → push … → end 로 채운다(멀리 있는 것은 넣지 않으면 그리지 않는다).
+// 그리기 직전에 flush 가 화면(시야) 밖의 것을 빼고 앞으로 당긴다 — 묶음은 내 둘레 사방에 퍼져 있어서
+// 한 번에 그리면 등 뒤의 것까지 정점을 다 셈한다.
 // 틀(fit)과 같은 맞춤: 원하는 크기(by)로 맞추고 가운데를 원점에 둔다. 돌려 둔 모델은 도착할 때 다시 잰다
 
 const m4 = new THREE.Matrix4(),
   sc = new THREE.Vector3(),
-  ZERO_AN = new THREE.Vector4();
+  ZERO_AN = new THREE.Vector4(),
+  sphere = new THREE.Sphere();
+
+/** 몸 휘기(날갯짓·걸음)로 상자 밖으로 나오는 만큼 둘레 공을 넉넉히 */
+const BEND_MARGIN = 1.3;
 
 /** 같은 모델 여럿을 한 번에 그리는 묶음 */
 export class ModelBatch {
@@ -27,6 +33,10 @@ export class ModelBatch {
   private readonly lime: THREE.InstancedBufferAttribute[] = [];
   private n = 0;
   private readonly box: THREE.Box3;
+  /** 칸마다 둘레 공(가운데 xyz·반지름) — 시야 밖이면 빼는 데 쓴다 */
+  private readonly sph: Float32Array;
+  /** 모델(크기 1) 상자의 반대각선 */
+  private halfDiag = 1;
   /** 몸 휘는 방식(셰이더 값, 묶음이 같이 쓴다) */
   readonly motion = {
     uAn: { value: new THREE.Vector4() },
@@ -43,6 +53,8 @@ export class ModelBatch {
     private readonly remeasure: boolean,
   ) {
     this.box = box;
+    const sphFloats = capacity * 4;
+    this.sph = new Float32Array(sphFloats);
     const sz = new THREE.Vector3();
     box.getSize(sz);
     const extent = extentBy(sz, by);
@@ -66,6 +78,8 @@ export class ModelBatch {
       this.hh = (sz.y * this.k) / 2;
       this.rw = (Math.max(sz.x, sz.z) * this.k) / 2;
     }
+    box.getSize(sz);
+    this.halfDiag = (sz.length() / 2) * BEND_MARGIN;
     this.motion.uAk.value = motionKind;
     const toCenter = new THREE.Matrix4().makeTranslation(-center.x, -center.y, -center.z);
     root.traverse((o) => {
@@ -113,6 +127,11 @@ export class ModelBatch {
     sc.setScalar(scale);
     m4.compose(pos, quat, sc);
     const i = this.n++;
+    const at = i * 4;
+    this.sph[at] = pos.x;
+    this.sph[at + 1] = pos.y;
+    this.sph[at + 2] = pos.z;
+    this.sph[at + 3] = scale * this.halfDiag;
     for (let j = 0; j < this.meshes.length; j++) {
       this.meshes[j].setMatrixAt(i, m4);
       this.an[j].setXYZW(i, an.x, an.y, an.z, an.w);
@@ -120,15 +139,45 @@ export class ModelBatch {
     }
   }
 
-  /** 채운 만큼만 그린다 */
-  end() {
+  /** 이번 프레임 채우기를 마쳤다(그리는 수는 flush 가 시야를 보고 정한다) */
+  end() {}
+
+  /** 그리기 직전: 시야 밖의 칸을 빼고 앞으로 당겨, 채운 칸만 올려 보낸다 */
+  flush(frustum: THREE.Frustum) {
+    if (!this.ready) return;
+    const sph = this.sph;
+    let kept = 0;
+    for (let i = 0; i < this.n; i++) {
+      const at = i * 4;
+      sphere.center.fromArray(sph, at);
+      sphere.radius = sph[at + 3];
+      if (!frustum.intersectsSphere(sphere)) continue;
+      if (kept !== i) for (let j = 0; j < this.meshes.length; j++) this.moveSlot(j, i, kept);
+      kept++;
+    }
     for (let j = 0; j < this.meshes.length; j++) {
       const im = this.meshes[j];
-      im.count = this.n;
-      im.instanceMatrix.needsUpdate = true;
-      this.an[j].needsUpdate = true;
-      this.lime[j].needsUpdate = true;
+      im.count = kept;
+      uploadFirst(im.instanceMatrix, kept);
+      uploadFirst(this.an[j], kept);
+      uploadFirst(this.lime[j], kept);
     }
+  }
+
+  // 칸 from 의 행렬·몸 휘기·라임을 칸 to 로
+  private moveSlot(j: number, from: number, to: number) {
+    const mat = this.meshes[j].instanceMatrix.array,
+      an = this.an[j].array,
+      lime = this.lime[j].array;
+    const mTo = to * 16,
+      mFrom = from * 16,
+      mEnd = mFrom + 16,
+      aTo = to * 4,
+      aFrom = from * 4,
+      aEnd = aFrom + 4;
+    mat.copyWithin(mTo, mFrom, mEnd);
+    an.copyWithin(aTo, aFrom, aEnd);
+    lime[to] = lime[from];
   }
 
   /** 치운다 */
@@ -140,4 +189,15 @@ export class ModelBatch {
       im.dispose();
     }
   }
+}
+
+/* ─── 내부 ─────────────────────────── */
+
+// 앞의 n 칸만 올려 보낸다(묶음 전체를 매 프레임 보내지 않게)
+function uploadFirst(attr: THREE.BufferAttribute, n: number) {
+  attr.clearUpdateRanges();
+  if (n === 0) return;
+  const floats = n * attr.itemSize;
+  attr.addUpdateRange(0, floats);
+  attr.needsUpdate = true;
 }

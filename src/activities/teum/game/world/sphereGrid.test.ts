@@ -26,7 +26,7 @@ describe("SphereGrid", () => {
   const grid = new SphereGrid(0.05);
   for (const v of pts) grid.add(v);
 
-  it("query → 그 각 안의 점을 하나도 빠뜨리지 않고, 번호 순으로", () => {
+  it("query → 그 각 안의 점을 하나도 빠뜨리지 않고, 겹치지 않게", () => {
     const out: number[] = [];
     for (const q of pts.slice(0, 40))
       for (const angle of [0.02, 0.08, 0.3]) {
@@ -34,7 +34,7 @@ describe("SphereGrid", () => {
         const got = grid.query(q, chord, out).slice();
         const want = pts.flatMap((v, i) => (v.angleTo(q) < angle ? [i] : []));
         for (const i of want) expect(got).toContain(i);
-        expect(got).toEqual([...got].sort((a, b) => a - b));
+        expect(new Set(got).size).toBe(got.length);
       }
   });
 

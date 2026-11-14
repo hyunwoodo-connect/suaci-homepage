@@ -6,6 +6,7 @@ import type { LookUniforms } from "../look";
 import { ModelBatch } from "./batch";
 import { extentBy } from "./extent";
 import { Instancer } from "./instancer";
+import { StaticPack } from "./staticPack";
 import type { MotionUniforms } from "./shader";
 import { styleModel } from "./shader";
 
@@ -52,8 +53,11 @@ export class ModelLibrary {
   readonly waiting = new Map<string, ((root: THREE.Group) => void)[]>();
   readonly arrived = new Map<string, THREE.Group>();
   private readonly shared = new Map<string, KeyShared>();
+  /** 여러 개 찍는 묶음이 쓰는 재질(낱개 틀의 재질과 따로, 키의 같은 값으로 칠한다) */
+  private readonly instMats = new Map<THREE.Material, THREE.MeshStandardMaterial>();
   private readonly instancers: Instancer[] = [];
   private readonly batches: ModelBatch[] = [];
+  private readonly packs: StaticPack[] = [];
 
   constructor(
     readonly manifest: Manifest,
@@ -173,7 +177,7 @@ export class ModelLibrary {
     if (!this.has(k)) return null;
     const box = this.box(k);
     const I = new Instancer(k, n, box);
-    this.when(k, (root) => I.build(root, this.scene));
+    this.when(k, (root) => I.build(root, this.scene, (m) => this.instancedMaterial(k, m)));
     this.instancers.push(I);
     return I;
   }
@@ -189,15 +193,30 @@ export class ModelLibrary {
     return B;
   }
 
-  /** 가까운 것만 그린다(찍어 둔 묶음): cosCut 보다 가까운 것만 칸을 채운다 */
+  /** 가까운 것을 고른다(찍어 둔 묶음): cosCut 보다 가까운 것만 */
   cull(p: THREE.Vector3, cosCut: number) {
     for (const I of this.instancers) I.cull(p, cosCut);
+  }
+
+  /** 거의 움직이지 않는 도형 묶음(레일 구슬·쿠션 벽·뭉게구름…)을 시야 거르기에 맡긴다 */
+  pack(mesh: THREE.InstancedMesh): StaticPack {
+    const P = new StaticPack(mesh);
+    this.packs.push(P);
+    return P;
+  }
+
+  /** 그리기 직전: 모든 묶음에서 가까운 것(p 에서 cut 보다) 가운데 시야 안의 것만 남긴다 */
+  flush(frustum: THREE.Frustum, p: Readonly<THREE.Vector3>, cut: number) {
+    for (const I of this.instancers) I.flush(frustum);
+    for (const B of this.batches) B.flush(frustum);
+    for (const P of this.packs) P.flush(frustum, p, cut);
   }
 
   /** 찍어 둔 묶음·한꺼번에 그리는 묶음을 치운다 */
   dispose() {
     for (const I of this.instancers) I.dispose();
     for (const B of this.batches) B.dispose();
+    for (const m of this.instMats.values()) m.dispose();
   }
 
   private sharedOf(k: string): KeyShared {
@@ -210,6 +229,17 @@ export class ModelLibrary {
       this.shared.set(k, sh);
     }
     return sh;
+  }
+
+  // 찍는 묶음용 재질: 낱개 틀과 나눠 쓰면 그릴 때마다 셰이더가 바뀌어서 따로 둔다(라임·몸 휘기 값은 키의 것을 같이 쓴다)
+  private instancedMaterial(k: string, m: THREE.Material): THREE.Material {
+    const known = this.instMats.get(m);
+    if (known) return known;
+    const sh = this.sharedOf(k);
+    const mat = (m as THREE.MeshStandardMaterial).clone();
+    styleModel(mat, { key: k, lookU: this.lookU, lime: sh.lime, motion: sh.motion, batch: false });
+    this.instMats.set(m, mat);
+    return mat;
   }
 
   // 저마다 라임으로 물드는 틀: 재질을 복제해 제 라임 값으로 다시 칠한다

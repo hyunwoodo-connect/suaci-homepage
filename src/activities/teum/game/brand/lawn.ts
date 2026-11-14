@@ -102,6 +102,8 @@ export function createLawnMesh(s: Services, lawn: Lawn, tex: THREE.Texture): THR
     opacity: 0.88,
     depthWrite: false,
     side: THREE.DoubleSide,
+    // 납작한 판이라 앞뒤를 두 번 나눠 그릴 까닭이 없다(나누면 three 가 프레임마다 셰이더를 다시 고른다)
+    forceSinglePass: true,
     fog: false,
     polygonOffset: true,
     polygonOffsetFactor: -2,
