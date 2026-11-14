@@ -1,0 +1,957 @@
+{
+  "version": "v1",
+  "assets": {
+    "SUACI_AV": {
+      "file": "avatar/body/base.glb",
+      "category": "avatar/body",
+      "bytes": 818016,
+      "tris": 13920,
+      "skinned": true,
+      "box": [
+        -0.0020756134390830993, 0, -0.004369854331016541, 0.0020756137371063235,
+        0.012000000476837159, 0.004369854331016541
+      ]
+    },
+    "cat_lime": {
+      "file": "avatar/companion/cat-lime.glb",
+      "category": "avatar/companion",
+      "bytes": 57040,
+      "tris": 3499,
+      "box": [
+        -0.5, -0.31481918692588806, -0.3998395502567291, 0.5, 0.31481918692588806,
+        0.3998395502567291
+      ]
+    },
+    "glass_heart": {
+      "file": "avatar/face/glass-heart.glb",
+      "category": "avatar/face",
+      "bytes": 65784,
+      "tris": 3500,
+      "box": [
+        -0.4978369176387787, -0.17570102214813232, -0.49975526332855225, 0.49778398871421814,
+        0.17577223479747772, 0.4997224509716034
+      ]
+    },
+    "hair_bob": {
+      "file": "avatar/hair/hair-bob.glb",
+      "category": "avatar/hair",
+      "bytes": 70580,
+      "tris": 5000,
+      "box": [
+        -0.45857954025268555, -0.44290482997894287, -0.5, 0.45855194330215454, 0.443108469247818,
+        0.49973851442337036
+      ]
+    },
+    "bfish": {
+      "file": "creatures/common/bfish.glb",
+      "category": "creatures/common",
+      "bytes": 73588,
+      "tris": 3500,
+      "box": [
+        -0.22937990725040436, -0.39886391162872314, -0.5, 0.22937990725040436, 0.39886391162872314,
+        0.5
+      ]
+    },
+    "brabbit": {
+      "file": "creatures/common/brabbit.glb",
+      "category": "creatures/common",
+      "bytes": 62324,
+      "tris": 3500,
+      "box": [
+        -0.2075812667608261, -0.5, -0.4407879114151001, 0.2075812667608261, 0.5, 0.4407879114151001
+      ]
+    },
+    "card": {
+      "file": "creatures/common/card.glb",
+      "category": "creatures/common",
+      "bytes": 70640,
+      "tris": 3500,
+      "box": [
+        -0.17066213488578796, -0.5, -0.4439300298690796, 0.17066213488578796, 0.5,
+        0.4439300298690796
+      ]
+    },
+    "c_cupcake": {
+      "file": "creatures/common/cupcake.glb",
+      "category": "creatures/common",
+      "bytes": 65120,
+      "tris": 3499,
+      "box": [
+        -0.3417641520500183, -0.4998912513256073, -0.35539665818214417, 0.34183210134506226,
+        0.4999924600124359, 0.3550223410129547
+      ]
+    },
+    "c_dice": {
+      "file": "creatures/common/dice.glb",
+      "category": "creatures/common",
+      "bytes": 70044,
+      "tris": 3500,
+      "box": [
+        -0.44691044092178345, -0.49919968843460083, -0.4039498567581177, 0.4470005929470062,
+        0.4999222159385681, 0.40374937653541565
+      ]
+    },
+    "c_hat": {
+      "file": "creatures/common/hat.glb",
+      "category": "creatures/common",
+      "bytes": 62836,
+      "tris": 3498,
+      "box": [
+        -0.40354079008102417, -0.4999668598175049, -0.4210769236087799, 0.40364211797714233, 0.5,
+        0.42101219296455383
+      ]
+    },
+    "key": {
+      "file": "creatures/common/key.glb",
+      "category": "creatures/common",
+      "bytes": 59840,
+      "tris": 3499,
+      "box": [
+        -0.42471107840538025, -0.1142033115029335, -0.5, 0.42471107840538025, 0.1142033115029335,
+        0.5
+      ]
+    },
+    "mushroom": {
+      "file": "creatures/common/mushroom.glb",
+      "category": "creatures/common",
+      "bytes": 70252,
+      "tris": 3499,
+      "box": [
+        -0.4315575659275055, -0.5, -0.4392363131046295, 0.4315575659275055, 0.5, 0.4392363131046295
+      ]
+    },
+    "c_rose": {
+      "file": "creatures/common/rose.glb",
+      "category": "creatures/common",
+      "bytes": 71236,
+      "tris": 3500,
+      "box": [
+        -0.3388820290565491, -0.49983692169189453, -0.40554773807525635, 0.33914825320243835,
+        0.49879375100135803, 0.404827743768692
+      ]
+    },
+    "teapot": {
+      "file": "creatures/common/teapot.glb",
+      "category": "creatures/common",
+      "bytes": 64712,
+      "tris": 3500,
+      "box": [
+        -0.3228461444377899, -0.42419907450675964, -0.5, 0.3228461444377899, 0.42419907450675964,
+        0.5
+      ]
+    },
+    "umbrella": {
+      "file": "creatures/common/umbrella.glb",
+      "category": "creatures/common",
+      "bytes": 74276,
+      "tris": 3500,
+      "box": [
+        -0.45085129141807556, -0.4986894130706787, -0.5, 0.45085129141807556, 0.4986894130706787,
+        0.5
+      ]
+    },
+    "c_watch": {
+      "file": "creatures/common/watch.glb",
+      "category": "creatures/common",
+      "bytes": 63532,
+      "tris": 3500,
+      "box": [
+        -0.16929768025875092, -0.4997754693031311, -0.41613855957984924, 0.16922494769096375,
+        0.49996107816696167, 0.41627639532089233
+      ]
+    },
+    "c_wheart": {
+      "file": "creatures/common/wheart.glb",
+      "category": "creatures/common",
+      "bytes": 64164,
+      "tris": 3500,
+      "box": [
+        -0.1356392651796341, -0.2718873918056488, -0.49999523162841797, 0.13603071868419647,
+        0.2716445326805115, 0.4995271563529968
+      ]
+    },
+    "c_deer": {
+      "file": "creatures/legend/deer.glb",
+      "category": "creatures/legend",
+      "bytes": 69776,
+      "tris": 4498,
+      "box": [
+        -0.1799228936433792, -0.499343603849411, -0.3858391344547272, 0.18020403385162354,
+        0.4998544454574585, 0.38628894090652466
+      ]
+    },
+    "c_wcrown": {
+      "file": "creatures/legend/wcrown.glb",
+      "category": "creatures/legend",
+      "bytes": 82512,
+      "tris": 4500,
+      "box": [
+        -0.20015381276607513, -0.24317923188209534, -0.49985066056251526, 0.20014236867427826,
+        0.2430894523859024, 0.4995035231113434
+      ]
+    },
+    "balloon": {
+      "file": "rides/balloon.glb",
+      "category": "rides",
+      "bytes": 85868,
+      "tris": 4500,
+      "box": [
+        -0.31593263149261475, -0.5, -0.3108251690864563, 0.31593263149261475, 0.5,
+        0.3108251690864563
+      ]
+    },
+    "bell": {
+      "file": "rides/bell.glb",
+      "category": "rides",
+      "bytes": 80788,
+      "tris": 4500,
+      "box": [
+        -0.3295738995075226, -0.5, -0.34569472074508667, 0.3295738995075226, 0.5,
+        0.34569472074508667
+      ]
+    },
+    "bumper": {
+      "file": "rides/bumper.glb",
+      "category": "rides",
+      "bytes": 61856,
+      "tris": 3768,
+      "box": [
+        -0.4993126690387726, -0.47153133153915405, -0.5, 0.4993126690387726, 0.47153133153915405,
+        0.5
+      ]
+    },
+    "cannon": {
+      "file": "rides/cannon.glb",
+      "category": "rides",
+      "bytes": 85312,
+      "tris": 4500,
+      "box": [
+        -0.3397292494773865, -0.5, -0.49850064516067505, 0.3397292494773865, 0.5,
+        0.49850064516067505
+      ]
+    },
+    "hotairballoon": {
+      "file": "rides/hotairballoon.glb",
+      "category": "rides",
+      "bytes": 80508,
+      "tris": 4499,
+      "box": [
+        -0.35179010033607483, -0.5, -0.3543930649757385, 0.35179010033607483, 0.5,
+        0.3543930649757385
+      ]
+    },
+    "lime_half": {
+      "file": "rides/lime-half.glb",
+      "category": "rides",
+      "bytes": 59140,
+      "tris": 2877,
+      "box": [
+        -0.46601542830467224, -0.49815821647644043, -0.5, 0.46601542830467224, 0.49815821647644043,
+        0.5
+      ]
+    },
+    "lime": {
+      "file": "rides/lime.glb",
+      "category": "rides",
+      "bytes": 43404,
+      "tris": 2897,
+      "box": [
+        -0.4031171202659607, -0.4022144377231598, -0.5, 0.4031171202659607, 0.4022144377231598, 0.5
+      ]
+    },
+    "star": {
+      "file": "rides/star.glb",
+      "category": "rides",
+      "bytes": 57580,
+      "tris": 3912,
+      "box": [
+        -0.1731109917163849, -0.5, -0.49381011724472046, 0.1731109917163849, 0.5,
+        0.49381011724472046
+      ]
+    },
+    "whale": {
+      "file": "rides/whale.glb",
+      "category": "rides",
+      "bytes": 66604,
+      "tris": 4500,
+      "box": [
+        -0.4183168113231659, -0.35497334599494934, -0.5, 0.4183168113231659, 0.35497334599494934,
+        0.5
+      ]
+    },
+    "flower_blue": {
+      "file": "scenery/flowers/flower-blue.glb",
+      "category": "scenery/flowers",
+      "bytes": 64924,
+      "tris": 3498,
+      "box": [
+        -0.10920083522796631, -0.5, -0.30631023645401, 0.10920083522796631, 0.5, 0.30631023645401
+      ]
+    },
+    "flower_pink": {
+      "file": "scenery/flowers/flower-pink.glb",
+      "category": "scenery/flowers",
+      "bytes": 81356,
+      "tris": 3500,
+      "box": [
+        -0.11530658602714539, -0.5, -0.320675790309906, 0.11530658602714539, 0.5, 0.320675790309906
+      ]
+    },
+    "flowerpile": {
+      "file": "scenery/flowers/flowerpile.glb",
+      "category": "scenery/flowers",
+      "bytes": 98020,
+      "tris": 3499,
+      "box": [
+        -0.2521245777606964, -0.5, -0.27508091926574707, 0.2521245777606964, 0.5,
+        0.27508091926574707
+      ]
+    },
+    "smileflower": {
+      "file": "scenery/flowers/smileflower.glb",
+      "category": "scenery/flowers",
+      "bytes": 56164,
+      "tris": 3500,
+      "box": [
+        -0.4839186668395996, -0.17736409604549408, -0.5, 0.4839186668395996, 0.17736409604549408,
+        0.5
+      ]
+    },
+    "bathtub": {
+      "file": "scenery/landmarks/bathtub.glb",
+      "category": "scenery/landmarks",
+      "bytes": 88560,
+      "tris": 6000,
+      "box": [
+        -0.341179758310318, -0.4174068868160248, -0.5, 0.341179758310318, 0.4174068868160248, 0.5
+      ]
+    },
+    "busstop": {
+      "file": "scenery/landmarks/busstop.glb",
+      "category": "scenery/landmarks",
+      "bytes": 111656,
+      "tris": 6000,
+      "box": [
+        -0.27917614579200745, -0.3962932527065277, -0.5, 0.27917614579200745, 0.3962932527065277,
+        0.5
+      ]
+    },
+    "cake": {
+      "file": "scenery/landmarks/cake.glb",
+      "category": "scenery/landmarks",
+      "bytes": 124708,
+      "tris": 5997,
+      "box": [
+        -0.4726194739341736, -0.5, -0.4743950366973877, 0.4726194739341736, 0.5, 0.4743950366973877
+      ]
+    },
+    "campfire": {
+      "file": "scenery/landmarks/campfire.glb",
+      "category": "scenery/landmarks",
+      "bytes": 102288,
+      "tris": 6000,
+      "box": [
+        -0.4994628429412842, -0.2669839560985565, -0.5, 0.4994628429412842, 0.2669839560985565, 0.5
+      ]
+    },
+    "candycart": {
+      "file": "scenery/landmarks/candycart.glb",
+      "category": "scenery/landmarks",
+      "bytes": 101072,
+      "tris": 6000,
+      "box": [
+        -0.19776326417922974, -0.5, -0.37125644087791443, 0.19776326417922974, 0.5,
+        0.37125644087791443
+      ]
+    },
+    "carousel": {
+      "file": "scenery/landmarks/carousel.glb",
+      "category": "scenery/landmarks",
+      "bytes": 107332,
+      "tris": 6000,
+      "box": [
+        -0.49930164217948914, -0.4743444621562958, -0.5, 0.49930164217948914, 0.4743444621562958,
+        0.5
+      ]
+    },
+    "castle": {
+      "file": "scenery/landmarks/castle.glb",
+      "category": "scenery/landmarks",
+      "bytes": 124196,
+      "tris": 6000,
+      "box": [
+        -0.38590437173843384, -0.45578354597091675, -0.5, 0.38590437173843384, 0.45578354597091675,
+        0.5
+      ]
+    },
+    "dome": {
+      "file": "scenery/landmarks/dome.glb",
+      "category": "scenery/landmarks",
+      "bytes": 92504,
+      "tris": 6000,
+      "box": [
+        -0.5, -0.3891645669937134, -0.4998340904712677, 0.5, 0.3891645669937134, 0.4998340904712677
+      ]
+    },
+    "ferris_stand": {
+      "file": "scenery/landmarks/ferris-stand.glb",
+      "category": "scenery/landmarks",
+      "bytes": 75356,
+      "tris": 4754,
+      "box": [
+        -0.4052700698375702, -0.5, -0.49860620498657227, 0.4052700698375702, 0.5,
+        0.49860620498657227
+      ]
+    },
+    "ferris_wheel": {
+      "file": "scenery/landmarks/ferris-wheel.glb",
+      "category": "scenery/landmarks",
+      "bytes": 120732,
+      "tris": 6000,
+      "box": [
+        -0.09672925621271133, -0.49970802664756775, -0.5, 0.09672925621271133, 0.49970802664756775,
+        0.5
+      ]
+    },
+    "ferris": {
+      "file": "scenery/landmarks/ferris.glb",
+      "category": "scenery/landmarks",
+      "bytes": 101128,
+      "tris": 5999,
+      "box": [
+        -0.2127402275800705, -0.5, -0.4592053294181824, 0.2127402275800705, 0.5, 0.4592053294181824
+      ]
+    },
+    "flamingo": {
+      "file": "scenery/landmarks/flamingo.glb",
+      "category": "scenery/landmarks",
+      "bytes": 107508,
+      "tris": 6000,
+      "box": [
+        -0.1730726808309555, -0.5, -0.31859341263771057, 0.1730726808309555, 0.5,
+        0.31859341263771057
+      ]
+    },
+    "fountain": {
+      "file": "scenery/landmarks/fountain.glb",
+      "category": "scenery/landmarks",
+      "bytes": 81164,
+      "tris": 6000,
+      "box": [
+        -0.36992114782333374, -0.5, -0.37345969676971436, 0.36992114782333374, 0.5,
+        0.37345969676971436
+      ]
+    },
+    "fountaintower": {
+      "file": "scenery/landmarks/fountaintower.glb",
+      "category": "scenery/landmarks",
+      "bytes": 105736,
+      "tris": 6000,
+      "box": [
+        -0.35319000482559204, -0.5, -0.34933170676231384, 0.35319000482559204, 0.5,
+        0.34933170676231384
+      ]
+    },
+    "gacha": {
+      "file": "scenery/landmarks/gacha.glb",
+      "category": "scenery/landmarks",
+      "bytes": 110880,
+      "tris": 6000,
+      "box": [
+        -0.3927760720252991, -0.5, -0.3437121510505676, 0.3927760720252991, 0.5, 0.3437121510505676
+      ]
+    },
+    "hammock": {
+      "file": "scenery/landmarks/hammock.glb",
+      "category": "scenery/landmarks",
+      "bytes": 89620,
+      "tris": 6000,
+      "box": [
+        -0.26834067702293396, -0.2920107841491699, -0.5, 0.26834067702293396, 0.2920107841491699,
+        0.5
+      ]
+    },
+    "island": {
+      "file": "scenery/landmarks/island.glb",
+      "category": "scenery/landmarks",
+      "bytes": 96324,
+      "tris": 5998,
+      "box": [
+        -0.48135510087013245, -0.29164767265319824, -0.5, 0.48135510087013245, 0.29164767265319824,
+        0.5
+      ]
+    },
+    "lighthouse": {
+      "file": "scenery/landmarks/lighthouse.glb",
+      "category": "scenery/landmarks",
+      "bytes": 82572,
+      "tris": 6000,
+      "box": [
+        -0.30844512581825256, -0.5, -0.31437793374061584, 0.30844512581825256, 0.5,
+        0.31437793374061584
+      ]
+    },
+    "mailbox": {
+      "file": "scenery/landmarks/mailbox.glb",
+      "category": "scenery/landmarks",
+      "bytes": 90332,
+      "tris": 6572,
+      "box": [
+        -0.2055998146533966, -0.5, -0.3664948344230652, 0.2055998146533966, 0.5, 0.3664948344230652
+      ]
+    },
+    "observatory": {
+      "file": "scenery/landmarks/observatory.glb",
+      "category": "scenery/landmarks",
+      "bytes": 97520,
+      "tris": 6000,
+      "box": [
+        -0.5, -0.4850015342235565, -0.4745653569698334, 0.5, 0.4850015342235565, 0.4745653569698334
+      ]
+    },
+    "palace": {
+      "file": "scenery/landmarks/palace.glb",
+      "category": "scenery/landmarks",
+      "bytes": 129508,
+      "tris": 5999,
+      "box": [
+        -0.22254694998264313, -0.45433881878852844, -0.5, 0.22254694998264313, 0.45433881878852844,
+        0.5
+      ]
+    },
+    "parasol": {
+      "file": "scenery/landmarks/parasol.glb",
+      "category": "scenery/landmarks",
+      "bytes": 97736,
+      "tris": 6000,
+      "box": [
+        -0.49879181385040283, -0.4386685788631439, -0.5, 0.49879181385040283, 0.4386685788631439,
+        0.5
+      ]
+    },
+    "pod": {
+      "file": "scenery/landmarks/pod.glb",
+      "category": "scenery/landmarks",
+      "bytes": 80128,
+      "tris": 6000,
+      "box": [
+        -0.4093994200229645, -0.5, -0.4098057150840759, 0.4093994200229645, 0.5, 0.4098057150840759
+      ]
+    },
+    "slide": {
+      "file": "scenery/landmarks/slide.glb",
+      "category": "scenery/landmarks",
+      "bytes": 112412,
+      "tris": 6000,
+      "box": [
+        -0.5, -0.4623735547065735, -0.1897817701101303, 0.5, 0.4623735547065735, 0.1897817701101303
+      ]
+    },
+    "sofa": {
+      "file": "scenery/landmarks/sofa.glb",
+      "category": "scenery/landmarks",
+      "bytes": 83820,
+      "tris": 6000,
+      "box": [
+        -0.2562560737133026, -0.2515631318092346, -0.5, 0.2562560737133026, 0.2515631318092346, 0.5
+      ]
+    },
+    "stairs": {
+      "file": "scenery/landmarks/stairs.glb",
+      "category": "scenery/landmarks",
+      "bytes": 90680,
+      "tris": 6837,
+      "box": [
+        -0.486921101808548, -0.4666406810283661, -0.5, 0.486921101808548, 0.4666406810283661, 0.5
+      ]
+    },
+    "startower": {
+      "file": "scenery/landmarks/startower.glb",
+      "category": "scenery/landmarks",
+      "bytes": 102248,
+      "tris": 6000,
+      "box": [
+        -0.13443972170352936, -0.5, -0.17710477113723755, 0.13443972170352936, 0.5,
+        0.17710477113723755
+      ]
+    },
+    "boat": {
+      "file": "scenery/props/boat.glb",
+      "category": "scenery/props",
+      "bytes": 96496,
+      "tris": 3500,
+      "box": [
+        -0.5, -0.1328836977481842, -0.3671288788318634, 0.5, 0.1328836977481842, 0.3671288788318634
+      ]
+    },
+    "door": {
+      "file": "scenery/props/door.glb",
+      "category": "scenery/props",
+      "bytes": 69356,
+      "tris": 3500,
+      "box": [
+        -0.2685171067714691, -0.5, -0.3389660120010376, 0.2685171067714691, 0.5, 0.3389660120010376
+      ]
+    },
+    "ducktube": {
+      "file": "scenery/props/ducktube.glb",
+      "category": "scenery/props",
+      "bytes": 61684,
+      "tris": 3500,
+      "box": [
+        -0.49797937273979187, -0.3477807641029358, -0.5, 0.49797937273979187, 0.3477807641029358,
+        0.5
+      ]
+    },
+    "fruitcrate": {
+      "file": "scenery/props/fruitcrate.glb",
+      "category": "scenery/props",
+      "bytes": 101388,
+      "tris": 3499,
+      "box": [
+        -0.44729241728782654, -0.45793938636779785, -0.5, 0.44729241728782654, 0.45793938636779785,
+        0.5
+      ]
+    },
+    "fruitpile": {
+      "file": "scenery/props/fruitpile.glb",
+      "category": "scenery/props",
+      "bytes": 80240,
+      "tris": 3498,
+      "box": [
+        -0.3348115384578705, -0.5, -0.33943989872932434, 0.3348115384578705, 0.5,
+        0.33943989872932434
+      ]
+    },
+    "gumdrops": {
+      "file": "scenery/props/gumdrops.glb",
+      "category": "scenery/props",
+      "bytes": 53152,
+      "tris": 3500,
+      "box": [
+        -0.5, -0.2338726669549942, -0.4819362759590149, 0.5, 0.2338726669549942, 0.4819362759590149
+      ]
+    },
+    "lifering": {
+      "file": "scenery/props/lifering.glb",
+      "category": "scenery/props",
+      "bytes": 64876,
+      "tris": 3500,
+      "box": [
+        -0.3847905695438385, -0.5, -0.49453914165496826, 0.3847905695438385, 0.5,
+        0.49453914165496826
+      ]
+    },
+    "macaron": {
+      "file": "scenery/props/macaron.glb",
+      "category": "scenery/props",
+      "bytes": 67968,
+      "tris": 3499,
+      "box": [
+        -0.40106794238090515, -0.5, -0.42248010635375977, 0.40106794238090515, 0.5,
+        0.42248010635375977
+      ]
+    },
+    "moon": {
+      "file": "scenery/props/moon.glb",
+      "category": "scenery/props",
+      "bytes": 51884,
+      "tris": 3968,
+      "box": [
+        -0.2383105605840683, -0.5, -0.48458346724510193, 0.2383105605840683, 0.5,
+        0.48458346724510193
+      ]
+    },
+    "moonswing": {
+      "file": "scenery/props/moonswing.glb",
+      "category": "scenery/props",
+      "bytes": 69508,
+      "tris": 3500,
+      "box": [
+        -0.3325536251068115, -0.5, -0.36045604944229126, 0.3325536251068115, 0.5,
+        0.36045604944229126
+      ]
+    },
+    "petalbench": {
+      "file": "scenery/props/petalbench.glb",
+      "category": "scenery/props",
+      "bytes": 62492,
+      "tris": 3500,
+      "box": [
+        -0.35474926233291626, -0.5, -0.45639142394065857, 0.35474926233291626, 0.5,
+        0.45639142394065857
+      ]
+    },
+    "picnic": {
+      "file": "scenery/props/picnic.glb",
+      "category": "scenery/props",
+      "bytes": 82092,
+      "tris": 3498,
+      "box": [
+        -0.49923789501190186, -0.2801421880722046, -0.5, 0.49923789501190186, 0.2801421880722046,
+        0.5
+      ]
+    },
+    "teacup": {
+      "file": "scenery/props/teacup.glb",
+      "category": "scenery/props",
+      "bytes": 64052,
+      "tris": 3498,
+      "box": [
+        -0.4177456796169281, -0.3353324234485626, -0.5, 0.4177456796169281, 0.3353324234485626, 0.5
+      ]
+    },
+    "tent": {
+      "file": "scenery/props/tent.glb",
+      "category": "scenery/props",
+      "bytes": 86772,
+      "tris": 3500,
+      "box": [
+        -0.44429269433021545, -0.4998743236064911, -0.5, 0.44429269433021545, 0.4998743236064911,
+        0.5
+      ]
+    },
+    "knittree": {
+      "file": "scenery/trees/knittree.glb",
+      "category": "scenery/trees",
+      "bytes": 145364,
+      "tris": 4998,
+      "box": [
+        -0.270607054233551, -0.5, -0.2705031931400299, 0.270607054233551, 0.5, 0.2705031931400299
+      ]
+    },
+    "tree_pink": {
+      "file": "scenery/trees/tree-pink.glb",
+      "category": "scenery/trees",
+      "bytes": 103124,
+      "tris": 5000,
+      "box": [
+        -0.3123699128627777, -0.5, -0.33796435594558716, 0.3123699128627777, 0.5,
+        0.33796435594558716
+      ]
+    },
+    "tree_white": {
+      "file": "scenery/trees/tree-white.glb",
+      "category": "scenery/trees",
+      "bytes": 88024,
+      "tris": 5000,
+      "box": [
+        -0.33358535170555115, -0.5, -0.340384304523468, 0.33358535170555115, 0.5, 0.340384304523468
+      ]
+    },
+    "tree_yellow": {
+      "file": "scenery/trees/tree-yellow.glb",
+      "category": "scenery/trees",
+      "bytes": 100192,
+      "tris": 5426,
+      "box": [
+        -0.28473201394081116, -0.5, -0.27648231387138367, 0.28473201394081116, 0.5,
+        0.27648231387138367
+      ]
+    },
+    "wishtree": {
+      "file": "scenery/trees/wishtree.glb",
+      "category": "scenery/trees",
+      "bytes": 96264,
+      "tris": 4998,
+      "box": [
+        -0.2989237606525421, -0.5, -0.3694112002849579, 0.2989237606525421, 0.5, 0.3694112002849579
+      ]
+    },
+    "s_arch": {
+      "file": "sculptures/large/arch.glb",
+      "category": "sculptures/large",
+      "bytes": 147348,
+      "tris": 6000,
+      "box": [
+        -0.15896551311016083, -0.47396326065063477, -0.4996132254600525, 0.15871864557266235,
+        0.47367748618125916, 0.4998769462108612
+      ]
+    },
+    "s_bow": {
+      "file": "sculptures/large/bow.glb",
+      "category": "sculptures/large",
+      "bytes": 149312,
+      "tris": 6000,
+      "box": [
+        -0.2107410430908203, -0.4888429641723633, -0.4997667074203491, 0.21079368889331818,
+        0.48873016238212585, 0.4998324513435364
+      ]
+    },
+    "s_cherry": {
+      "file": "sculptures/large/cherry.glb",
+      "category": "sculptures/large",
+      "bytes": 96396,
+      "tris": 6000,
+      "box": [
+        -0.28071093559265137, -0.4993824362754822, -0.49987319111824036, 0.28095054626464844,
+        0.49908316135406494, 0.49972864985466003
+      ]
+    },
+    "s_crown": {
+      "file": "sculptures/large/crown.glb",
+      "category": "sculptures/large",
+      "bytes": 121720,
+      "tris": 5999,
+      "box": [
+        -0.4974389672279358, -0.3882788419723511, -0.499805212020874, 0.49716946482658386,
+        0.3883550763130188, 0.4996453821659088
+      ]
+    },
+    "s_donut": {
+      "file": "sculptures/large/donut.glb",
+      "category": "sculptures/large",
+      "bytes": 144916,
+      "tris": 6000,
+      "box": [
+        -0.21113461256027222, -0.49991387128829956, -0.4991055130958557, 0.21125832200050354,
+        0.499945729970932, 0.4991210401058197
+      ]
+    },
+    "s_gift": {
+      "file": "sculptures/large/gift.glb",
+      "category": "sculptures/large",
+      "bytes": 148424,
+      "tris": 6000,
+      "box": [
+        -0.4383096694946289, -0.49998193979263306, -0.4574120342731476, 0.438180148601532,
+        0.49994051456451416, 0.45707759261131287
+      ]
+    },
+    "s_heart": {
+      "file": "sculptures/large/heart.glb",
+      "category": "sculptures/large",
+      "bytes": 103340,
+      "tris": 5999,
+      "box": [
+        -0.27574437856674194, -0.4999881088733673, -0.4993831217288971, 0.27578383684158325,
+        0.4994974434375763, 0.49951186776161194
+      ]
+    },
+    "s_icecream": {
+      "file": "sculptures/large/icecream.glb",
+      "category": "sculptures/large",
+      "bytes": 130848,
+      "tris": 6000,
+      "box": [
+        -0.24919238686561584, -0.4999673366546631, -0.25165650248527527, 0.24926353991031647,
+        0.4996967315673828, 0.25165751576423645
+      ]
+    },
+    "s_lollipop": {
+      "file": "sculptures/large/lollipop.glb",
+      "category": "sculptures/large",
+      "bytes": 134772,
+      "tris": 6000,
+      "box": [
+        -0.19954538345336914, -0.49997085332870483, -0.31584519147872925, 0.19944152235984802,
+        0.4999821186065674, 0.31588879227638245
+      ]
+    },
+    "s_pudding": {
+      "file": "sculptures/large/pudding.glb",
+      "category": "sculptures/large",
+      "bytes": 111880,
+      "tris": 6000,
+      "box": [
+        -0.4997088611125946, -0.3064156770706177, -0.49893859028816223, 0.4994111955165863,
+        0.3064728081226349, 0.49917444586753845
+      ]
+    },
+    "s_rook": {
+      "file": "sculptures/large/rook.glb",
+      "category": "sculptures/large",
+      "bytes": 85284,
+      "tris": 5999,
+      "box": [
+        -0.4019477069377899, -0.4999473989009857, -0.40218836069107056, 0.40183043479919434,
+        0.49979764223098755, 0.40185824036598206
+      ]
+    },
+    "s_top": {
+      "file": "sculptures/large/top.glb",
+      "category": "sculptures/large",
+      "bytes": 113828,
+      "tris": 6000,
+      "box": [
+        -0.4522888958454132, -0.499875009059906, -0.4525544047355652, 0.4521304666996002,
+        0.49974238872528076, 0.4528360068798065
+      ]
+    },
+    "d_cake": {
+      "file": "sculptures/small/cake.glb",
+      "category": "sculptures/small",
+      "bytes": 80812,
+      "tris": 2085,
+      "box": [
+        -0.465314656496048, -0.49862855672836304, -0.465132474899292, 0.47003549337387085, 0.5,
+        0.4666708707809448
+      ]
+    },
+    "d_flowerpile": {
+      "file": "sculptures/small/flowerpile.glb",
+      "category": "sculptures/small",
+      "bytes": 76160,
+      "tris": 1583,
+      "box": [
+        -0.2514030635356903, -0.4966363310813904, -0.26503124833106995, 0.24662184715270996, 0.5,
+        0.2725793421268463
+      ]
+    },
+    "d_fruitpile": {
+      "file": "sculptures/small/fruitpile.glb",
+      "category": "sculptures/small",
+      "bytes": 58144,
+      "tris": 1550,
+      "box": [
+        -0.3348115384578705, -0.4964900016784668, -0.3387206494808197, 0.32890087366104126, 0.5,
+        0.33725231885910034
+      ]
+    },
+    "d_hotairballoon": {
+      "file": "sculptures/small/hotairballoon.glb",
+      "category": "sculptures/small",
+      "bytes": 49504,
+      "tris": 1225,
+      "box": [
+        -0.35179010033607483, -0.5, -0.3543930649757385, 0.35168883204460144, 0.5,
+        0.3511248528957367
+      ]
+    },
+    "d_macaron": {
+      "file": "sculptures/small/macaron.glb",
+      "category": "sculptures/small",
+      "bytes": 41928,
+      "tris": 861,
+      "box": [
+        -0.40106794238090515, -0.5, -0.4184705317020416, 0.40106794238090515, 0.5,
+        0.42231646180152893
+      ]
+    },
+    "d_smileflower": {
+      "file": "sculptures/small/smileflower.glb",
+      "category": "sculptures/small",
+      "bytes": 29748,
+      "tris": 740,
+      "box": [
+        -0.4788212478160858, -0.17736409604549408, -0.4929180145263672, 0.4839186668395996,
+        0.1768224835395813, 0.49348172545433044
+      ]
+    },
+    "d_teacup": {
+      "file": "sculptures/small/teacup.glb",
+      "category": "sculptures/small",
+      "bytes": 34572,
+      "tris": 770,
+      "box": [
+        -0.4177456796169281, -0.33532723784446716, -0.48512816429138184, 0.4151115119457245,
+        0.3353324234485626, 0.4895361661911011
+      ]
+    },
+    "SUACI_SKY": {
+      "file": "sky/sky.jpg",
+      "category": "sky",
+      "bytes": 95906
+    }
+  }
+}
