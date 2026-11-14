@@ -9,7 +9,6 @@ import type { Clouds } from "../world/clouds";
 import { fr } from "../world/hash";
 import { from } from "../world/sphere";
 import type { Height, HasHeights } from "../world/tall";
-import { CLOUD_N } from "../world/terrain";
 
 // 키 큰 솜사탕 나무: 자리표에 정해 둔 나무(놀이와 겹치지 않게 미리 고른 자리)와 조형물 숲의 나무(sculptures 가 심는다).
 // 위에 내려앉으면 통 튀고, 갓 옆으로는 갓에, 갓 아래로는 줄기에 막힌다. 눌리면 꿀렁
@@ -118,7 +117,7 @@ export class Trees implements Thing, HasHeights {
     });
     // 나무에 걸리는 뭉게구름은 나무 위로 올린다(조형물 숲의 나무는 보지 않는다 — 구름을 올린 뒤에 심는다)
     const cl = terrain.clouds;
-    for (let i = 0; i < CLOUD_N; i++) {
+    for (let i = 0; i < cl.v.length; i++) {
       const t = this.list.find(
         (t) => t.v.angleTo(cl.v[i]) * S.R < t.cr + cl.s[i] * 4 && cl.h[i] < t.H + 6,
       );

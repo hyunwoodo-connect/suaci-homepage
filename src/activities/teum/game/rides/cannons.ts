@@ -8,7 +8,7 @@ import { topDir } from "../models/extent";
 import type { Holder } from "../player/player";
 import type { Services } from "../services";
 import { GREY_TOY, S } from "../settings";
-import type { HeadedSpot } from "../world/layout";
+import type { HeadedSpot } from "../maps/layout";
 import { along, from, heading } from "../world/sphere";
 import { basis } from "./bars";
 

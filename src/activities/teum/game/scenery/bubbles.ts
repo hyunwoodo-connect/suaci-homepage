@@ -1,12 +1,13 @@
 import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
+import { within } from "../maps/map";
 import type { Services } from "../services";
 import { S } from "../settings";
 import { fr } from "../world/hash";
 import { offset } from "../world/sphere";
 
-// 비눗방울: 닿으면 뽁 터지며 살짝 튀어 오른다. 잇달아 터뜨릴수록 더 높이 튄다. 마을마다 방울 무리 열(최대 420 개)
+// 비눗방울: 닿으면 뽁 터지며 살짝 튀어 오른다. 잇달아 터뜨릴수록 더 높이 튄다. 마을마다 방울 무리 몇(지도 bubbles — v64 는 열, 최대 420 개)
 
 /** 비눗방울 하나: 땅 높이(g)·떠 있는 높이(h)·반지름(r)·다시 생길 때까지(t)·크기(s) */
 export interface Bubble {
@@ -23,7 +24,9 @@ export interface Bubble {
 /** 방울 색: 흰색·분홍·하늘·노랑을 돌려 가며 */
 const BUBBLE_TINTS = [0xffffff, 0xffc4e0, 0xcfe0ff, 0xfff3b0];
 
-const BUB_N = 420;
+/** 마을마다 무리 자리를 찾는 고정 난수 번호의 간격(지도의 tries 는 이보다 작다) · 무리 안 방울 번호의 간격(perCluster 는 이보다 작다) */
+const HUB_STRIDE = 40,
+  CLUSTER_STRIDE = 9;
 const qI = new THREE.Quaternion(),
   pI = new THREE.Vector3(),
   sI = new THREE.Vector3(),
@@ -49,6 +52,8 @@ export class Bubbles implements Thing {
         envMapIntensity: 2.4,
         depthWrite: false,
       });
+    const plan = s.map.bubbles,
+      BUB_N = plan.max;
     this.m = new THREE.InstancedMesh(bubbleGeometry, bubbleMaterial, BUB_N);
     this.m.frustumCulled = false;
     this.m.count = 0;
@@ -56,18 +61,19 @@ export class Bubbles implements Thing {
     const BUBS = this.list,
       HV = occ.hubs;
     for (let hk = 0; hk < HV.length; hk++)
-      for (let c0 = 0, got = 0; c0 < 30 && got < 10 && BUBS.length < BUB_N; c0++) {
-        // 마을마다 방울 무리 열
-        const c = hk * 40 + c0,
+      for (let c0 = 0, got = 0; c0 < plan.tries && got < plan.perHub && BUBS.length < BUB_N; c0++) {
+        const c = hk * HUB_STRIDE + c0,
           distRoll = fr(c, 91),
-          dist = 24 + 196 * Math.sqrt(distRoll),
+          far = Math.sqrt(distRoll),
+          dist = within(plan.dist, far),
           bearing = 360 * fr(c, 92),
           cv = occ.hubAt(hk, dist, bearing);
-        if (!occ.isFree(cv, 2)) continue;
+        if (!occ.isFree(cv, plan.clear)) continue;
         got++;
-        for (let j = 0; j < 7 && BUBS.length < BUB_N; j++) {
-          const seed = c * 9 + j,
-            spread = 1 + 11 * fr(seed, 93),
+        for (let j = 0; j < plan.perCluster && BUBS.length < BUB_N; j++) {
+          const seed = c * CLUSTER_STRIDE + j,
+            spreadRoll = fr(seed, 93),
+            spread = within(plan.spread, spreadRoll),
             spreadBearing = 360 * fr(seed, 94),
             v = offset(cv, spread, spreadBearing);
           const bubble: Bubble = {

@@ -20,7 +20,7 @@ export interface Lawn {
 const LAWN_W = 150;
 
 /**
- * 잔디 로고 자리를 먼저 맡아 둔다(나무·꽃·조형물을 놓기 전에): 출발 마을 둘레에서 가장 빈 풀밭을 골라
+ * 잔디 로고 자리를 먼저 맡아 둔다(나무·꽃·조형물을 놓기 전에): 출발 마을 둘레(지도 lawnRings 거리들)에서 가장 빈 풀밭을 골라
  * 그 위에 아무것도 서지 않게 한다. 미리 정해 둔 큰 나무는 갓이 넓어서 26m 이상 멀찍이 피한다
  */
 export function reserveLawn(s: Services): Lawn {
@@ -28,7 +28,7 @@ export function reserveLawn(s: Services): Lawn {
   let best: Omit<Lawn, "u" | "r"> | null = null,
     bs = -1;
   const LT = (s.layout.tree || []).map((o) => from(o.dist, o.bear));
-  for (const dist of [110, 140, 170, 200, 230, 260, 290, 320])
+  for (const dist of s.map.brand.lawnRings)
     for (let b = 0; b < 360; b += 10) {
       const c = offset(START, dist, b);
       let score = 0;

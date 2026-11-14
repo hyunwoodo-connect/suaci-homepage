@@ -3,6 +3,7 @@ import * as THREE from "three";
 import type { Frame, Thing } from "../core/frame";
 import { ease } from "../core/frame";
 import type { Random } from "../core/random";
+import { within } from "../maps/map";
 import type { Services } from "../services";
 import { S } from "../settings";
 import { fr } from "../world/hash";
@@ -167,21 +168,23 @@ export class Signature implements Thing {
       };
       this.BAL.push(b);
     };
-    const HV = s.occ.hubs;
+    const HV = s.occ.hubs,
+      plan = s.map.brand.balloons;
     for (let hk = 0; hk < HV.length; hk++) {
       const hubBear = 35 + hk * 67;
-      const spot = s.occ.hubAt(hk, 34, hubBear);
-      mkBal(spot, 13); // 마을마다 하나
+      const spot = s.occ.hubAt(hk, plan.town.dist, hubBear);
+      mkBal(spot, plan.town.alt); // 마을마다 하나
     }
-    for (let i = 0; i < 6; i++) {
-      const far = 250 + 40 * fr(i, 901),
+    for (let i = 0; i < plan.between.count; i++) {
+      const farRoll = fr(i, 901),
+        far = within(plan.between.dist, farRoll),
         bear = 60 * i + 360 * fr(i, 902);
       const hub = HV[i % HV.length];
       const spot = offset(hub, far, bear);
-      mkBal(spot, 17); // 마을 사이
+      mkBal(spot, plan.between.alt); // 마을 사이
     }
     this.lawnMesh = createLawnMesh(s, lawn, tex.lawn);
-    // 높은 풍선: 출발 마을에서 가장 가까운 로켓 바로 위 138m
+    // 높은 풍선: 출발 마을에서 가장 가까운 로켓 바로 위(지도 highAlt, v64 는 138m)
     {
       let rk: { v: THREE.Vector3 } | null = null,
         rd = 1e9;
@@ -192,7 +195,7 @@ export class Signature implements Thing {
           rk = r;
         }
       }
-      if (rk) mkBal(rk.v, 138, 4.2);
+      if (rk) mkBal(rk.v, plan.highAlt, 4.2);
     }
     const mistGeo = new THREE.SphereGeometry(1, 16, 12);
     this.geos.push(mistGeo);

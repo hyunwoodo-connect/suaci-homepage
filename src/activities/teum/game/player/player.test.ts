@@ -2,14 +2,14 @@ import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 
 import { S } from "../settings";
-import { offset, START } from "../world/sphere";
+import { offset } from "../world/sphere";
 import { Terrain } from "../world/terrain";
 import type { Holder } from "./player";
 import { Player } from "./player";
 
 // 땅이 평평한(큰 언덕 없음, 둔덕 끔) 세계의 나
 function flatPlayer(): Player {
-  const terrain = new Terrain([], () => START.clone());
+  const terrain = new Terrain(7, { flowers: 0, mounds: 0, clouds: 0 }, []);
   const pl = new Player(terrain);
   pl.goHome();
   return pl;

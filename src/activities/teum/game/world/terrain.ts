@@ -1,20 +1,15 @@
 import * as THREE from "three";
 
+import type { LayoutHill } from "../maps/layout";
+import type { GameMap } from "../maps/map";
 import { S } from "../settings";
-import type { LayoutHill } from "./layout";
 import { from } from "./sphere";
 import { chordOf, SphereGrid } from "./sphereGrid";
 
 // 지형(높이만): 꽃 자리, 완만한 둔덕, 하늘의 뭉게구름 자리, 큰 언덕과 등대 산.
-// 자리는 시드 7 의 난수로 뽑는다 — 뽑는 순서(꽃 자리 → 둔덕 → 구름 → 큰 언덕)가 곧 지형이라 바꾸지 않는다.
+// 자리는 지도의 지형 씨앗(v64 는 7)으로 뽑는다 — 뽑는 순서(꽃 자리 → 둔덕 → 구름 → 큰 언덕)가 곧 지형이라 바꾸지 않는다.
 // 그리는 것은 world/terrainView·world/clouds·world/flowers 가 이 값을 보고 한다
 
-/** 꽃 자리 수 */
-export const FLN = 5200;
-/** 둔덕 수 */
-export const HLN = 700;
-/** 뭉게구름 수 */
-export const CLOUD_N = 260;
 /** 큰 언덕 비탈에 얹는 솜 뭉치 수 */
 const FEATURE_TUFTS = 16;
 
@@ -52,7 +47,7 @@ export interface Feature {
   H: number;
   v: THREE.Vector3;
   c: [number, number, number][];
-  /** 자리를 정하는 법(첫째는 등대 자리) */
+  /** 자리를 정하는 법 */
   at: () => THREE.Vector3;
 }
 
@@ -68,14 +63,18 @@ export class Terrain {
   readonly hills: Hills;
   readonly clouds: CloudSpots;
   readonly features: Feature[];
-  private seed = 7;
+  private seed: number;
   private readonly grid = new SphereGrid(0.08);
   private readonly flowerGrid = new SphereGrid(0.04);
   private readonly hillChord: number;
   private readonly near: number[] = [];
 
-  /** lighthouseAt: 등대 자리(첫 큰 언덕이 그 아래 선다) */
-  constructor(hillSpots: readonly LayoutHill[], lighthouseAt: () => THREE.Vector3) {
+  /** 지도의 지형 씨앗·수와 큰 언덕 자리(첫째는 등대 산 — 등대 자리와 같은 자리여야 한다) */
+  constructor(seed: number, counts: GameMap["terrain"], hillSpots: readonly LayoutHill[]) {
+    this.seed = seed;
+    const FLN = counts.flowers,
+      HLN = counts.mounds,
+      CLOUD_N = counts.clouds;
     // ---- 꽃 자리 ----
     const fv: THREE.Vector3[] = [],
       fs: number[] = [];
@@ -144,7 +143,7 @@ export class Terrain {
     }
     this.clouds = clouds;
     // ---- 큰 언덕 ----
-    this.features = hillSpots.map((h, i) => {
+    this.features = hillSpots.map((h) => {
       const c: [number, number, number][] = [];
       for (let j = 0; j < FEATURE_TUFTS; j++) {
         // 비탈의 솜 뭉치 [방향, 거리, 크기] — 세 값을 이 순서로 뽑는다
@@ -153,7 +152,7 @@ export class Terrain {
           size = 0.09 + this.rnd() * 0.1;
         c.push([dir, far, size]);
       }
-      const at = i ? () => from(h.dist, h.bear) : lighthouseAt;
+      const at = () => from(h.dist, h.bear);
       return { s: h.s, H: h.H, v: new THREE.Vector3(), c, at };
     });
   }
@@ -221,7 +220,7 @@ export class Terrain {
     }
   }
 
-  // 지형 난수(시드 7)
+  // 지형 난수(지도의 지형 씨앗)
   private rnd(): number {
     this.seed = (this.seed * 16807) % 2147483647;
     return this.seed / 2147483647;

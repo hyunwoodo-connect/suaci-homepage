@@ -2,6 +2,7 @@ import * as THREE from "three";
 
 import { SCULPTURES, sculptureKeys } from "../../assets/settings";
 import type { Frame, Thing } from "../core/frame";
+import { within } from "../maps/map";
 import type { Instancer } from "../models/instancer";
 import type { Cannons } from "../rides/cannons";
 import { NearSet } from "../scenery/trees";
@@ -14,7 +15,7 @@ import type { Height, HasHeights } from "../world/tall";
 
 // 조형물: 고르게 뿌리지 않는다. 마을 기준탑 → 길목의 문 → 가로수 터널 → 숲 덩어리 → 높이 사다리 → 열기구 왕관 → 사이 채움 → 외딴 거대 조형물.
 // 큰 것(14 이상)은 크게 놓으려고 뽑은 열두 가지에서, 작은 것은 여섯 가지에서. 같은 것이 가까이 또 나오지 않게 가장 멀리 떨어진 종류를 고른다.
-// 놓는 차례·고르는 셈이 곧 배치라 시제품 그대로 둔다
+// 놓는 차례·고르는 셈이 곧 배치라 시제품 그대로 둔다. 단계마다의 수와 크기는 지도(sculptures)가 정한다
 
 /** 놓인 조형물·열기구 하나 */
 export interface Deco {
@@ -91,7 +92,8 @@ export class Sculptures implements Thing, HasHeights {
     if (!DK.length) return;
     const HV = occ.hubs,
       p = player.p,
-      st = this.stats;
+      st = this.stats,
+      plan = s.map.sculptures;
     const dv = (i: number, n: number) => {
       const up = 2 * fr(i, n) - 1;
       const nextSalt = n + 1;
@@ -204,7 +206,8 @@ export class Sculptures implements Thing, HasHeights {
         const dist = 30 + t * 1.5;
         const bearing = 40 + hk * 67 + t * 37;
         const spot = occ.hubAt(hk, dist, bearing);
-        const height = 120 + 20 * fr(hk, 361);
+        const heightRoll = fr(hk, 361);
+        const height = within(plan.anchorHeight, heightRoll);
         const seed = 9000 + hk * 50 + t;
         if (putD(spot, height, seed, 0.35)) {
           st.anchor++;
@@ -232,7 +235,8 @@ export class Sculptures implements Thing, HasHeights {
             const v = along(lane, dir, forward);
             const pairSeed = a * 7 + b;
             const pairSalt = 363 + sg;
-            const height = 60 + 30 * fr(pairSeed, pairSalt);
+            const heightRoll = fr(pairSeed, pairSalt);
+            const height = within(plan.gateHeight, heightRoll);
             const sideSeed = sg > 0 ? 300 : 0;
             const seed = 9500 + a * 60 + b * 9 + t + sideSeed;
             if (putD(v, height, seed, 0.4)) {
@@ -244,7 +248,7 @@ export class Sculptures implements Thing, HasHeights {
     // 3) 가로수 터널: 대포가 쏘아 보내는 길 양옆에 점점 키가 커지는 나무
     cannons.list.forEach((c, ci) => {
       const side = new THREE.Vector3().crossVectors(c.v, c.d).normalize();
-      for (let k = 1; k <= 3; k++)
+      for (let k = 1; k <= plan.avenue; k++)
         for (const sg of [-1, 1]) {
           const forward = k * 15;
           const ahead = along(c.v, c.d, forward);
@@ -259,7 +263,8 @@ export class Sculptures implements Thing, HasHeights {
     });
     // 4) 숲 덩어리: 가운데가 가장 높고 가장자리로 갈수록 낮다. 숲 위에는 열기구
     const grove = (c0: THREE.Vector3, gi: number) => {
-      const top = 110 + 45 * fr(gi, 371);
+      const topRoll = fr(gi, 371);
+      const top = within(plan.groves.top, topRoll);
       const countSpread = 7 * fr(gi, 372);
       const n = 11 + Math.floor(countSpread);
       const centerSeed = 4000 + gi * 40;
@@ -285,7 +290,7 @@ export class Sculptures implements Thing, HasHeights {
       for (let b = a + 1; b < HV.length; b++) {
         const ang = HV[a].angleTo(HV[b]);
         if (ang > 2.2) continue;
-        for (const t of [0.36, 0.64]) {
+        for (const t of plan.groves.between) {
           const between = HV[a].clone().lerp(HV[b], t).normalize();
           const bearing = 90 + gi * 61;
           const c0 = offset(between, 70, bearing);
@@ -293,7 +298,7 @@ export class Sculptures implements Thing, HasHeights {
           gi++;
         }
       } // 마을 사이 길 옆으로
-    for (let k = 0; k < 14; k++) {
+    for (let k = 0; k < plan.groves.scattered; k++) {
       const c0 = dv(k, 381);
       grove(c0, gi);
       gi++;
@@ -328,19 +333,23 @@ export class Sculptures implements Thing, HasHeights {
       if (putB(highBalloonAt, 150, 34, highBalloonSeed)) st.ladder++;
     }
     // 6) 열기구 왕관: 마을 둘레 하늘에 높낮이를 달리해 두른다
+    const crown = plan.crown,
+      crownStep = 360 / crown.perHub;
     for (let hk = 0; hk < HV.length; hk++)
-      for (let j = 0; j < 10; j++) {
+      for (let j = 0; j < crown.perHub; j++) {
         const ringSeed = hk * 10 + j;
         const dist = 62 + 8 * fr(ringSeed, 391);
-        const bearing = j * 36 + hk * 11;
+        const bearing = j * crownStep + hk * 11;
         const spot = occ.hubAt(hk, dist, bearing);
-        const alt = 70 + 80 * fr(ringSeed, 392);
-        const size = 22 + 22 * fr(ringSeed, 393);
+        const altRoll = fr(ringSeed, 392),
+          sizeRoll = fr(ringSeed, 393);
+        const alt = within(crown.alt, altRoll);
+        const size = within(crown.size, sizeRoll);
         const seed = 600 + hk * 10 + j;
         if (putB(spot, alt, size, seed)) st.crown++;
       }
     // 7) 사이 채움: 큰 것 하나에 작은 것 두세 개. 초원이 남도록 드문드문
-    for (let c = 0; c < 560; c++) {
+    for (let c = 0; c < plan.fillTries; c++) {
       const c0 = dv(c, 321);
       const bigHeight = 18 + 34 * fr(c, 323) * fr(c, 324);
       const bigSeed = 1000 + c;
@@ -357,9 +366,11 @@ export class Sculptures implements Thing, HasHeights {
       }
     }
     // 8) 외딴 곳의 거대한 조형물 몇 개
-    for (let i = 0; i < 600 && st.lone < 22; i++) {
+    const lone = plan.lone;
+    for (let i = 0; i < lone.tries && st.lone < lone.count; i++) {
       const spot = dv(i, 311);
-      const height = 70 + 60 * fr(i, 313);
+      const heightRoll = fr(i, 313);
+      const height = within(lone.height, heightRoll);
       if (putD(spot, height, i, 0.4)) st.lone++;
     }
   }

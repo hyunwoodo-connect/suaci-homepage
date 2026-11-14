@@ -5,8 +5,10 @@ import { ease } from "../core/frame";
 import { LOOK } from "../look";
 import type { Services } from "../services";
 import { S } from "../settings";
-import type { LayoutPath } from "../world/layout";
-import { from, FWD, heading, step } from "../world/sphere";
+import type { LayoutPath } from "../maps/layout";
+import type { Path } from "../world/paths";
+import { streamPath } from "../world/paths";
+import { FWD } from "../world/sphere";
 
 // 바람길 — 들어가면 흐름에 실려 굽이굽이 간다. 그 위로 꽃잎이 구르며 흘러간다.
 // 꽃잎은 마디마다 둘. 가까운 마디의 것만 칸에 채워 그린다(멀리 있는 것은 어차피 안개에 묻힌다)
@@ -23,8 +25,6 @@ export interface PathNode {
 /** 바람길 하나: 마디들과 끝 자리·방향(고리 줄·회오리가 이어 붙는다) */
 export interface Stream extends LayoutPath {
   nodes: PathNode[];
-  endV: THREE.Vector3;
-  endD: THREE.Vector3;
 }
 
 /** 꽃잎 모양·재질(상승 기류와 같이 쓴다) */
@@ -54,6 +54,8 @@ const COS_IN = Math.cos(IN_ARC) - 1e-9;
 export class Streams implements Thing {
   readonly list: Stream[];
   readonly nodes: PathNode[] = [];
+  /** 바람길마다 놓인 길(자리표 차례, layout 이 채운다) */
+  readonly paths: Path[] = [];
   private readonly streaks: Streak[] = [];
   /** 가까운 마디의 꽃잎(그리는 칸 차례) */
   private readonly near: Streak[] = [];
@@ -62,12 +64,7 @@ export class Streams implements Thing {
 
   constructor(private readonly s: Services) {
     this.list = s.layout.stream.map((st) => {
-      const stream: Stream = {
-        ...st,
-        nodes: [],
-        endV: new THREE.Vector3(),
-        endD: new THREE.Vector3(),
-      };
+      const stream: Stream = { ...st, nodes: [] };
       for (let i = 0; i < st.n; i++) {
         const ph = this.nodes.length * 1.7;
         const nd: PathNode = {
@@ -94,24 +91,19 @@ export class Streams implements Thing {
         }
   }
 
-  /** 자리: 굽이굽이 휘며 마디를 놓는다 */
+  /** 자리: 굽이굽이 휘며 마디를 놓는다(길의 끝은 paths 에 — 고리 줄·회오리가 이어 선다) */
   layout(keep: THREE.Vector3[]) {
     for (const st of this.list) {
-      let v = from(st.dist, st.bear),
-        d = heading(v, st.head);
-      for (let i = 0; i < st.n; i++) {
+      const path = streamPath(st);
+      this.paths.push(path);
+      path.points.forEach(({ v, d }, i) => {
         const nd = st.nodes[i];
         nd.v.copy(v);
         nd.d.copy(d);
         nd.side.crossVectors(v, d).normalize();
         nd.g = this.s.terrain.featGround(v);
         keep.push(nd.v);
-        const bendPhase = i * 0.55;
-        const bend = st.wig * Math.sin(bendPhase);
-        [v, d] = step(v, d, st.gap, bend);
-      }
-      st.endV = v;
-      st.endD = d;
+      });
     }
     this.near.push(...this.streaks);
     this.s.culler.onCull((cut) => this.pickNear(cut));

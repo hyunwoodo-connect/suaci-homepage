@@ -7,8 +7,9 @@ import { ECHO_REACH, echoTime } from "../core/tap";
 import { LOOK } from "../look";
 import type { Services } from "../services";
 import { S } from "../settings";
-import type { LayoutHop } from "../world/layout";
-import { from, heading, step, UP } from "../world/sphere";
+import type { LayoutHop } from "../maps/layout";
+import { hopPath } from "../world/paths";
+import { from, UP } from "../world/sphere";
 
 // 통통 구름 — 위에 오면 높이 튀어 오른다. 징검 구름 — 작은 구름을 통통 밟으며 건너간다.
 // 구름 방석은 모두 같은 모양·같은 색이라 한 번에 그린다(가까운 것만 칸에 채운다)
@@ -81,13 +82,12 @@ export class Pads implements Thing, Tappable, Echoing {
   /** 징검 구름 자리: 줄을 따라 조금씩 휘며 */
   layoutHops() {
     for (const hp of this.s.layout.hop) {
-      let v = from(hp.dist, hp.bear),
-        d = heading(v, hp.head);
+      const { points } = hopPath(hp);
       for (const pd of this.list)
         if (pd.hop === hp) {
+          const { v, d } = points[pd.i!];
           pd.v.copy(v);
           pd.dir!.copy(d);
-          [v, d] = step(v, d, hp.gap, 3);
         }
     }
   }

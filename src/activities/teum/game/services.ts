@@ -9,7 +9,8 @@ import type { ModelLibrary } from "./models/library";
 import type { CameraRig } from "./player/camera";
 import type { Player } from "./player/player";
 import type { Culler } from "./world/culler";
-import type { Layout } from "./world/layout";
+import type { Layout } from "./maps/layout";
+import type { GameMap } from "./maps/map";
 import type { Occupancy } from "./world/occupancy";
 import type { Terrain } from "./world/terrain";
 
@@ -19,7 +20,9 @@ import type { Terrain } from "./world/terrain";
 /** 공통 창구 */
 export interface Services {
   scene: THREE.Scene;
-  /** 이번 판의 자리표(배치가 값을 덧붙인다) */
+  /** 이번 판의 지도(읽기만 한다 — 자리표는 아래 layout 의 복사본을 쓴다) */
+  map: GameMap;
+  /** 이번 판의 자리표(지도 자리표의 복사본. 배치가 값을 덧붙인다) */
   layout: Layout;
   /** 땅 높이 */
   terrain: Terrain;

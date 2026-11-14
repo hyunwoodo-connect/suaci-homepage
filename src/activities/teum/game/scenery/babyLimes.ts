@@ -1,13 +1,14 @@
 import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
+import { within } from "../maps/map";
 import type { Instancer } from "../models/instancer";
 import type { Services } from "../services";
 import { S } from "../settings";
 import { fr } from "../world/hash";
 import type { Footsteps } from "./footsteps";
 
-// 꼬마 라임: 마을마다 둘씩 여기저기 숨어 있다가, 닿으면 졸졸 따라온다(줄 선 순서만큼 뒤의 발자취를 따라간다)
+// 꼬마 라임: 마을마다 몇씩(지도 babyLimes — v64 는 둘) 여기저기 숨어 있다가, 닿으면 졸졸 따라온다(줄 선 순서만큼 뒤의 발자취를 따라간다)
 
 /** 꼬마 라임 하나 */
 export interface Baby {
@@ -21,6 +22,9 @@ export interface Baby {
   i: number;
 }
 
+/** 마을마다 자리를 찾는 고정 난수 번호의 간격(지도의 tries 는 이보다 작다) */
+const HUB_STRIDE = 50;
+
 /** 꼬마 라임 */
 export class BabyLimes implements Thing {
   readonly list: Baby[] = [];
@@ -33,21 +37,24 @@ export class BabyLimes implements Thing {
     private readonly footsteps: Footsteps,
   ) {
     const { models, occ, terrain } = s;
-    const BL = models.inst("lime", 12);
+    const HV = occ.hubs,
+      plan = s.map.babyLimes,
+      count = HV.length * plan.perHub;
+    const BL = models.inst("lime", count);
     this.BL = BL;
     if (!BL) return;
     // 늘 따라다니므로 가까운 것만 그리기에서 뺀다
     BL.noCull = true;
-    const HV = occ.hubs;
     for (let hk = 0; hk < HV.length; hk++)
-      for (let i0 = 0, got = 0; i0 < 40 && got < 2; i0++) {
-        const i = hk * 50 + i0,
+      for (let i0 = 0, got = 0; i0 < plan.tries && got < plan.perHub; i0++) {
+        const i = hk * HUB_STRIDE + i0,
           distRoll = fr(i, 81),
-          dist = 34 + 170 * Math.sqrt(distRoll),
+          far = Math.sqrt(distRoll),
+          dist = within(plan.dist, far),
           bearing = 360 * fr(i, 82),
           v = occ.hubAt(hk, dist, bearing);
-        if (!occ.isFree(v, 4)) continue;
-        got++; // 마을마다 둘
+        if (!occ.isFree(v, plan.clear)) continue;
+        got++;
         const ground = terrain.groundAt(v);
         const baby: Baby = {
           v,
@@ -60,7 +67,7 @@ export class BabyLimes implements Thing {
           i: BL.stamp(v, ground, 1.4, 0),
         };
         this.list.push(baby);
-        occ.fill(v, 4);
+        occ.fill(v, plan.clear);
       }
   }
 

@@ -5,6 +5,7 @@ import { CREATURES, herdSpecies, lakeSpecies, skySpecies } from "../../assets/se
 import type { Frame, Thing } from "../core/frame";
 import { ease } from "../core/frame";
 import type { Random } from "../core/random";
+import { within } from "../maps/map";
 import type { ModelBatch } from "../models/batch";
 import type { Holder } from "../player/player";
 import type { Services } from "../services";
@@ -18,9 +19,9 @@ import { away, face, go } from "./moves";
 
 // 생물: 놀이기구가 아니라 손님이다. 저마다 제 할 일을 하다가 나를 알아채고, 동작이 끊기지 않고 이어진다. 이름은 없다.
 // 땅 위의 손님(걷는 찻주전자·카드 병정·뛰는 버섯…), 셋씩 낮게 도는 하늘 무리(열쇠·날개 하트·편지·찻잔·종), 해파리 우산,
-// 호수의 헤엄치는 것(물고기·일각고래·물개), 그리고 온 행성에 세 곳씩뿐인 전설의 손님(라임 사슴·날개 달린 왕관).
-// 종의 생김새·크기·걸음새·버릇은 설정 표(assets/settings 의 CREATURES) 한곳에 있고, 여기는 갈래(땅·하늘·해파리·호수)마다의
-// 공통 상태 기계와 놓는 규칙만 둔다. 종마다 다른 것은 버릇(habits)에게 묻는다.
+// 호수의 헤엄치는 것(물고기·일각고래·물개), 그리고 자리를 옮기지 않는 전설의 손님(라임 사슴·날개 달린 왕관).
+// 종의 생김새·크기·걸음새·버릇은 설정 표(assets/settings 의 CREATURES) 한곳에, 어디에 몇 무리인지는 지도(creatures)에 있고,
+// 여기는 갈래(땅·하늘·해파리·호수)마다의 공통 상태 기계와 놓는 규칙만 둔다. 종마다 다른 것은 버릇(habits)에게 묻는다.
 // 그리기는 종마다 한 묶음(ModelBatch): 가까이 보이는 것만 매 프레임 채워 그린다
 
 /** 내가 멀어지면 내 앞쪽으로 옮겨 가는 무리 */
@@ -693,10 +694,11 @@ export class Creatures implements Thing {
 
   /* ─── 내부: 놓기 ─────────────────────────── */
 
-  // 생물을 놓는다: 출발 앞 첫 무리, 마을마다 아홉 무리, 떠도는 무리, 마을 하늘의 무리, 전설, 호수, 해파리
+  // 생물을 놓는다(수와 자리는 지도 creatures): 출발 앞 첫 무리, 마을마다의 무리, 떠도는 무리, 마을 하늘의 무리, 전설, 호수, 해파리
   private place() {
     const s = this.s,
       { player, occ } = s,
+      plan = s.map.creatures,
       p = player.p,
       h = player.h,
       HV = occ.hubs,
@@ -717,31 +719,33 @@ export class Creatures implements Thing {
       return out;
     };
     // 땅 위의 손님: 첫 무리는 출발하자마자 눈앞에
-    const startStep = 13 / S.R;
+    const startStep = plan.firstHerdAhead / S.R;
     const v0 = p.clone().addScaledVector(h, startStep).normalize();
     occ.fill(v0, 5);
     mkHerd(v0, 0);
+    const herds = plan.herds;
     for (let hk = 0, n = 1; hk < HV.length; hk++)
-      for (let q0 = 0, got = 0; q0 < 60 && got < 9; q0++) {
-        const i = hk * 70 + q0;
+      for (let q0 = 0, got = 0; q0 < herds.tries && got < herds.perHub; q0++) {
+        const i = hk * HERD_STRIDE + q0;
         const distHash = fr(i, 201);
-        const dist = 8 + 105 * Math.sqrt(distHash);
+        const far = Math.sqrt(distHash);
+        const dist = within(herds.dist, far);
         const bearing = 360 * fr(i, 202);
         const v = occ.hubAt(hk, dist, bearing);
-        if (!occ.isFree(v, 6)) continue;
+        if (!occ.isFree(v, herds.clear)) continue;
         got++;
         occ.fill(v, 5);
         mkHerd(v, n);
         n++;
-      } // 마을마다 아홉 무리
+      }
     // 어디로 가든 앞길에 손님이 있게: 떠도는 무리는 내가 멀어지면 내 앞쪽 먼 곳으로 조용히 옮겨 간다
-    for (let i = 0; i < 27; i++) {
+    for (let i = 0; i < plan.roaming.herds; i++) {
       const herdN = i + 1;
       const here = p.clone();
       const mem = mkHerd(here, herdN);
       this.roam.push({ mem, kind: "herd", ctr: here });
     }
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < plan.roaming.flocks; i++) {
       const grp: RoamGroup = { mem: [], kind: "flock", ctr: p.clone() },
         rad = 14 + 16 * fr(i, 243),
         dir = i % 2 ? 1 : -1,
@@ -756,18 +760,19 @@ export class Creatures implements Thing {
       }
       this.roam.push(grp);
     }
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < plan.roaming.jellies; i++) {
       const grp: RoamGroup = { mem: [], kind: "jelly", ctr: p.clone() };
       const c = this.crit("umbrella", "jelly", grp.ctr, { base: 6 });
       if (c) grp.mem.push(c);
       this.roam.push(grp);
     }
     for (const grp of this.roam) this.placeRoam(grp, true); // 빈자리를 못 찾아도 어딘가에는 놓는다
-    // 하늘 무리: 마을 하늘을 셋씩 낮게 돈다(마을마다 셋, 다섯 종을 돌려 가며)
+    // 하늘 무리: 마을 하늘을 셋씩 낮게 돈다(마을마다 몇 무리, 하늘 종을 돌려 가며)
     for (let hk = 0; hk < HV.length; hk++)
-      for (let q0 = 0; q0 < 3; q0++) {
-        const i = hk * 9 + q0;
-        const ctrDist = 12 + 60 * fr(i, 211);
+      for (let q0 = 0; q0 < plan.townFlocks.perHub; q0++) {
+        const i = hk * FLOCK_STRIDE + q0;
+        const ctrRoll = fr(i, 211);
+        const ctrDist = within(plan.townFlocks.dist, ctrRoll);
         const ctrBearing = 360 * fr(i, 212);
         const ctr = occ.hubAt(hk, ctrDist, ctrBearing),
           rad = 14 + 16 * fr(i, 213),
@@ -783,11 +788,12 @@ export class Creatures implements Thing {
           this.crit(kind.key, "flock", start, { ctr, rad, dir, alt, ang, slot: j, st: "fly", g0 });
         }
       }
-    // 전설의 손님: 온 행성에 세 곳씩뿐이고 자리를 옮기지 않는다. 곁에는 늘 빛가루가 인다
+    // 전설의 손님: 지도가 정한 자리뿐이고 자리를 옮기지 않는다. 곁에는 늘 빛가루가 인다(설정표의 차례로 놓는다)
     for (const [key, set] of Object.entries(CREATURES)) {
-      const L = set.legend;
-      if (!L) continue;
-      for (const [hk, d, b] of L.at) {
+      const L = set.legend,
+        spots = plan.legends[key];
+      if (!L || !spots) continue;
+      for (const [hk, d, b] of spots) {
         const at = offset(HV[hk], d, b);
         if (L.kind === "ground") {
           const c = this.crit(key, "herd", at, { gait: "walk", st: "graze", hv: at, legend: 1 });
@@ -804,9 +810,9 @@ export class Creatures implements Thing {
         }
       }
     }
-    // 호수: 호수마다 둘, 세 종을 돌려 가며 수면에서 원을 그리며 헤엄친다
+    // 호수: 호수마다 몇씩, 호수 종을 돌려 가며 수면에서 원을 그리며 헤엄친다
     this.links.lakes.list.forEach((l, i) => {
-      for (let j = 0; j < 2; j++) {
+      for (let j = 0; j < plan.perLake; j++) {
         const rad = 3 + j * 1.5;
         const pondDist = l.r * (0.4 + 0.25 * j);
         const pondBearing = i * 67 + j * 170;
@@ -827,21 +833,16 @@ export class Creatures implements Thing {
       const c = this.crit("umbrella", "jelly", v, {});
       if (c) c.base = s.terrain.groundAt(c.v) + 5.5;
     };
-    const jellyAt: [number, number][] = [
-      [185, 12],
-      [185, 100],
-      [185, 192],
-      [185, 281],
-      [560, 45],
-    ];
-    for (const [d, b] of jellyAt) {
+    const jellies = plan.jellies;
+    for (const [d, b] of jellies.at) {
       const spot = from(d, b);
       jl(spot);
     }
     for (let hk = 0; hk < HV.length; hk++)
-      for (let j = 0; j < 7; j++) {
-        const jellySeed = hk * 11 + j;
-        const dist = 18 + 95 * fr(jellySeed, 221);
+      for (let j = 0; j < jellies.perHub; j++) {
+        const jellySeed = hk * JELLY_STRIDE + j;
+        const distRoll = fr(jellySeed, 221);
+        const dist = within(jellies.dist, distRoll);
         const bearing = 360 * fr(jellySeed, 222);
         const spot = occ.hubAt(hk, dist, bearing);
         jl(spot);
@@ -1015,6 +1016,10 @@ export class Creatures implements Thing {
 
 /** 종마다 그리는 묶음 하나의 칸 수(가장 많은 종도 이 안에 든다) */
 const CAPACITY = 128;
+/** 마을마다 자리를 찾는 고정 난수 번호의 간격(땅 무리·하늘 무리·해파리 — 지도의 tries·perHub 는 이보다 작다) */
+const HERD_STRIDE = 70,
+  FLOCK_STRIDE = 9,
+  JELLY_STRIDE = 11;
 
 // 종의 크기와 재는 쪽: 땅 위 무리·해파리는 키(h), 하늘 무리는 너비(w), 호수는 앞뒤(x), 전설은 정한 대로
 function sizeOf(set: CreatureSetting): { size: number; by: string } {

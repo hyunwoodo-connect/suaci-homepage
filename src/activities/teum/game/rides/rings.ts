@@ -6,8 +6,8 @@ import { ECHO_REACH, echoTime } from "../core/tap";
 import type { GreyMesh } from "../look";
 import type { Services } from "../services";
 import { GREY_TOY, S } from "../settings";
-import type { LayoutChain } from "../world/layout";
-import { from, heading, step } from "../world/sphere";
+import type { LayoutChain } from "../maps/layout";
+import { chainPath } from "../world/paths";
 import { basis } from "./bars";
 import type { Streams } from "./streams";
 
@@ -62,10 +62,9 @@ export class Rings implements Thing, Tappable, Echoing {
   layout(keep: THREE.Vector3[], streams: Streams) {
     let ri = 0;
     for (const c of this.s.layout.chain) {
-      const af = c.afterStream != null ? streams.list[c.afterStream] : null;
-      let v = af ? af.endV.clone() : from(c.dist!, c.bear!),
-        d = af ? af.endD.clone() : heading(v, c.head!);
+      const path = chainPath(c, streams.paths);
       for (let i = 0; i < c.n; i++) {
+        const { v, d } = path.points[i];
         const r = this.list[ri++];
         r.v.copy(v);
         r.d.copy(d);
@@ -75,7 +74,6 @@ export class Rings implements Thing, Tappable, Echoing {
         r.pos.copy(v).multiplyScalar(radius);
         r.m.position.copy(r.pos);
         basis(r.m, r.v, r.d);
-        [v, d] = step(v, d, c.gap, c.curve);
       }
     }
     for (const r of this.list) this.s.culler.track(r.m, r.v);

@@ -2,6 +2,7 @@ import type * as THREE from "three";
 
 import { BIG_FLOWERS } from "../../assets/settings";
 import type { Frame, Thing } from "../core/frame";
+import { within } from "../maps/map";
 import type { Instancer } from "../models/instancer";
 import type { Services } from "../services";
 import { S } from "../settings";
@@ -9,7 +10,7 @@ import { fr } from "../world/hash";
 import type { Height, HasHeights } from "../world/tall";
 import { NearSet } from "./trees";
 
-// 큰 풍선 꽃: 마을마다 예순 송이. 꽃송이를 밟으면 통 튀고, 줄기에 닿으면 움츠렸다가 꽃송이 높이까지 쏘아 올린다
+// 큰 풍선 꽃: 마을마다 몇 송이(지도 bigFlowers — v64 는 예순). 꽃송이를 밟으면 통 튀고, 줄기에 닿으면 움츠렸다가 꽃송이 높이까지 쏘아 올린다
 
 /** 큰 풍선 꽃 하나 */
 export interface BigFlower {
@@ -24,6 +25,8 @@ export interface BigFlower {
 
 /** 한 종류에 찍는 꽃 수 */
 const PER_KIND = 220;
+/** 마을마다 자리를 찾는 고정 난수 번호의 간격(마을끼리 번호가 겹치지 않게 — 지도의 tries 는 이보다 작다) */
+const HUB_STRIDE = 200;
 
 /** 큰 풍선 꽃 */
 export class BigFlowers implements Thing, HasHeights {
@@ -39,17 +42,18 @@ export class BigFlowers implements Thing, HasHeights {
       if (I) FK.push(I);
     }
     if (!FK.length) return;
-    const HV = occ.hubs;
+    const HV = occ.hubs,
+      plan = s.map.bigFlowers;
     for (let hk = 0; hk < HV.length; hk++)
-      for (let i0 = 0, got = 0; i0 < 150 && got < 60; i0++) {
-        // 마을마다 예순 송이
-        const i = hk * 200 + i0,
+      for (let i0 = 0, got = 0; i0 < plan.tries && got < plan.perHub; i0++) {
+        const i = hk * HUB_STRIDE + i0,
           distRoll = fr(i, 41),
-          dist = 22 + 200 * Math.sqrt(distRoll),
+          far = Math.sqrt(distRoll),
+          dist = within(plan.dist, far),
           bearing = 360 * fr(i, 42),
           v = occ.hubAt(hk, dist, bearing),
           I = FK[i % FK.length];
-        if (I.n >= PER_KIND || !occ.isFree(v, 5)) continue;
+        if (I.n >= PER_KIND || !occ.isFree(v, plan.clear)) continue;
         got++;
         const giantRoll = fr(i, 47),
           H = 8 + 15 * fr(i, 43) * fr(i, 44) + 40 * Math.pow(giantRoll, 5),
@@ -63,7 +67,7 @@ export class BigFlowers implements Thing, HasHeights {
         const topReach = H * 0.32,
           reach = Math.max(topReach, 2.6);
         this.near.add(v, reach);
-        occ.fill(v, 5);
+        occ.fill(v, plan.clear);
       }
   }
 

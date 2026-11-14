@@ -1,10 +1,16 @@
 import * as THREE from "three";
 
 import type { Game } from "./Game";
+import { MAPS, mapNamed } from "./maps";
+import type { MapProblem } from "./maps/check";
+import { checkMap } from "./maps/check";
+import type { GameMap } from "./maps/map";
 
 // 개발 중 시험용 — 운영 빌드에서는 NODE_ENV 비교가 상수가 되어 통째로 빠진다.
 // ?seed=숫자: 게임 난수를 고정하고, 시제품과 같은지 보는 시험 창구(window.__teum.probe)를 건다.
-// 창구가 돌려주는 모양은 시제품 계측 사본과 같다(배치 목록·몸 상태·놀이기구 자리) — /tmp 의 비교 도구가 읽는다
+// ?map=이름: 그 지도로 짓는다(maps/index 의 목록). 운영은 늘 기본 지도.
+// 창구가 돌려주는 모양은 시제품 계측 사본과 같다(배치 목록·몸 상태·놀이기구 자리) — /tmp 의 비교 도구가 읽는다.
+// 지도 점검 명령(tools/map-check.sh)은 counts·firstScreen·check 를 읽는다
 
 interface DebugWindow {
   __teum?: { game: Game; probe: Probe };
@@ -23,6 +29,14 @@ interface Probe {
   bubs(): { t: number }[];
   place(): unknown;
   rideTargets(): unknown[];
+  /** 지은 지도의 이름 */
+  mapName(): string;
+  /** 놓인 것의 수(갈래마다) */
+  counts(): Record<string, unknown>;
+  /** 첫 화면에 받은 에셋 키와 바이트(전체 manifest 바이트도) */
+  firstScreen(): { keys: string[]; bytes: number; total: number };
+  /** 지은 지도의 지도 점검 */
+  check(): MapProblem[];
 }
 
 /** 시험용 주소 인자 ?nodir: 지루함 감독과 방울 길을 끈다(빈 구간을 감독 없이 잴 때). 운영에선 늘 false */
@@ -40,12 +54,25 @@ export function devSeed(): number | null {
   return n >>> 0;
 }
 
-/** ?seed 가 있으면 게임과 시험 창구를 창에 걸어 둔다. 떼는 함수를 돌려준다 */
-export function exposeGame(game: Game): () => void {
+/** ?map=이름 이 있으면 그 지도(개발에서만). 없으면 null, 모르는 이름이면 알리고 null(기본 지도로 짓는다) */
+export function devMap(): GameMap | null {
+  if (process.env.NODE_ENV === "production") return null;
+  const name = new URLSearchParams(location.search).get("map");
+  if (name === null) return null;
+  const map = mapNamed(name);
+  if (!map) {
+    const known = Object.keys(MAPS).join(", ");
+    console.warn(`[teum] ?map=${name} — 없는 지도라 기본 지도로 짓는다(있는 지도: ${known})`);
+  }
+  return map;
+}
+
+/** ?seed 가 있으면 게임과 시험 창구를 창에 걸어 둔다(firstScreen: 첫 화면에 받은 키). 떼는 함수를 돌려준다 */
+export function exposeGame(game: Game, firstScreen: readonly string[]): () => void {
   if (process.env.NODE_ENV === "production") return () => {};
   if (!new URLSearchParams(location.search).has("seed")) return () => {};
   const w = window as unknown as DebugWindow;
-  const probe = createProbe(game);
+  const probe = createProbe(game, firstScreen);
   w.__teum = { game, probe };
   return () => {
     delete w.__teum;
@@ -65,7 +92,7 @@ function v6(v: THREE.Vector3): number[] {
   return [n6(v.x), n6(v.y), n6(v.z)];
 }
 
-function createProbe(g: Game): Probe {
+function createProbe(g: Game, firstScreen: readonly string[]): Probe {
   const pl = g.s.player;
   const at = (list: readonly { v: THREE.Vector3 }[]) => list.map((o) => v6(o.v));
   return {
@@ -130,6 +157,72 @@ function createProbe(g: Game): Probe {
       },
     }),
     rideTargets: () => rideTargets(g),
+    mapName: () => g.s.map.name,
+    counts: () => countsOf(g),
+    firstScreen: () => {
+      const A = g.s.models.manifest.assets;
+      let bytes = 0,
+        total = 0;
+      for (const k of firstScreen) bytes += A[k].bytes;
+      for (const a of Object.values(A)) total += a.bytes;
+      return { keys: [...firstScreen], bytes, total };
+    },
+    check: () => checkMap(g.s.map, g.s.models.manifest),
+  };
+}
+
+// 놓인 것의 수: 풍경·조형물(단계별)·놀이기구(마디까지)·생물(갈래별)
+function countsOf(g: Game): Record<string, unknown> {
+  const t = g.s.terrain;
+  const roles: Record<string, number> = {};
+  for (const c of g.creatures.list) {
+    const role = c.legend ? "legend" : c.role;
+    roles[role] = (roles[role] ?? 0) + 1;
+  }
+  return {
+    scenery: {
+      flowers: t.flowers.v.length,
+      mounds: t.hills.on.filter(Boolean).length,
+      clouds: t.clouds.v.length,
+      hills: t.features.length,
+      lakes: g.lakes.list.length,
+      places: g.places.PV.length,
+      sites: g.sites.list.length,
+      trees: g.trees.list.length,
+      bigFlowers: g.bigFlowers.list.length,
+      bubbles: g.bubbles.list.length,
+      babyLimes: g.babyLimes.list.length,
+      logoBalloons: g.signature.BAL.length,
+      flags: g.signature.FLAGS.length,
+      lawnFree: g.signature.lawn.free,
+    },
+    sculptures: { total: g.sculptures.list.length, ...g.sculptures.stats },
+    rides: {
+      rings: g.rings.list.length,
+      pads: g.pads.list.length,
+      pillars: g.pillars.list.length,
+      whirls: g.whirls.list.length,
+      chimes: g.chimes.list.length,
+      cannons: g.cannons.list.length,
+      bumpers: g.bumpers.list.length,
+      balloons: g.balloons.list.length,
+      balls: g.balls.list.length,
+      holes: g.holes.list.length,
+      stars: g.stars.list.length,
+      slings: g.slings.list.length,
+      swings: g.swings.list.length,
+      pipes: g.pipes.list.length,
+      rails: g.rails.rnodes.length,
+      funnels: g.funnels.list.length,
+      seeds: g.seeds.fields.length,
+      rockets: g.rockets.list.length,
+      thermals: g.thermals.list.length,
+      wings: g.wings.items.length,
+      jets: g.jets.jnodes.length,
+      streams: g.streams.nodes.length,
+      arches: g.arches.anodes.length,
+    },
+    creatures: { total: g.creatures.list.length, ...roles },
   };
 }
 

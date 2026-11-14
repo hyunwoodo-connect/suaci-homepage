@@ -5,8 +5,9 @@ import type { Echoing, Tap, Tappable } from "../core/tap";
 import { ECHO_REACH, echoTime } from "../core/tap";
 import type { Services } from "../services";
 import { S } from "../settings";
-import type { LayoutRow } from "../world/layout";
-import { from, FWD, heading, step, UP } from "../world/sphere";
+import type { LayoutRow } from "../maps/layout";
+import { rowPath } from "../world/paths";
+import { FWD, UP } from "../world/sphere";
 
 // 기둥 줄 — 지나가면 하나씩 불이 켜지며 솟는다.
 // 풍선 꽃: 줄기 하나에 꽃잎 일곱. 지나가면 줄기가 자라고 꽃이 활짝 핀다(줄기는 길이만 늘어나서 모양이 뭉개지지 않는다).
@@ -117,9 +118,9 @@ export class Pillars implements Thing, Tappable, Echoing {
     const terrain = this.s.terrain;
     let pi = 0;
     for (const r of this.s.layout.row) {
-      let v = from(r.dist, r.bear),
-        d = heading(v, r.head);
+      const path = rowPath(r);
       for (let i = 0; i < r.n; i++) {
+        const { v, d } = path.points[i];
         const pl = this.list[pi++],
           side = new THREE.Vector3().crossVectors(v, d).normalize();
         const sideStep = (i % 2 ? 3.2 : -3.2) / S.R;
@@ -133,7 +134,6 @@ export class Pillars implements Thing, Tappable, Echoing {
         hy.crossVectors(fz, bx);
         m4.makeBasis(bx, hy, fz);
         pl.headQ.setFromRotationMatrix(m4);
-        [v, d] = step(v, d, 5, 2);
       }
     }
     // 처음엔 모두 그린다. 그 뒤로는 가까운 것만 칸에 채운다(나머지 것들과 같은 기준·같은 때)

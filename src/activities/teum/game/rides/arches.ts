@@ -4,8 +4,8 @@ import type { Frame, Thing } from "../core/frame";
 import { ease } from "../core/frame";
 import type { Services } from "../services";
 import { S } from "../settings";
-import type { LayoutArch } from "../world/layout";
-import { from, heading, step } from "../world/sphere";
+import type { LayoutArch } from "../maps/layout";
+import { archPath } from "../world/paths";
 import type { PathNode } from "./streams";
 
 // 구름 다리 — 끝에서 올라타면 높은 아치를 타고 넘어간다. 마디마다 방석 같은 발판이 놓인다
@@ -71,9 +71,9 @@ export class Arches implements Thing {
   /** 자리: 마디마다 아치 높이로 발판을 놓는다. 그 뒤로는 가까운 다리의 발판만 칸에 채운다 */
   layout(keep: THREE.Vector3[]) {
     for (const a of this.list) {
-      let v = from(a.dist, a.bear),
-        d = heading(v, a.head);
-      for (const nd of a.nodes) {
+      const path = archPath(a);
+      a.nodes.forEach((nd, i) => {
+        const { v, d } = path.points[i];
         nd.v.copy(v);
         nd.d.copy(d);
         nd.side.crossVectors(v, d).normalize();
@@ -86,8 +86,7 @@ export class Arches implements Thing {
         const plankLength = a.gap * 0.95;
         sc.set(3.2, 0.8, plankLength);
         nd.M.compose(ps, q, sc);
-        [v, d] = step(v, d, a.gap, a.curve);
-      }
+      });
     }
     // 발판은 다리마다 흩어져 있어 가까이·시야 안의 것만 그린다
     const planks = this.planks;

@@ -9,11 +9,8 @@ import { LIME, S } from "../settings";
 import { ball, Bin, box, cyl, label } from "./shapes";
 import { from, FWD, offset, UP } from "./sphere";
 
-// 장소 넷(광장·분수·뽑기터·등대)과, 자리(at)와 모양(obj)을 나눠 두는 배치 목록.
+// 장소 넷(광장·분수·뽑기터·등대 — 자리는 지도의 자리표 place, 이 차례)과, 자리(at)와 모양(obj)을 나눠 두는 배치 목록.
 // 랜드마크·브랜드 오브젝트도 이 목록에 들어와 같은 차례로 행성 위에 놓이고, 언덕·풍경·생물이 그 자리를 피한다
-
-/** 등대 자리 — 첫 큰 언덕(등대 산)이 그 아래 선다 */
-export const LIGHTHOUSE_AT = (): THREE.Vector3 => from(200, 262);
 
 /** 이름 붙은 장소: 한 줄로 잇지 않고 사방에 흩어 둔다 */
 interface Place {
@@ -67,12 +64,8 @@ export class Places implements Thing, Tappable {
 
   constructor(private readonly s: Services) {
     const mats = s.mats;
-    this.list = [
-      { name: "광장", at: () => from(0, 0) },
-      { name: "분수", at: () => from(105, 25) },
-      { name: "뽑기터", at: () => from(125, 150) },
-      { name: "등대", at: LIGHTHOUSE_AT },
-    ];
+    // 장소마다 하는 일이 차례로 정해져 있다(0 광장 나무·1 분수·2 뽑기 기계·3 등대)
+    this.list = s.layout.place.map((pl) => ({ name: pl.name, at: () => from(pl.dist, pl.bear) }));
     const list = this.list;
     const K = 4.5;
     {
@@ -81,7 +74,7 @@ export class Places implements Thing, Tappable {
       const trunk = cyl(mats, 0.18, 2.1, 0xb9bdbc);
       const crown = ball(mats, 1.0, 0xc2c6c5, 2.7);
       gr.add(base, trunk, crown);
-      const l = label("광장");
+      const l = label(list[0].name);
       l.visible = false;
       l.position.y = 4.3;
       gr.add(l);
@@ -94,7 +87,7 @@ export class Places implements Thing, Tappable {
       const column = cyl(mats, 0.3, 1.2, 0xb9bdbc);
       const spout = ball(mats, 0.34, 0xcfd3d2, 1.45);
       gr.add(basin, column, spout);
-      const l = label("분수");
+      const l = label(list[1].name);
       l.visible = false;
       l.position.y = 2.6;
       gr.add(l);
@@ -108,7 +101,7 @@ export class Places implements Thing, Tappable {
       const chute = box(mats, 0.2, 0.2, 0.22, 0xa9adac, 0.6);
       gr.add(body, globe, chute);
       chute.position.z = 0.64;
-      const l = label("뽑기터");
+      const l = label(list[2].name);
       l.visible = false;
       l.position.y = 3.1;
       gr.add(l);
@@ -136,7 +129,7 @@ export class Places implements Thing, Tappable {
       this.beam = new THREE.Mesh(beamGeo, beamMat);
       this.beam.position.y = 125;
       gr.add(this.beam);
-      const l = label("등대");
+      const l = label(list[3].name);
       l.visible = false;
       l.position.y = 32;
       l.scale.set(8.5, 2.7, 1);
@@ -144,15 +137,7 @@ export class Places implements Thing, Tappable {
       this.addItem(gr, list[3].at);
     }
     // 생물이 서 있을 자리 — 회색 공
-    const spotsAt: [number, number, number][] = [
-      [0, 11, 40],
-      [0, 14, 200],
-      [1, 10, 80],
-      [1, 13, 250],
-      [2, 11, 20],
-      [3, 16, 140],
-    ];
-    spotsAt.forEach(([i, dist, b], k) => {
+    s.map.placeSpots.forEach(([i, dist, b], k) => {
       const spotGeo = new THREE.SphereGeometry(0.45, 18, 12);
       const spotMat = mats.grey(0xaeb2b1);
       const m = new THREE.Mesh(spotGeo, spotMat);

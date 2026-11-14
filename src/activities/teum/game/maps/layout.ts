@@ -1,7 +1,5 @@
-import layoutJson from "./layout.json";
-
-// 배치 자리표: 구역을 나눠 겹치지 않게 놓은 자리(시제품의 자리 계산 도구로 뽑은 값 그대로, layout.json).
-// 자리는 출발점에서 거리(dist, 넓이 S.wide 배)와 방향(bear, 도). 구역 — 0–60 물가 · 60–120 바람 · 120–180 튕김 · 180–240 미끄럼 · 240–300 하늘 · 300–360 꽃밭
+// 자리표의 모양: 지도(GameMap)의 layout 이 이 모양이다(v64 는 v64.layout.json).
+// 자리는 출발점에서 거리(dist, 넓이 S.wide 배)와 방향(bear, 도)
 
 /** 출발점에서 거리와 방향 */
 export interface Spot {
@@ -35,9 +33,14 @@ export interface LayoutTree extends Spot {
   H: number;
 }
 
-/** 반지름이 있는 자리(호수·장소) */
+/** 반지름이 있는 자리(호수) */
 export interface RoundSpot extends Spot {
   r: number;
+}
+
+/** 이름 붙은 장소(광장·분수·뽑기터·등대 — 이 차례로 넷) */
+export interface LayoutPlace extends RoundSpot {
+  name: string;
 }
 
 /** 여러 마디로 이어지는 길(바람길·레일·제트 기류) */
@@ -98,7 +101,7 @@ export interface LayoutHill extends Spot {
 
 /** 자리표 전체 */
 export interface Layout {
-  place: RoundSpot[];
+  place: LayoutPlace[];
   site: LayoutSite[];
   tree: LayoutTree[];
   lake: RoundSpot[];
@@ -128,9 +131,4 @@ export interface Layout {
   jet: LayoutJet[];
   hill: LayoutHill[];
   hub: Spot[];
-}
-
-/** 게임 한 판이 쓸 자리표. 배치가 자리표에 값을 덧붙이므로(크기 배율·마디) 판마다 새로 복사한다 */
-export function cloneLayout(): Layout {
-  return structuredClone(layoutJson) as Layout;
 }

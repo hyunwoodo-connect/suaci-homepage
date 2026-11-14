@@ -2,8 +2,9 @@ import { firstScreenKeys } from "../assets/firstScreen";
 import { createAssetLoader } from "../assets/load";
 import type { LoadedAsset } from "../assets/load";
 import type { Manifest } from "../assets/manifest";
-import { devSeed, exposeGame } from "./debug";
+import { devMap, devSeed, exposeGame } from "./debug";
 import { Game } from "./Game";
+import { DEFAULT_MAP } from "./maps";
 
 /** start 에 넘기는 것 */
 export interface StartOptions {
@@ -28,8 +29,8 @@ export function start(
   { assets, onProgress }: StartOptions,
 ): RunningGame {
   const seed = devSeed() ?? randomSeed();
-  const game = new Game(canvas, assets, seed);
-  const unexpose = exposeGame(game);
+  const map = devMap() ?? DEFAULT_MAP;
+  const game = new Game(canvas, assets, seed, map);
   let stopped = false,
     raf = 0,
     last = 0;
@@ -60,6 +61,7 @@ export function start(
   // 시작 화면에 실제로 보이는 것(떠도는 무리는 판마다 자리가 달라 그 판의 자리로)
   const inView = game.startViewKeys();
   const first = firstScreenKeys(assets, inView);
+  const unexpose = exposeGame(game, first);
   const waiting = game.s.models.waiting;
   const rest = Object.keys(assets.assets).filter((k) => !first.includes(k) && waiting.has(k));
   loader

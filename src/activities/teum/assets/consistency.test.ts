@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { AVATAR_BODY, AVATAR_COMPANION, PARTS } from "../game/avatar/parts";
-import layoutJson from "../game/world/layout.json";
+import { MAPS } from "../game/maps";
 import { CATALOG, RETIRED } from "../tools/catalog.mjs";
 import { ASSET_VERSION } from "./config";
 import manifestJson from "./manifest.v2.json";
@@ -74,8 +74,9 @@ describe("코드가 쓰는 에셋 키", () => {
 
 /* ─── 내부 ─────────────────────────── */
 
-// 설정 표·자리표·코드의 호출(fit·inst·crit 등에 글자 그대로 넘긴 키)에서 모은다
+// 설정 표·지도(모든 지도의 자리표·브랜드 오브젝트)·코드의 호출(fit·inst·crit 등에 글자 그대로 넘긴 키)에서 모은다
 function referencedKeys(): Set<string> {
+  const maps = Object.values(MAPS);
   const keys = new Set<string>([
     AVATAR_BODY,
     AVATAR_COMPANION,
@@ -85,8 +86,9 @@ function referencedKeys(): Set<string> {
     ...Object.keys(TREE_CROWN_BASE),
     ...BIG_FLOWERS,
     ...Object.keys(MODEL_STRIPES),
-    ...layoutJson.site.map((s) => s.k).filter((k) => k !== "ferris"),
-    ...layoutJson.tree.map((t) => t.t),
+    ...maps.flatMap((m) => m.layout.site.map((s) => s.k)).filter((k) => k !== "ferris"),
+    ...maps.flatMap((m) => m.layout.tree.map((t) => t.t)),
+    ...maps.flatMap((m) => m.brand.objects.map((b) => b.key)),
   ]);
   // 모델 창구(models.fit·inst·batch·has·when·swapWhenReady·motionOf)와 장소 모델(placeModel)에 글자 그대로 넘긴 키.
   // 생물은 설정 표(CREATURES)의 키가 곧 에셋 키다

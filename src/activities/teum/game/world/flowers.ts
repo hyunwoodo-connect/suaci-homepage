@@ -9,9 +9,8 @@ import { S } from "../settings";
 import { fr } from "./hash";
 import { UP } from "./sphere";
 import { SphereGrid } from "./sphereGrid";
-import { FLN } from "./terrain";
 
-// 바닥의 꽃 5200 송이: 한 송이 = 꽃잎 여섯 장 + 가운데 심 + 줄기. 지나가면 라임으로 부풀어 피고, 천천히 제 색으로 돌아온다.
+// 바닥의 꽃(수는 지도의 지형, v64 는 5200 송이): 한 송이 = 꽃잎 여섯 장 + 가운데 심 + 줄기. 지나가면 라임으로 부풀어 피고, 천천히 제 색으로 돌아온다.
 // 꽃 자리·피어난 정도는 world/terrain 의 꽃 자리 값(lit)이고, 다른 것(종·장소·칙)이 피우면 그 값만 바꾼다.
 // 가까운 꽃만 칸에 담아 그린다(20 프레임마다, 시제품의 v·p > 0.86)
 
@@ -38,14 +37,20 @@ export class Flowers implements Thing, Tappable {
   private readonly core: FlowerMesh<THREE.SphereGeometry>;
   private readonly stem: FlowerMesh<THREE.CylinderGeometry>;
   /** 가까운 꽃만 그린다: 꽃 번호 → 그리는 칸(-1 이면 안 그림) */
-  private readonly slot = new Int32Array(FLN).fill(-1);
+  private readonly slot: Int32Array;
   private readonly grid = new SphereGrid(0.02);
   private readonly near: number[] = [];
   /** 이번 프레임에 피운 꽃(같은 프레임에 다시 시들게 하지 않는다) */
-  private readonly touched = new Uint32Array(FLN);
+  private readonly touched: Uint32Array;
+  /** 꽃 수(지도의 지형) */
+  private readonly n: number;
   private frameNo = 0;
 
   constructor(private readonly s: Services) {
+    const FLN = s.terrain.flowers.v.length;
+    this.n = FLN;
+    this.slot = new Int32Array(FLN).fill(-1);
+    this.touched = new Uint32Array(FLN);
     const flGeo = (() => {
       const parts = [];
       for (let i = 0; i < 6; i++) {
@@ -111,7 +116,7 @@ export class Flowers implements Thing, Tappable {
   /** 꽃은 언덕 위에도 땅 높이에 맞춰 핀다(둔덕이 정해진 뒤) */
   settle() {
     const spots = this.s.terrain.flowers;
-    for (let k = 0; k < FLN; k++) spots.g[k] = this.s.terrain.groundAt(spots.v[k]);
+    for (let k = 0; k < this.n; k++) spots.g[k] = this.s.terrain.groundAt(spots.v[k]);
     this.cull();
   }
 
@@ -139,7 +144,7 @@ export class Flowers implements Thing, Tappable {
         this.setFlower(k, 1);
       }
     }
-    for (let k = 0; k < FLN; k++) {
+    for (let k = 0; k < this.n; k++) {
       const l = lit[k];
       if (l <= 0 || this.touched[k] === this.frameNo) continue;
       const faded = l - dt * 0.14;
@@ -171,8 +176,8 @@ export class Flowers implements Thing, Tappable {
       p = this.s.player.p,
       slot = this.slot;
     let n = 0;
-    for (let k = 0; k < FLN; k++) slot[k] = spots.v[k].dot(p) > 0.86 ? n++ : -1;
-    for (let k = 0; k < FLN; k++)
+    for (let k = 0; k < this.n; k++) slot[k] = spots.v[k].dot(p) > 0.86 ? n++ : -1;
+    for (let k = 0; k < this.n; k++)
       if (slot[k] >= 0) {
         const l = spots.lit[k];
         const bloom = l * l * (3 - 2 * l);

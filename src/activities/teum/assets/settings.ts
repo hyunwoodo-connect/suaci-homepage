@@ -99,14 +99,13 @@ export interface CreatureSetting {
   /** 하늘을 떠다니는 해파리: 키 크기 */
   jelly?: { size: number };
   /**
-   * 전설: 온 행성에 세 곳뿐이고 자리를 옮기지 않는다. 자리는 [마을, 거리, 방향].
-   * 걷는 것(ground)과 하늘을 도는 것(sky)이 있다
+   * 전설: 자리를 옮기지 않는 드문 손님. 걷는 것(ground)과 하늘을 도는 것(sky)이 있다.
+   * 어디에 몇 곳인지는 지도가 정한다(GameMap.creatures.legends)
    */
   legend?: {
     size: number;
     by: "h" | "z";
     kind: "ground" | "sky";
-    at: readonly (readonly [number, number, number])[];
   };
   /** 종마다의 버릇(끼우는 차례대로 돈다) */
   habits?: readonly HabitName[];
@@ -139,31 +138,13 @@ export const CREATURES: Readonly<Record<string, CreatureSetting>> = {
   c_wheart: { motion: 3, sky: { size: 2.1 }, habits: ["visit"] },
   c_wcrown: {
     motion: 3,
-    legend: {
-      size: 6,
-      by: "z",
-      kind: "sky",
-      at: [
-        [0, 380, 130],
-        [2, 340, 300],
-        [4, 360, 20],
-      ],
-    },
+    legend: { size: 6, by: "z", kind: "sky" },
     habits: ["visit"],
   },
   c_deer: {
     motion: 1,
     bake: [0, -Math.PI / 2, 0],
-    legend: {
-      size: 5.2,
-      by: "h",
-      kind: "ground",
-      at: [
-        [1, 330, 40],
-        [3, 350, 200],
-        [5, 300, 120],
-      ],
-    },
+    legend: { size: 5.2, by: "h", kind: "ground" },
     habits: ["bolt"],
   },
   c_wletter: { motion: 3, sky: { size: 2.1 }, habits: ["visit"] },

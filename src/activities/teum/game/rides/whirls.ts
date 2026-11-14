@@ -5,8 +5,9 @@ import { ease } from "../core/frame";
 import type { Holder } from "../player/player";
 import type { Services } from "../services";
 import { S } from "../settings";
-import type { LayoutWhirl } from "../world/layout";
-import { from, step, UP } from "../world/sphere";
+import type { LayoutWhirl } from "../maps/layout";
+import { afterStreamAt } from "../world/paths";
+import { from, UP } from "../world/sphere";
 import type { Streams } from "./streams";
 
 // 회오리 — 닿으면 빙글빙글 빨려 올라갔다가 튕겨 나간다
@@ -63,8 +64,8 @@ export class Whirls implements Thing, Holder {
     for (const w of this.list) {
       let spot: THREE.Vector3;
       if (w.afterStream != null) {
-        const stream = streams.list[w.afterStream];
-        [spot] = step(stream.endV, stream.endD, 10, 0);
+        const stream = streams.paths[w.afterStream];
+        spot = afterStreamAt(stream);
       } else spot = from(w.dist!, w.bear!);
       w.v.copy(spot);
       keep.push(w.v);

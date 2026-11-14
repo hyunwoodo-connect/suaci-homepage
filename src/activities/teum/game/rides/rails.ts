@@ -5,8 +5,8 @@ import { ease } from "../core/frame";
 import type { Tappable } from "../core/tap";
 import type { Services } from "../services";
 import { S } from "../settings";
-import type { LayoutPath } from "../world/layout";
-import { from, heading, step } from "../world/sphere";
+import type { LayoutPath } from "../maps/layout";
+import { railPath } from "../world/paths";
 
 // 무지개 레일 — 닿으면 붙어 점점 빠르게 미끄러지고, 칙 하면 뛰어오른다. 레일은 구슬을 꿴 것 같은 마디(한 번에 그리는 묶음)
 
@@ -75,10 +75,9 @@ export class Rails implements Thing, Tappable {
     const terrain = this.s.terrain;
     let rli = 0;
     for (const rl of this.list) {
-      let v = from(rl.dist, rl.bear),
-        d = heading(v, rl.head),
-        i = 0;
-      for (const nd of rl.nodes) {
+      const path = railPath(rl);
+      rl.nodes.forEach((nd, i) => {
+        const { v, d } = path.points[i];
         nd.v.copy(v);
         nd.d.copy(d);
         nd.side.crossVectors(v, d).normalize();
@@ -93,11 +92,7 @@ export class Rails implements Thing, Tappable {
         m4.compose(ps, q, sc);
         this.railM.setMatrixAt(rli, m4);
         rli++;
-        const wigglePhase = i * 0.33;
-        const wiggle = rl.wig * Math.sin(wigglePhase);
-        [v, d] = step(v, d, rl.gap, wiggle);
-        i++;
-      }
+      });
     }
     this.railM.instanceMatrix.needsUpdate = true;
     // 구슬 972 개는 행성 곳곳에 흩어져 있어 가까이·시야 안의 것만 그린다

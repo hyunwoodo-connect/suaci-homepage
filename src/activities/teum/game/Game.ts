@@ -58,9 +58,10 @@ import { Culler } from "./world/culler";
 import { Flowers } from "./world/flowers";
 import { Ground } from "./world/ground";
 import { Lakes } from "./world/lakes";
-import { cloneLayout } from "./world/layout";
+import type { GameMap } from "./maps/map";
+import { cloneLayout } from "./maps/map";
 import { Occupancy } from "./world/occupancy";
-import { LIGHTHOUSE_AT, Places } from "./world/places";
+import { Places } from "./world/places";
 import { Sites } from "./world/sites";
 import { Sky } from "./world/sky";
 import { from } from "./world/sphere";
@@ -147,15 +148,15 @@ export class Game {
   /** 이번 프레임(모두가 같은 값을 본다) */
   readonly frame: Frame = { dt: 0, time: 0 };
 
-  /** seed: 이번 판의 게임 난수 씨앗 */
-  constructor(canvas: HTMLCanvasElement, manifest: Manifest, seed: number) {
+  /** seed: 이번 판의 게임 난수 씨앗, map: 지을 지도(세계는 이 지도의 값만 보고 놓인다) */
+  constructor(canvas: HTMLCanvasElement, manifest: Manifest, seed: number, map: GameMap) {
     const stage = createStage(canvas);
     this.stage = stage;
     const scene = stage.scene;
-    const layout = cloneLayout();
+    const layout = cloneLayout(map);
     const mats = new Mats();
     const rng = new Random(seed);
-    const terrain = new Terrain(layout.hill, LIGHTHOUSE_AT);
+    const terrain = new Terrain(map.seed, map.terrain, layout.hill);
     const player = new Player(terrain);
     const hudParent = canvas.parentElement ?? document.body;
     const hud = new Hud(hudParent);
@@ -164,6 +165,7 @@ export class Game {
       rippleRng = rng.fork("ripples");
     const s: Services = {
       scene,
+      map,
       layout,
       terrain,
       occ: new Occupancy(),

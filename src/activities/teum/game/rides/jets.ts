@@ -4,8 +4,9 @@ import type { Frame, Thing } from "../core/frame";
 import { ease } from "../core/frame";
 import type { Services } from "../services";
 import { S } from "../settings";
-import type { LayoutJet } from "../world/layout";
-import { from, heading, START, step } from "../world/sphere";
+import type { LayoutJet } from "../maps/layout";
+import { jetPath } from "../world/paths";
+import { START } from "../world/sphere";
 
 // 제트 기류 — 높은 하늘의 빠른 바람길. 들어가면 아주 멀리 실려 간다.
 // 하늘을 가로지르는 분홍 유리 관으로 보이고, 그 안을 흰 줄이 빠르게 흘러간다. 먼 마을에서 광장으로 이어지는 오로라 길은 라임빛
@@ -24,13 +25,6 @@ export interface Jet extends LayoutJet {
   nodes: JetNode[];
   tube: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
 }
-
-/** 높은 하늘에서 시계 방향으로 도는 세 줄(오로라 길은 자리표에서) */
-const SKY_JETS: LayoutJet[] = [
-  { dist: 40, bear: 140, head: 85, n: 60, gap: 10, wig: 5 },
-  { dist: 150, bear: 20, head: 95, n: 60, gap: 10, wig: -4 },
-  { dist: 110, bear: 250, head: 90, n: 60, gap: 10, wig: 6 },
-];
 
 /** 제트 기류가 흐르는 높이 */
 export const JH = 44;
@@ -51,8 +45,9 @@ export class Jets implements Thing {
   private wasJet = false;
 
   constructor(private readonly s: Services) {
+    // 높은 하늘의 줄(지도 skyJets) 뒤에 오로라 길(자리표 jet)
     const extraJets = s.layout.jet || [];
-    const data = SKY_JETS.concat(extraJets).map((jt) => {
+    const data = [...s.map.skyJets, ...extraJets].map((jt) => {
       const nodes: JetNode[] = [];
       for (let i = 0; i < jt.n; i++) {
         const nd: JetNode = {
@@ -118,19 +113,14 @@ export class Jets implements Thing {
   layout() {
     const terrain = this.s.terrain;
     for (const jt of this.list) {
-      let v = from(jt.dist, jt.bear),
-        d = heading(v, jt.head),
-        i = 0;
-      for (const nd of jt.nodes) {
+      const path = jetPath(jt);
+      jt.nodes.forEach((nd, i) => {
+        const { v, d } = path.points[i];
         nd.v.copy(v);
         nd.d.copy(d);
         nd.side.crossVectors(v, d).normalize();
         nd.g = terrain.featGround(v);
-        const bendPhase = i * 0.21;
-        i++;
-        const bend = jt.wig * Math.sin(bendPhase);
-        [v, d] = step(v, d, jt.gap, bend);
-      }
+      });
       jt.tube.geometry.dispose();
       const tubePoints = jt.nodes.map((nd) => nd.v.clone().multiplyScalar(S.R + nd.g + JH));
       const tubePath = new THREE.CatmullRomCurve3(tubePoints);
