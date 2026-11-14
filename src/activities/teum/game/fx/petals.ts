@@ -1,21 +1,29 @@
 import * as THREE from "three";
 
-/** 날아다니는 꽃잎(바람길·상승 기류에 실려 가는 것)의 모양과 재질 */
-export interface Petals {
-  geo: THREE.BufferGeometry;
-  mat: THREE.MeshStandardMaterial;
-}
+// 날아다니는 꽃잎(바람길·상승 기류에 실려 가는 것)의 모양과 재질. 두 놀이기구가 같이 쓴다
 
 /** 가운데가 오목하고 끝이 뾰족한 얇은 잎 */
-export function createPetals(): Petals {
-  const geo = createPetalGeometry();
-  const mat = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    roughness: 0.6,
-    metalness: 0,
-    side: THREE.DoubleSide,
-  });
-  return { geo, mat };
+export class Petals {
+  readonly geo: THREE.BufferGeometry;
+  readonly mat: THREE.MeshStandardMaterial;
+
+  constructor() {
+    this.geo = createPetalGeometry();
+    this.mat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.6,
+      metalness: 0,
+      side: THREE.DoubleSide,
+      // 초현실 팝의 반사를 꽃잎에는 조금만
+      envMapIntensity: 0.4,
+    });
+  }
+
+  /** 치운다 */
+  dispose() {
+    this.geo.dispose();
+    this.mat.dispose();
+  }
 }
 
 /* ─── 내부 ─────────────────────────── */

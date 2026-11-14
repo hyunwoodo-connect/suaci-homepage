@@ -1,139 +1,194 @@
 import * as THREE from "three";
 
-import type { Game } from "../state";
-import { S } from "../state";
-import { FWD, refT } from "../world/sphere";
+import type { Frame } from "../core/frame";
+import type { Random } from "../core/random";
+import type { Tap, Tappable } from "../core/tap";
+import { LIME, S } from "../settings";
+import { FWD, refTInto } from "../world/sphere";
+import type { Terrain } from "../world/terrain";
 
-// 물결과 물방울: 칙 한 자리에 퍼지는 라임 원, 물에 퍼지는 고리, 솟았다 떨어지는 물방울
+// 물결과 물방울: 칙 한 자리에 퍼지는 라임 원, 물에 퍼지는 고리, 솟았다 떨어지는 물방울.
+// 원과 물방울은 미리 만들어 두고 돌려 쓴다(시제품은 칠 때마다 메시와 재질을 새로 만들었다)
 
-/** 땅·물에 퍼지는 원 하나 */
-export interface PuffData {
+/** 퍼지는 원 하나(칙 원·물 고리) */
+interface Puff {
+  m: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
   n: THREE.Vector3;
   t: number;
   g: number;
-  s?: number;
-  keep?: boolean;
+  s: number;
+  on: boolean;
 }
 
 /** 물방울 하나 */
-export interface DropData {
+interface Drop {
+  m: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>;
   pos: THREE.Vector3;
   vel: THREE.Vector3;
   t: number;
   s: number;
+  on: boolean;
 }
 
-/** 퍼지는 원과 물방울 */
-export interface Ripples {
-  puffs: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>[];
-  drops: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>[];
-  ripGeo: THREE.RingGeometry;
-  dropGeo: THREE.SphereGeometry;
-  dropMat: THREE.MeshBasicMaterial;
-}
+/** 동시에 퍼지는 칙 원·물 고리·물방울 수(시제품도 물방울은 70 까지였다) */
+const TAP_N = 8,
+  RING_N = 48,
+  DROP_N = 70;
+const dropN = new THREE.Vector3(),
+  tt = new THREE.Vector3();
 
-const dropN = new THREE.Vector3();
+/** 물결·물방울 */
+export class Ripples implements Tappable {
+  private readonly taps: Puff[] = [];
+  private readonly rings: Puff[] = [];
+  private readonly drops: Drop[] = [];
+  private tapI = 0;
+  private ringI = 0;
+  private readonly geos: THREE.BufferGeometry[] = [];
+  private readonly mats: THREE.Material[] = [];
 
-/** 물결 모양을 만든다 */
-export function createRipples(): Ripples {
-  return {
-    puffs: [],
-    drops: [],
-    ripGeo: new THREE.RingGeometry(0.86, 1, 48),
-    dropGeo: new THREE.SphereGeometry(0.11, 8, 6),
-    dropMat: new THREE.MeshBasicMaterial({ color: 0xffffff }),
-  };
-}
-
-/** 물 위에 고리 하나가 퍼진다(delay 초 뒤에) */
-export function ripple(g: Game, n: THREE.Vector3, sz?: number, delay?: number) {
-  const R = g.ripples;
-  const ringMat = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-    transparent: true,
-    opacity: 0,
-    depthWrite: false,
-  });
-  const rm = new THREE.Mesh(R.ripGeo, ringMat);
-  rm.quaternion.setFromUnitVectors(FWD, n);
-  rm.userData = {
-    n: n.clone(),
-    t: -(delay || 0),
-    g: 0.3,
-    s: sz || 1,
-    keep: true,
-  } satisfies PuffData;
-  rm.visible = false;
-  g.scene.add(rm);
-  R.puffs.push(rm);
-}
-
-/** 물이 튄다: 고리 두 겹이 퍼지고 물방울이 솟았다 떨어진다 */
-export function splashAt(g: Game, n: THREE.Vector3, power: number, cnt: number) {
-  const R = g.ripples;
-  ripple(g, n, power, 0);
-  const outerSize = power * 1.5;
-  ripple(g, n, outerSize, 0.18);
-  const startR = S.R + 0.4;
-  for (let i = 0; i < cnt && R.drops.length < 70; i++) {
-    const m = new THREE.Mesh(R.dropGeo, R.dropMat);
-    // 난수 순서: 퍼지는 방위 a → 옆 속도 sp → 솟는 속도 → 크기 s
-    const a = Math.random() * 6.283;
-    const t = refT(n).applyAxisAngle(n, a);
-    const sp = (0.8 + Math.random() * 1.6) * power;
-    const pos = n.clone().multiplyScalar(startR);
-    const upSpeed = (3 + Math.random() * 3.5) * Math.sqrt(power);
-    const vel = t.multiplyScalar(sp).addScaledVector(n, upSpeed);
-    const s = 0.7 + Math.random() * 1.1;
-    m.userData = { pos, vel, t: 0, s } satisfies DropData;
-    g.scene.add(m);
-    R.drops.push(m);
-  }
-}
-
-/** 원은 퍼지며 옅어지고, 물방울은 떨어져 물에 닿으면 사라진다 */
-export function ripplesFrame(g: Game) {
-  const dt = g.t.dt,
-    { puffs, drops } = g.ripples;
-  const fall = -16 * dt;
-  for (let i = puffs.length - 1; i >= 0; i--) {
-    const u = puffs[i],
-      ud = u.userData as PuffData;
-    ud.t += dt;
-    const k = ud.t / 0.9;
-    if (k < 0) continue;
-    u.visible = true;
-    if (k >= 1) {
-      g.scene.remove(u);
-      if (!ud.keep) u.geometry.dispose();
-      u.material.dispose();
-      puffs.splice(i, 1);
-      continue;
+  constructor(
+    scene: THREE.Scene,
+    private readonly rng: Random,
+    private readonly terrain: Terrain,
+  ) {
+    const tapGeo = new THREE.CircleGeometry(1, 36),
+      ringGeo = new THREE.RingGeometry(0.86, 1, 48),
+      dropGeo = new THREE.SphereGeometry(0.11, 8, 6),
+      dropMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    this.geos.push(tapGeo, ringGeo, dropGeo);
+    this.mats.push(dropMat);
+    const puff = (geo: THREE.BufferGeometry, color: number, list: Puff[]) => {
+      const mat = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+      });
+      this.mats.push(mat);
+      const m = new THREE.Mesh(geo, mat);
+      m.visible = false;
+      scene.add(m);
+      const puffItem: Puff = { m, n: new THREE.Vector3(), t: 0, g: 0, s: 1, on: false };
+      list.push(puffItem);
+    };
+    for (let i = 0; i < TAP_N; i++) puff(tapGeo, LIME, this.taps);
+    for (let i = 0; i < RING_N; i++) puff(ringGeo, 0xffffff, this.rings);
+    for (let i = 0; i < DROP_N; i++) {
+      const m = new THREE.Mesh(dropGeo, dropMat);
+      m.visible = false;
+      scene.add(m);
+      const drop: Drop = {
+        m,
+        pos: new THREE.Vector3(),
+        vel: new THREE.Vector3(),
+        t: 0,
+        s: 1,
+        on: false,
+      };
+      this.drops.push(drop);
     }
-    // 처음엔 빨리, 끝으로 갈수록 천천히 퍼진다
+  }
+
+  /** 칙 한 자리에 라임 원이 퍼진다 */
+  onTap(tap: Tap) {
+    const n = tap.ground;
+    if (!n) return;
+    const o = this.taps[this.tapI++ % TAP_N];
+    const g = this.terrain.groundAt(n);
+    this.start(o, n, g, 1, 0);
+    o.m.material.opacity = 0.8;
+    o.m.visible = true;
+  }
+
+  /** 물 위에 고리 하나가 퍼진다(delay 초 뒤에) */
+  ripple(n: THREE.Vector3, sz = 1, delay = 0) {
+    const o = this.rings[this.ringI++ % RING_N];
+    this.start(o, n, 0.3, sz, delay);
+  }
+
+  /** 물이 튄다: 고리 두 겹이 퍼지고 물방울이 솟았다 떨어진다 */
+  splash(n: THREE.Vector3, power: number, cnt: number) {
+    this.ripple(n, power, 0);
+    const outerSize = power * 1.5;
+    this.ripple(n, outerSize, 0.18);
+    const startR = S.R + 0.4,
+      r = this.rng;
+    for (let i = 0; i < cnt; i++) {
+      const d = this.drops.find((x) => !x.on);
+      if (!d) break;
+      // 퍼지는 방위 a → 옆 속도 sp → 솟는 속도 → 크기 s
+      const a = r.next() * 6.283;
+      refTInto(tt, n).applyAxisAngle(n, a);
+      const sp = (0.8 + r.next() * 1.6) * power;
+      d.pos.copy(n).multiplyScalar(startR);
+      const upSpeed = (3 + r.next() * 3.5) * Math.sqrt(power);
+      d.vel.copy(tt).multiplyScalar(sp).addScaledVector(n, upSpeed);
+      d.s = 0.7 + r.next() * 1.1;
+      d.t = 0;
+      d.on = true;
+      d.m.visible = true;
+    }
+  }
+
+  /** 원은 퍼지며 옅어지고, 물방울은 떨어져 물에 닿으면 사라진다 */
+  update(f: Frame) {
+    const dt = f.dt;
+    for (const o of this.taps) this.spread(o, dt);
+    for (const o of this.rings) this.spread(o, dt);
+    const fall = -16 * dt;
+    for (const d of this.drops) {
+      if (!d.on) continue;
+      d.t += dt;
+      dropN.copy(d.pos).normalize();
+      d.vel.addScaledVector(dropN, fall);
+      d.pos.addScaledVector(d.vel, dt);
+      if (d.t > 0.25 && d.pos.length() < S.R + 0.35) {
+        d.on = false;
+        d.m.visible = false;
+        continue;
+      }
+      d.m.position.copy(d.pos);
+      const age = Math.min(1, d.t);
+      const shrink = d.s * (1 - 0.5 * age);
+      d.m.scale.setScalar(shrink);
+    }
+  }
+
+  /** 치운다 */
+  dispose() {
+    for (const o of [...this.taps, ...this.rings, ...this.drops]) o.m.removeFromParent();
+    for (const g of this.geos) g.dispose();
+    for (const m of this.mats) m.dispose();
+  }
+
+  private start(o: Puff, n: THREE.Vector3, g: number, s: number, delay: number) {
+    o.n.copy(n);
+    o.m.quaternion.setFromUnitVectors(FWD, n);
+    o.t = -delay;
+    o.g = g;
+    o.s = s;
+    o.on = true;
+  }
+
+  // 처음엔 빨리, 끝으로 갈수록 천천히 퍼진다
+  private spread(o: Puff, dt: number) {
+    if (!o.on) return;
+    o.t += dt;
+    const k = o.t / 0.9;
+    if (k < 0) return;
+    o.m.visible = true;
+    if (k >= 1) {
+      o.on = false;
+      o.m.visible = false;
+      return;
+    }
     const rest = 1 - k;
     const e = 1 - Math.pow(rest, 3);
-    const scale = (0.4 + e * 2.6) * (ud.s || 1);
-    u.scale.setScalar(scale);
-    u.material.opacity = 0.8 * rest;
-    const lift = S.R + ud.g + 0.08 + k * 0.08;
-    u.position.copy(ud.n).multiplyScalar(lift);
-  }
-  for (let i = drops.length - 1; i >= 0; i--) {
-    const d = drops[i],
-      u = d.userData as DropData;
-    u.t += dt;
-    dropN.copy(u.pos).normalize();
-    u.vel.addScaledVector(dropN, fall);
-    u.pos.addScaledVector(u.vel, dt);
-    if (u.t > 0.25 && u.pos.length() < S.R + 0.35) {
-      g.scene.remove(d);
-      drops.splice(i, 1);
-      continue;
-    }
-    d.position.copy(u.pos);
-    const age = Math.min(1, u.t);
-    const shrink = u.s * (1 - 0.5 * age);
-    d.scale.setScalar(shrink);
+    const scale = (0.4 + e * 2.6) * o.s;
+    o.m.scale.setScalar(scale);
+    o.m.material.opacity = 0.8 * rest;
+    const lift = S.R + o.g + 0.08 + k * 0.08;
+    o.m.position.copy(o.n).multiplyScalar(lift);
   }
 }

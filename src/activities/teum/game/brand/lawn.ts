@@ -1,10 +1,8 @@
 import * as THREE from "three";
 
-import { corNear, freeAt, occAdd } from "../scenery/spots";
-import type { Game } from "../state";
-import { S } from "../state";
+import type { Services } from "../services";
+import { S } from "../settings";
 import { from, offset, START } from "../world/sphere";
-import { groundAt } from "../world/terrain";
 
 // 잔디 로고: 출발 마을 곁 풀밭에 옅게 깎아 둔 라임 워드마크(폭 150m). 땅에서는 그냥 무늬이고, 높이 솟구쳤을 때만 글자로 읽힌다
 
@@ -25,16 +23,21 @@ const LAWN_W = 150;
  * 잔디 로고 자리를 먼저 맡아 둔다(나무·꽃·조형물을 놓기 전에): 출발 마을 둘레에서 가장 빈 풀밭을 골라
  * 그 위에 아무것도 서지 않게 한다. 미리 정해 둔 큰 나무는 갓이 넓어서 26m 이상 멀찍이 피한다
  */
-export function reserveLawn(g: Game): Lawn {
+export function reserveLawn(s: Services): Lawn {
+  const occ = s.occ;
   let best: Omit<Lawn, "u" | "r"> | null = null,
     bs = -1;
-  const LT = (g.L.tree || []).map((o) => from(o.dist, o.bear));
+  const LT = (s.layout.tree || []).map((o) => from(o.dist, o.bear));
   for (const dist of [110, 140, 170, 200, 230, 260, 290, 320])
     for (let b = 0; b < 360; b += 10) {
       const c = offset(START, dist, b);
       let score = 0;
       lawnPoints(c, (q) => {
-        if (freeAt(g, q, 8) && !corNear(g, q, 5) && LT.every((tv) => tv.angleTo(q) * S.R > 26))
+        if (
+          occ.isFree(q, 8) &&
+          !occ.nearCorridor(q, 5) &&
+          LT.every((tv) => tv.angleTo(q) * S.R > 26)
+        )
           score++;
       });
       if (score > bs) {
@@ -43,12 +46,12 @@ export function reserveLawn(g: Game): Lawn {
       }
     }
   const chosen = best!;
-  const axes = lawnPoints(chosen.c, (q) => occAdd(g, q, 10));
+  const axes = lawnPoints(chosen.c, (q) => occ.fill(q, 10));
   return { ...chosen, ...axes };
 }
 
 /** 맡아 둔 자리에 잔디 글자를 깐다(땅 높이를 따라 휜 판) */
-export function createLawnMesh(g: Game, lawn: Lawn, tex: THREE.Texture): THREE.Mesh {
+export function createLawnMesh(s: Services, lawn: Lawn, tex: THREE.Texture): THREE.Mesh {
   const { c, u, r } = lawn,
     W = LAWN_W,
     H = (W * 256) / 1024,
@@ -67,7 +70,7 @@ export function createLawnMesh(g: Game, lawn: Lawn, tex: THREE.Texture): THREE.M
       const across = Math.tan(acrossArc),
         along = Math.tan(alongArc);
       q.copy(c).addScaledVector(r, across).addScaledVector(u, along).normalize();
-      const ground = groundAt(g, q);
+      const ground = s.terrain.groundAt(q);
       const gh = Math.max(ground, 0) + 0.22;
       const radius = S.R + gh;
       const px = q.x * radius,
@@ -107,7 +110,7 @@ export function createLawnMesh(g: Game, lawn: Lawn, tex: THREE.Texture): THREE.M
   const mesh = new THREE.Mesh(ge, mat);
   mesh.frustumCulled = false;
   mesh.renderOrder = 1;
-  g.scene.add(mesh);
+  s.scene.add(mesh);
   return mesh;
 }
 

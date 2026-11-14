@@ -1,66 +1,13 @@
 import * as THREE from "three";
 
-import { burst } from "../fx/sparks";
-import { say } from "../hud";
-import type { Game } from "../state";
-import { S } from "../state";
-import { groundify, puffMat } from "./ground";
-import { grey } from "./materials";
-import { from, offset, UP } from "./sphere";
+import { S } from "../settings";
+import type { LayoutHill } from "./layout";
+import { from } from "./sphere";
+import { chordOf, SphereGrid } from "./sphereGrid";
 
-// 지형: 바닥의 작은 솜 뭉치(꽃 자리), 완만한 둔덕, 하늘의 뭉게구름, 큰 언덕과 등대 산.
-// 자리는 시드 7 의 난수로 뽑는다 — 뽑는 순서가 곧 지형이라 순서를 바꾸지 않는다
-
-/** 같은 도형을 여럿 찍는 밭: 자리(v)·크기(s)·높이(h)·켜짐(on) */
-export interface Field {
-  m: THREE.InstancedMesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
-  v: THREE.Vector3[];
-  s: number[];
-  h: number[];
-  on: boolean[];
-}
-
-/** 바닥의 솜 뭉치 = 꽃 자리. lit 은 피어난 정도, g 는 땅 높이 */
-export interface Bumps extends Field {
-  lit: Float32Array;
-  base: number[];
-  g: Float32Array;
-}
-
-/** 둔덕: c 는 둘레 솜 다섯 [방향, 거리, 크기] */
-export interface Hills extends Field {
-  c: [number, number, number][][];
-}
-
-/** 뭉게구름: b 방향, j 덩이마다 흔들림, c 가운데, burst 흩어진 정도 */
-export interface Clouds extends Field {
-  b: number[];
-  j: number[][];
-  c: THREE.Vector3[];
-  burst: Float32Array;
-}
-
-/** 큰 언덕(첫째는 등대 산) */
-export interface Feature {
-  at: () => THREE.Vector3;
-  s: number;
-  H: number;
-  mesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
-  v: THREE.Vector3;
-  c: [number, number, number][];
-}
-
-/** 지형 전체 */
-export interface Terrain {
-  /** 지형 난수의 현재 값 */
-  seed: number;
-  bumps: Bumps;
-  hills: Hills;
-  hillMat: THREE.MeshStandardMaterial;
-  clouds: Clouds;
-  features: Feature[];
-  clump: THREE.InstancedMesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
-}
+// 지형(높이만): 꽃 자리, 완만한 둔덕, 하늘의 뭉게구름 자리, 큰 언덕과 등대 산.
+// 자리는 시드 7 의 난수로 뽑는다 — 뽑는 순서(꽃 자리 → 둔덕 → 구름 → 큰 언덕)가 곧 지형이라 바꾸지 않는다.
+// 그리는 것은 world/terrainView·world/clouds·world/flowers 가 이 값을 보고 한다
 
 /** 꽃 자리 수 */
 export const FLN = 5200;
@@ -68,272 +15,226 @@ export const FLN = 5200;
 export const HLN = 700;
 /** 뭉게구름 수 */
 export const CLOUD_N = 260;
-/** 솜 덩어리 중 둔덕 몫(둔덕 하나에 여섯) */
-export const CL_H = HLN * 6;
+/** 큰 언덕 비탈에 얹는 솜 뭉치 수 */
+const FEATURE_TUFTS = 16;
 
-const q = new THREE.Quaternion(),
-  m4 = new THREE.Matrix4(),
-  sc = new THREE.Vector3(),
-  ps = new THREE.Vector3(),
-  tc = new THREE.Color();
-
-/** 지형 난수(시드 7) */
-export function rnd(g: Game): number {
-  const t = g.terrain;
-  t.seed = (t.seed * 16807) % 2147483647;
-  return t.seed / 2147483647;
+/** 바닥의 꽃 자리: 자리(v)·크기(s)·피어난 정도(lit)·제 색(base)·땅 높이(g) */
+export interface FlowerSpots {
+  v: THREE.Vector3[];
+  s: number[];
+  lit: Float32Array;
+  base: number[];
+  g: Float32Array;
 }
 
-/** 공 전체에 고르게 뽑은 단위 벡터 */
-export function rv(g: Game): THREE.Vector3 {
-  // 높이(u)를 먼저, 둘레 각(a)을 다음에 뽑는다 — 이 순서가 지형을 정한다
-  const u = rnd(g) * 2 - 1,
-    a = rnd(g) * Math.PI * 2;
-  const ringSq = 1 - u * u;
-  const r = Math.sqrt(ringSq);
-  const x = r * Math.cos(a),
-    z = r * Math.sin(a);
-  return new THREE.Vector3(x, u, z);
+/** 둔덕: 자리·크기·켜짐(놀이 자리를 덮는 것은 끈다)·둘레 솜 다섯 [방향, 거리, 크기] */
+export interface Hills {
+  v: THREE.Vector3[];
+  s: number[];
+  on: boolean[];
+  c: [number, number, number][][];
 }
 
-/** 꽃 자리(작은 솜 뭉치) 밭을 뽑는다 — 지형 난수의 첫 순서 */
-export function createBumps(g: Game): Bumps {
-  g.terrain = { seed: 7 } as Terrain;
-  // 바닥의 작은 솜 뭉치
-  const tuftGeo = new THREE.SphereGeometry(1, 14, 10);
-  const tuftMat = puffMat(g.ground, 0xcfd3d2);
-  const f = field(g, FLN, tuftGeo, tuftMat);
-  for (let i = 0; i < FLN; i++) {
-    const v = rv(g);
-    f.v.push(v);
-    const size = 0.35 + rnd(g) * 1.0;
-    f.s.push(size);
-  }
-  const bumps: Bumps = {
-    ...f,
-    lit: new Float32Array(FLN),
-    base: new Array(FLN).fill(0xffffff),
-    g: new Float32Array(FLN),
-  };
-  // 꽃: 지나가면 라임으로 피어난다. 솜 뭉치 자체는 그리지 않고 그 자리에 꽃을 그린다(world/flowers)
-  bumps.m.visible = false;
-  g.terrain.bumps = bumps;
-  return bumps;
+/** 뭉게구름 자리: 크기·높이·방향·덩이마다 흔들림·가운데·흩어진 정도 */
+export interface CloudSpots {
+  v: THREE.Vector3[];
+  s: number[];
+  h: number[];
+  b: number[];
+  j: number[][];
+  c: THREE.Vector3[];
+  burst: Float32Array;
 }
 
-/** 둔덕을 뽑는다: 땅과 같은 풀밭으로 이어지는 완만한 둔덕(솜 뭉치 덩어리는 쓰지 않는다) */
-export function createHills(g: Game) {
-  const hillMat = grey(g.mats, 0xd3d6d5);
-  hillMat.side = THREE.DoubleSide;
-  groundify(g.ground, hillMat);
-  const hillGeo = bumpGeo(20, 40);
-  const f = field(g, HLN, hillGeo, hillMat);
-  const hills: Hills = { ...f, c: [] };
-  for (let i = 0; i < HLN; i++) {
-    const v = rv(g);
-    hills.v.push(v);
-    const size = 6 + rnd(g) * rnd(g) * 34;
-    hills.s.push(size);
-    const c: [number, number, number][] = [];
-    for (let j = 0; j < 5; j++) {
-      // [방향, 거리, 크기] — 세 값을 이 순서로 뽑는다
-      const tuft: [number, number, number] = [
-        j * 72 + rnd(g) * 40,
-        0.42 + rnd(g) * 0.2,
-        0.3 + rnd(g) * 0.14,
-      ];
-      c.push(tuft);
+/** 큰 언덕(첫째는 등대 산): 반지름 s, 높이 H, 비탈 솜 뭉치 [방향, 거리, 크기] */
+export interface Feature {
+  s: number;
+  H: number;
+  v: THREE.Vector3;
+  c: [number, number, number][];
+  /** 자리를 정하는 법(첫째는 등대 자리) */
+  at: () => THREE.Vector3;
+}
+
+/** 둔덕을 끌 때 피하는 둥근 자리 */
+interface Round {
+  v: THREE.Vector3;
+  r: number;
+}
+
+/** 지형 높이. 둔덕은 settle 전까지 높이에 들어가지 않는다(놀이기구 자리는 큰 언덕만 보고 정한다) */
+export class Terrain {
+  readonly flowers: FlowerSpots;
+  readonly hills: Hills;
+  readonly clouds: CloudSpots;
+  readonly features: Feature[];
+  private seed = 7;
+  private readonly grid = new SphereGrid(0.08);
+  private readonly flowerGrid = new SphereGrid(0.04);
+  private readonly hillChord: number;
+  private readonly near: number[] = [];
+
+  /** lighthouseAt: 등대 자리(첫 큰 언덕이 그 아래 선다) */
+  constructor(hillSpots: readonly LayoutHill[], lighthouseAt: () => THREE.Vector3) {
+    // ---- 꽃 자리 ----
+    const fv: THREE.Vector3[] = [],
+      fs: number[] = [];
+    for (let i = 0; i < FLN; i++) {
+      const v = this.rv();
+      fv.push(v);
+      const size = 0.35 + this.rnd() * 1.0;
+      fs.push(size);
     }
-    hills.c.push(c);
-  }
-  g.terrain.hills = hills;
-  g.terrain.hillMat = hillMat;
-}
-
-/** 뭉게구름을 뽑는다(덩이 다섯이 뭉친 구름) */
-export function createClouds(g: Game) {
-  const puffCount = CLOUD_N * 5;
-  const puffGeo = new THREE.SphereGeometry(1, 14, 10);
-  const cloudMat = puffMat(g.ground, 0xffffff);
-  const f = field(g, puffCount, puffGeo, cloudMat);
-  const clouds: Clouds = { ...f, b: [], j: [], c: [], burst: new Float32Array(CLOUD_N) };
-  for (let i = 0; i < CLOUD_N; i++) {
-    const center = new THREE.Vector3();
-    clouds.c.push(center);
-  }
-  for (let i = 0; i < CLOUD_N; i++) {
-    const v = rv(g);
-    clouds.v.push(v);
-    const size = 5 + rnd(g) * 7;
-    clouds.s.push(size);
-    const height = 70 + rnd(g) * 110;
-    clouds.h.push(height);
-    const bearing = rnd(g) * 360;
-    clouds.b.push(bearing);
-    const wobble = [rnd(g), rnd(g), rnd(g), rnd(g), rnd(g)];
-    clouds.j.push(wobble);
-  }
-  g.terrain.clouds = clouds;
-}
-
-/** 큰 언덕과 등대 산 — 오르면 멀리 보이고, 내려갈 때 미끄러진다. 비탈에 얹을 솜 덩어리도 같이 */
-export function createFeatures(g: Game) {
-  const PLACES = g.places.list;
-  // 등대 산과 마을마다의 언덕. 모양은 layout 이 실제 크기로 만든다
-  const features: Feature[] = g.L.hill.map((h, i) => {
-    const mat = grey(g.mats, 0xd6d9d8);
-    mat.side = THREE.DoubleSide;
-    groundify(g.ground, mat);
-    const emptyGeo = new THREE.BufferGeometry();
-    const mesh = new THREE.Mesh(emptyGeo, mat);
-    g.scene.add(mesh);
-    const c: [number, number, number][] = [];
-    for (let j = 0; j < 16; j++) {
-      // 비탈의 솜 뭉치 [방향, 거리, 크기] — 세 값을 이 순서로 뽑는다
-      const tuft: [number, number, number] = [
-        rnd(g) * 360,
-        0.2 + rnd(g) * 0.72,
-        0.09 + rnd(g) * 0.1,
-      ];
-      c.push(tuft);
+    for (const v of fv) this.flowerGrid.add(v);
+    this.flowers = {
+      v: fv,
+      s: fs,
+      lit: new Float32Array(FLN),
+      base: new Array<number>(FLN).fill(0xffffff),
+      g: new Float32Array(FLN),
+    };
+    // ---- 둔덕 ----
+    const hills: Hills = { v: [], s: [], on: [], c: [] };
+    for (let i = 0; i < HLN; i++) {
+      const v = this.rv();
+      hills.v.push(v);
+      const size = 6 + this.rnd() * this.rnd() * 34;
+      hills.s.push(size);
+      const c: [number, number, number][] = [];
+      for (let j = 0; j < 5; j++) {
+        // [방향, 거리, 크기] — 세 값을 이 순서로 뽑는다
+        const dir = j * 72 + this.rnd() * 40,
+          far = 0.42 + this.rnd() * 0.2,
+          size2 = 0.3 + this.rnd() * 0.14;
+        c.push([dir, far, size2]);
+      }
+      hills.c.push(c);
     }
-    const at = i ? () => from(h.dist, h.bear) : () => PLACES[3].at();
-    return { at, s: h.s, H: h.H, mesh, v: new THREE.Vector3(), c };
-  });
-  g.terrain.features = features;
-  const clumpGeo = new THREE.SphereGeometry(1, 12, 9);
-  const clumpMat = puffMat(g.ground, 0xf2f3f3);
-  const clumpCount = CL_H + features.length * 16;
-  const clump = new THREE.InstancedMesh(clumpGeo, clumpMat, clumpCount);
-  clump.frustumCulled = false;
-  clump.visible = false;
-  g.scene.add(clump);
-  g.terrain.clump = clump;
-}
-
-/** 큰 언덕이 올린 땅 높이 */
-export function featGround(g: Game, v: THREE.Vector3): number {
-  let gr = 0;
-  for (const f of g.terrain.features) {
-    const r = v.angleTo(f.v) * S.R;
-    if (r >= f.s) continue;
-    const phase = (Math.PI * r) / f.s;
-    const y = f.H * 0.5 * (Math.cos(phase) + 1);
-    if (y > gr) gr = y;
+    this.hills = hills;
+    let maxS = 0;
+    for (const s of hills.s) maxS = Math.max(maxS, s);
+    const hillAngle = maxS / S.R;
+    this.hillChord = chordOf(hillAngle);
+    for (const v of hills.v) this.grid.add(v);
+    // ---- 뭉게구름 ----
+    const clouds: CloudSpots = {
+      v: [],
+      s: [],
+      h: [],
+      b: [],
+      j: [],
+      c: [],
+      burst: new Float32Array(CLOUD_N),
+    };
+    for (let i = 0; i < CLOUD_N; i++) {
+      const center = new THREE.Vector3();
+      clouds.c.push(center);
+    }
+    for (let i = 0; i < CLOUD_N; i++) {
+      const v = this.rv();
+      clouds.v.push(v);
+      const size = 5 + this.rnd() * 7;
+      clouds.s.push(size);
+      const height = 70 + this.rnd() * 110;
+      clouds.h.push(height);
+      const bearing = this.rnd() * 360;
+      clouds.b.push(bearing);
+      const wobble = [this.rnd(), this.rnd(), this.rnd(), this.rnd(), this.rnd()];
+      clouds.j.push(wobble);
+    }
+    this.clouds = clouds;
+    // ---- 큰 언덕 ----
+    this.features = hillSpots.map((h, i) => {
+      const c: [number, number, number][] = [];
+      for (let j = 0; j < FEATURE_TUFTS; j++) {
+        // 비탈의 솜 뭉치 [방향, 거리, 크기] — 세 값을 이 순서로 뽑는다
+        const dir = this.rnd() * 360,
+          far = 0.2 + this.rnd() * 0.72,
+          size = 0.09 + this.rnd() * 0.1;
+        c.push([dir, far, size]);
+      }
+      const at = i ? () => from(h.dist, h.bear) : lighthouseAt;
+      return { s: h.s, H: h.H, v: new THREE.Vector3(), c, at };
+    });
   }
-  return gr;
-}
 
-/** 그 자리의 땅 높이(큰 언덕 + 켜진 둔덕) */
-export function groundAt(g: Game, v: THREE.Vector3): number {
-  const hills = g.terrain.hills;
-  let gr = featGround(g, v);
-  for (let i = 0; i < hills.v.length; i++) {
-    if (!hills.on[i]) continue;
-    const s = hills.s[i],
-      r = v.angleTo(hills.v[i]) * S.R;
-    if (r >= s) continue;
-    const phase = (Math.PI * r) / s;
-    const y = 0.15 * s * (Math.cos(phase) + 1);
-    if (y > gr) gr = y;
+  /** 큰 언덕 자리를 정한다(장소 자리가 정해진 뒤) */
+  placeFeatures() {
+    for (const f of this.features) {
+      const center = f.at();
+      f.v.copy(center);
+    }
   }
-  return gr;
-}
 
-/** 뭉게구름 하나(덩이 다섯)를 놓는다. b 가 0 보다 크면 흩어진 상태다 */
-export function setCloud(g: Game, i: number, b: number) {
-  const clouds = g.terrain.clouds;
-  for (let j = 0; j < 5; j++) {
-    // 가운데 덩이(j=2)가 가장 크고, 흩어질수록 덩이 사이가 벌어진다
-    const fromMiddle = j - 2;
-    const cs = clouds.s[i],
-      sz = cs * (1.3 - Math.abs(fromMiddle) * 0.3) * (0.85 + 0.3 * clouds.j[i][j]) * (1 - 0.35 * b);
-    const spread = fromMiddle * cs * 1.05 * (1 + 1.2 * b);
-    const v = offset(clouds.v[i], spread, clouds.b[i]);
-    q.setFromUnitVectors(UP, v);
-    const radius = S.R + clouds.h[i] + sz * 0.5 + (j % 2) * cs * 0.2 + b * cs * 0.6 * ((j % 3) - 1);
-    ps.copy(v).multiplyScalar(radius);
-    const sx = sz * 1.15,
-      sy = sz * 0.82;
-    sc.set(sx, sy, sz);
-    m4.compose(ps, q, sc);
-    const slot = i * 5 + j;
-    clouds.m.setMatrixAt(slot, m4);
-    const limeMix = b * 0.6;
-    const color = tc.set(0xffffff).lerp(g.mats.lime, limeMix);
-    clouds.m.setColorAt(slot, color);
+  /** 놀이·장소·호수·넓은 놀이 자리를 덮는 둔덕은 끈다. 이 뒤로 둔덕이 높이에 들어간다 */
+  settle(keep: readonly THREE.Vector3[], lakes: readonly Round[], zones: readonly Round[]) {
+    const { hills, features } = this;
+    for (let i = 0; i < hills.v.length; i++) {
+      const hv = hills.v[i],
+        hs = hills.s[i];
+      hills.on[i] =
+        !keep.some((k) => k.angleTo(hv) * S.R < hs + 10) &&
+        !features.some((f) => f.v.angleTo(hv) * S.R < hs + f.s) &&
+        !lakes.some((l) => l.v.angleTo(hv) * S.R < hs + l.r) &&
+        !zones.some((z) => z.v.angleTo(hv) * S.R < hs + z.r);
+    }
   }
-}
 
-/** 솜 덩어리 하나를 놓는다(둔덕·언덕 비탈) */
-export function putClump(
-  g: Game,
-  k: number,
-  v: THREE.Vector3,
-  lift: number,
-  sx: number,
-  sy: number,
-) {
-  q.setFromUnitVectors(UP, v);
-  const radius = S.R + lift;
-  ps.copy(v).multiplyScalar(radius);
-  sc.set(sx, sy, sx);
-  m4.compose(ps, q, sc);
-  g.terrain.clump.setMatrixAt(k, m4);
-}
-
-/** 뭉게구름: 뚫고 지나가면 흩어졌다가 다시 뭉친다 */
-export function cloudsFrame(g: Game) {
-  const { pl, t } = g,
-    P = pl.P,
-    clouds = g.terrain.clouds;
-  let clDirty = false;
-  for (let i = 0; i < CLOUD_N; i++) {
-    let b = clouds.burst[i];
-    const rr = clouds.s[i] * 2.3;
-    if (b < 0.4 && P.distanceToSquared(clouds.c[i]) < rr * rr) {
-      b = 1;
-      if (!t.held) pl.vy = Math.max(pl.vy, 2.6);
-      const at = P.clone();
-      burst(g, at, 6, 5);
-      say(g, "뭉게구름 — 뚫고 지나가면 흩어집니다");
-    } else if (b > 0) {
-      const faded = b - t.dt * 0.3;
-      b = Math.max(0, faded);
-    } else continue;
-    clouds.burst[i] = b;
-    const scatter = b * b * (3 - 2 * b);
-    setCloud(g, i, scatter);
-    clDirty = true;
+  /** 큰 언덕이 올린 땅 높이 */
+  featGround(v: THREE.Vector3): number {
+    let gr = 0;
+    for (const f of this.features) {
+      const r = v.angleTo(f.v) * S.R;
+      if (r >= f.s) continue;
+      const phase = (Math.PI * r) / f.s;
+      const y = f.H * 0.5 * (Math.cos(phase) + 1);
+      if (y > gr) gr = y;
+    }
+    return gr;
   }
-  if (clDirty) {
-    clouds.m.instanceMatrix.needsUpdate = true;
-    clouds.m.instanceColor!.needsUpdate = true;
+
+  /** 그 자리의 땅 높이(큰 언덕 + 켜진 둔덕). 둔덕은 칸 나눔으로 가까운 것만 본다 */
+  groundAt(v: THREE.Vector3): number {
+    const hills = this.hills;
+    let gr = this.featGround(v);
+    if (!hills.on.length) return gr;
+    const near = this.grid.query(v, this.hillChord, this.near);
+    for (const i of near) {
+      if (!hills.on[i]) continue;
+      const s = hills.s[i],
+        r = v.angleTo(hills.v[i]) * S.R;
+      if (r >= s) continue;
+      const phase = (Math.PI * r) / s;
+      const y = 0.15 * s * (Math.cos(phase) + 1);
+      if (y > gr) gr = y;
+    }
+    return gr;
   }
-}
 
-/* ─── 내부 ─────────────────────────── */
-
-function field(
-  g: Game,
-  n: number,
-  geo: THREE.BufferGeometry,
-  mat: THREE.MeshStandardMaterial,
-): Field {
-  const m = new THREE.InstancedMesh(geo, mat, n);
-  g.scene.add(m);
-  return { m, v: [], s: [], h: [], on: [] };
-}
-
-// 꼭대기와 자락이 모두 완만한 종 모양
-function bumpGeo(seg: number, around: number) {
-  const pts: THREE.Vector2[] = [];
-  for (let i = 0; i <= seg; i++) {
-    const r = i / seg;
-    const phase = Math.PI * r;
-    const y = 0.5 * (Math.cos(phase) + 1) - 0.12 * r * r;
-    const pt = new THREE.Vector2(r, y);
-    pts.push(pt);
+  /** v 둘레(현 길이² × R² < distSq)의 꽃이 한꺼번에 핀다 — 시제품의 2(1 − v·b)R² < d² 와 같은 셈 */
+  lightFlowers(v: THREE.Vector3, distSq: number) {
+    const fl = this.flowers,
+      reach = Math.sqrt(distSq) / S.R;
+    for (const k of this.flowerGrid.query(v, reach, this.near)) {
+      const chordSq = 2 * (1 - v.dot(fl.v[k]));
+      if (chordSq * S.R * S.R < distSq) fl.lit[k] = 1;
+    }
   }
-  return new THREE.LatheGeometry(pts, around);
+
+  // 지형 난수(시드 7)
+  private rnd(): number {
+    this.seed = (this.seed * 16807) % 2147483647;
+    return this.seed / 2147483647;
+  }
+
+  // 공 전체에 고르게 뽑은 단위 벡터: 높이(u)를 먼저, 둘레 각(a)을 다음에 뽑는다 — 이 순서가 지형을 정한다
+  private rv(): THREE.Vector3 {
+    const u = this.rnd() * 2 - 1,
+      a = this.rnd() * Math.PI * 2;
+    const ringSq = 1 - u * u;
+    const r = Math.sqrt(ringSq);
+    const x = r * Math.cos(a),
+      z = r * Math.sin(a);
+    return new THREE.Vector3(x, u, z);
+  }
 }

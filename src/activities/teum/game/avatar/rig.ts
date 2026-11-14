@@ -1,13 +1,32 @@
 import * as THREE from "three";
 
-import { hasModel, whenModel } from "../models";
-import type { Game } from "../state";
-import { applyLook } from "../world/look";
+import { ease } from "../core/frame";
+import type { Services } from "../services";
 import { clamp } from "../world/sphere";
 import { AVATAR_BODY, DEFAULT_WEAR, PARTS } from "./parts";
 
 // 뼈대가 있는 아바타: 몸짓은 뼈를 코드로 직접 돌려서 만든다. 이 아이는 걷지 않는다. 늘 떠 있다:
 // 멈추면 물속처럼 둥실, 나아가면 몸을 눕혀 팔을 날개처럼 펴고, 솟으면 만세, 떨어지면 허우적
+
+/** 이번 프레임 몸짓에 쓰는 값: 빠르기 배수(tot)·위아래 속도·솟은 높이·옆으로 끄는 정도(fx)·시각 */
+export interface PoseInput {
+  dt: number;
+  tot: number;
+  vy: number;
+  air: number;
+  fx: number;
+  time: number;
+}
+
+/** 한 프레임 몸짓 */
+export type PoseFn = (i: PoseInput) => void;
+
+/** 아바타를 끼울 자리: 기울기 그룹(tiltG)과 오기 전까지 서 있던 도형 몸 */
+export interface RigSlots {
+  tiltG: THREE.Group;
+  body: THREE.Object3D;
+  nose: THREE.Object3D;
+}
 
 /** 뼈 하나의 처음 자세(모델 기준 돌림과 세계 돌림) */
 interface Rest {
@@ -16,20 +35,19 @@ interface Rest {
   wi: THREE.Quaternion;
 }
 
-/** 뼈대 있는 몸이 오면 도형 몸을 숨기고 끼운 뒤, 부품을 차례로 입힌다 */
-export function setupAvatar(g: Game) {
-  if (!hasModel(g, AVATAR_BODY)) return;
-  whenModel(g, AVATAR_BODY, (av) => {
-    const M = g.me,
-      tiltG = M.tiltG,
-      B: Record<string, THREE.Bone> = {},
-      uL = { value: 0 };
+/**
+ * 뼈대 있는 몸이 오면 도형 몸을 숨기고 끼운 뒤, 부품을 차례로 입힌다. 몸짓 함수는 onReady 로 넘긴다.
+ * 재질은 모델을 받을 때 키마다 한 번 칠해 두었다(아바타 몸·부품에는 색조가 없어 그 칠 그대로 쓴다)
+ */
+export function setupRig(s: Services, slots: RigSlots, onReady: (pose: PoseFn) => void) {
+  const models = s.models;
+  if (!models.has(AVATAR_BODY)) return;
+  models.when(AVATAR_BODY, (av) => {
+    const tiltG = slots.tiltG,
+      B: Record<string, THREE.Bone> = {};
     av.traverse((c) => {
       if (c instanceof THREE.Bone) B[c.name] = c;
-      if (c instanceof THREE.Mesh) {
-        c.frustumCulled = false;
-        applyLook(g, c.material, uL, "avatar");
-      }
+      if (c instanceof THREE.Mesh) c.frustumCulled = false;
     });
     av.updateMatrixWorld(true);
     // 머리 크기: 머리뼈보다 위에 있는 점들만 잰다(자동 뼈대가 손끝을 머리에 묶어 둔 곳이 있어서 뼈 이름으로는 못 잰다). 세계에 놓기 전, 모델 기준일 때 재야 한다
@@ -74,9 +92,8 @@ export function setupAvatar(g: Game) {
     const holdScale = 1.5 / sz.y;
     hold.scale.setScalar(holdScale);
     hold.rotation.y = faceDir > 0 ? -Math.PI / 2 : Math.PI / 2; // 얼굴이 앞(+z)을 보게
-    hold.userData = { uLime: uL };
-    M.body.visible = false;
-    M.nose.visible = false;
+    slots.body.visible = false;
+    slots.nose.visible = false;
     tiltG.add(hold);
     const st = { f: 0, r: 0, b: 0 },
       Q = new THREE.Quaternion(),
@@ -105,23 +122,19 @@ export function setupAvatar(g: Game) {
       b.quaternion.copy(r.q).multiply(Q);
     };
     // st.f = 나아가는 정도, st.r = 솟음(+)·떨어짐(-), st.b = 옆으로 끄는 기울기. 모두 천천히 따라간다
-    M.avFrame = (dt, tot, vy, air) => {
-      const e = (r: number) => 1 - Math.exp(-r * dt),
-        inp = g.input.inp,
-        fx = inp.drag ? inp.fx || 0 : 0;
+    onReady(({ dt, tot, vy, air, fx, time: t }) => {
       const forward = tot / 0.85,
         forwardTarget = clamp(forward, 0, 1);
-      st.f += (forwardTarget - st.f) * e(3.5);
+      st.f += (forwardTarget - st.f) * ease(3.5, dt);
       const riseTarget = vy > 2.5 ? 1 : vy < -2 && air > 2 ? -1 : 0;
-      st.r += (riseTarget - st.r) * e(6);
+      st.r += (riseTarget - st.r) * ease(6, dt);
       const bankTarget = fx * Math.min(1, tot);
-      st.b = (st.b || 0) + (bankTarget - (st.b || 0)) * e(4);
+      st.b = (st.b || 0) + (bankTarget - (st.b || 0)) * ease(4, dt);
       // 몸짓의 무게: 나아감(glide)은 솟거나 떨어지는 동안 줄고, 멈춤(idle)은 나아가지 않는 만큼
       const rise = Math.max(0, st.r),
         fall = Math.max(0, -st.r),
         glide = st.f * (1 - rise) * (1 - fall),
-        idle = 1 - st.f,
-        t = g.time;
+        idle = 1 - st.f;
       const swayPhase = t * 1.7,
         swayLatePhase = t * 1.7 + 1.3,
         kickPhase = t * 6.5,
@@ -191,7 +204,7 @@ export function setupAvatar(g: Game) {
         rightElbowSide = -0.15 * idle * leftDir;
       pose("LeftForeArm", elbowBend, leftElbowSide, 0);
       pose("RightForeArm", elbowBend, rightElbowSide, 0);
-    };
+    });
     // 꾸미기: 칸(slot)마다 하나씩, 같은 칸에 새로 끼우면 바뀐다
     const hs = new THREE.Vector3(),
       hc = new THREE.Vector3();
@@ -205,8 +218,8 @@ export function setupAvatar(g: Game) {
         worn[d.slot]!.removeFromParent();
         worn[d.slot] = null;
       }
-      if (!hasModel(g, key)) return then(); // 없는 이름을 주면 그 칸을 비운다
-      whenModel(g, key, (root) => {
+      if (!models.has(key)) return then(); // 없는 이름을 주면 그 칸을 비운다
+      models.when(key, (root) => {
         const m = root.clone(true),
           bb = new THREE.Box3().setFromObject(m),
           bs = new THREE.Vector3(),
@@ -214,24 +227,20 @@ export function setupAvatar(g: Game) {
         bb.getSize(bs);
         bb.getCenter(bc);
         const G = new THREE.Group(),
-          s = (hs.z * d.w) / bs.z;
+          s2 = (hs.z * d.w) / bs.z;
         m.traverse((c) => {
-          if (c instanceof THREE.Mesh) {
-            c.frustumCulled = false;
-            c.material = (c.material as THREE.MeshStandardMaterial).clone();
-            applyLook(g, c.material, uL, "avatar");
-          }
+          if (c instanceof THREE.Mesh) c.frustumCulled = false;
         });
         m.position.copy(bc).negate();
         G.add(m);
-        G.scale.setScalar(s);
+        G.scale.setScalar(s2);
         G.rotation.y = faceDir > 0 ? 0 : Math.PI; // 뽑아 온 부품은 앞이 +x를 본다. 그 앞을 얼굴 쪽으로
         if (d.slot === "hair") {
           const partX = hc.x + faceDir * (d.f || 0) * hs.x,
-            partY = hb.max.y + d.top! * hs.y - (bs.y * s) / 2;
+            partY = hb.max.y + d.top! * hs.y - (bs.y * s2) / 2;
           G.position.set(partX, partY, hc.z);
         } else {
-          const partX = hc.x + faceDir * (hs.x / 2 + (d.f || 0) * hs.x - (bs.x * s) / 2),
+          const partX = hc.x + faceDir * (hs.x / 2 + (d.f || 0) * hs.x - (bs.x * s2) / 2),
             partY = hc.y + (d.y || 0) * hs.y;
           G.position.set(partX, partY, hc.z);
         }

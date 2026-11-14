@@ -1,12 +1,13 @@
 import * as THREE from "three";
 
-import { say } from "../hud";
-import type { Game } from "../state";
-import { GREY_TOY, S } from "../state";
+import type { Frame, Thing } from "../core/frame";
+import { ease } from "../core/frame";
+import type { Holder } from "../player/player";
+import type { Services } from "../services";
+import { S } from "../settings";
 import type { LayoutWhirl } from "../world/layout";
-import { grey } from "../world/materials";
 import { from, step, UP } from "../world/sphere";
-import { featGround } from "../world/terrain";
+import type { Streams } from "./streams";
 
 // 회오리 — 닿으면 빙글빙글 빨려 올라갔다가 튕겨 나간다
 
@@ -18,101 +19,130 @@ export interface Whirl extends LayoutWhirl {
   cool: number;
 }
 
-/** 회오리에 실려 있는 동안. h0 는 들어올 때의 방향(카메라가 같이 돌지 않게 — 깔때기도 쓴다) */
-export interface WhirlRide {
-  on: boolean;
-  t: number;
-  w: Whirl | null;
-  h0: THREE.Vector3;
-}
+/** 고리 일곱 겹(회오리마다 같은 모양) */
+const RINGS = 7;
 
 const tmp = new THREE.Vector3();
 
-/** 회오리를 만든다 */
-export function createWhirls(g: Game): Whirl[] {
-  return g.L.whirl.map((w) => {
-    const gr = new THREE.Group(),
-      spin = new THREE.Group();
-    gr.add(spin);
-    for (let i = 0; i < 7; i++) {
+/** 회오리 전체(나를 붙잡는다 — 안에서는 화면이 같이 돌지 않게 카메라가 들어올 때의 방향을 지킨다) */
+export class Whirls implements Thing, Holder {
+  readonly list: Whirl[];
+  readonly cameraMode = "spin";
+  /** 실려 있는 회오리와 실린 뒤 시간 */
+  private ride: { w: Whirl; t: number } | null = null;
+  private readonly geos: THREE.TorusGeometry[] = [];
+  private readonly mat: THREE.MeshStandardMaterial;
+
+  constructor(private readonly s: Services) {
+    for (let i = 0; i < RINGS; i++) {
       const ringRadius = 1.4 + i * 0.85;
       const ringGeo = new THREE.TorusGeometry(ringRadius, 0.3, 10, 36);
-      const ringMat = grey(g.mats, GREY_TOY);
-      const t = new THREE.Mesh(ringGeo, ringMat);
-      t.rotation.x = Math.PI / 2;
-      t.position.y = 1.2 + i * 2.5;
-      spin.add(t);
+      this.geos.push(ringGeo);
     }
-    spin.scale.set(1.7, 2.2, 1.7);
-    g.scene.add(gr);
-    return { ...w, g: gr, spin, v: new THREE.Vector3(), cool: 0 };
-  });
-}
+    // 회오리 고리는 반응하지 않아 톤의 노랑 하나로 같이 쓴다
+    this.mat = s.mats.grey(0xffffff);
+    this.mat.color.copy(s.mats.toy.whirl);
+    this.list = s.layout.whirl.map((w) => {
+      const gr = new THREE.Group(),
+        spin = new THREE.Group();
+      gr.add(spin);
+      for (let i = 0; i < RINGS; i++) {
+        const t = new THREE.Mesh(this.geos[i], this.mat);
+        t.rotation.x = Math.PI / 2;
+        t.position.y = 1.2 + i * 2.5;
+        spin.add(t);
+      }
+      spin.scale.set(1.7, 2.2, 1.7);
+      s.scene.add(gr);
+      return { ...w, g: gr, spin, v: new THREE.Vector3(), cool: 0 };
+    });
+  }
 
-/** 회오리 자리: 바람길 끝 조금 앞이거나 제 자리 */
-export function layoutWhirls(g: Game, keep: THREE.Vector3[]) {
-  const STREAMS = g.streams.list;
-  for (const w of g.whirls) {
-    let spot: THREE.Vector3;
-    if (w.afterStream != null) {
-      const stream = STREAMS[w.afterStream];
-      [spot] = step(stream.endV, stream.endD, 10, 0);
-    } else spot = from(w.dist!, w.bear!);
-    w.v.copy(spot);
-    keep.push(w.v);
-    const radius = S.R + featGround(g, w.v);
-    w.g.position.copy(w.v).multiplyScalar(radius);
-    w.g.quaternion.setFromUnitVectors(UP, w.v);
+  /** 자리: 바람길 끝 조금 앞이거나 제 자리 */
+  layout(keep: THREE.Vector3[], streams: Streams) {
+    for (const w of this.list) {
+      let spot: THREE.Vector3;
+      if (w.afterStream != null) {
+        const stream = streams.list[w.afterStream];
+        [spot] = step(stream.endV, stream.endD, 10, 0);
+      } else spot = from(w.dist!, w.bear!);
+      w.v.copy(spot);
+      keep.push(w.v);
+      const radius = S.R + this.s.terrain.featGround(w.v);
+      w.g.position.copy(w.v).multiplyScalar(radius);
+      w.g.quaternion.setFromUnitVectors(UP, w.v);
+      this.s.culler.track(w.g, w.v);
+    }
   }
-}
 
-/** 회오리: 닿으면 빨려 들어가 돌며 솟는다 */
-export function whirlsFrame(g: Game) {
-  const { pl, t } = g,
-    { p, h, vel } = pl,
-    dt = t.dt,
-    whirl = g.rides.whirl;
-  for (const w of g.whirls) {
-    w.spin.rotation.y += dt * (whirl.on && whirl.w === w ? 7 : 1.6);
-    if (w.cool > 0) w.cool -= dt;
-    else if (!t.held && pl.air < 12 && p.angleTo(w.v) * S.R < 5) {
-      whirl.on = true;
-      whirl.t = 0;
-      whirl.w = w;
-      whirl.h0.copy(h);
-      say(g, "회오리 — 빙글빙글 빨려 올라갑니다");
+  /** 자리 차지: 회오리 둘레, 그리고 튕겨 보내는 길(비행 통로) */
+  claim() {
+    for (const w of this.list) {
+      this.s.occ.fill(w.v, 5);
+      this.s.occ.addCorridor(w.v, 8);
     }
   }
-  if (whirl.on) {
-    const w = whirl.w!;
-    whirl.t += dt;
-    if (p.angleTo(w.v) * S.R < 3.2) {
-      const pUp = p.dot(w.v);
-      tmp.copy(p).addScaledVector(w.v, -pUp);
-      if (tmp.lengthSq() < 1e-10) tmp.copy(h);
-      tmp.normalize();
-      const rimAngle = 3.6 / S.R;
-      p.copy(w.v).addScaledVector(tmp, rimAngle).normalize();
+
+  /** 닿으면 빨려 들어가 돌며 솟는다 */
+  update(f: Frame) {
+    const { player, camera, hud } = this.s,
+      dt = f.dt,
+      p = player.p;
+    for (const w of this.list) {
+      const riding = this.ride !== null && this.ride.w === w;
+      const spinRate = riding ? 7 : 1.6;
+      w.spin.rotation.y += dt * spinRate;
+      if (w.cool > 0) w.cool -= dt;
+      else if (!player.held && player.air < 12 && p.angleTo(w.v) * S.R < 5) {
+        // 같은 프레임에 둘에 닿으면 뒤의 것이 이긴다(먼저 붙잡은 것을 이어받는다)
+        const body = this.ride ? player.bodyFor(this) : player.grab(this);
+        if (body) {
+          this.ride = { w, t: 0 };
+          camera.lockHeading(body.h);
+          hud.say("회오리 — 빙글빙글 빨려 올라갑니다");
+        }
+      }
     }
-    const turn = 2.5 * dt;
-    p.applyAxisAngle(w.v, turn).normalize();
-    h.crossVectors(w.v, p);
-    const hUp = h.dot(p);
-    h.addScaledVector(p, -hUp).normalize();
-    vel.copy(h);
-    pl.vy = 6.2;
-    if (pl.air <= 0) pl.air = 0.01;
-    if (whirl.t > 3.2) {
-      whirl.on = false;
-      w.cool = 5;
-      pl.boost = 1.6;
-      pl.vy = 3.5;
+    const ride = this.ride;
+    const body = player.bodyFor(this);
+    if (ride && body) {
+      const w = ride.w,
+        bp = body.p;
+      ride.t += dt;
+      if (bp.angleTo(w.v) * S.R < 3.2) {
+        const pUp = bp.dot(w.v);
+        tmp.copy(bp).addScaledVector(w.v, -pUp);
+        if (tmp.lengthSq() < 1e-10) tmp.copy(body.h);
+        tmp.normalize();
+        const rimAngle = 3.6 / S.R;
+        bp.copy(w.v).addScaledVector(tmp, rimAngle).normalize();
+      }
+      const turn = 2.5 * dt;
+      bp.applyAxisAngle(w.v, turn).normalize();
+      body.h.crossVectors(w.v, bp);
+      const hUp = body.h.dot(bp);
+      body.h.addScaledVector(bp, -hUp).normalize();
+      body.vel.copy(body.h);
+      body.vy = 6.2;
+      if (body.air <= 0) body.air = 0.01;
+      if (ride.t > 3.2) {
+        this.ride = null;
+        w.cool = 5;
+        player.release(this, { boost: 1.6, vy: 3.5 });
+      }
     }
+    // 회오리·깔때기에 실린 정도: 지금 붙잡은 것이 화면을 지키는 놀이기구인지로 정한다(깔때기는 아직 이번 프레임 전)
+    const spinning = player.holderCamera === "spin";
+    const spinTarget = spinning ? 1 : 0;
+    const blendRate = spinning ? 5 : 1.5;
+    const blendPull = ease(blendRate, dt);
+    camera.easeSpin(spinTarget, blendPull);
   }
-  const spinning = whirl.on || g.rides.funnel.on;
-  const spinTarget = spinning ? 1 : 0;
-  const blendRate = spinning ? 5 : 1.5;
-  const blendDecay = -blendRate * dt;
-  const blendPull = 1 - Math.exp(blendDecay);
-  pl.wB += (spinTarget - pl.wB) * blendPull;
+
+  /** 치운다 */
+  dispose() {
+    for (const w of this.list) w.g.removeFromParent();
+    for (const g of this.geos) g.dispose();
+    this.mat.dispose();
+  }
 }

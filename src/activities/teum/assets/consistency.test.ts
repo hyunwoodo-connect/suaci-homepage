@@ -7,7 +7,7 @@ import { AVATAR_BODY, AVATAR_COMPANION, PARTS } from "../game/avatar/parts";
 import layoutJson from "../game/world/layout.json";
 import { CATALOG, RETIRED } from "../tools/catalog.mjs";
 import { ASSET_VERSION } from "./config";
-import manifestJson from "./manifest.v1.json";
+import manifestJson from "./manifest.v2.json";
 import {
   BIG_FLOWERS,
   CREATURES,
@@ -17,7 +17,7 @@ import {
   TREE_CROWN_BASE,
 } from "./settings";
 
-// 배포본 manifest(올린 v1 과 같은 사본)와 분류표·코드가 서로 맞는지 본다
+// 배포본 manifest(올린 v2 와 같은 사본)와 분류표·코드가 서로 맞는지 본다
 
 /** 올라가 있지만 일부러 받지 않는 에셋과 그 까닭 */
 const INTENTIONALLY_UNUSED: Record<string, string> = {
@@ -88,16 +88,13 @@ function referencedKeys(): Set<string> {
     ...layoutJson.site.map((s) => s.k).filter((k) => k !== "ferris"),
     ...layoutJson.tree.map((t) => t.t),
   ]);
+  // 모델 창구(models.fit·inst·batch·has·when·swapWhenReady·motionOf)와 장소 모델(placeModel)에 글자 그대로 넘긴 키.
+  // 생물은 설정 표(CREATURES)의 키가 곧 에셋 키다
   const CALL =
-    /(?:fit|inst|hasModel|whenModel|swapWhenReady)\(\s*g,\s*"(\w+)"|placeModel\(\d+,\s*"(\w+)"/g;
-  const CRIT = /crit\(\s*(?:[^,"]*\?\s*"(\w+)"\s*:\s*)?"(\w+)"/g;
+    /\bmodels\.(?:fit|inst|batch|has|when|swapWhenReady|motionOf)\(\s*"(\w+)"|placeModel\(\d+,\s*"(\w+)"/g;
   for (const file of sourceFiles(GAME_DIR)) {
     const text = fs.readFileSync(file, "utf8");
     for (const m of text.matchAll(CALL)) keys.add(m[1] ?? m[2]);
-    for (const m of text.matchAll(CRIT)) {
-      if (m[1]) keys.add(m[1]);
-      keys.add(m[2]);
-    }
   }
   // 색조 표의 키도 실제 에셋이어야 한다(오타면 색이 안 입혀진다)
   for (const k of Object.keys(MODEL_TINT)) keys.add(k);

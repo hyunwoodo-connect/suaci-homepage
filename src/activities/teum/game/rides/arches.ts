@@ -1,20 +1,20 @@
 import * as THREE from "three";
 
-import { say } from "../hud";
-import type { Game } from "../state";
-import { GREY_TOY, S } from "../state";
+import type { Frame, Thing } from "../core/frame";
+import { ease } from "../core/frame";
+import type { Services } from "../services";
+import { S } from "../settings";
 import type { LayoutArch } from "../world/layout";
-import { grey } from "../world/materials";
 import { from, heading, step } from "../world/sphere";
-import { featGround } from "../world/terrain";
 import type { PathNode } from "./streams";
 
-// 구름 다리 — 끝에서 올라타면 높은 아치를 타고 넘어간다
+// 구름 다리 — 끝에서 올라타면 높은 아치를 타고 넘어간다. 마디마다 방석 같은 발판이 놓인다
 
-/** 다리 마디: 아치 높이(hh) */
+/** 다리 마디: 아치 높이(hh), 그 마디 발판의 자리·돌림·크기(M) */
 export interface ArchNode extends Omit<PathNode, "ph"> {
   hh: number;
   a: LayoutArch;
+  M: THREE.Matrix4;
 }
 
 /** 구름 다리 하나 */
@@ -22,103 +22,128 @@ export interface Arch extends LayoutArch {
   nodes: ArchNode[];
 }
 
-/** 구름 다리 전체. 발판(planks)은 자리만 잡고 장면에 넣지 않는다(시제품 그대로 — 마디만 탄다) */
-export interface Arches {
-  list: Arch[];
-  anodes: ArchNode[];
-  planks: THREE.InstancedMesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
-  wasR: boolean;
-}
-
 const tmp = new THREE.Vector3(),
   m4 = new THREE.Matrix4(),
   q = new THREE.Quaternion(),
   ps = new THREE.Vector3(),
   sc = new THREE.Vector3();
+/** 다리에 붙는 거리(3.4m)보다 확실히 먼 마디는 거리 셈(acos)을 건너뛴다 — 경계는 아래 셈이 정한다 */
+const ON_ARC = 3.4 / S.R;
+const COS_ON = Math.cos(ON_ARC) - 1e-9;
 
-/** 구름 다리를 만든다 */
-export function createArches(g: Game): Arches {
-  const anodes: ArchNode[] = [];
-  const list = g.L.arch.map((a) => {
-    const arch: Arch = { ...a, nodes: [] };
-    for (let i = 0; i < a.n; i++) {
-      const archPhase = (Math.PI * i) / (a.n - 1);
-      const nd = {
-        v: new THREE.Vector3(),
-        d: new THREE.Vector3(),
-        side: new THREE.Vector3(),
-        g: 0,
-        hh: a.arch * Math.sin(archPhase),
-        a: arch,
-      };
-      arch.nodes.push(nd);
-      anodes.push(nd);
-    }
-    return arch;
-  });
-  const plankGeo = new THREE.SphereGeometry(0.5, 16, 12);
-  const plankMat = grey(g.mats, GREY_TOY);
-  const planks = new THREE.InstancedMesh(plankGeo, plankMat, anodes.length); // 방석 같은 발판
-  return { list, anodes, planks, wasR: false };
-}
+/** 구름 다리 전체 */
+export class Arches implements Thing {
+  readonly list: Arch[];
+  readonly anodes: ArchNode[] = [];
+  /** 방석 같은 발판(마디마다 하나, 한 번에 그린다) */
+  readonly planks: THREE.InstancedMesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
+  private wasR = false;
 
-/** 구름 다리 자리: 마디마다 아치 높이로 */
-export function layoutArches(g: Game, keep: THREE.Vector3[]) {
-  const planks = g.arches.planks;
-  let ai = 0;
-  for (const a of g.arches.list) {
-    let v = from(a.dist, a.bear),
-      d = heading(v, a.head);
-    for (const nd of a.nodes) {
-      nd.v.copy(v);
-      nd.d.copy(d);
-      nd.side.crossVectors(v, d).normalize();
-      nd.g = featGround(g, v);
-      keep.push(nd.v);
-      m4.makeBasis(nd.side, nd.v, nd.d);
-      q.setFromRotationMatrix(m4);
-      const radius = S.R + nd.g + nd.hh + 0.1;
-      ps.copy(v).multiplyScalar(radius);
-      const plankLength = a.gap * 0.95;
-      sc.set(3.2, 0.8, plankLength);
-      m4.compose(ps, q, sc);
-      planks.setMatrixAt(ai, m4);
-      ai++;
-      [v, d] = step(v, d, a.gap, a.curve);
-    }
+  constructor(private readonly s: Services) {
+    this.list = s.layout.arch.map((a) => {
+      const arch: Arch = { ...a, nodes: [] };
+      for (let i = 0; i < a.n; i++) {
+        const archPhase = (Math.PI * i) / (a.n - 1);
+        const nd: ArchNode = {
+          v: new THREE.Vector3(),
+          d: new THREE.Vector3(),
+          side: new THREE.Vector3(),
+          g: 0,
+          hh: a.arch * Math.sin(archPhase),
+          a: arch,
+          M: new THREE.Matrix4(),
+        };
+        arch.nodes.push(nd);
+        this.anodes.push(nd);
+      }
+      return arch;
+    });
+    const plankGeo = new THREE.SphereGeometry(0.5, 16, 12);
+    const plankMat = s.mats.grey(0xffffff);
+    plankMat.color.copy(s.mats.toy.plank);
+    const count = this.anodes.length;
+    this.planks = new THREE.InstancedMesh(plankGeo, plankMat, count);
+    // 발판은 다리 전체에 걸쳐 있어 한 덩어리의 상자로 거르면 엉뚱하게 사라진다
+    this.planks.frustumCulled = false;
+    s.scene.add(this.planks);
   }
-  planks.instanceMatrix.needsUpdate = true;
-}
 
-/** 구름 다리: 마디 높이에 붙어 넘어간다 */
-export function archesFrame(g: Game) {
-  const { pl, t } = g,
-    { p, vel } = pl,
-    dt = t.dt,
-    A = g.arches;
-  let onRail = false;
-  if (!t.held && !g.rides.balloon.on)
-    for (const nd of A.anodes) {
-      const altOffset = t.alt - (nd.g + nd.hh + S.hover);
-      if (p.angleTo(nd.v) * S.R < 3.4 && Math.abs(altOffset) < 3.2) {
-        onRail = true;
-        const sg = vel.dot(nd.d) >= 0 ? 1 : -1;
-        tmp.copy(nd.d).multiplyScalar(sg);
-        const velDecay = -6 * dt;
-        const velPull = 1 - Math.exp(velDecay);
-        vel.lerp(tmp, velPull).normalize();
-        pl.boost = Math.max(pl.boost, 0.9);
-        pl.vy = 0;
-        const groundNow = t.gNow - 0.4;
-        const floorAlt = Math.max(pl.gh, groundNow);
-        const railAir = nd.g + nd.hh + 0.35 - floorAlt;
-        const targetAir = Math.max(0.01, railAir);
-        const airDecay = -9 * dt;
-        const airPull = 1 - Math.exp(airDecay);
-        pl.air += (targetAir - pl.air) * airPull;
-        break;
+  /** 자리: 마디마다 아치 높이로 발판을 놓는다. 그 뒤로는 가까운 다리의 발판만 칸에 채운다 */
+  layout(keep: THREE.Vector3[]) {
+    for (const a of this.list) {
+      let v = from(a.dist, a.bear),
+        d = heading(v, a.head);
+      for (const nd of a.nodes) {
+        nd.v.copy(v);
+        nd.d.copy(d);
+        nd.side.crossVectors(v, d).normalize();
+        nd.g = this.s.terrain.featGround(v);
+        keep.push(nd.v);
+        m4.makeBasis(nd.side, nd.v, nd.d);
+        q.setFromRotationMatrix(m4);
+        const radius = S.R + nd.g + nd.hh + 0.1;
+        ps.copy(v).multiplyScalar(radius);
+        const plankLength = a.gap * 0.95;
+        sc.set(3.2, 0.8, plankLength);
+        nd.M.compose(ps, q, sc);
+        [v, d] = step(v, d, a.gap, a.curve);
       }
     }
-  if (onRail && !A.wasR) say(g, "구름 다리 — 타고 넘어갑니다");
-  A.wasR = onRail;
+    this.fill(-1);
+    this.s.culler.onCull((cut) => this.fill(cut));
+  }
+
+  /** 자리 차지: 마디 둘레, 그리고 다리 길(비행 통로) */
+  claim() {
+    for (const nd of this.anodes) {
+      this.s.occ.fill(nd.v, 5);
+      this.s.occ.addCorridor(nd.v, 10);
+    }
+  }
+
+  /** 마디 높이에 붙어 넘어간다 */
+  update(f: Frame) {
+    const { player, hud } = this.s,
+      dt = f.dt,
+      p = player.p;
+    let onRail = false;
+    if (!player.held && !player.isHanging)
+      for (const nd of this.anodes) {
+        if (p.dot(nd.v) <= COS_ON) continue;
+        const altOffset = player.alt - (nd.g + nd.hh + S.hover);
+        if (p.angleTo(nd.v) * S.R < 3.4 && Math.abs(altOffset) < 3.2) {
+          onRail = true;
+          const sg = player.vel.dot(nd.d) >= 0 ? 1 : -1;
+          tmp.copy(nd.d).multiplyScalar(sg);
+          const velPull = ease(6, dt),
+            airPull = ease(9, dt);
+          player.turnTo(tmp, velPull);
+          player.boostAtLeast(0.9);
+          const railAir = nd.g + nd.hh + 0.35 - player.floor;
+          const targetAir = Math.max(0.01, railAir);
+          player.glide(targetAir, airPull);
+          break;
+        }
+      }
+    if (onRail && !this.wasR) hud.say("구름 다리 — 타고 넘어갑니다");
+    this.wasR = onRail;
+  }
+
+  /** 치운다 */
+  dispose() {
+    this.planks.removeFromParent();
+    this.planks.geometry.dispose();
+    this.planks.material.dispose();
+    this.planks.dispose();
+  }
+
+  // 가까운 마디(v·p > cut)의 발판만 칸에 채운다(나머지 것들과 같은 기준·같은 때)
+  private fill(cut: number) {
+    const p = this.s.player.p,
+      planks = this.planks;
+    let n = 0;
+    for (const nd of this.anodes) if (nd.v.dot(p) > cut) planks.setMatrixAt(n++, nd.M);
+    planks.count = n;
+    planks.instanceMatrix.needsUpdate = true;
+  }
 }
