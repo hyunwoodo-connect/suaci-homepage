@@ -32,6 +32,7 @@ import { whaleFrame, whaleMove } from "./rides/whale";
 import { whirlsFrame } from "./rides/whirls";
 import { wingsFrame } from "./rides/wings";
 import { catFrame, sceneryFrame } from "./scenery";
+import { directorFrame } from "./scenery/director";
 import { bubbleTrailFrame } from "./scenery/trail";
 import { sculpturesFrame } from "./sculptures";
 import type { Game } from "./state";
@@ -95,6 +96,7 @@ export function frame(g: Game, now: number, last: number) {
   sceneryFrame(g);
   sculpturesFrame(g);
   bubbleTrailFrame(g);
+  directorFrame(g);
   legendsFrame(g);
   creaturesFrame(g);
   placesFrame(g);

@@ -36,6 +36,7 @@ import type { Whirl, WhirlRide } from "./rides/whirls";
 import type { WingState, Wings } from "./rides/wings";
 import type { Scenery } from "./scenery";
 import type { Zone } from "./scenery/spots";
+import type { Director } from "./scenery/director";
 import type { BubbleTrail } from "./scenery/trail";
 import type { Sculptures } from "./sculptures";
 import type { Ground } from "./world/ground";
@@ -236,6 +237,7 @@ export interface Game extends Stage {
   scenery: Scenery;
   sculptures: Sculptures;
   bubbleTrail: BubbleTrail;
+  director: Director;
   creatures: Creatures;
 }
 

@@ -45,6 +45,7 @@ import { createWhale, whalePath } from "./rides/whale";
 import { createWhirls } from "./rides/whirls";
 import { createWings } from "./rides/wings";
 import { fitModels, fitSkyModels, placeScenery } from "./scenery";
+import { createDirector } from "./scenery/director";
 import { createBubbleTrail } from "./scenery/trail";
 import { placeSculptures } from "./sculptures";
 import type { Game } from "./state";
@@ -236,6 +237,7 @@ function buildGame(canvas: HTMLCanvasElement, manifest: Manifest): Game {
   g.sculptures = placeSculptures(g);
   whalePath(g);
   g.bubbleTrail = createBubbleTrail(g);
+  g.director = createDirector(g);
   placeCreatures(g);
   fitSkyModels(g);
   return g;

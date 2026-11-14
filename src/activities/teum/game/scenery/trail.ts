@@ -1,6 +1,7 @@
 import * as THREE from "three";
 
 import { burst } from "../fx/sparks";
+import { isDirectorOff } from "../debug";
 import type { Game } from "../state";
 import { S } from "../state";
 import { groundAt } from "../world/terrain";
@@ -33,6 +34,12 @@ export interface BubbleTrail {
   /** 지난 프레임의 내 자리(얼마나 움직였는지 잰다) */
   tp: THREE.Vector3;
   moved: number;
+  /** 요즘 빠르기(m/s, 40 까지) — 지루함 감독이 앞 자리를 고를 때 쓴다 */
+  spd: number;
+  /** 터뜨린 방울·바람 고리 수 — 바뀌면 '일이 있었다' */
+  pops: number;
+  /** ?nodir: 방울 길을 끈다(개발 중 시험용) */
+  off: boolean;
 }
 
 const td = new THREE.Vector3(),
@@ -72,7 +79,7 @@ export function createBubbleTrail(g: Game): BubbleTrail {
     const row: TrailRow = { bs, live: false, wait: 1 + t * 1.2, age: 0 };
     TR.push(row);
   }
-  return { TR, tp: g.pl.p.clone(), moved: 0 };
+  return { TR, tp: g.pl.p.clone(), moved: 0, spd: 0, pops: 0, off: isDirectorOff() };
 }
 
 /** 방울 길: 움직이고 있으면 앞쪽에 줄을 세우고, 스치면 터지며, 지나치면 거둔다 */
@@ -83,6 +90,11 @@ export function bubbleTrailFrame(g: Game) {
     B = g.bubbleTrail;
   const stepLen = p.angleTo(B.tp) * S.R;
   const safeDt = Math.max(dt, 1e-3);
+  const speedNow = stepLen / safeDt;
+  const speedCapped = Math.min(40, speedNow);
+  const speedDecay = -4 * dt;
+  const speedBlend = 1 - Math.exp(speedDecay);
+  B.spd += (speedCapped - B.spd) * speedBlend;
   const moveRate = stepLen / safeDt / 5;
   const movedTarget = Math.min(1, moveRate);
   const decay = -3 * dt;
@@ -93,7 +105,7 @@ export function bubbleTrailFrame(g: Game) {
   for (const tr of B.TR) {
     if (!tr.live) {
       tr.wait -= dt;
-      if (tr.wait > 0 || B.moved < 0.3) continue;
+      if (B.off || tr.wait > 0 || B.moved < 0.3) continue;
       // 난수 순서: 줄 자리 방향 → 줄 자리 거리 → 줄 방향 → 휨
       const aimJitter = (Math.random() - 0.5) * 0.36;
       td.copy(h).applyAxisAngle(p, aimJitter);
@@ -154,6 +166,7 @@ export function bubbleTrailFrame(g: Game) {
         b.on = false;
         b.pop = 1;
         left--;
+        B.pops++;
         pl.boost = Math.max(pl.boost, 0.5);
         const popAt = b.m.position.clone();
         burst(g, popAt, 5, 6);

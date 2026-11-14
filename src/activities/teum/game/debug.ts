@@ -31,6 +31,12 @@ export function seedRandom(): () => void {
   };
 }
 
+/** 시험용 주소 인자 ?nodir: 지루함 감독과 방울 길을 끈다(빈 구간을 감독 없이 잴 때). 운영에선 늘 false */
+export function isDirectorOff(): boolean {
+  if (process.env.NODE_ENV === "production") return false;
+  return new URLSearchParams(location.search).has("nodir");
+}
+
 /** ?seed 가 있으면 게임 상태를 창에 걸어 둔다 */
 export function exposeGame(g: Game): () => void {
   if (process.env.NODE_ENV === "production") return () => {};
