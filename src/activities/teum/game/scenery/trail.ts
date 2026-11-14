@@ -46,24 +46,31 @@ export function createBubbleTrail(g: Game): BubbleTrail {
   for (let t = 0; t < 4; t++) {
     const bs: TrailBubble[] = [];
     for (let j = 0; j < 6; j++) {
-      const c = cols[(t + j) % 4],
-        m = new THREE.Mesh(
-          geo,
-          new THREE.MeshStandardMaterial({
-            color: c,
-            roughness: 0.12,
-            metalness: 0,
-            transparent: true,
-            opacity: 0.85,
-            emissive: c,
-            emissiveIntensity: 0.3,
-          }),
-        );
+      const c = cols[(t + j) % 4];
+      const material = new THREE.MeshStandardMaterial({
+        color: c,
+        roughness: 0.12,
+        metalness: 0,
+        transparent: true,
+        opacity: 0.85,
+        emissive: c,
+        emissiveIntensity: 0.3,
+      });
+      const m = new THREE.Mesh(geo, material);
       m.visible = false;
       g.scene.add(m);
-      bs.push({ m, v: new THREE.Vector3(), alt: 0, on: false, pop: 0, ph: Math.random() * 6 });
+      const bubble: TrailBubble = {
+        m,
+        v: new THREE.Vector3(),
+        alt: 0,
+        on: false,
+        pop: 0,
+        ph: Math.random() * 6,
+      };
+      bs.push(bubble);
     }
-    TR.push({ bs, live: false, wait: 1 + t * 1.2, age: 0 });
+    const row: TrailRow = { bs, live: false, wait: 1 + t * 1.2, age: 0 };
+    TR.push(row);
   }
   return { TR, tp: g.pl.p.clone(), moved: 0 };
 }
@@ -74,32 +81,43 @@ export function bubbleTrailFrame(g: Game) {
     { p, h, P } = pl,
     dt = t.dt,
     B = g.bubbleTrail;
-  B.moved +=
-    (Math.min(1, (p.angleTo(B.tp) * S.R) / Math.max(dt, 1e-3) / 5) - B.moved) *
-    (1 - Math.exp(-3 * dt));
+  const stepLen = p.angleTo(B.tp) * S.R;
+  const safeDt = Math.max(dt, 1e-3);
+  const moveRate = stepLen / safeDt / 5;
+  const movedTarget = Math.min(1, moveRate);
+  const decay = -3 * dt;
+  const blend = 1 - Math.exp(decay);
+  B.moved += (movedTarget - B.moved) * blend;
   B.tp.copy(p);
   const altA = P.length() - S.R;
   for (const tr of B.TR) {
     if (!tr.live) {
       tr.wait -= dt;
       if (tr.wait > 0 || B.moved < 0.3) continue;
-      td.copy(h).applyAxisAngle(p, (Math.random() - 0.5) * 0.36);
-      const v = p
-        .clone()
-        .addScaledVector(td, Math.tan((48 + Math.random() * 38) / S.R))
-        .normalize();
+      // 난수 순서: 줄 자리 방향 → 줄 자리 거리 → 줄 방향 → 휨
+      const aimJitter = (Math.random() - 0.5) * 0.36;
+      td.copy(h).applyAxisAngle(p, aimJitter);
+      const aheadDist = 48 + Math.random() * 38;
+      const aheadArc = aheadDist / S.R;
+      const aheadStep = Math.tan(aheadArc);
+      const v = p.clone().addScaledVector(td, aheadStep).normalize();
       if (!freeAt(g, v, 3)) continue; // 막힌 자리면 다음에 다시
-      td.copy(h).applyAxisAngle(p, (Math.random() - 0.5) * 0.3);
+      const rowJitter = (Math.random() - 0.5) * 0.3;
+      td.copy(h).applyAxisAngle(p, rowJitter);
       const bend = (Math.random() - 0.5) * 0.14;
       tr.bs.forEach((b) => {
         b.v.copy(v);
-        b.alt = Math.max(groundAt(g, v), 0) + S.hover + 0.2;
+        const ground = groundAt(g, v);
+        b.alt = Math.max(ground, 0) + S.hover + 0.2;
         b.on = true;
         b.pop = 0;
         b.m.visible = true;
         b.m.scale.setScalar(0.01);
-        td.addScaledVector(v, -td.dot(v)).normalize();
-        v.addScaledVector(td, Math.tan(5.5 / S.R)).normalize();
+        const upPart = td.dot(v);
+        td.addScaledVector(v, -upPart).normalize();
+        const gapArc = 5.5 / S.R;
+        const gapStep = Math.tan(gapArc);
+        v.addScaledVector(td, gapStep).normalize();
         td.applyAxisAngle(v, bend);
       });
       tr.live = true;
@@ -112,32 +130,38 @@ export function bubbleTrailFrame(g: Game) {
       if (b.pop > 0) {
         b.pop -= dt * 4;
         const k = 1 + (1 - b.pop) * 1.2;
-        b.m.scale.setScalar(Math.max(0.01, k));
+        const popScale = Math.max(0.01, k);
+        b.m.scale.setScalar(popScale);
         b.m.material.opacity = 0.85 * Math.max(0, b.pop);
         if (b.pop <= 0) b.m.visible = false;
         continue;
       }
       if (!b.on) continue;
       left++;
-      const s = Math.min(1, tr.age * 3) * (1 + 0.08 * Math.sin(time * 3 + b.ph));
+      const growAge = tr.age * 3;
+      const grow = Math.min(1, growAge);
+      const wobblePhase = time * 3 + b.ph;
+      const wobble = 1 + 0.08 * Math.sin(wobblePhase);
+      const s = grow * wobble;
       b.m.scale.setScalar(s);
       b.m.material.opacity = 0.85;
-      b.m.position.copy(b.v).multiplyScalar(S.R + b.alt + 0.25 * Math.sin(time * 1.6 + b.ph));
-      if (
-        !t.held &&
-        b.v.dot(p) > 0.9999 &&
-        p.angleTo(b.v) * S.R < 3 &&
-        Math.abs(altA - b.alt) < 3.6
-      ) {
+      const bobPhase = time * 1.6 + b.ph;
+      const bob = 0.25 * Math.sin(bobPhase);
+      const radius = S.R + b.alt + bob;
+      b.m.position.copy(b.v).multiplyScalar(radius);
+      const altGap = altA - b.alt;
+      if (!t.held && b.v.dot(p) > 0.9999 && p.angleTo(b.v) * S.R < 3 && Math.abs(altGap) < 3.6) {
         b.on = false;
         b.pop = 1;
         left--;
         pl.boost = Math.max(pl.boost, 0.5);
-        burst(g, b.m.position.clone(), 5, 6);
+        const popAt = b.m.position.clone();
+        burst(g, popAt, 5, 6);
         if (b === tr.bs[tr.bs.length - 1]) {
           pl.vy = Math.max(pl.vy, 6.5);
           if (pl.air <= 0) pl.air = 0.01;
-          burst(g, b.m.position.clone(), 10, 10);
+          const launchAt = b.m.position.clone();
+          burst(g, launchAt, 10, 10);
         }
       }
     }

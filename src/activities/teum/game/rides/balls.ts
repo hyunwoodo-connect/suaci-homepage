@@ -46,7 +46,9 @@ export function createBalls(g: Game): Balls {
     const c = cv.getContext("2d")!;
     ["#ff5a1f", "#ffffff", "#ffd21f", "#ffffff", "#ff5a1f", "#ffffff"].forEach((col, i) => {
       c.fillStyle = col;
-      c.fillRect((i * 512) / 6, 0, 512 / 6 + 1, 256);
+      const stripeX = (i * 512) / 6;
+      const stripeW = 512 / 6 + 1;
+      c.fillRect(stripeX, 0, stripeW, 256);
     });
     const t = new THREE.CanvasTexture(cv);
     t.colorSpace = THREE.SRGBColorSpace;
@@ -61,10 +63,13 @@ export function createBalls(g: Game): Balls {
     [0, 0, -1],
   ];
   const list = g.L.ball.map(({ dist, bear }) => {
-    const m = new THREE.Mesh(new THREE.SphereGeometry(2.2, 24, 16), grey(g.mats, 0xc4c8c7));
+    const ballGeo = new THREE.SphereGeometry(2.2, 24, 16);
+    const ballMat = grey(g.mats, 0xc4c8c7);
+    const m = new THREE.Mesh(ballGeo, ballMat);
     for (const a of dirs) {
-      const dot = new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 8), dotMat);
-      dot.position.set(a[0] * 2, a[1] * 2, a[2] * 2);
+      const dotGeo = new THREE.SphereGeometry(0.5, 10, 8);
+      const dot = new THREE.Mesh(dotGeo, dotMat);
+      dot.position.set(a[0], a[1], a[2]).multiplyScalar(2);
       m.add(dot);
     }
     g.scene.add(m);
@@ -84,9 +89,11 @@ export function createBalls(g: Game): Balls {
 /** 큰 공 자리(멈춘 채로) */
 export function layoutBalls(g: Game, keep: THREE.Vector3[]) {
   for (const b of g.balls.list) {
-    b.v.copy(from(b.dist, b.bear));
+    const spot = from(b.dist, b.bear);
+    b.v.copy(spot);
     b.sp = 0;
-    keep.push(b.v.clone());
+    const kept = b.v.clone();
+    keep.push(kept);
   }
 }
 
@@ -97,22 +104,26 @@ export function ballsFrame(g: Game) {
     dt = t.dt,
     bumps = g.terrain.bumps;
   for (const b of g.balls.list) {
-    b.m.scale.setScalar(
-      (1 + (b.grow || 0)) * (1 + (b.sp > 0.05 ? 0 : 0.035 * Math.sin(time * 3.2 + b.dist))),
-    ); // 가만히 있을 때 들썩인다. 굴릴수록 커진다
+    // 가만히 있을 때 들썩인다. 굴릴수록 커진다
+    const growth = b.grow || 0;
+    const bobPhase = time * 3.2 + b.dist;
+    const bob = b.sp > 0.05 ? 0 : 0.035 * Math.sin(bobPhase);
+    const ballScale = (1 + growth) * (1 + bob);
+    b.m.scale.setScalar(ballScale);
     if (b.hit > 0) b.hit -= dt;
-    else if (
-      !t.held &&
-      pl.air < 3 + 4 * (b.grow || 0) &&
-      p.angleTo(b.v) * S.R < 3.1 + 2.2 * (b.grow || 0)
-    ) {
+    else if (!t.held && pl.air < 3 + 4 * growth && p.angleTo(b.v) * S.R < 3.1 + 2.2 * growth) {
+      // 나에게서 공 쪽으로(땅에 붙은 접선 방향) 민다
       tmp.copy(b.v).sub(p);
-      tmp.addScaledVector(b.v, -tmp.dot(b.v));
+      const pushAlong = tmp.dot(b.v);
+      tmp.addScaledVector(b.v, -pushAlong);
       if (tmp.lengthSq() < 1e-12) tmp.copy(vel);
       tmp.normalize();
       b.vel.copy(tmp).addScaledVector(vel, 0.5);
-      b.vel.addScaledVector(b.v, -b.vel.dot(b.v)).normalize();
-      b.sp = Math.max(b.sp, S.speed * Math.max(t.tot, 0.7) * 1.6);
+      const velAlong = b.vel.dot(b.v);
+      b.vel.addScaledVector(b.v, -velAlong).normalize();
+      const pushTot = Math.max(t.tot, 0.7);
+      const pushSpeed = S.speed * pushTot * 1.6;
+      b.sp = Math.max(b.sp, pushSpeed);
       b.hit = 0.4;
       if (!g.said.ball) {
         g.said.ball = true;
@@ -124,9 +135,12 @@ export function ballsFrame(g: Game) {
       const a = (b.sp * dt) / S.R;
       b.v.applyAxisAngle(axis2, a).normalize();
       b.vel.applyAxisAngle(axis2, a);
-      b.vel.addScaledVector(b.v, -b.vel.dot(b.v)).normalize();
-      b.m.rotateOnWorldAxis(axis2, (b.sp * dt) / 2.2);
-      b.sp *= Math.exp(-0.45 * dt);
+      const velAlong = b.vel.dot(b.v);
+      b.vel.addScaledVector(b.v, -velAlong).normalize();
+      const spin = (b.sp * dt) / 2.2;
+      b.m.rotateOnWorldAxis(axis2, spin);
+      const frictionRate = -0.45 * dt;
+      b.sp *= Math.exp(frictionRate);
       if (b.sp > 2.5) {
         // 밀어서 굴릴수록 커지고, 세 배쯤 되면 펑 터져 다시 작아진다
         if (!b.grow && !g.said.grow) {
@@ -135,7 +149,11 @@ export function ballsFrame(g: Game) {
         }
         b.grow = (b.grow || 0) + b.sp * dt * 0.012;
         if (b.grow > 1.9) {
-          for (let k = 0; k < 3; k++) burst(g, b.m.position.clone(), 20, 10 + k * 5);
+          for (let k = 0; k < 3; k++) {
+            const popAt = b.m.position.clone();
+            const popPower = 10 + k * 5;
+            burst(g, popAt, 20, popPower);
+          }
           b.grow = 0;
           b.sp *= 0.3;
           say(g, "펑 — 다시 작아졌습니다");
@@ -150,12 +168,19 @@ export function ballsFrame(g: Game) {
           bm.lit = 1;
           bm.cool = 0.35;
           tmp.copy(b.v).sub(bm.v);
-          tmp.addScaledVector(b.v, -tmp.dot(b.v)).normalize();
+          const normalAlong = tmp.dot(b.v);
+          tmp.addScaledVector(b.v, -normalAlong).normalize();
           const vn = b.vel.dot(tmp);
-          if (vn < 0) b.vel.addScaledVector(tmp, -2 * vn).normalize();
+          if (vn < 0) {
+            const reflect = -2 * vn;
+            b.vel.addScaledVector(tmp, reflect).normalize();
+          }
         }
     }
-    b.m.position.copy(b.v).multiplyScalar(S.R + groundAt(g, b.v) + 2.2 * (1 + (b.grow || 0)));
+    const ground = groundAt(g, b.v);
+    const radius = 2.2 * (1 + (b.grow || 0));
+    const centerR = S.R + ground + radius;
+    b.m.position.copy(b.v).multiplyScalar(centerR);
   }
 }
 
@@ -164,6 +189,7 @@ export function limeBallsFrame(g: Game) {
   for (const b of g.balls.list)
     if (b.lime) {
       if (b.sp < 1.3) b.sp = 1.3;
-      b.vel.applyAxisAngle(b.v, g.t.dt * 0.22);
+      const wander = g.t.dt * 0.22;
+      b.vel.applyAxisAngle(b.v, wander);
     }
 }

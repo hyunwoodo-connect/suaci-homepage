@@ -46,7 +46,8 @@ import { cloudsFrame } from "./world/terrain";
  * now·last 는 requestAnimationFrame 시각(ms). 한 프레임은 길어도 0.1 초로 자른다
  */
 export function frame(g: Game, now: number, last: number) {
-  const dt = Math.min(0.1, (now - last) / 1000);
+  const elapsed = (now - last) / 1000;
+  const dt = Math.min(0.1, elapsed);
   g.time += dt;
   g.lakes.lakeT.value = g.time;
   readInput(g, dt);

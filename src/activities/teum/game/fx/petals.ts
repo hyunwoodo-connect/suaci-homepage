@@ -8,19 +8,7 @@ export interface Petals {
 
 /** 가운데가 오목하고 끝이 뾰족한 얇은 잎 */
 export function createPetals(): Petals {
-  const geo = (() => {
-    const pg = new THREE.PlaneGeometry(1, 1, 4, 8);
-    pg.rotateX(-Math.PI / 2);
-    const a = pg.attributes.position;
-    for (let i = 0; i < a.count; i++) {
-      const t = a.getZ(i) + 0.5,
-        w = Math.sin(Math.PI * Math.pow(t, 0.75)) * 0.42 + 0.015,
-        x = a.getX(i) * 2 * w;
-      a.setXYZ(i, x, 0.9 * x * x + 0.16 * Math.sin(t * Math.PI) - 0.08, (t - 0.5) * 1.25);
-    }
-    pg.computeVertexNormals();
-    return pg;
-  })();
+  const geo = createPetalGeometry();
   const mat = new THREE.MeshStandardMaterial({
     color: 0xffffff,
     roughness: 0.6,
@@ -28,4 +16,27 @@ export function createPetals(): Petals {
     side: THREE.DoubleSide,
   });
   return { geo, mat };
+}
+
+/* ─── 내부 ─────────────────────────── */
+
+// 눕힌 판을 잎 길이(t)를 따라 가운데가 넓게 좁히고, 옆으로 갈수록 들어 올려 오목하게 만든다
+function createPetalGeometry() {
+  const pg = new THREE.PlaneGeometry(1, 1, 4, 8);
+  const lieFlat = -Math.PI / 2;
+  pg.rotateX(lieFlat);
+  const a = pg.attributes.position;
+  for (let i = 0; i < a.count; i++) {
+    const t = a.getZ(i) + 0.5;
+    const along = Math.pow(t, 0.75);
+    const widthPhase = Math.PI * along;
+    const w = Math.sin(widthPhase) * 0.42 + 0.015;
+    const x = a.getX(i) * 2 * w;
+    const bowPhase = t * Math.PI;
+    const y = 0.9 * x * x + 0.16 * Math.sin(bowPhase) - 0.08;
+    const z = (t - 0.5) * 1.25;
+    a.setXYZ(i, x, y, z);
+  }
+  pg.computeVertexNormals();
+  return pg;
 }

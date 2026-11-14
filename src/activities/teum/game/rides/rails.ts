@@ -44,23 +44,24 @@ export function createRails(g: Game): Rails {
   const list = g.L.rail.map((rl) => {
     const rail: Rail = { ...rl, nodes: [] };
     for (let i = 0; i < rl.n; i++) {
+      // 처음부터 끝까지 두 번 솟았다 내려온다(높이 2~9)
+      const wavePhase = (Math.PI * 4 * i) / (rl.n - 1);
+      const hh = 2 + 7 * (0.5 - 0.5 * Math.cos(wavePhase));
       const nd = {
         v: new THREE.Vector3(),
         d: new THREE.Vector3(),
         side: new THREE.Vector3(),
         g: 0,
-        hh: 2 + 7 * (0.5 - 0.5 * Math.cos((Math.PI * 4 * i) / (rl.n - 1))),
+        hh,
       };
       rail.nodes.push(nd);
       rnodes.push(nd);
     }
     return rail;
   });
-  const railM = new THREE.InstancedMesh(
-    new THREE.SphereGeometry(0.5, 12, 10),
-    grey(g.mats, GREY_TOY),
-    rnodes.length,
-  );
+  const beadGeo = new THREE.SphereGeometry(0.5, 12, 10);
+  const beadMat = grey(g.mats, GREY_TOY);
+  const railM = new THREE.InstancedMesh(beadGeo, beadMat, rnodes.length);
   return { list, rnodes, railM, railSp: 1.3, railCool: 0, railOn: false, wasR2: false };
 }
 
@@ -80,11 +81,17 @@ export function layoutRails(g: Game, keep: THREE.Vector3[]) {
       keep.push(nd.v);
       m4.makeBasis(nd.side, nd.v, nd.d);
       q.setFromRotationMatrix(m4);
-      ps.copy(v).multiplyScalar(S.R + nd.g + nd.hh);
-      sc.set(0.75, 0.6, rl.gap * 1.35);
+      const nodeR = S.R + nd.g + nd.hh;
+      ps.copy(v).multiplyScalar(nodeR);
+      const beadLen = rl.gap * 1.35;
+      sc.set(0.75, 0.6, beadLen);
       m4.compose(ps, q, sc);
-      railM.setMatrixAt(rli++, m4);
-      [v, d] = step(v, d, rl.gap, rl.wig * Math.sin(i++ * 0.33));
+      railM.setMatrixAt(rli, m4);
+      rli++;
+      const wigglePhase = i * 0.33;
+      const wiggle = rl.wig * Math.sin(wigglePhase);
+      [v, d] = step(v, d, rl.gap, wiggle);
+      i++;
     }
   }
   railM.instanceMatrix.needsUpdate = true;
@@ -100,27 +107,40 @@ export function railsFrame(g: Game) {
   if (R.railCool > 0) R.railCool -= dt;
   else if (!t.held && !g.rides.balloon.on)
     for (const nd of R.rnodes) {
-      if (p.angleTo(nd.v) * S.R < 3.4 && Math.abs(t.alt - (nd.g + nd.hh + S.hover * 0.5)) < 3.4) {
+      const railAlt = nd.g + nd.hh + S.hover * 0.5;
+      const altGap = t.alt - railAlt;
+      if (p.angleTo(nd.v) * S.R < 3.4 && Math.abs(altGap) < 3.4) {
         onR2 = true;
         const sg = vel.dot(nd.d) >= 0 ? 1 : -1;
         tmp.copy(p).sub(nd.v);
         const alr = tmp.dot(nd.d);
         p.copy(nd.v).addScaledVector(nd.d, alr).normalize(); // 레일 위에 붙여 둔다(옆으로 밀려나지 않게)
         tmp.copy(nd.d).multiplyScalar(sg);
-        vel.lerp(tmp, 1 - Math.exp(-10 * dt)).normalize();
-        h.lerp(tmp, 1 - Math.exp(-2 * dt));
-        h.addScaledVector(p, -h.dot(p)).normalize();
-        R.railSp = Math.min(2.8, R.railSp + dt * 0.35);
+        // 진행 방향과 높이는 빠르게(10), 시선은 천천히(2) 레일을 따라간다
+        const snapRate = -10 * dt;
+        const snap = 1 - Math.exp(snapRate);
+        vel.lerp(tmp, snap).normalize();
+        const lookRate = -2 * dt;
+        const look = 1 - Math.exp(lookRate);
+        h.lerp(tmp, look);
+        const hUp = h.dot(p);
+        h.addScaledVector(p, -hUp).normalize();
+        const fasterSp = R.railSp + dt * 0.35;
+        R.railSp = Math.min(2.8, fasterSp);
         pl.boost = Math.max(pl.boost, R.railSp);
         pl.vy = 0;
-        pl.air +=
-          (Math.max(0.01, nd.g + nd.hh + 0.8 - Math.max(pl.gh, t.gNow - 0.4) - S.hover + 0.6) -
-            pl.air) *
-          (1 - Math.exp(-10 * dt));
+        const gNowFloor = t.gNow - 0.4;
+        const floor = Math.max(pl.gh, gNowFloor);
+        const railAir = nd.g + nd.hh + 0.8 - floor - S.hover + 0.6;
+        const targetAir = Math.max(0.01, railAir);
+        pl.air += (targetAir - pl.air) * snap;
         break;
       }
     }
-  if (!onR2) R.railSp = Math.max(1.3, R.railSp - dt * 1.5);
+  if (!onR2) {
+    const slowerSp = R.railSp - dt * 1.5;
+    R.railSp = Math.max(1.3, slowerSp);
+  }
   if (onR2 && !R.wasR2) say(g, "무지개 레일 — 미끄러지다 칙 하면 뛰어오릅니다");
   R.wasR2 = onR2;
   R.railOn = onR2;

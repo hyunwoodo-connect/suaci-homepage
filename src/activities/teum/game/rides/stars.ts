@@ -39,10 +39,9 @@ export function createStars(g: Game): Stars {
   const list: Star[] = [];
   for (const { dist, bear } of g.L.star)
     for (let k = 0; k < 8; k++) {
-      const m = new THREE.Mesh(
-        new THREE.OctahedronGeometry(0.42),
-        new THREE.MeshBasicMaterial({ color: 0x9ea3a2 }),
-      );
+      const starGeo = new THREE.OctahedronGeometry(0.42);
+      const starMat = new THREE.MeshBasicMaterial({ color: 0x9ea3a2 });
+      const m = new THREE.Mesh(starGeo, starMat);
       g.scene.add(m);
       list.push({
         m,
@@ -63,7 +62,11 @@ export function createStars(g: Game): Stars {
 /** 별 자리: 자리 둘레에 흩어 놓고 제자리 상태로 */
 export function layoutStars(g: Game, keep: THREE.Vector3[]) {
   for (const st of g.stars.list) {
-    st.v.copy(offset(from(st.dist, st.bear), 4 + ((st.k * 5.3) % 12), st.k * 47));
+    const center = from(st.dist, st.bear);
+    const spread = 4 + ((st.k * 5.3) % 12);
+    const bearing = st.k * 47;
+    const spot = offset(center, spread, bearing);
+    st.v.copy(spot);
     st.g = featGround(g, st.v);
     st.st = 0;
     st.m.material.color.set(0x9ea3a2);
@@ -81,9 +84,14 @@ export function starsFrame(g: Game) {
     TRAIL = g.trail.N;
   for (const st of list) {
     if (st.st === 0) {
-      st.pos.copy(st.v).multiplyScalar(S.R + st.g + 1.7 + Math.sin(time * 1.6 + st.k) * 0.25);
-      st.m.scale.setScalar(Math.min(1, st.m.scale.x + dt * 2));
-      if (!t.held && p.angleTo(st.v) * S.R < 2.8 && Math.abs(t.alt - (st.g + 1.7)) < 4.5) {
+      const bobPhase = time * 1.6 + st.k;
+      const hoverR = S.R + st.g + 1.7 + Math.sin(bobPhase) * 0.25;
+      st.pos.copy(st.v).multiplyScalar(hoverR);
+      const grownScale = st.m.scale.x + dt * 2;
+      const restScale = Math.min(1, grownScale);
+      st.m.scale.setScalar(restScale);
+      const altGap = t.alt - (st.g + 1.7);
+      if (!t.held && p.angleTo(st.v) * S.R < 2.8 && Math.abs(altGap) < 4.5) {
         st.st = 1;
         followers.push(st);
         st.m.material.color.set(LIME);
@@ -93,29 +101,43 @@ export function starsFrame(g: Game) {
         }
       }
     } else if (st.st === 1) {
-      const i = Math.min(TRAIL - 1, 4 + followers.indexOf(st) * 2) * 3;
-      tmp.set(trailPos[i], trailPos[i + 1], trailPos[i + 2]);
-      {
-        const fi = followers.indexOf(st),
-          need = 2.3 + fi * 0.55;
-        if (tmp.distanceTo(P) < need) {
-          // 멈춰 있으면 꼬리가 한 점에 뭉친다: 그럴 땐 몸 둘레를 천천히 도는 고리로 펼친다
-          const a = time * 0.7 + fi * 2.4,
-            rr = 2.3 + (fi % 3) * 0.7 + Math.floor(fi / 3) * 0.5;
-          right.crossVectors(h, p).normalize();
-          tmp
-            .copy(P)
-            .addScaledVector(h, Math.cos(a) * rr)
-            .addScaledVector(right, Math.sin(a) * rr)
-            .addScaledVector(p, 0.5 + 0.5 * Math.sin(time * 1.3 + fi));
-        }
+      // 따라오는 순서(fi)대로 꼬리 기록의 뒤쪽 점에 줄을 선다
+      const fi = followers.indexOf(st);
+      const lastSlot = TRAIL - 1;
+      const wantSlot = 4 + fi * 2;
+      const i = Math.min(lastSlot, wantSlot) * 3;
+      tmp.fromArray(trailPos, i);
+      const need = 2.3 + fi * 0.55;
+      if (tmp.distanceTo(P) < need) {
+        // 멈춰 있으면 꼬리가 한 점에 뭉친다: 그럴 땐 몸 둘레를 천천히 도는 고리로 펼친다
+        const ringRowRaw = fi / 3;
+        const ringRow = Math.floor(ringRowRaw);
+        const a = time * 0.7 + fi * 2.4,
+          rr = 2.3 + (fi % 3) * 0.7 + ringRow * 0.5;
+        right.crossVectors(h, p).normalize();
+        const ahead = Math.cos(a) * rr;
+        const aside = Math.sin(a) * rr;
+        const liftPhase = time * 1.3 + fi;
+        const lift = 0.5 + 0.5 * Math.sin(liftPhase);
+        tmp
+          .copy(P)
+          .addScaledVector(h, ahead)
+          .addScaledVector(right, aside)
+          .addScaledVector(p, lift);
       }
-      st.pos.lerp(tmp, 1 - Math.exp(-(tmp.distanceTo(st.pos) > 6 ? 9 : 4) * dt));
+      const followRate = tmp.distanceTo(st.pos) > 6 ? 9 : 4;
+      const followDecay = -followRate * dt;
+      const follow = 1 - Math.exp(followDecay);
+      st.pos.lerp(tmp, follow);
     } else {
       st.t += dt;
       st.pos.addScaledVector(st.vel, dt);
-      st.vel.multiplyScalar(Math.exp(-1.3 * dt));
-      st.m.scale.setScalar(Math.max(0.01, 1.7 * (1 - st.t / 2.4)));
+      const dragRate = -1.3 * dt;
+      const drag = Math.exp(dragRate);
+      st.vel.multiplyScalar(drag);
+      const shrinking = 1.7 * (1 - st.t / 2.4);
+      const burstScale = Math.max(0.01, shrinking);
+      st.m.scale.setScalar(burstScale);
       if (st.t > 2.4) {
         st.st = 0;
         st.m.material.color.set(0x9ea3a2);
@@ -134,9 +156,13 @@ export function starModelsFrame(g: Game) {
     if (!st.model) continue;
     const u = st.model.userData;
     st.model.position.copy(st.pos);
-    st.model.scale.setScalar(u.k * st.m.scale.x);
+    const modelScale = u.k * st.m.scale.x;
+    st.model.scale.setScalar(modelScale);
     u.uLime.value = st.st > 0 ? 1 : 0;
     yq.setFromUnitVectors(UP, st.v);
-    st.model.quaternion.copy(yq).multiply(u.yq.setFromAxisAngle(UP, time * 1.5 + st.k));
+    st.model.quaternion.copy(yq);
+    const spinAngle = time * 1.5 + st.k;
+    const spin = u.yq.setFromAxisAngle(UP, spinAngle);
+    st.model.quaternion.multiply(spin);
   }
 }

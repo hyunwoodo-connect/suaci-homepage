@@ -35,16 +35,18 @@ export function createChimes(g: Game): Chime[] {
       const gr = new THREE.Group(),
         w = new THREE.Group();
       gr.add(w);
-      const pole = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.07, 0.07, 2.4, 8),
-        grey(g.mats, 0xa9adac),
-      );
+      const poleGeo = new THREE.CylinderGeometry(0.07, 0.07, 2.4, 8);
+      const poleMat = grey(g.mats, 0xa9adac);
+      const pole = new THREE.Mesh(poleGeo, poleMat);
       pole.position.y = 1.2;
-      const ball = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 12), grey(g.mats, GREY_TOY));
+      const ballGeo = new THREE.SphereGeometry(0.7, 16, 12);
+      const ballMat = grey(g.mats, GREY_TOY);
+      const ball = new THREE.Mesh(ballGeo, ballMat);
       ball.position.y = 2.7;
       w.add(pole, ball);
       g.scene.add(gr);
-      chimes.push({ g: gr, w, ball, dist, bear, k, v: new THREE.Vector3(), ringAt: -1, lit: 0 });
+      const v = new THREE.Vector3();
+      chimes.push({ g: gr, w, ball, dist, bear, k, v, ringAt: -1, lit: 0 });
     }
   return chimes;
 }
@@ -52,9 +54,11 @@ export function createChimes(g: Game): Chime[] {
 /** 종 자리 */
 export function layoutChimes(g: Game, keep: THREE.Vector3[]) {
   for (const c of g.chimes) {
-    c.v.copy(from(c.dist, c.bear));
+    const spot = from(c.dist, c.bear);
+    c.v.copy(spot);
     keep.push(c.v);
-    c.g.position.copy(c.v).multiplyScalar(S.R + featGround(g, c.v));
+    const radius = S.R + featGround(g, c.v);
+    c.g.position.copy(c.v).multiplyScalar(radius);
     c.g.quaternion.setFromUnitVectors(UP, c.v);
   }
 }
@@ -79,7 +83,8 @@ export function chimesFrame(g: Game) {
     if (!t.held) blockAt(g, c.v, 2.6, 8);
     if (!t.held && pl.air < 8 && c.lit < 0.2 && c.ringAt < 0 && pl.p.angleTo(c.v) * S.R < 4.6) {
       // 닿으면 울리고 둘레 꽃이 핀다
-      burst(g, c.g.position.clone().addScaledVector(c.v, 5), 10, 8);
+      const top = c.g.position.clone().addScaledVector(c.v, 5);
+      burst(g, top, 10, 8);
       for (let k = 0; k < bumps.v.length; k++)
         if (2 * (1 - c.v.dot(bumps.v[k])) * S.R * S.R < 700) bumps.lit[k] = 1;
       for (const o of chimes)
@@ -90,10 +95,16 @@ export function chimesFrame(g: Game) {
         say(g, "종 — 닿으면 울립니다. 칙 해도 울립니다");
       }
     }
-    c.lit = Math.max(0, c.lit - dt * 0.7);
-    c.ball.scale.setScalar(1 + c.lit * 0.8 + 0.04 * Math.sin(time * 3 + c.k));
-    c.ball.material.color.copy(TC.chime).lerp(lime, Math.min(1, c.lit * 1.5));
-    c.w.rotation.z = Math.sin(c.lit * 16) * 0.4 * c.lit;
+    const dimmed = c.lit - dt * 0.7;
+    c.lit = Math.max(0, dimmed);
+    const wobblePhase = time * 3 + c.k;
+    const swell = 1 + c.lit * 0.8 + 0.04 * Math.sin(wobblePhase);
+    c.ball.scale.setScalar(swell);
+    const glowRaw = c.lit * 1.5;
+    const glow = Math.min(1, glowRaw);
+    c.ball.material.color.copy(TC.chime).lerp(lime, glow);
+    const swingPhase = c.lit * 16;
+    c.w.rotation.z = Math.sin(swingPhase) * 0.4 * c.lit;
   }
   for (const p of g.pillars.list)
     if (p.ringAt > 0 && time >= p.ringAt) {

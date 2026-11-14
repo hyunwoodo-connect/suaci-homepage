@@ -37,57 +37,28 @@ const zbA = new THREE.Vector3(),
 
 /** 기록 선(숨김)과 리본 두 겹을 만든다 */
 export function createTrail(g: Game): Trail {
-  const pos = new Float32Array(TRAIL * 3),
-    col = new Float32Array(TRAIL * 3);
+  const trailFloats = TRAIL * 3;
+  const pos = new Float32Array(trailFloats),
+    col = new Float32Array(trailFloats);
   const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-  geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
-  const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ vertexColors: true, fog: false }));
+  const posAttr = new THREE.BufferAttribute(pos, 3);
+  geo.setAttribute("position", posAttr);
+  const colAttr = new THREE.BufferAttribute(col, 3);
+  geo.setAttribute("color", colAttr);
+  const lineMat = new THREE.LineBasicMaterial({ vertexColors: true, fog: false });
+  const line = new THREE.Line(geo, lineMat);
   line.frustumCulled = false;
   g.scene.add(line);
   line.visible = false; // 얇은 선은 감추고 아래 리본으로 그린다(지나온 자리 기록은 별이 따라오는 데 계속 쓴다)
-  const mkRibbon = (wMul: number, aMul: number, add: boolean): Ribbon => {
-    const rpos = new Float32Array(RN * 6),
-      rcol = new Float32Array(RN * 8),
-      idx: number[] = [],
-      c0 = new THREE.Color(0xa9ff39),
-      c1 = new THREE.Color(0xffffff),
-      c = new THREE.Color();
-    for (let i = 0; i < RN; i++) {
-      const t = i / (RN - 1),
-        u = Math.min(1, t / 0.19),
-        a = Math.pow(1 - u, 1.7) * aMul * Math.min(1, i / 2);
-      // 카메라가 바로 뒤에 있어서 긴 꼬리는 화면을 덮는다. 앞쪽 3분의 1(1.5초쯤)만 보이게 한다
-      c.copy(c0).lerp(c1, 0.25 + u * 0.6);
-      for (let s = 0; s < 2; s++) rcol.set([c.r, c.g, c.b, a], (i * 2 + s) * 4);
-      if (i < RN - 1) idx.push(i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2);
-    }
-    const rg = new THREE.BufferGeometry();
-    rg.setAttribute("position", new THREE.BufferAttribute(rpos, 3));
-    rg.setAttribute("color", new THREE.BufferAttribute(rcol, 4));
-    rg.setIndex(idx);
-    const m = new THREE.Mesh(
-      rg,
-      new THREE.MeshBasicMaterial({
-        vertexColors: true,
-        transparent: true,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-        fog: false,
-        blending: add ? THREE.AdditiveBlending : THREE.NormalBlending,
-      }),
-    );
-    m.frustumCulled = false;
-    m.renderOrder = 2;
-    g.scene.add(m);
-    return { pos: rpos, g: rg, wMul };
-  };
-  const ribs = [mkRibbon(2.4, 0.1, true), mkRibbon(1, 0.42, false)];
+  const ribs = [createRibbon(g, 2.4, 0.1, true), createRibbon(g, 1, 0.42, false)];
   const bgc = new THREE.Color(BG),
     tc = new THREE.Color();
+  const lastIndex = TRAIL - 1;
   for (let i = 0; i < TRAIL; i++) {
-    tc.copy(g.mats.lime).lerp(bgc, i / (TRAIL - 1));
-    col.set([tc.r, tc.g, tc.b], i * 3);
+    const fade = i / lastIndex;
+    tc.copy(g.mats.lime).lerp(bgc, fade);
+    const offset = i * 3;
+    col.set([tc.r, tc.g, tc.b], offset);
   }
   return { N: TRAIL, pos, col, geo, ribs, bgc, side: new THREE.Vector3(1, 0, 0) };
 }
@@ -95,7 +66,10 @@ export function createTrail(g: Game): Trail {
 /** 기록을 한 점으로 모은다(출발·순간 이동 뒤) */
 export function resetTrail(g: Game, P: THREE.Vector3) {
   const tr = g.trail;
-  for (let i = 0; i < TRAIL; i++) tr.pos.set([P.x, P.y, P.z], i * 3);
+  for (let i = 0; i < TRAIL; i++) {
+    const offset = i * 3;
+    tr.pos.set([P.x, P.y, P.z], offset);
+  }
 }
 
 /** 기록을 밀고 리본을 다시 그린다 */
@@ -111,7 +85,9 @@ export function trailFrame(g: Game) {
   pl.trailT += t.dt;
   if (pl.trailT > 0.05) {
     pl.trailT = 0;
-    tr.pos.copyWithin(3, 0, (TRAIL - 1) * 3);
+    // 한 점씩 뒤로 밀고 맨 앞에 새 자리(몸보다 조금 땅 쪽)를 쓴다
+    const keptEnd = (TRAIL - 1) * 3;
+    tr.pos.copyWithin(3, 0, keptEnd);
     tr.pos[0] = P.x - p.x * 0.25;
     tr.pos[1] = P.y - p.y * 0.25;
     tr.pos[2] = P.z - p.z * 0.25;
@@ -122,16 +98,79 @@ export function trailFrame(g: Game) {
 
 /* ─── 내부 ─────────────────────────── */
 
+// 리본 한 겹: 점마다 양옆 두 꼭짓점, 이웃한 두 점 사이를 삼각형 둘로 잇는다
+function createRibbon(g: Game, wMul: number, aMul: number, add: boolean): Ribbon {
+  // 점마다 꼭짓점 둘: 위치 xyz 둘, 색 rgba 둘
+  const posFloats = RN * 6,
+    colFloats = RN * 8;
+  const rpos = new Float32Array(posFloats),
+    rcol = new Float32Array(colFloats),
+    idx: number[] = [],
+    c0 = new THREE.Color(0xa9ff39),
+    c1 = new THREE.Color(0xffffff),
+    c = new THREE.Color();
+  const lastIndex = RN - 1;
+  for (let i = 0; i < RN; i++) {
+    const t = i / lastIndex;
+    // 카메라가 바로 뒤에 있어서 긴 꼬리는 화면을 덮는다. 앞쪽 3분의 1(1.5초쯤)만 보이게 한다
+    const tVisible = t / 0.19;
+    const u = Math.min(1, tVisible);
+    const rest = 1 - u;
+    const tailFade = Math.pow(rest, 1.7);
+    const headHalf = i / 2;
+    const headRamp = Math.min(1, headHalf);
+    const a = tailFade * aMul * headRamp;
+    const whiten = 0.25 + u * 0.6;
+    c.copy(c0).lerp(c1, whiten);
+    const rgba = [c.r, c.g, c.b, a];
+    for (let s = 0; s < 2; s++) {
+      const offset = (i * 2 + s) * 4;
+      rcol.set(rgba, offset);
+    }
+    if (i < lastIndex) {
+      const leftHere = i * 2,
+        rightHere = i * 2 + 1,
+        leftNext = i * 2 + 2,
+        rightNext = i * 2 + 3;
+      idx.push(leftHere, rightHere, leftNext, rightHere, rightNext, leftNext);
+    }
+  }
+  const rg = new THREE.BufferGeometry();
+  const posAttr = new THREE.BufferAttribute(rpos, 3);
+  rg.setAttribute("position", posAttr);
+  const colAttr = new THREE.BufferAttribute(rcol, 4);
+  rg.setAttribute("color", colAttr);
+  rg.setIndex(idx);
+  const ribbonMat = new THREE.MeshBasicMaterial({
+    vertexColors: true,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    fog: false,
+    blending: add ? THREE.AdditiveBlending : THREE.NormalBlending,
+  });
+  const m = new THREE.Mesh(rg, ribbonMat);
+  m.frustumCulled = false;
+  m.renderOrder = 2;
+  g.scene.add(m);
+  return { pos: rpos, g: rg, wMul };
+}
+
 function ribbonUpdate(g: Game, P: THREE.Vector3, time: number) {
   const tr = g.trail,
     trailPos = tr.pos,
     zbS = tr.side;
+  const lastIndex = RN - 1;
   for (let i = 0; i < RN; i++) {
-    const t = i / (RN - 1);
+    const t = i / lastIndex;
     if (i === 0) zbA.copy(P);
-    else zbA.fromArray(trailPos, (i - 1) * 3);
-    if (i < RN - 1) {
-      zbB.fromArray(trailPos, i * 3);
+    else {
+      const prevAt = (i - 1) * 3;
+      zbA.fromArray(trailPos, prevAt);
+    }
+    if (i < lastIndex) {
+      const at = i * 3;
+      zbB.fromArray(trailPos, at);
       zbT.copy(zbA).sub(zbB);
     } // 마지막 점은 앞 점의 방향을 그대로 쓴다
     zbU.copy(zbA).normalize();
@@ -139,11 +178,19 @@ function ribbonUpdate(g: Game, P: THREE.Vector3, time: number) {
     if (zbX.lengthSq() > 1e-4) {
       zbX.normalize();
       if (zbX.dot(zbS) < 0 && i > 0) zbX.negate();
-      zbS.lerp(zbX, i === 0 ? 1 : 0.5).normalize();
+      const follow = i === 0 ? 1 : 0.5;
+      zbS.lerp(zbX, follow).normalize();
     }
-    const u = Math.min(1, t / 0.19),
-      flap = Math.sin(u * 9 - time * 7) * 0.14 * Math.min(1, u * 3) * (1 - u),
-      hw = 0.19 * Math.pow(1 - u, 1.1) * (0.5 + 0.5 * Math.min(1, i / 3));
+    const tVisible = t / 0.19;
+    const u = Math.min(1, tVisible);
+    const rest = 1 - u;
+    const flapPhase = u * 9 - time * 7;
+    const flapIn = u * 3;
+    const flap = Math.sin(flapPhase) * 0.14 * Math.min(1, flapIn) * rest;
+    const thin = Math.pow(rest, 1.1);
+    const headThird = i / 3;
+    const headRamp = Math.min(1, headThird);
+    const hw = 0.19 * thin * (0.5 + 0.5 * headRamp);
     for (const r of tr.ribs) {
       const w = hw * r.wMul,
         o = i * 6;

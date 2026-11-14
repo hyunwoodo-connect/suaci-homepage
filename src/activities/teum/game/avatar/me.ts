@@ -25,28 +25,30 @@ const bx = new THREE.Vector3(),
 /** 내 도형 몸·고양이·그림자를 만든다(등의 날개도 같이 단다) */
 export function createMe(g: Game): Me {
   const me = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.5, 4, 14), grey(g.mats, 0x8f9493));
-  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.24, 12), grey(g.mats, 0x6f7473));
+  const bodyGeometry = new THREE.CapsuleGeometry(0.28, 0.5, 4, 14),
+    bodyMaterial = grey(g.mats, 0x8f9493),
+    body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+  const noseGeometry = new THREE.ConeGeometry(0.1, 0.24, 12),
+    noseMaterial = grey(g.mats, 0x6f7473),
+    nose = new THREE.Mesh(noseGeometry, noseMaterial);
   nose.rotation.x = Math.PI / 2;
   nose.position.set(0, 0.12, 0.34);
-  const cat = new THREE.Mesh(
-    new THREE.SphereGeometry(0.13, 14, 10),
-    new THREE.MeshBasicMaterial({ color: LIME }),
-  );
+  const catGeometry = new THREE.SphereGeometry(0.13, 14, 10),
+    catMaterial = new THREE.MeshBasicMaterial({ color: LIME }),
+    cat = new THREE.Mesh(catGeometry, catMaterial);
   cat.position.set(-0.95, 0.55, -0.45);
   const tiltG = new THREE.Group();
   tiltG.add(body, nose);
   me.add(tiltG, cat, g.wings.mine);
   g.scene.add(me);
-  const shadow = new THREE.Mesh(
-    new THREE.CircleGeometry(0.4, 24),
-    new THREE.MeshBasicMaterial({
+  const shadowGeometry = new THREE.CircleGeometry(0.4, 24),
+    shadowMaterial = new THREE.MeshBasicMaterial({
       color: 0x000000,
       transparent: true,
       opacity: 0.12,
       depthWrite: false,
     }),
-  );
+    shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
   g.scene.add(shadow);
   return { me, tiltG, body, nose, cat, shadow, avFrame: null };
 }
@@ -57,27 +59,40 @@ export function meFrame(g: Game) {
     { p, h, P } = pl,
     dt = t.dt,
     M = g.me;
-  const bob = Math.sin(time * 1.7) * 0.08;
-  P.copy(p).multiplyScalar(S.R + t.alt + bob);
+  const bobPhase = time * 1.7,
+    bob = Math.sin(bobPhase) * 0.08,
+    radius = S.R + t.alt + bob;
+  P.copy(p).multiplyScalar(radius);
   bx.crossVectors(p, h).normalize();
   m4.makeBasis(bx, p, h);
   M.me.quaternion.setFromRotationMatrix(m4);
   M.me.position.copy(P);
-  pl.tilt += (clamp(t.tot, 0, 2.4) * 0.42 - pl.vy * 0.05 - pl.tilt) * (1 - Math.exp(-5 * dt));
+  // 빠를수록 앞으로 눕고, 솟을 때는 몸을 일으킨다
+  const speed = clamp(t.tot, 0, 2.4),
+    tiltTarget = speed * 0.42 - pl.vy * 0.05,
+    tiltRate = -5 * dt,
+    tiltEase = 1 - Math.exp(tiltRate);
+  pl.tilt += (tiltTarget - pl.tilt) * tiltEase;
   M.tiltG.rotation.x = pl.tilt;
   if (M.avFrame) M.avFrame(dt, t.tot, pl.vy, pl.air);
-  M.cat.position.y = 0.55 + Math.sin(time * 2.3 + 1) * 0.07;
+  const catPhase = time * 2.3 + 1;
+  M.cat.position.y = 0.55 + Math.sin(catPhase) * 0.07;
   const warp = g.rides.warp,
-    sT = warp.on && !warp.done ? 0.05 : g.rides.cannon.on ? 0.6 : 1;
-  M.me.scale.setScalar(M.me.scale.x + (sT - M.me.scale.x) * (1 - Math.exp(-18 * dt)));
+    targetScale = warp.on && !warp.done ? 0.05 : g.rides.cannon.on ? 0.6 : 1,
+    scaleRate = -18 * dt,
+    scaleEase = 1 - Math.exp(scaleRate),
+    scale = M.me.scale.x + (targetScale - M.me.scale.x) * scaleEase;
+  M.me.scale.setScalar(scale);
 }
 
 /** 그림자는 땅에 붙어 높이 뜰수록 넓고 옅어진다 */
 export function shadowFrame(g: Game) {
   const { pl, t } = g,
     sh = g.me.shadow;
-  sh.position.copy(pl.p).multiplyScalar(S.R + t.gNow + 0.06);
+  const groundRadius = S.R + t.gNow + 0.06;
+  sh.position.copy(pl.p).multiplyScalar(groundRadius);
   sh.quaternion.setFromUnitVectors(FWD, pl.p);
-  sh.scale.setScalar(1 + pl.air * 0.08);
+  const spread = 1 + pl.air * 0.08;
+  sh.scale.setScalar(spread);
   sh.material.opacity = 0.12 / (1 + pl.air * 0.12);
 }

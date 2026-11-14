@@ -43,7 +43,10 @@ const RIM_GLSL = `
 
 /** 땅 셰이더 값과 행성을 만든다 */
 export function createGround(mats: Mats, scene: THREE.Scene): Ground {
-  const planet = new THREE.Mesh(new THREE.SphereGeometry(1, 256, 180), grey(mats, 0xdadddc));
+  // 반지름 1 로 만들고 배치에서 S.R 만큼 키운다
+  const planetGeo = new THREE.SphereGeometry(1, 256, 180);
+  const planetMat = grey(mats, 0xdadddc);
+  const planet = new THREE.Mesh(planetGeo, planetMat);
   scene.add(planet);
   const GND: GroundUniforms = {
     uA: { value: new THREE.Color(0xdadddc) },

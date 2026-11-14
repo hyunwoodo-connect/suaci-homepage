@@ -104,19 +104,24 @@ export function start(
     last = now;
     raf = requestAnimationFrame(tick);
   };
+  // 첫 화면을 다 받아도 0.99 에서 멈춘다 — 1 은 첫 프레임을 그리기 직전에 보낸다
+  const reportFirstScreen = (loaded: number, total: number) => {
+    let ratio = 0.99;
+    if (total) {
+      const share = loaded / total;
+      ratio = Math.min(0.99, share);
+    }
+    onProgress?.(ratio);
+  };
   const loader = createAssetLoader(assets);
-  const nearby = nearbyCreatureKeys(
-    g.creatures.CR.map((c) => ({ key: c.k, v: c.v })),
-    g.pl.p,
-  );
+  const creatureSpots = g.creatures.CR.map((c) => ({ key: c.k, v: c.v }));
+  const nearby = nearbyCreatureKeys(creatureSpots, g.pl.p);
   const first = firstScreenKeys(assets, nearby);
   const rest = Object.keys(assets.assets).filter(
     (k) => !first.includes(k) && g.models.waiting.has(k),
   );
   loader
-    .loadMany(first, deliver, (loaded, total) =>
-      onProgress?.(total ? Math.min(0.99, loaded / total) : 0.99),
-    )
+    .loadMany(first, deliver, reportFirstScreen)
     .then(() => {
       if (stopped) return;
       onProgress?.(1);
@@ -160,7 +165,11 @@ function buildGame(canvas: HTMLCanvasElement, manifest: Manifest): Game {
   // ---- 장면·땅·하늘 ----
   g.ground = createGround(g.mats, g.scene);
   g.sky = createSky(g.scene, g.SUN);
-  g.L.hub.forEach((h, i) => g.ground.GND.uHubV.value[i].copy(from(h.dist, h.bear))); // 마을 중심(체커 색을 바꾸는 자리)
+  // 마을 중심(체커 색을 바꾸는 자리)
+  g.L.hub.forEach((h, i) => {
+    const hubV = from(h.dist, h.bear);
+    g.ground.GND.uHubV.value[i].copy(hubV);
+  });
   // ---- 장소·랜드마크 ----
   g.places = createPlaces(g);
   g.sites = createSites(g);
@@ -206,7 +215,8 @@ function buildGame(canvas: HTMLCanvasElement, manifest: Manifest): Game {
   // ---- 나 ----
   g.me = createMe(g);
   g.trail = createTrail(g);
-  g.hud = createHud(canvas.parentElement ?? document.body);
+  const hudParent = canvas.parentElement ?? document.body;
+  g.hud = createHud(hudParent);
   g.input = attachInput(g, canvas);
   g.ripples = createRipples();
   resize(g);

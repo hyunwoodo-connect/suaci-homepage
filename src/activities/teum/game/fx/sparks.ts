@@ -36,73 +36,65 @@ const gp = new THREE.Vector3();
 export function burst(g: Game, pos: THREE.Vector3, n: number, power: number) {
   const sparks = g.fx.sparks;
   for (let k = 0; k < n; k++) {
-    const up = pos.clone().normalize(),
-      v = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5)
-        .multiplyScalar(power * 0.7)
-        .addScaledVector(up, power * (0.6 + Math.random() * 0.7));
-    sparks.push({
-      pos: pos.clone(),
-      vel: v,
-      t: 0,
-      life: 1.1 + Math.random() * 0.7,
-      size: 1.2 + Math.random() * 1.4,
-    });
+    const up = pos.clone().normalize();
+    // 난수 순서: 흩어지는 방향 x·y·z → 위로 솟는 힘 → 수명 → 크기
+    const dirX = Math.random() - 0.5;
+    const dirY = Math.random() - 0.5;
+    const dirZ = Math.random() - 0.5;
+    const spread = power * 0.7;
+    const lift = power * (0.6 + Math.random() * 0.7);
+    const v = new THREE.Vector3(dirX, dirY, dirZ).multiplyScalar(spread).addScaledVector(up, lift);
+    const life = 1.1 + Math.random() * 0.7;
+    const size = 1.2 + Math.random() * 1.4;
+    const start = pos.clone();
+    sparks.push({ pos: start, vel: v, t: 0, life, size });
     if (sparks.length > 60) sparks.shift();
   }
 }
 
 /** 빛 방울 목록, 라임 빛 스프라이트, 떠다니는 입자를 만든다 */
 export function createFx(g: Game): Fx {
-  const glowTex = (() => {
-    const cv = document.createElement("canvas");
-    cv.width = cv.height = 128;
-    const c = cv.getContext("2d")!;
-    const gr = c.createRadialGradient(64, 64, 0, 64, 64, 64);
-    gr.addColorStop(0, "rgba(255,255,255,1)");
-    gr.addColorStop(0.3, "rgba(255,255,255,.5)");
-    gr.addColorStop(1, "rgba(255,255,255,0)");
-    c.fillStyle = gr;
-    c.fillRect(0, 0, 128, 128);
-    return new THREE.CanvasTexture(cv);
-  })();
+  const glowTex = createGlowTexture();
   const glows: THREE.Sprite[] = [];
   for (let i = 0; i < GLOW_N; i++) {
-    const sp = new THREE.Sprite(
-      new THREE.SpriteMaterial({
-        map: glowTex,
-        color: LIME,
-        transparent: true,
-        depthWrite: false,
-        fog: false,
-        opacity: 0,
-      }),
-    );
+    const glowMat = new THREE.SpriteMaterial({
+      map: glowTex,
+      color: LIME,
+      transparent: true,
+      depthWrite: false,
+      fog: false,
+      opacity: 0,
+    });
+    const sp = new THREE.Sprite(glowMat);
     sp.visible = false;
     g.scene.add(sp);
     glows.push(sp);
   }
-  const motePos = new Float32Array(MOTE_N * 3),
-    moteCol = new Float32Array(MOTE_N * 3),
+  const moteFloats = MOTE_N * 3;
+  const motePos = new Float32Array(moteFloats),
+    moteCol = new Float32Array(moteFloats),
     moteGeo = new THREE.BufferGeometry();
   for (let i = 0; i < MOTE_N; i++) {
     const isLime = i % 3 === 0;
-    moteCol.set(isLime ? [0.66, 1, 0.22] : [1, 1, 1], i * 3);
+    const rgb = isLime ? [0.66, 1, 0.22] : [1, 1, 1];
+    const offset = i * 3;
+    moteCol.set(rgb, offset);
   }
-  moteGeo.setAttribute("position", new THREE.BufferAttribute(motePos, 3));
-  moteGeo.setAttribute("color", new THREE.BufferAttribute(moteCol, 3));
-  const motes = new THREE.Points(
-    moteGeo,
-    new THREE.PointsMaterial({
-      map: glowTex,
-      size: 0.55,
-      sizeAttenuation: true,
-      transparent: true,
-      opacity: 0.8,
-      depthWrite: false,
-      vertexColors: true,
-      fog: false,
-    }),
-  );
+  const posAttr = new THREE.BufferAttribute(motePos, 3);
+  moteGeo.setAttribute("position", posAttr);
+  const colAttr = new THREE.BufferAttribute(moteCol, 3);
+  moteGeo.setAttribute("color", colAttr);
+  const moteMat = new THREE.PointsMaterial({
+    map: glowTex,
+    size: 0.55,
+    sizeAttenuation: true,
+    transparent: true,
+    opacity: 0.8,
+    depthWrite: false,
+    vertexColors: true,
+    fog: false,
+  });
+  const motes = new THREE.Points(moteGeo, moteMat);
   motes.frustumCulled = false;
   motes.visible = false;
   g.scene.add(motes);
@@ -135,17 +127,31 @@ export function fxFrame(g: Game, pulse: number) {
     const PV = g.places.PV,
       PLZ = g.places.PLZ;
     for (const st of g.sites)
-      if (st.lit > 0.02) glowAt(g, st.pos, st.kind === "land" ? 30 : 14, st.lit * 0.7);
-    gp.copy(PV[3]).multiplyScalar(S.R + featGround(g, PV[3]) + 24);
-    glowAt(g, gp, 42 + pulse * 30, 0.55 + pulse * 0.4);
+      if (st.lit > 0.02) {
+        const size = st.kind === "land" ? 30 : 14;
+        const alpha = st.lit * 0.7;
+        glowAt(g, st.pos, size, alpha);
+      }
+    gp.copy(PV[3]);
+    const beaconR = S.R + featGround(g, PV[3]) + 24;
+    gp.multiplyScalar(beaconR);
+    const beaconSize = 42 + pulse * 30;
+    const beaconAlpha = 0.55 + pulse * 0.4;
+    glowAt(g, gp, beaconSize, beaconAlpha);
     g.me.cat.getWorldPosition(gp);
     glowAt(g, gp, 1.8, 0.5);
     for (const st of g.stars.list)
       if (st.st === 1) glowAt(g, st.pos, 2.4, 0.85);
-      else if (st.st === 2) glowAt(g, st.pos, 3.4, 1 - st.t / 2.4);
+      else if (st.st === 2) {
+        const fade = 1 - st.t / 2.4;
+        glowAt(g, st.pos, 3.4, fade);
+      }
     for (const r of g.rings) if (r.lit > 0) glowAt(g, r.pos, 15, r.lit);
     for (const pll of g.pillars.list)
-      if (pll.lit > 0) glowAt(g, pll.head.position, 6.5, pll.lit * 0.8);
+      if (pll.lit > 0) {
+        const alpha = pll.lit * 0.8;
+        glowAt(g, pll.head.position, 6.5, alpha);
+      }
     for (const c of g.chimes)
       if (c.lit > 0) {
         gp.copy(c.g.position).addScaledVector(c.v, 2.6);
@@ -153,7 +159,12 @@ export function fxFrame(g: Game, pulse: number) {
       }
     for (const b of g.bumpers) if (b.lit > 0) glowAt(g, b.m.position, 8, b.lit);
     for (const pd of g.pads.list)
-      if (pd.sq > 0) glowAt(g, pd.m.position, pd.hop ? 7 : 11, Math.sin(pd.sq * Math.PI));
+      if (pd.sq > 0) {
+        const size = pd.hop ? 7 : 11;
+        const squashPhase = pd.sq * Math.PI;
+        const alpha = Math.sin(squashPhase);
+        glowAt(g, pd.m.position, size, alpha);
+      }
     for (const c of g.cannons)
       if (c.lit > 0) {
         gp.copy(c.g.position).addScaledVector(c.v, 3);
@@ -163,28 +174,50 @@ export function fxFrame(g: Game, pulse: number) {
     for (const sg of g.slings) if (sg.lit > 0) glowAt(g, sg.mid, 6, sg.lit);
     for (let i = 0; i < 3; i++)
       if (PLZ[i].lit > 0) {
-        gp.copy(PV[i]).multiplyScalar(S.R + featGround(g, PV[i]) + PLZ[i].top * 0.7);
-        glowAt(g, gp, 24, PLZ[i].lit * 0.8);
+        gp.copy(PV[i]);
+        const placeR = S.R + featGround(g, PV[i]) + PLZ[i].top * 0.7;
+        gp.multiplyScalar(placeR);
+        const alpha = PLZ[i].lit * 0.8;
+        glowAt(g, gp, 24, alpha);
       }
-    for (const sk of fx.sparks)
-      glowAt(g, sk.pos, sk.size * (1 - sk.t / sk.life) + 0.3, 1 - sk.t / sk.life);
-    for (const sp of g.seeds.sprouts) if (sp.on) glowAt(g, sp.m.position, 5.5, 0.45 + sp.sq);
-    for (const f of g.funnels) if (f.lit > 0) glowAt(g, f.g.position, 26, f.lit * 0.7);
+    for (const sk of fx.sparks) {
+      const remain = 1 - sk.t / sk.life;
+      const size = sk.size * remain + 0.3;
+      glowAt(g, sk.pos, size, remain);
+    }
+    for (const sp of g.seeds.sprouts)
+      if (sp.on) {
+        const alpha = 0.45 + sp.sq;
+        glowAt(g, sp.m.position, 5.5, alpha);
+      }
+    for (const f of g.funnels)
+      if (f.lit > 0) {
+        const alpha = f.lit * 0.7;
+        glowAt(g, f.g.position, 26, alpha);
+      }
     if (g.rails.railOn) glowAt(g, P, 3.2, 0.8);
-    for (const sw of g.swings) if (sw.lit > 0) glowAt(g, sw.end, 4, sw.lit * 0.7);
+    for (const sw of g.swings)
+      if (sw.lit > 0) {
+        const alpha = sw.lit * 0.7;
+        glowAt(g, sw.end, 4, alpha);
+      }
     // 입자: 내 둘레 45 안에서 천천히 떠오른다. 멀어지면 내 둘레에 다시 놓는다
     const motePos = fx.motePos;
     for (let i = 0; i < MOTE_N; i++) {
       const j = i * 3;
-      gp.set(motePos[j], motePos[j + 1], motePos[j + 2]);
+      gp.fromArray(motePos, j);
       if (!fx.moteInit || gp.distanceToSquared(P) > 2025) {
-        gp.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5)
-          .normalize()
-          .multiplyScalar(8 + Math.random() * 36)
-          .add(P);
+        // 난수 순서: 방향 x·y·z → 거리
+        const dirX = Math.random() - 0.5;
+        const dirY = Math.random() - 0.5;
+        const dirZ = Math.random() - 0.5;
+        const dist = 8 + Math.random() * 36;
+        gp.set(dirX, dirY, dirZ).normalize().multiplyScalar(dist).add(P);
       }
-      gp.addScaledVector(p, dt * (0.25 + (i % 5) * 0.08));
-      gp.x += Math.sin(time * 0.7 + i) * dt * 0.3;
+      const rise = dt * (0.25 + (i % 5) * 0.08);
+      gp.addScaledVector(p, rise);
+      const swayPhase = time * 0.7 + i;
+      gp.x += Math.sin(swayPhase) * dt * 0.3;
       motePos[j] = gp.x;
       motePos[j + 1] = gp.y;
       motePos[j + 2] = gp.z;
@@ -193,6 +226,7 @@ export function fxFrame(g: Game, pulse: number) {
     fx.motes.geometry.attributes.position.needsUpdate = true;
   }
   const sparks = fx.sparks;
+  const fall = -9 * dt;
   for (let k = sparks.length - 1; k >= 0; k--) {
     // 빛 방울: 떠올랐다 떨어지며 사라진다
     const sk = sparks[k];
@@ -202,8 +236,24 @@ export function fxFrame(g: Game, pulse: number) {
       continue;
     }
     gp.copy(sk.pos).normalize();
-    sk.vel.addScaledVector(gp, -9 * dt);
+    sk.vel.addScaledVector(gp, fall);
     sk.pos.addScaledVector(sk.vel, dt);
   }
   for (let k = fx.gi; k < GLOW_N; k++) fx.glows[k].visible = false;
+}
+
+/* ─── 내부 ─────────────────────────── */
+
+// 빛 스프라이트와 입자가 같이 쓰는 둥근 번짐 그림(가운데 흰색 → 가장자리 투명)
+function createGlowTexture() {
+  const cv = document.createElement("canvas");
+  cv.width = cv.height = 128;
+  const c = cv.getContext("2d")!;
+  const gr = c.createRadialGradient(64, 64, 0, 64, 64, 64);
+  gr.addColorStop(0, "rgba(255,255,255,1)");
+  gr.addColorStop(0.3, "rgba(255,255,255,.5)");
+  gr.addColorStop(1, "rgba(255,255,255,0)");
+  c.fillStyle = gr;
+  c.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(cv);
 }

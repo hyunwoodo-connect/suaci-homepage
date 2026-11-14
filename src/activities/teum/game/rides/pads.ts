@@ -57,13 +57,17 @@ export function createPads(g: Game): Pads {
       const a = (i * Math.PI * 2) / 7,
         r = 0.4 + (i % 2) * 0.07,
         pg = new THREE.SphereGeometry(r, 16, 12);
-      pg.translate(Math.cos(a) * 0.6, 0.02 + (i % 3) * 0.05, Math.sin(a) * 0.6);
+      const px = Math.cos(a) * 0.6,
+        py = 0.02 + (i % 3) * 0.05,
+        pz = Math.sin(a) * 0.6;
+      pg.translate(px, py, pz);
       parts.push(pg);
     }
     return mergeGeometries(parts);
   })();
   const list: Pad[] = g.L.pad.map(({ dist, bear }) => {
-    const m = new THREE.Mesh(geo, padMat());
+    const mat = padMat();
+    const m = new THREE.Mesh(geo, mat);
     g.scene.add(m);
     return { m, dist, bear, v: new THREE.Vector3(), cool: 0, sq: 0, g: 0, ringAt: -1 };
   });
@@ -74,7 +78,8 @@ export function createPads(g: Game): Pads {
 export function createHops(g: Game) {
   for (const hp of g.L.hop)
     for (let i = 0; i < hp.n; i++) {
-      const m = new THREE.Mesh(g.pads.geo, padMat());
+      const mat = padMat();
+      const m = new THREE.Mesh(g.pads.geo, mat);
       g.scene.add(m);
       g.pads.list.push({
         m,
@@ -108,7 +113,10 @@ export function layoutHops(g: Game) {
 /** 구름 방석 자리와 땅 높이 */
 export function layoutPads(g: Game, keep: THREE.Vector3[]) {
   for (const pd of g.pads.list) {
-    if (!pd.hop) pd.v.copy(from(pd.dist!, pd.bear!));
+    if (!pd.hop) {
+      const spot = from(pd.dist!, pd.bear!);
+      pd.v.copy(spot);
+    }
     keep.push(pd.v);
     pd.g = featGround(g, pd.v);
     pd.m.quaternion.setFromUnitVectors(UP, pd.v);
@@ -138,11 +146,15 @@ export function padsFrame(g: Game) {
         say(g, "통통 구름 — 높이 튀어 올라 멀리 봅니다");
       }
     }
-    pd.sq = Math.max(0, pd.sq - dt * 2.2);
-    const k =
-        (1 - Math.sin(pd.sq * Math.PI) * 0.55) * (1 + 0.05 * Math.sin(time * 2.6 + pd.v.x * 40)),
+    const squashLeft = pd.sq - dt * 2.2;
+    pd.sq = Math.max(0, squashLeft);
+    const squashPhase = pd.sq * Math.PI;
+    const breathPhase = time * 2.6 + pd.v.x * 40;
+    const k = (1 - Math.sin(squashPhase) * 0.55) * (1 + 0.05 * Math.sin(breathPhase)),
       w = (pd.size || 4.6) * (1 + (1 - k) * 0.5); // 가만히 있을 때도 숨 쉬듯 부푼다
-    pd.m.scale.set(w, 2.3 * k, w);
-    pd.m.position.copy(pd.v).multiplyScalar(S.R + pd.g + 0.9 * k);
+    const height = 2.3 * k;
+    pd.m.scale.set(w, height, w);
+    const radius = S.R + pd.g + 0.9 * k;
+    pd.m.position.copy(pd.v).multiplyScalar(radius);
   }
 }

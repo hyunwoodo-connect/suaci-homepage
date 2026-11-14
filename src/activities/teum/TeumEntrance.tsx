@@ -39,7 +39,9 @@ function Stage({ title }: StageProps) {
     if (!canvas) return;
     let stop: (() => void) | null = null;
     let cancelled = false;
-    Promise.all([fetchManifest(), import("./game")])
+    const manifestJob = fetchManifest();
+    const gameJob = import("./game");
+    Promise.all([manifestJob, gameJob])
       .then(([assets, game]) => {
         if (cancelled) return;
         stop = game.start(canvas, { assets, onProgress: setProgress }).stop;
@@ -54,6 +56,7 @@ function Stage({ title }: StageProps) {
   }, []);
 
   const loading = progress < 1;
+  const percent = progress * 100;
   return (
     <main className="fixed inset-0 overflow-hidden bg-paper select-none">
       {/* 게임이 이 틀 안에 안내 글자·끌기 동그라미를 붙인다 */}
@@ -80,11 +83,11 @@ function Stage({ title }: StageProps) {
                 aria-label="불러오는 중"
                 aria-valuemin={0}
                 aria-valuemax={100}
-                aria-valuenow={Math.round(progress * 100)}
+                aria-valuenow={Math.round(percent)}
               >
                 <div
                   className="h-full bg-lime transition-[width]"
-                  style={{ width: `${progress * 100}%` }}
+                  style={{ width: `${percent}%` }}
                 />
               </div>
               <p className="m-0 text-[13px] text-grey">불러오는 중</p>

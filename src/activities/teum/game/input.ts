@@ -73,7 +73,8 @@ export function attachInput(g: Game, canvas: HTMLCanvasElement): Input {
     if (inp.drag) {
       inp.fx = dx / len;
       inp.fy = -dy / len;
-      inp.m = Math.min(1, len / FULL_PX);
+      const reach = len / FULL_PX;
+      inp.m = Math.min(1, reach);
       const k = Math.min(len, 42) / len;
       knob.style.left = inp.x0 + dx * k + "px";
       knob.style.top = inp.y0 + dy * k + "px";
@@ -116,7 +117,8 @@ export function chik(g: Game, x: number, y: number) {
   const { pl, rides } = g,
     p = pl.p;
   if (rides.wing.t > 0) {
-    pl.vy = Math.min(9, Math.max(pl.vy, 0) + 5.5);
+    const flapVy = Math.max(pl.vy, 0) + 5.5;
+    pl.vy = Math.min(9, flapVy);
     if (pl.air <= 0) pl.air = 0.01;
     rides.wing.flap = 1;
   } // 날갯짓
@@ -131,10 +133,12 @@ export function chik(g: Game, x: number, y: number) {
     for (const st of followers) {
       st.st = 2;
       st.t = 0;
-      st.vel
-        .set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5)
-        .multiplyScalar(14)
-        .addScaledVector(p, 7 + Math.random() * 6);
+      // 난수 순서: 흩어지는 방향 x·y·z → 위로 솟는 힘
+      const dirX = Math.random() - 0.5;
+      const dirY = Math.random() - 0.5;
+      const dirZ = Math.random() - 0.5;
+      const lift = 7 + Math.random() * 6;
+      st.vel.set(dirX, dirY, dirZ).multiplyScalar(14).addScaledVector(p, lift);
     }
     followers.length = 0;
   }
@@ -142,20 +146,22 @@ export function chik(g: Game, x: number, y: number) {
     rides.balloon.on = false;
     rides.balloon.b!.cool = 6;
   } // 하늘을 눌러도 풍선은 놓는다
-  ndc.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1);
+  // 화면 좌표 → -1..1(위가 +)
+  const ndcX = (x / innerWidth) * 2 - 1;
+  const ndcY = -(y / innerHeight) * 2 + 1;
+  ndc.set(ndcX, ndcY);
   ray.setFromCamera(ndc, g.camera);
   const hit = ray.intersectObject(g.ground.planet, false)[0];
   if (!hit) return;
   const n = hit.point.clone().normalize();
-  const m = new THREE.Mesh(
-    new THREE.CircleGeometry(1, 36),
-    new THREE.MeshBasicMaterial({
-      color: LIME,
-      transparent: true,
-      opacity: 0.8,
-      depthWrite: false,
-    }),
-  );
+  const puffGeo = new THREE.CircleGeometry(1, 36);
+  const puffMat = new THREE.MeshBasicMaterial({
+    color: LIME,
+    transparent: true,
+    opacity: 0.8,
+    depthWrite: false,
+  });
+  const m = new THREE.Mesh(puffGeo, puffMat);
   m.quaternion.setFromUnitVectors(FWD, n);
   m.userData = { n, t: 0, g: groundAt(g, n) } satisfies PuffData;
   g.scene.add(m);

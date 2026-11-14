@@ -55,16 +55,14 @@ const tmp = new THREE.Vector3(),
 /** 그네를 만든다 */
 export function createSwings(g: Game): Swing[] {
   const barGeo = g.barGeo;
-  const archPts = Array.from(
-    { length: 25 },
-    (_, i) =>
-      new THREE.Vector3(
-        3.7 * Math.cos((i * Math.PI) / 24),
-        10.5 * Math.sin((i * Math.PI) / 24) - 0.3,
-        0,
-      ),
-  );
-  const swingArch = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(archPts), 64, 0.55, 14);
+  const archPts = Array.from({ length: 25 }, (_, i) => {
+    const angle = (i * Math.PI) / 24;
+    const x = 3.7 * Math.cos(angle);
+    const y = 10.5 * Math.sin(angle) - 0.3;
+    return new THREE.Vector3(x, y, 0);
+  });
+  const archCurve = new THREE.CatmullRomCurve3(archPts);
+  const swingArch = new THREE.TubeGeometry(archCurve, 64, 0.55, 14);
   return g.L.swing.map((c) => {
     const pa = cyl(g.mats, 0.3, 10, 0xa9adac),
       pb = cyl(g.mats, 0.3, 10, 0xa9adac);
@@ -72,11 +70,14 @@ export function createSwings(g: Game): Swing[] {
     pa.position.y = 0;
     pa.material.roughness = 0.2;
     pb.visible = false; // 기둥 둘과 가로대 대신 둥근 아치 하나
-    const top = new THREE.Mesh(barGeo, grey(g.mats, 0xa9adac)),
-      rope = new THREE.Mesh(barGeo, grey(g.mats, GREY_TOY)),
-      rope2 = new THREE.Mesh(barGeo, rope.material);
+    const topMat = grey(g.mats, 0xa9adac);
+    const top = new THREE.Mesh(barGeo, topMat);
+    const ropeMat = grey(g.mats, GREY_TOY);
+    const rope = new THREE.Mesh(barGeo, ropeMat);
+    const rope2 = new THREE.Mesh(barGeo, rope.material);
     top.visible = false;
-    const seat = new THREE.Mesh(g.pads.geo, padMat());
+    const seatMat = padMat();
+    const seat = new THREE.Mesh(g.pads.geo, seatMat);
     seat.scale.set(1.9, 2.2, 1.9);
     g.scene.add(pa, pb, top, rope, rope2, seat); // 구름 방석에 두 줄
     return {
@@ -104,28 +105,28 @@ export function createSwings(g: Game): Swing[] {
 /** 그네 자리: 아치를 세우고 줄이 매달릴 곳을 정한다 */
 export function layoutSwings(g: Game, keep: THREE.Vector3[]) {
   for (const sw of g.swings) {
-    sw.v.copy(from(sw.dist, sw.bear));
-    sw.d.copy(heading(sw.v, sw.head));
+    const spot = from(sw.dist, sw.bear);
+    sw.v.copy(spot);
+    const facing = heading(sw.v, sw.head);
+    sw.d.copy(facing);
     sw.side.crossVectors(sw.v, sw.d).normalize();
     sw.g = featGround(g, sw.v);
     keep.push(sw.v);
-    const a = sw.v
-        .clone()
-        .addScaledVector(sw.side, 3.2 / S.R)
-        .normalize(),
-      b = sw.v
-        .clone()
-        .addScaledVector(sw.side, -3.2 / S.R)
-        .normalize();
-    sw.pa.position.copy(sw.v).multiplyScalar(S.R + sw.g);
-    sw.pa.quaternion.setFromRotationMatrix(
-      swingM.makeBasis(sw.side, sw.v, hy.crossVectors(sw.side, sw.v)),
-    );
-    sw.pb.position.copy(b).multiplyScalar(S.R + sw.g);
+    const legStep = 3.2 / S.R;
+    const otherLegStep = -3.2 / S.R;
+    const a = sw.v.clone().addScaledVector(sw.side, legStep).normalize(),
+      b = sw.v.clone().addScaledVector(sw.side, otherLegStep).normalize();
+    const groundR = S.R + sw.g;
+    const barR = groundR + 10;
+    sw.pa.position.copy(sw.v).multiplyScalar(groundR);
+    const archNormal = hy.crossVectors(sw.side, sw.v);
+    const archBasis = swingM.makeBasis(sw.side, sw.v, archNormal);
+    sw.pa.quaternion.setFromRotationMatrix(archBasis);
+    sw.pb.position.copy(b).multiplyScalar(groundR);
     sw.pb.quaternion.setFromUnitVectors(UP, b);
-    sw.A.copy(a).multiplyScalar(S.R + sw.g + 10);
-    sw.B.copy(b).multiplyScalar(S.R + sw.g + 10);
-    sw.piv.copy(sw.v).multiplyScalar(S.R + sw.g + 10);
+    sw.A.copy(a).multiplyScalar(barR);
+    sw.B.copy(b).multiplyScalar(barR);
+    sw.piv.copy(sw.v).multiplyScalar(barR);
     placeBar(sw.top, sw.A, sw.B);
   }
 }
@@ -149,34 +150,43 @@ export function swingsFrame(g: Game) {
       swing.dir = vel.dot(sw.d) >= 0 ? 1 : -1;
       say(g, "그네 구름 — 흔들리다 손을 떼면 날아갑니다");
     }
-    sw.lit = Math.max(0, sw.lit - dt * 0.8);
+    const fadedLit = sw.lit - dt * 0.8;
+    sw.lit = Math.max(0, fadedLit);
     sw.rope.material.color.copy(WHITE).lerp(lime, sw.lit);
-    sw.pa.material.color.copy(TC.swing).lerp(lime, sw.lit * 0.6);
+    const archGlow = sw.lit * 0.6;
+    sw.pa.material.color.copy(TC.swing).lerp(lime, archGlow);
   }
   if (swing.on) {
     const sw = swing.s!;
     swing.t += dt;
-    const A = Math.min(1.25, 0.45 + swing.t * 0.22),
-      w = 2.1,
-      L = 7.5;
-    const th = A * Math.sin(w * swing.t) * swing.dir,
-      thd = A * w * Math.cos(w * swing.t) * swing.dir;
-    p.copy(sw.v)
-      .addScaledVector(sw.d, (L * Math.sin(th)) / S.R)
-      .normalize();
-    pl.air = Math.max(
-      0.01,
-      sw.g + 10 - L * Math.cos(th) - Math.max(pl.gh, t.gNow - 0.4) - S.hover + 0.9,
-    );
+    // 매달린 시간만큼 흔들림이 커진다(최대 1.25 라디안)
+    const growingAmp = 0.45 + swing.t * 0.22;
+    const amp = Math.min(1.25, growingAmp),
+      omega = 2.1,
+      ropeLen = 7.5;
+    const phase = omega * swing.t;
+    const angle = amp * Math.sin(phase) * swing.dir,
+      angleVel = amp * omega * Math.cos(phase) * swing.dir;
+    const seatShift = (ropeLen * Math.sin(angle)) / S.R;
+    p.copy(sw.v).addScaledVector(sw.d, seatShift).normalize();
+    const gNowFloor = t.gNow - 0.4;
+    const floor = Math.max(pl.gh, gNowFloor);
+    const seatAir = sw.g + 10 - ropeLen * Math.cos(angle) - floor - S.hover + 0.9;
+    pl.air = Math.max(0.01, seatAir);
     pl.vy = 0;
     sw.lit = 1;
     if (t.m0 > 0.3) swing.touched = true;
     if ((swing.touched && t.m0 === 0 && swing.t > 0.6) || swing.kick || swing.t > 10) {
       swing.on = false;
       sw.cool = 2.5;
-      vel.copy(sw.d).multiplyScalar(thd >= 0 ? 1 : -1);
-      pl.boost = clamp(((Math.abs(thd) * L) / 7) * 1.5, 0.6, 4.5);
-      pl.vy = Math.max(1.5, Math.abs(thd) * L * Math.sin(Math.abs(th)) * 0.9 + 2);
+      const launchSign = angleVel >= 0 ? 1 : -1;
+      vel.copy(sw.d).multiplyScalar(launchSign);
+      const seatSpeed = Math.abs(angleVel) * ropeLen;
+      const launchBoost = (seatSpeed / 7) * 1.5;
+      pl.boost = clamp(launchBoost, 0.6, 4.5);
+      const absAngle = Math.abs(angle);
+      const launchVy = seatSpeed * Math.sin(absAngle) * 0.9 + 2;
+      pl.vy = Math.max(1.5, launchVy);
       pl.stun = 1.0;
     }
   }
@@ -190,11 +200,12 @@ export function swingsPose(g: Game) {
   for (const sw of g.swings) {
     if (swing.on && swing.s === sw) sw.end.copy(pl.P).addScaledVector(pl.p, -0.9);
     else {
-      tmp
-        .copy(sw.piv)
-        .addScaledVector(sw.v, -7.5)
-        .addScaledVector(sw.d, Math.sin(time * 1.3 + sw.dist) * 0.7);
-      sw.end.lerp(tmp, 1 - Math.exp(-6 * dt));
+      const swayPhase = time * 1.3 + sw.dist;
+      const sway = Math.sin(swayPhase) * 0.7;
+      tmp.copy(sw.piv).addScaledVector(sw.v, -7.5).addScaledVector(sw.d, sway);
+      const settleRate = -6 * dt;
+      const settle = 1 - Math.exp(settleRate);
+      sw.end.lerp(tmp, settle);
     }
     tmp.copy(sw.piv).addScaledVector(sw.side, 1.5);
     placeBar(sw.rope, tmp, sw.end);

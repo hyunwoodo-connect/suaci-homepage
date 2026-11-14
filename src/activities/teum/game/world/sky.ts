@@ -31,17 +31,16 @@ export function createSky(scene: THREE.Scene, SUN: THREE.Vector3): Sky {
     uMap: { value: null },
     uHas: { value: 0 },
   };
-  const mesh = new THREE.Mesh(
-    new THREE.SphereGeometry(700, 28, 18),
-    new THREE.ShaderMaterial({
-      uniforms: SKY,
-      side: THREE.BackSide,
-      depthWrite: false,
-      depthTest: false,
-      fog: false,
-      vertexShader:
-        "varying vec3 vDir; void main() { vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
-      fragmentShader: `varying vec3 vDir; uniform vec3 uTop; uniform vec3 uHor; uniform vec3 uUp; uniform vec3 uSun; uniform sampler2D uMap; uniform float uHas;
+  const skyGeo = new THREE.SphereGeometry(700, 28, 18);
+  const skyMat = new THREE.ShaderMaterial({
+    uniforms: SKY,
+    side: THREE.BackSide,
+    depthWrite: false,
+    depthTest: false,
+    fog: false,
+    vertexShader:
+      "varying vec3 vDir; void main() { vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+    fragmentShader: `varying vec3 vDir; uniform vec3 uTop; uniform vec3 uHor; uniform vec3 uUp; uniform vec3 uSun; uniform sampler2D uMap; uniform float uHas;
     void main() { vec3 d = normalize(vDir); float t = dot(d, uUp); vec3 c = mix(uHor, uTop, smoothstep(0.0, 0.7, t));
       if (uHas > 0.5) { // 하늘 그림: 해 쪽을 가운데로 두고 좌우로 거울처럼 이어 붙여 이음매가 없다. 지평선에서 66도까지 덮고 그 위는 단색
         vec3 h1 = normalize(uSun - uUp * dot(uSun, uUp) + vec3(1e-4)), h2 = cross(uUp, h1);
@@ -52,8 +51,8 @@ export function createSky(scene: THREE.Scene, SUN: THREE.Vector3): Sky {
       c += vec3(1.0, 0.96, 0.88) * pow(max(dot(d, uSun), 0.0), 20.0) * 0.18; gl_FragColor = vec4(c, 1.0);
       #include <colorspace_fragment>
     }`,
-    }),
-  );
+  });
+  const mesh = new THREE.Mesh(skyGeo, skyMat);
   mesh.renderOrder = -10;
   mesh.frustumCulled = false;
   scene.add(mesh);

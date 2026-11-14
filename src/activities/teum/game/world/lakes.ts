@@ -57,7 +57,9 @@ export function createLakes(g: Game): Lakes {
       diffuseColor.rgb = mix(mix(lc, vec3(1.0), foam2 * 0.8), vec3(1.0), foam);`,
         );
     };
-    const m = new THREE.Mesh(new THREE.BufferGeometry(), mat);
+    // 모양은 layoutLakes 가 실제 크기로 채운다
+    const emptyGeo = new THREE.BufferGeometry();
+    const m = new THREE.Mesh(emptyGeo, mat);
     g.scene.add(m);
     return { ...l, m, v: new THREE.Vector3() };
   });
@@ -67,9 +69,14 @@ export function createLakes(g: Game): Lakes {
 /** 호수 자리와 모양: 행성 곡면을 따라 붙는 얇은 덮개 */
 export function layoutLakes(g: Game) {
   for (const l of g.lakes.list) {
-    l.v.copy(from(l.dist, l.bear));
+    const center = from(l.dist, l.bear);
+    l.v.copy(center);
     l.m.geometry.dispose();
-    l.m.geometry = new THREE.SphereGeometry(S.R + 0.3, 72, 20, 0, Math.PI * 2, 0, l.r / S.R);
+    // 행성보다 살짝 위에 뜬 구면 조각: 꼭대기에서 반지름(l.r)만큼의 각도까지
+    const surface = S.R + 0.3,
+      fullTurn = Math.PI * 2,
+      capAngle = l.r / S.R;
+    l.m.geometry = new THREE.SphereGeometry(surface, 72, 20, 0, fullTurn, 0, capAngle);
     l.m.quaternion.setFromUnitVectors(UP, l.v);
   }
 }
@@ -90,7 +97,8 @@ export function lakesFrame(g: Game) {
     L.rip -= t.dt;
     if (L.rip <= 0) {
       L.rip = 0.16;
-      splashAt(g, pl.p.clone(), 0.75, 3); // 수면을 스치면 물이 갈라지며 튄다
+      const at = pl.p.clone();
+      splashAt(g, at, 0.75, 3); // 수면을 스치면 물이 갈라지며 튄다
     }
   }
   if (inL && !L.wasL) say(g, "호수 — 수면을 스치며 달립니다");

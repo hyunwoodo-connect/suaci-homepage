@@ -162,7 +162,9 @@ export function fitModels(g: Game) {
     st.g.add(m);
     st.model = m;
     st.top = m.userData.top || m.userData.hh * 2;
-    st.core = Math.max(2, m.userData.rw * (st.k === "ferris" ? 0.6 : 0.8));
+    const coreShare = st.k === "ferris" ? 0.6 : 0.8,
+      coreRadius = m.userData.rw * coreShare;
+    st.core = Math.max(2, coreRadius);
     if (st.kind === "rest") st.r = st.core + 5.5;
     st.tag.position.y = st.top + (st.kind === "land" ? 5 : 6.6);
     if (isFerris) whenModel(g, "ferris_stand", () => swapWhenReady(g, "ferris_wheel", [st.prim]));
@@ -221,7 +223,10 @@ export function fitModels(g: Game) {
 export function placeScenery(g: Game) {
   const sc = g.scenery;
   for (const it of g.places.items) occAdd(g, it.v, 6);
-  for (const st of g.sites) occAdd(g, st.v, st.core + 9);
+  for (const st of g.sites) {
+    const clearance = st.core + 9;
+    occAdd(g, st.v, clearance);
+  }
   for (const f of g.terrain.features) occAdd(g, f.v, 8);
   const pointLists: { v: THREE.Vector3 }[][] = [
     g.rings,
@@ -248,13 +253,26 @@ export function placeScenery(g: Game) {
     g.rails.list,
   ];
   for (const a of pathLists) for (const o of a) for (const nd of o.nodes) occAdd(g, nd.v, 5);
-  for (const l of g.lakes.list) occAdd(g, l.v, l.r + 3);
+  for (const l of g.lakes.list) {
+    const shore = l.r + 3;
+    occAdd(g, l.v, shore);
+  }
   for (const o of g.pipes.list) occAdd(g, o.v, 40);
   for (const o of g.funnels) occAdd(g, o.v, 26);
   for (const o of g.seeds.fields) occAdd(g, o.v, 27);
   // 비행 통로: 놀이기구가 나를 실어 보내는 길. 키 작은 것은 여기 두지 않고, 키 큰 나무는 갓 밑으로 지나가게 한다
-  for (const c of g.cannons) for (let k = 0; k <= 7; k++) corAdd(g, along(c.v, c.d, k * 8), 12);
-  for (const s of g.slings) for (let k = 0; k <= 5; k++) corAdd(g, along(s.v, s.d, -k * 7), 10);
+  for (const c of g.cannons)
+    for (let k = 0; k <= 7; k++) {
+      const ahead = k * 8,
+        point = along(c.v, c.d, ahead);
+      corAdd(g, point, 12);
+    }
+  for (const s of g.slings)
+    for (let k = 0; k <= 5; k++) {
+      const behind = -k * 7,
+        point = along(s.v, s.d, behind);
+      corAdd(g, point, 10);
+    }
   for (const a of pathLists) for (const o of a) for (const nd of o.nodes) corAdd(g, nd.v, 10);
   for (const nd of g.jets.jnodes) corAdd(g, nd.v, 13);
   const corLists: { v: THREE.Vector3 }[][] = [
@@ -277,7 +295,10 @@ export function placeScenery(g: Game) {
     if (!T || !T.I || T.I.n >= 300) return;
     const I = T.I;
     const v = from(o.dist, o.bear),
-      H = o.H * 1.5 < 86 && corNear(g, v, I.rw * o.H * 1.5) ? 88 : o.H * 1.5,
+      grownH = o.H * 1.5,
+      crownPad = I.rw * o.H * 1.5,
+      // 비행 통로 가까이의 낮은 나무는 88 로 키워 갓 밑으로 지나가게 한다
+      H = grownH < 86 && corNear(g, v, crownPad) ? 88 : grownH,
       gr = groundAt(g, v),
       yaw = 6.28 * fr(i, 37),
       t: Tree = {
@@ -292,9 +313,12 @@ export function placeScenery(g: Game) {
         sq: 0,
         i: 0,
       };
-    t.i = stamp(I, v, gr - 0.4, H, yaw);
+    const base = gr - 0.4;
+    t.i = stamp(I, v, base, H, yaw);
     TREES.push(t);
-    occAdd(g, v, Math.max(7, t.tr + 5));
+    const trunkPad = t.tr + 5,
+      clearance = Math.max(7, trunkPad);
+    occAdd(g, v, clearance);
   });
   const clouds = g.terrain.clouds;
   for (let i = 0; i < CLOUD_N; i++) {
@@ -304,7 +328,8 @@ export function placeScenery(g: Game) {
     );
     if (!t) continue;
     clouds.h[i] = t.H + 10 + 18 * fr(i, 71);
-    clouds.c[i].copy(clouds.v[i]).multiplyScalar(S.R + clouds.h[i] + clouds.s[i] * 0.6);
+    const cloudRadius = S.R + clouds.h[i] + clouds.s[i] * 0.6;
+    clouds.c[i].copy(clouds.v[i]).multiplyScalar(cloudRadius);
     setCloud(g, i, 0);
   }
   const FK = BIG_FLOWERS.map((k) => inst(g, k, 220)).filter((I): I is Instancer => Boolean(I));
@@ -315,15 +340,21 @@ export function placeScenery(g: Game) {
       for (let i0 = 0, got = 0; i0 < 150 && got < 60; i0++) {
         // 큰 풍선 꽃: 마을마다 예순 송이
         const i = hk * 200 + i0,
-          v = hubAt(g, hk, 22 + 200 * Math.sqrt(fr(i, 41)), 360 * fr(i, 42)),
+          distRoll = fr(i, 41),
+          dist = 22 + 200 * Math.sqrt(distRoll),
+          bearing = 360 * fr(i, 42),
+          v = hubAt(g, hk, dist, bearing),
           I = FK[i % FK.length];
         if (I.n >= 220 || !freeAt(g, v, 5)) continue;
         got++;
-        const H = 8 + 15 * fr(i, 43) * fr(i, 44) + 40 * Math.pow(fr(i, 47), 5),
+        const giantRoll = fr(i, 47),
+          H = 8 + 15 * fr(i, 43) * fr(i, 44) + 40 * Math.pow(giantRoll, 5),
           gr = groundAt(g, v),
           yaw = 6.28 * fr(i, 45),
           f: BigFlower = { v, g: gr, H, I, yaw, sq: 0, i: 0 };
-        f.i = stamp(I, v, gr - 0.2, H, yaw, (fr(i, 46) - 0.5) * 0.16);
+        const base = gr - 0.2,
+          tilt = (fr(i, 46) - 0.5) * 0.16;
+        f.i = stamp(I, v, base, H, yaw, tilt);
         BIGF.push(f);
         occAdd(g, v, 5);
       }
@@ -340,19 +371,17 @@ export function placeScenery(g: Game) {
     });
   // 비눗방울: 닿으면 뽁 터지며 살짝 튀어 오른다. 잇달아 터뜨릴수록 더 높이 튄다
   const BUB_N = 420,
-    bubM = new THREE.InstancedMesh(
-      new THREE.SphereGeometry(1, 16, 12),
-      new THREE.MeshStandardMaterial({
-        color: 0xffffff,
-        transparent: true,
-        opacity: 0.3,
-        roughness: 0,
-        metalness: 0,
-        envMapIntensity: 2.4,
-        depthWrite: false,
-      }),
-      BUB_N,
-    ),
+    bubbleGeometry = new THREE.SphereGeometry(1, 16, 12),
+    bubbleMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.3,
+      roughness: 0,
+      metalness: 0,
+      envMapIntensity: 2.4,
+      depthWrite: false,
+    }),
+    bubM = new THREE.InstancedMesh(bubbleGeometry, bubbleMaterial, BUB_N),
     BUBS = sc.BUBS;
   bubM.frustumCulled = false;
   bubM.count = 0;
@@ -362,26 +391,35 @@ export function placeScenery(g: Game) {
     for (let c0 = 0, got = 0; c0 < 30 && got < 10 && BUBS.length < BUB_N; c0++) {
       // 마을마다 방울 무리 열
       const c = hk * 40 + c0,
-        cv = hubAt(g, hk, 24 + 196 * Math.sqrt(fr(c, 91)), 360 * fr(c, 92));
+        distRoll = fr(c, 91),
+        dist = 24 + 196 * Math.sqrt(distRoll),
+        bearing = 360 * fr(c, 92),
+        cv = hubAt(g, hk, dist, bearing);
       if (!freeAt(g, cv, 2)) continue;
       got++;
       for (let j = 0; j < 7 && BUBS.length < BUB_N; j++) {
-        const v = offset(cv, 1 + 11 * fr(c * 9 + j, 93), 360 * fr(c * 9 + j, 94));
+        const seed = c * 9 + j,
+          spread = 1 + 11 * fr(seed, 93),
+          spreadBearing = 360 * fr(seed, 94),
+          v = offset(cv, spread, spreadBearing);
         BUBS.push({
           v,
           g: groundAt(g, v),
-          h: 2.2 + 13 * fr(c * 9 + j, 95) * fr(c * 9 + j, 96),
-          r: 0.9 + 1.7 * fr(c * 9 + j, 97),
-          ph: 6.28 * fr(c * 9 + j, 98),
+          h: 2.2 + 13 * fr(seed, 95) * fr(seed, 96),
+          r: 0.9 + 1.7 * fr(seed, 97),
+          ph: 6.28 * fr(seed, 98),
           t: 0,
           s: 1,
         });
       }
     }
   bubM.count = BUBS.length;
-  BUBS.forEach((_, i) =>
-    bubM.setColorAt(i, tc.set([0xffffff, 0xffc4e0, 0xcfe0ff, 0xfff3b0][i % 4])),
-  );
+  const bubbleTints = [0xffffff, 0xffc4e0, 0xcfe0ff, 0xfff3b0];
+  for (let i = 0; i < BUBS.length; i++) {
+    const tint = bubbleTints[i % 4];
+    tc.set(tint);
+    bubM.setColorAt(i, tc);
+  }
   if (bubM.instanceColor) bubM.instanceColor.needsUpdate = true;
   // 꼬마 라임: 여기저기 숨어 있다가, 닿으면 졸졸 따라온다
   const BL = inst(g, "lime", 12);
@@ -391,18 +429,22 @@ export function placeScenery(g: Game) {
     for (let hk = 0; hk < HV.length; hk++)
       for (let i0 = 0, got = 0; i0 < 40 && got < 2; i0++) {
         const i = hk * 50 + i0,
-          v = hubAt(g, hk, 34 + 170 * Math.sqrt(fr(i, 81)), 360 * fr(i, 82));
+          distRoll = fr(i, 81),
+          dist = 34 + 170 * Math.sqrt(distRoll),
+          bearing = 360 * fr(i, 82),
+          v = hubAt(g, hk, dist, bearing);
         if (!freeAt(g, v, 4)) continue;
         got++; // 마을마다 둘
+        const ground = groundAt(g, v);
         sc.BABY.push({
           v,
-          g: groundAt(g, v),
+          g: ground,
           ph: 6.28 * fr(i, 83),
           join: false,
           order: 0,
           pos: v.clone(),
           a: 0,
-          i: stamp(BL, v, groundAt(g, v), 1.4, 0),
+          i: stamp(BL, v, ground, 1.4, 0),
         });
         occAdd(g, v, 4);
       }
@@ -428,14 +470,18 @@ export function sceneryFrame(g: Game) {
   if (--sc.cullT <= 0) {
     // 가까운 것만 그린다. 공이 휘어 있어서 먼 것은 어차피 땅에 가린다
     sc.cullT = 20;
-    const cut = Math.cos(Math.min(1.45, 0.95 + altA / 260));
+    // 높이 뜰수록 더 멀리까지 보인다
+    const reach = 0.95 + altA / 260,
+      reachAngle = Math.min(1.45, reach),
+      cut = Math.cos(reachAngle);
     for (const I of g.models.insts) I.cull(cut);
     flCull(g);
     for (const c of sc.CULL) c.o.visible = c.v.dot(p) > cut;
   }
   const hist = sc.hist;
   if (!hist.length || p.angleTo(hist[0].p) * S.R > 0.3) {
-    hist.unshift({ p: p.clone(), a: altA });
+    const footstep: Footstep = { p: p.clone(), a: altA };
+    hist.unshift(footstep);
     if (hist.length > 120) hist.pop();
   } // 움직인 만큼만 발자취를 남겨서, 멈춰도 줄지어 서 있다
   if (sc.bubT > 0) {
@@ -456,33 +502,46 @@ export function sceneryFrame(g: Game) {
     if (b.t > 0) {
       b.t -= dt;
       if (b.t <= 0) b.s = 0.01;
-    } else if (b.s < 1) b.s = Math.min(1, b.s + dt * 0.8);
-    const hh = b.g + b.h + Math.sin(time * 0.8 + b.ph) * 0.7;
+    } else if (b.s < 1) {
+      const regrown = b.s + dt * 0.8;
+      b.s = Math.min(1, regrown);
+    }
+    const floatPhase = time * 0.8 + b.ph,
+      hh = b.g + b.h + Math.sin(floatPhase) * 0.7,
+      radius = S.R + hh,
+      heightGap = altA - hh;
     if (
       b.t <= 0 &&
       b.s > 0.6 &&
       p.angleTo(b.v) * S.R < b.r + 0.9 &&
-      Math.abs(altA - hh) < b.r + 1.1
+      Math.abs(heightGap) < b.r + 1.1
     ) {
       // 뽁
       b.t = 9;
-      sc.bubCombo = Math.min(8, sc.bubCombo + 1);
+      const combo = sc.bubCombo + 1;
+      sc.bubCombo = Math.min(8, combo);
       sc.bubT = 2.2;
       if (!held) {
-        pl.vy = Math.max(pl.vy, 2.6 + sc.bubCombo * 0.9);
+        const popLift = 2.6 + sc.bubCombo * 0.9;
+        pl.vy = Math.max(pl.vy, popLift);
         if (pl.air <= 0) pl.air = 0.01;
       }
-      pI.copy(b.v).multiplyScalar(S.R + hh);
-      burst(g, pI.clone(), 5, 5);
+      pI.copy(b.v).multiplyScalar(radius);
+      const popAt = pI.clone();
+      burst(g, popAt, 5, 5);
       if (!g.said.bubble) {
         g.said.bubble = true;
         say(g, "비눗방울 — 잇달아 터뜨릴수록 높이 튑니다");
       }
     }
-    const k = b.t > 0 ? 0.0001 : b.s * (1 + 0.05 * Math.sin(time * 2.3 + b.ph));
+    // 터진 방울은 다시 생길 때까지 거의 0 크기로 숨기고, 있는 방울은 살짝 일렁인다
+    const wobblePhase = time * 2.3 + b.ph,
+      wobble = 1 + 0.05 * Math.sin(wobblePhase),
+      k = b.t > 0 ? 0.0001 : b.s * wobble,
+      size = b.r * k;
     qI.identity();
-    pI.copy(b.v).multiplyScalar(S.R + hh);
-    sI.setScalar(b.r * k);
+    pI.copy(b.v).multiplyScalar(radius);
+    sI.setScalar(size);
     mI.compose(pI, qI, sI);
     bubM.setMatrixAt(i, mI);
   });
@@ -491,46 +550,58 @@ export function sceneryFrame(g: Game) {
   for (const b of sc.BABY) {
     if (!BL) break;
     if (!b.join) {
-      const hop = Math.abs(Math.sin(time * 2.4 + b.ph)) * 0.9;
-      putI(BL, b.i, b.v, b.g + hop, 1.4, time * 1.2 + b.ph);
+      const hopPhase = time * 2.4 + b.ph,
+        hopWave = Math.sin(hopPhase),
+        hop = Math.abs(hopWave) * 0.9,
+        height = b.g + hop,
+        yaw = time * 1.2 + b.ph;
+      putI(BL, b.i, b.v, height, 1.4, yaw);
       if (!held && pl.air < 4 && p.angleTo(b.v) * S.R < 2.6) {
         b.join = true;
         b.order = sc.babyN++;
         b.pos.copy(b.v);
         b.a = b.g;
-        burst(g, P.clone(), 8, 7);
-        say(
-          g,
+        const joinAt = P.clone();
+        burst(g, joinAt, 8, 7);
+        const joinLine =
           sc.babyN < sc.BABY.length
             ? "꼬마 라임 — 졸졸 따라옵니다 (" + sc.babyN + "/" + sc.BABY.length + ")"
-            : "꼬마 라임을 모두 모았습니다",
-        );
+            : "꼬마 라임을 모두 모았습니다";
+        say(g, joinLine);
         if (sc.babyN === sc.BABY.length)
-          for (let k = 0; k < 3; k++) burst(g, P.clone(), 20, 9 + k * 4);
+          for (let k = 0; k < 3; k++) {
+            const cheerAt = P.clone(),
+              power = 9 + k * 4;
+            burst(g, cheerAt, 20, power);
+          }
       }
     } else {
-      const hgt = hist[Math.min(hist.length - 1, 6 * (b.order + 1))];
-      b.pos.lerp(hgt.p, 1 - Math.exp(-9 * dt)).normalize();
-      b.a += (hgt.a - 0.7 - b.a) * (1 - Math.exp(-9 * dt));
-      putI(
-        BL,
-        b.i,
-        b.pos,
-        b.a + Math.abs(Math.sin(time * 7 + b.order * 1.3)) * 0.45,
-        1.2,
-        time * 3 + b.order,
-      );
+      // 줄 선 순서만큼 뒤의 발자취를 따라간다
+      const lastStep = hist.length - 1,
+        trailGap = 6 * (b.order + 1),
+        hgt = hist[Math.min(lastStep, trailGap)],
+        followRate = -9 * dt,
+        follow = 1 - Math.exp(followRate);
+      b.pos.lerp(hgt.p, follow).normalize();
+      b.a += (hgt.a - 0.7 - b.a) * follow;
+      const hopPhase = time * 7 + b.order * 1.3,
+        hopWave = Math.sin(hopPhase),
+        height = b.a + Math.abs(hopWave) * 0.45,
+        yaw = time * 3 + b.order;
+      putI(BL, b.i, b.pos, height, 1.2, yaw);
     }
   }
   for (const tr of sc.TREES) {
     const d = p.angleTo(tr.v) * S.R,
-      a = altA - tr.g;
-    if (!held && d < tr.cr * 0.85 && a > tr.cb && a < tr.H + 2) {
+      a = altA - tr.g,
+      crownReach = tr.cr * 0.85;
+    if (!held && d < crownReach && a > tr.cb && a < tr.H + 2) {
       if (pl.vy <= 0.5 && a > tr.H * 0.86) {
         pl.vy = 10.5;
         if (pl.air <= 0) pl.air = 0.01;
         tr.sq = 1;
-        burst(g, P.clone(), 8, 7);
+        const bounceAt = P.clone();
+        burst(g, bounceAt, 8, 7);
         if (!g.said.tree) {
           g.said.tree = true;
           say(g, "솜사탕 나무 — 위에 내려앉으면 통 튑니다");
@@ -538,22 +609,21 @@ export function sceneryFrame(g: Game) {
       } else if (a < tr.H * 0.86) {
         const a0 = pl.air;
         pl.air = 0;
-        blockAt(g, tr.v, tr.cr * 0.85, 1);
+        blockAt(g, tr.v, crownReach, 1);
         pl.air = a0;
         tr.sq = Math.max(tr.sq, 0.5);
       }
-    } else if (!held && a < tr.cb) blockAt(g, tr.v, tr.tr + 0.7, 1e9);
+    } else if (!held && a < tr.cb) {
+      const trunkReach = tr.tr + 0.7;
+      blockAt(g, tr.v, trunkReach, 1e9);
+    }
     if (tr.sq > 0) {
-      tr.sq = Math.max(0, tr.sq - dt * 1.6);
-      restamp(
-        tr.T.I,
-        tr.i,
-        tr.v,
-        tr.g - 0.4,
-        tr.H,
-        tr.yaw,
-        1 - 0.07 * Math.sin(tr.sq * Math.PI * 3) * tr.sq,
-      );
+      const settled = tr.sq - dt * 1.6;
+      tr.sq = Math.max(0, settled);
+      const base = tr.g - 0.4,
+        squishPhase = tr.sq * Math.PI * 3,
+        squish = 1 - 0.07 * Math.sin(squishPhase) * tr.sq;
+      restamp(tr.T.I, tr.i, tr.v, base, tr.H, tr.yaw, squish);
     }
   }
   for (const f of sc.BIGF) {
@@ -563,7 +633,8 @@ export function sceneryFrame(g: Game) {
       pl.vy = 7.5;
       if (pl.air <= 0) pl.air = 0.01;
       f.sq = 1;
-      burst(g, P.clone(), 5, 6);
+      const bounceAt = P.clone();
+      burst(g, bounceAt, 5, 6);
       if (!g.said.flower) {
         g.said.flower = true;
         say(g, "큰 풍선 꽃 — 밟으면 통 튑니다");
@@ -571,25 +642,27 @@ export function sceneryFrame(g: Game) {
     } else if (!held && d < 2.6 && a < f.H * 0.55 && f.sq < 0.3) {
       // 줄기에 닿으면 꽃이 움츠렸다가 꽃송이 높이까지 쏘아 올린다
       f.sq = 1;
-      pl.vy = Math.max(pl.vy, Math.sqrt((f.H + 5 - Math.max(0, a)) / 0.344));
+      const climb = f.H + 5 - Math.max(0, a),
+        launchSquared = climb / 0.344,
+        launch = Math.sqrt(launchSquared);
+      pl.vy = Math.max(pl.vy, launch);
       if (pl.air <= 0) pl.air = 0.01;
-      burst(g, P.clone(), 8, 8);
+      const launchAt = P.clone();
+      burst(g, launchAt, 8, 8);
       if (!g.said.flower) {
         g.said.flower = true;
         say(g, "큰 풍선 꽃 — 줄기에 닿으면 꽃 위로 쏘아 올립니다");
       }
     }
     if (f.sq > 0) {
-      f.sq = Math.max(0, f.sq - dt * 1.4);
-      restamp(
-        f.I,
-        f.i,
-        f.v,
-        f.g - 0.2,
-        f.H,
-        f.yaw + Math.sin(f.sq * 14) * 0.25 * f.sq,
-        1 - 0.1 * Math.sin(f.sq * Math.PI * 3) * f.sq,
-      );
+      const settled = f.sq - dt * 1.4;
+      f.sq = Math.max(0, settled);
+      const base = f.g - 0.2,
+        wigglePhase = f.sq * 14,
+        yaw = f.yaw + Math.sin(wigglePhase) * 0.25 * f.sq,
+        squishPhase = f.sq * Math.PI * 3,
+        squish = 1 - 0.1 * Math.sin(squishPhase) * f.sq;
+      restamp(f.I, f.i, f.v, base, f.H, yaw, squish);
     }
   }
 }
@@ -629,8 +702,10 @@ export function catFrame(g: Game) {
 function buildFerris(g: Game): Hold {
   const G = new THREE.Group() as Hold,
     fsK = g.sites.find((x) => x.k === "ferris")?.sc || 1,
-    stand = fit(g, "ferris_stand", 23 * fsK, "h"),
-    wheel = fit(g, "ferris_wheel", 34 * fsK, "h");
+    standH = 23 * fsK,
+    wheelH = 34 * fsK,
+    stand = fit(g, "ferris_stand", standH, "h"),
+    wheel = fit(g, "ferris_wheel", wheelH, "h");
   stand.position.y = stand.userData.hh;
   G.add(stand);
   stand.updateMatrixWorld(true);
@@ -640,8 +715,10 @@ function buildFerris(g: Game): Hold {
   const axleY = sb.min.y + (sb.max.y - sb.min.y) * 0.9;
   // 바퀴의 얇은 쪽(바퀴 면에 수직인 쪽)을 축 방향에 맞춘다
   wheel.updateMatrixWorld(true);
-  const wb = new THREE.Box3().setFromObject(wheel).getSize(new THREE.Vector3()),
-    thinX = wb.x < wb.z;
+  const wheelBox = new THREE.Box3().setFromObject(wheel),
+    wb = new THREE.Vector3();
+  wheelBox.getSize(wb);
+  const thinX = wb.x < wb.z;
   const pivot = new THREE.Group(),
     spin = new THREE.Group();
   pivot.position.y = axleY;

@@ -57,11 +57,10 @@ export function createStreams(g: Game): Streams {
     }
     return s;
   });
-  const streaks = new THREE.InstancedMesh(
-    new THREE.SphereGeometry(1, 8, 6),
-    new THREE.MeshBasicMaterial({ color: 0xffffff }) as THREE.Material,
-    nodes.length * 2,
-  );
+  const streakGeo = new THREE.SphereGeometry(1, 8, 6);
+  const streakMat = new THREE.MeshBasicMaterial({ color: 0xffffff }) as THREE.Material;
+  const streakCount = nodes.length * 2;
+  const streaks = new THREE.InstancedMesh(streakGeo, streakMat, streakCount);
   streaks.frustumCulled = false;
   g.scene.add(streaks);
   return { list, nodes, streaks, wasS: false };
@@ -79,7 +78,9 @@ export function layoutStreams(g: Game, keep: THREE.Vector3[]) {
       nd.side.crossVectors(v, d).normalize();
       nd.g = featGround(g, v);
       keep.push(nd.v);
-      [v, d] = step(v, d, st.gap, st.wig * Math.sin(i * 0.55));
+      const bendPhase = i * 0.55;
+      const bend = st.wig * Math.sin(bendPhase);
+      [v, d] = step(v, d, st.gap, bend);
     }
     st.endV = v;
     st.endD = d;
@@ -97,9 +98,14 @@ export function streamsFrame(g: Game) {
     for (const nd of S0.nodes) {
       if (p.angleTo(nd.v) * S.R < 4.4 && t.alt - nd.g < 8) {
         inS = true;
-        vel.lerp(nd.d, 1 - Math.exp(-5 * dt)).normalize();
-        h.lerp(nd.d, 1 - Math.exp(-2.2 * dt));
-        h.addScaledVector(p, -h.dot(p)).normalize();
+        const velDecay = -5 * dt;
+        const velPull = 1 - Math.exp(velDecay);
+        vel.lerp(nd.d, velPull).normalize();
+        const headDecay = -2.2 * dt;
+        const headPull = 1 - Math.exp(headDecay);
+        h.lerp(nd.d, headPull);
+        const hUp = h.dot(p);
+        h.addScaledVector(p, -hUp).normalize();
         pl.boost = Math.max(pl.boost, 1.15);
         if (pl.air < 1.6) {
           pl.vy = Math.max(pl.vy, 1.6);
@@ -116,19 +122,25 @@ export function streamsFrame(g: Game) {
       for (let k = 0; k < 2; k++) {
         const al = ((time * 5.5 + (k * st.gap) / 2 + nd.ph) % st.gap) - st.gap / 2,
           fade = 1 - Math.abs(al) / (st.gap / 2);
+        const alongStep = al / S.R;
+        const sideStep = (k ? 1.2 : -1.2) / S.R;
         ps.copy(nd.v)
-          .addScaledVector(nd.d, al / S.R)
-          .addScaledVector(nd.side, (k ? 1.2 : -1.2) / S.R)
+          .addScaledVector(nd.d, alongStep)
+          .addScaledVector(nd.side, sideStep)
           .normalize();
         m4.makeBasis(nd.side, nd.v, nd.d);
         q.setFromRotationMatrix(m4);
-        ps.multiplyScalar(S.R + nd.g + 2.3 + Math.sin(time * 2 + nd.ph) * 0.25);
-        yq3.setFromAxisAngle(FWD, time * 2.2 + nd.ph + k * 2);
+        const swayPhase = time * 2 + nd.ph;
+        const radius = S.R + nd.g + 2.3 + Math.sin(swayPhase) * 0.25;
+        ps.multiplyScalar(radius);
+        const rollAngle = time * 2.2 + nd.ph + k * 2;
+        yq3.setFromAxisAngle(FWD, rollAngle);
         q.multiply(yq3);
         const pw = 0.55 + 0.45 * fade;
         sc.set(pw, pw, pw);
         m4.compose(ps, q, sc);
-        S0.streaks.setMatrixAt(si++, m4); // 꽃잎이 구르며 흘러간다
+        S0.streaks.setMatrixAt(si, m4); // 꽃잎이 구르며 흘러간다
+        si++;
       }
   S0.streaks.instanceMatrix.needsUpdate = true;
 }

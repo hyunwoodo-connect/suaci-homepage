@@ -18,6 +18,7 @@ export function placeBar(m: THREE.Object3D, a: THREE.Vector3, b: THREE.Vector3) 
   dirv.copy(b).sub(a);
   const len = dirv.length();
   m.position.copy(a).add(b).multiplyScalar(0.5);
-  m.quaternion.setFromUnitVectors(UP, dirv.normalize());
+  const dir = dirv.normalize();
+  m.quaternion.setFromUnitVectors(UP, dir);
   m.scale.set(1, len, 1);
 }

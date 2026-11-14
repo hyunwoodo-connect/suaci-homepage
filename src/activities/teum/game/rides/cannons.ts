@@ -35,18 +35,20 @@ export interface CannonRide {
 export function createCannons(g: Game): Cannon[] {
   return g.L.cannon.map((c) => {
     const gr = new THREE.Group();
-    const base = new THREE.Mesh(new THREE.SphereGeometry(2.8, 22, 14), grey(g.mats, 0xb0b4b3));
+    const baseGeo = new THREE.SphereGeometry(2.8, 22, 14);
+    const baseMat = grey(g.mats, 0xb0b4b3);
+    const base = new THREE.Mesh(baseGeo, baseMat);
     base.scale.y = 0.45;
     base.position.y = 0.5;
     g.mats.poles.push(base.material);
-    const barrel = new THREE.Mesh(
-      new THREE.CylinderGeometry(1.5, 1.9, 5, 18, 1, true),
-      grey(g.mats, GREY_TOY),
-    );
+    const barrelGeo = new THREE.CylinderGeometry(1.5, 1.9, 5, 18, 1, true);
+    const barrelMat = grey(g.mats, GREY_TOY);
+    const barrel = new THREE.Mesh(barrelGeo, barrelMat);
     barrel.material.side = THREE.DoubleSide;
     barrel.rotation.x = Math.PI / 4;
     barrel.position.set(0, 2.6, 1.4);
-    const lip = new THREE.Mesh(new THREE.TorusGeometry(1.55, 0.45, 10, 28), barrel.material);
+    const lipGeo = new THREE.TorusGeometry(1.55, 0.45, 10, 28);
+    const lip = new THREE.Mesh(lipGeo, barrel.material);
     lip.rotation.x = Math.PI / 2;
     lip.position.y = 2.5;
     barrel.add(lip); // 부푼 주둥이
@@ -59,10 +61,13 @@ export function createCannons(g: Game): Cannon[] {
 /** 대포 자리: 쏘는 방향(head)을 보게 */
 export function layoutCannons(g: Game, keep: THREE.Vector3[]) {
   for (const c of g.cannons) {
-    c.v.copy(from(c.dist, c.bear));
-    c.d.copy(heading(c.v, c.head));
+    const spot = from(c.dist, c.bear);
+    c.v.copy(spot);
+    const aim = heading(c.v, c.head);
+    c.d.copy(aim);
     keep.push(c.v);
-    c.g.position.copy(c.v).multiplyScalar(S.R + featGround(g, c.v));
+    const radius = S.R + featGround(g, c.v);
+    c.g.position.copy(c.v).multiplyScalar(radius);
     basis(c.g, c.v, c.d);
   }
 }
@@ -83,16 +88,24 @@ export function cannonsFrame(g: Game) {
       cannon.c = c;
       say(g, "대포 — 멀리 쏘아 올려집니다");
     }
-    c.lit = Math.max(0, c.lit - dt);
+    const dimmed = c.lit - dt;
+    c.lit = Math.max(0, dimmed);
     c.barrel.material.color.copy(TC.cannon).lerp(lime, c.lit);
   }
   if (cannon.on) {
     const c = cannon.c!;
     cannon.t += dt;
-    p.lerp(c.v, 1 - Math.exp(-10 * dt)).normalize();
-    h.lerp(c.d, 1 - Math.exp(-6 * dt));
-    h.addScaledVector(p, -h.dot(p)).normalize();
-    pl.air += (1.6 - pl.air) * (1 - Math.exp(-8 * dt));
+    const posDecay = -10 * dt;
+    const posPull = 1 - Math.exp(posDecay);
+    p.lerp(c.v, posPull).normalize();
+    const headDecay = -6 * dt;
+    const headPull = 1 - Math.exp(headDecay);
+    h.lerp(c.d, headPull);
+    const hUp = h.dot(p);
+    h.addScaledVector(p, -hUp).normalize();
+    const airDecay = -8 * dt;
+    const airPull = 1 - Math.exp(airDecay);
+    pl.air += (1.6 - pl.air) * airPull;
     pl.vy = 0;
     if (cannon.t > 0.75) {
       cannon.on = false;

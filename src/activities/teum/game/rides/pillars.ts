@@ -49,7 +49,9 @@ export function createPillars(g: Game): Pillars {
       for (let k = 0; k < 7; k++) {
         const a = (k * Math.PI * 2) / 7,
           pt = new THREE.Mesh(petalGeo, mat);
-        pt.position.set(Math.cos(a) * 1.2, Math.sin(a) * 1.2, 0);
+        const px = Math.cos(a) * 1.2,
+          py = Math.sin(a) * 1.2;
+        pt.position.set(px, py, 0);
         pt.rotation.z = a;
         pt.scale.set(0.95, 0.52, 0.42);
         head.add(pt);
@@ -82,12 +84,11 @@ export function layoutPillars(g: Game, keep: THREE.Vector3[]) {
     for (let i = 0; i < r.n; i++) {
       const pl = g.pillars.list[pi++],
         side = new THREE.Vector3().crossVectors(v, d).normalize();
-      pl.v
-        .copy(v)
-        .addScaledVector(side, (i % 2 ? 3.2 : -3.2) / S.R)
-        .normalize();
+      const sideStep = (i % 2 ? 3.2 : -3.2) / S.R;
+      pl.v.copy(v).addScaledVector(side, sideStep).normalize();
       keep.push(pl.v);
-      pl.m.position.copy(pl.v).multiplyScalar(S.R + featGround(g, pl.v));
+      const radius = S.R + featGround(g, pl.v);
+      pl.m.position.copy(pl.v).multiplyScalar(radius);
       pl.m.quaternion.setFromUnitVectors(UP, pl.v);
       // 꽃은 줄을 따라 날아오는 쪽을 보고 살짝 위로 든다
       fz.copy(d).multiplyScalar(-0.9).addScaledVector(pl.v, 0.44).normalize();
@@ -110,12 +111,18 @@ export function pillarsFrame(g: Game) {
     if (me.air < 7 && me.p.angleTo(pl.v) * S.R < 5.6) {
       if (pl.lit <= 0.2 && pl.i === 0) say(g, "기둥 줄 — 지나가면 하나씩 솟습니다");
       pl.lit = 1;
-    } else pl.lit = Math.max(0, pl.lit - dt * 0.45);
+    } else {
+      const dimmed = pl.lit - dt * 0.45;
+      pl.lit = Math.max(0, dimmed);
+    }
     const e = pl.lit * pl.lit * (3 - 2 * pl.lit);
     const hgt = pl.base * (1 + e * 0.9);
     pl.m.scale.set(1, hgt, 1);
     pl.m.material.color.copy(TC.pillar).lerp(lime, e);
-    pl.head.position.copy(pl.m.position).addScaledVector(pl.v, hgt + 0.7);
-    pl.head.scale.setScalar((0.72 + 0.7 * e) * (1 + 0.1 * Math.sin(time * 10 + pl.i) * e));
+    const headLift = hgt + 0.7;
+    pl.head.position.copy(pl.m.position).addScaledVector(pl.v, headLift);
+    const pulsePhase = time * 10 + pl.i;
+    const bloom = (0.72 + 0.7 * e) * (1 + 0.1 * Math.sin(pulsePhase) * e);
+    pl.head.scale.setScalar(bloom);
   }
 }

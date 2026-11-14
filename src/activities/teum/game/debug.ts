@@ -18,8 +18,12 @@ export function seedRandom(): () => void {
   Math.random = () => {
     s = (s + 0x6d2b79f5) >>> 0;
     let t = s;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    const mixA = t ^ (t >>> 15),
+      oddA = t | 1;
+    t = Math.imul(mixA, oddA);
+    const mixB = t ^ (t >>> 7),
+      oddB = t | 61;
+    t ^= t + Math.imul(mixB, oddB);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
   return () => {

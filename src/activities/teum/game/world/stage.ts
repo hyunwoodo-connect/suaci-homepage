@@ -22,7 +22,10 @@ export interface Stage {
 /** 캔버스에 그리는 틀을 만든다 */
 export function createStage(canvas: HTMLCanvasElement): Stage {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  // 고해상도 화면도 배율 2 까지만 그린다(배율을 올리면 그릴 픽셀 수가 제곱으로 는다)
+  const deviceRatio = window.devicePixelRatio || 1;
+  const pixelRatio = Math.min(deviceRatio, 2);
+  renderer.setPixelRatio(pixelRatio);
   const scene = new THREE.Scene();
   const background = new THREE.Color(BG);
   scene.background = background;
@@ -36,7 +39,8 @@ export function createStage(canvas: HTMLCanvasElement): Stage {
   sun.position.copy(SUN).multiplyScalar(10);
   scene.add(sun);
   const pmrem = new THREE.PMREMGenerator(renderer);
-  const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  const room = new RoomEnvironment();
+  const envTex = pmrem.fromScene(room, 0.04).texture;
   pmrem.dispose();
   return { renderer, scene, background, fog, camera, hemi, sun, SUN, envTex };
 }

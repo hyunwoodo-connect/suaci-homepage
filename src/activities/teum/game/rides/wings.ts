@@ -41,7 +41,10 @@ export function createWings(g: Game): Wings {
     const gr = new THREE.Group();
     for (const sg of [-1, 1]) {
       const w = new THREE.Mesh(wingGeo, wingMat);
-      w.scale.set(sz * 1.3, sz * 0.22, sz * 0.62);
+      const span = sz * 1.3,
+        thickness = sz * 0.22,
+        depth = sz * 0.62;
+      w.scale.set(span, thickness, depth);
       w.position.x = sg * sz * 1.25;
       gr.add(w);
     }
@@ -61,7 +64,8 @@ export function createWings(g: Game): Wings {
 /** 날개 자리 */
 export function layoutWings(g: Game, keep: THREE.Vector3[]) {
   for (const w of g.wings.items) {
-    w.v.copy(from(w.dist, w.bear));
+    const spot = from(w.dist, w.bear);
+    w.v.copy(spot);
     w.gnd = featGround(g, w.v);
     keep.push(w.v);
   }
@@ -74,23 +78,33 @@ export function wingsFrame(g: Game) {
     wing = g.rides.wing,
     mine = g.wings.mine;
   for (const w of g.wings.items) {
+    const altOffset = t.alt - (w.gnd + 2.2);
     if (w.cool > 0) w.cool -= dt;
-    else if (pl.p.angleTo(w.v) * S.R < 2.8 && Math.abs(t.alt - (w.gnd + 2.2)) < 4.5) {
+    else if (pl.p.angleTo(w.v) * S.R < 2.8 && Math.abs(altOffset) < 4.5) {
       wing.t = 16;
       w.cool = 12;
       say(g, "날개 — 칙 할 때마다 날갯짓합니다");
     }
     w.g.visible = w.cool <= 0;
-    w.g.position.copy(w.v).multiplyScalar(S.R + w.gnd + 2.2 + Math.sin(time * 1.8 + w.dist) * 0.3);
+    const bobPhase = time * 1.8 + w.dist;
+    const radius = S.R + w.gnd + 2.2 + Math.sin(bobPhase) * 0.3;
+    w.g.position.copy(w.v).multiplyScalar(radius);
     yq2.setFromUnitVectors(UP, w.v);
-    w.g.quaternion.copy(yq2).multiply(yq3.setFromAxisAngle(UP, time * 1.4));
-    w.g.children[0].rotation.z = Math.sin(time * 5) * 0.35;
-    w.g.children[1].rotation.z = -Math.sin(time * 5) * 0.35;
+    const spinAngle = time * 1.4;
+    const spin = yq3.setFromAxisAngle(UP, spinAngle);
+    w.g.quaternion.copy(yq2).multiply(spin);
+    const flapPhase = time * 5;
+    const flap = Math.sin(flapPhase);
+    w.g.children[0].rotation.z = flap * 0.35;
+    w.g.children[1].rotation.z = -flap * 0.35;
   }
-  wing.flap = Math.max(0, wing.flap - dt * 3);
-  mine.visible = wing.t > 0 && (wing.t > 2.5 || Math.sin(time * 18) > 0); // 끝나기 직전에는 깜빡인다
+  const flapLeft = wing.flap - dt * 3;
+  wing.flap = Math.max(0, flapLeft);
+  const blinkPhase = time * 18;
+  mine.visible = wing.t > 0 && (wing.t > 2.5 || Math.sin(blinkPhase) > 0); // 끝나기 직전에는 깜빡인다
   {
-    const fl = 0.25 + Math.sin(time * 6) * 0.2 + wing.flap * 0.9;
+    const beatPhase = time * 6;
+    const fl = 0.25 + Math.sin(beatPhase) * 0.2 + wing.flap * 0.9;
     mine.children[0].rotation.z = fl;
     mine.children[1].rotation.z = -fl;
   }

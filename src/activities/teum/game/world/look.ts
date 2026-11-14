@@ -214,7 +214,8 @@ export function setLook(g: Game) {
   GND.uRim.value.set(L.rim);
   SKY.uHor.value.set(L.bg);
   SKY.uTop.value.set(L.top);
-  g.ground.PUF.uRim.value.set(L.add ? L.rim : 0xffffff);
+  const puffRim = L.add ? L.rim : 0xffffff;
+  g.ground.PUF.uRim.value.set(puffRim);
   // 솜 뭉치는 바닥보다 밝게, 아래쪽이 어둡게 죽지 않도록 스스로 조금 빛나게 한다
   const cloudCol = L.cloud || (L.pop ? 0xffffff : L.puff);
   const glowing: [THREE.MeshStandardMaterial, number, number][] = [
@@ -231,7 +232,8 @@ export function setLook(g: Game) {
   const tc = new THREE.Color();
   for (let k = 0; k < t.bumps.v.length; k++) {
     t.bumps.base[k] = L.pop ? FL[k % FL.length] : 0xffffff;
-    t.bumps.m.setColorAt(k, tc.set(t.bumps.base[k]));
+    const bumpColor = tc.set(t.bumps.base[k]);
+    t.bumps.m.setColorAt(k, bumpColor);
   }
   t.bumps.m.instanceColor!.needsUpdate = true;
   t.bumps.m.material.needsUpdate = true;
@@ -239,22 +241,34 @@ export function setLook(g: Game) {
   const fl = g.flowers;
   fl.petalMat.needsUpdate = true;
   fl.petalMat.envMapIntensity = 0.5;
-  fl.coreMat.color.set(L.core || (L.pop ? 0xffd21f : L.add ? 0xf0d9a8 : 0xf5f0e2));
-  fl.stemMat.color.set(L.stem || (L.pop ? 0x2e8f45 : L.gB));
+  const coreColor = L.core || (L.pop ? 0xffd21f : L.add ? 0xf0d9a8 : 0xf5f0e2);
+  fl.coreMat.color.set(coreColor);
+  const stemColor = L.stem || (L.pop ? 0x2e8f45 : L.gB);
+  fl.stemMat.color.set(stemColor);
   // 기류와 바람길에 실려 가는 것도 꽃잎 색으로
   const thermM = g.thermals.thermM,
     streaks = g.streams.streaks;
-  for (let k = 0; k < thermM.count; k++)
-    thermM.setColorAt(k, tc.set(L.pop ? FL[k % FL.length] : k % 3 ? 0xffffff : LIME));
-  for (let k = 0; k < streaks.count; k++)
-    streaks.setColorAt(k, tc.set(L.pop ? FL[(k * 3) % FL.length] : 0xffffff));
+  for (let k = 0; k < thermM.count; k++) {
+    const hex = L.pop ? FL[k % FL.length] : k % 3 ? 0xffffff : LIME;
+    const thermColor = tc.set(hex);
+    thermM.setColorAt(k, thermColor);
+  }
+  for (let k = 0; k < streaks.count; k++) {
+    const hex = L.pop ? FL[(k * 3) % FL.length] : 0xffffff;
+    const streakColor = tc.set(hex);
+    streaks.setColorAt(k, streakColor);
+  }
   thermM.instanceColor!.needsUpdate = true;
   streaks.instanceColor!.needsUpdate = true;
   g.petals.mat.needsUpdate = true;
   g.petals.mat.envMapIntensity = 0.4;
-  g.thermals.thermMat.uniforms.uCol.value.set(L.pop || L.add ? 0xffffff : LIME);
+  const thermalTint = L.pop || L.add ? 0xffffff : LIME;
+  g.thermals.thermMat.uniforms.uCol.value.set(thermalTint);
   const TC = g.mats.toy;
-  for (const k of Object.keys(TC) as ToyKind[]) TC[k].set(L.tc ? L.tc[k] : L.toy);
+  for (const k of Object.keys(TC) as ToyKind[]) {
+    const hex = L.tc ? L.tc[k] : L.toy;
+    TC[k].set(hex);
+  }
   g.arches.planks.material.color.copy(TC.plank);
   g.pipes.ramps.material.color.copy(TC.ramp);
   g.rails.railM.material.color.copy(TC.rail);
@@ -274,21 +288,28 @@ export function setLook(g: Game) {
   const hint = g.hud.hint;
   hint.style.color = L.pop || L.add ? "#fff" : "#6c7170";
   hint.style.textShadow = L.pop || L.add ? "0 1px 4px rgba(0,0,0,.4)" : "none"; // 진한 바탕에서는 안내 글자를 희게
-  for (const m of g.mats.poles) m.color.set(L.pop ? 0xffffff : 0xa9adac);
-  g.pillars.core.color.set(L.pop ? 0xffffff : 0xe6e8e7);
+  const poleColor = L.pop ? 0xffffff : 0xa9adac;
+  for (const m of g.mats.poles) m.color.set(poleColor);
+  const pillarCoreColor = L.pop ? 0xffffff : 0xe6e8e7;
+  g.pillars.core.color.set(pillarCoreColor);
   g.ground.GND.uGrass.value = L.pop ? 1 : 0;
-  for (const pd of g.pads.list)
-    pd.m.material.color.set(pd.hop ? L.hop || 0xff8fbd : L.pad || 0xfafbfb);
+  for (const pd of g.pads.list) {
+    const padColor = pd.hop ? L.hop || 0xff8fbd : L.pad || 0xfafbfb;
+    pd.m.material.color.set(padColor);
+  }
+  const ballColor = L.pop ? 0xffffff : 0xc4c8c7;
   for (const b of g.balls.list) {
-    b.m.material.color.set(L.pop ? 0xffffff : 0xc4c8c7);
+    b.m.material.color.set(ballColor);
     b.m.material.map = g.balls.beachTex2;
     b.m.material.roughness = L.pop ? 0.18 : 0.9;
     b.m.material.needsUpdate = true;
     for (const c of b.m.children) if (!c.userData.lime) c.visible = !L.pop;
   }
   g.sun.intensity = L.sunI || 0.75;
-  for (const l of g.lakes.list) l.m.material.color.set(L.lake || 0xf3f5f4);
-  for (const sp of g.fx.glows) sp.material.color.set(L.glow || LIME);
+  const lakeColor = L.lake || 0xf3f5f4;
+  for (const l of g.lakes.list) l.m.material.color.set(lakeColor);
+  const glowColor = L.glow || LIME;
+  for (const sp of g.fx.glows) sp.material.color.set(glowColor);
   for (const w of g.whirls)
     for (const c of w.spin.children)
       if (c instanceof THREE.Mesh && c.geometry.type === "TorusGeometry")
@@ -296,9 +317,12 @@ export function setLook(g: Game) {
   const trail = g.trail,
     bgc = trail.bgc;
   bgc.set(L.bg);
+  // 꼬리는 머리의 라임에서 끝으로 갈수록 바탕색에 묻힌다
   for (let k = 0; k < trail.N; k++) {
-    tc.copy(g.mats.lime).lerp(bgc, k / (trail.N - 1));
-    trail.col.set([tc.r, tc.g, tc.b], k * 3);
+    const towardEnd = k / (trail.N - 1);
+    tc.copy(g.mats.lime).lerp(bgc, towardEnd);
+    const rgbAt = k * 3;
+    trail.col.set([tc.r, tc.g, tc.b], rgbAt);
   }
   trail.geo.attributes.color.needsUpdate = true;
   g.fx.fxOn = L.asset;
@@ -320,9 +344,10 @@ function styleModelMat(m: THREE.MeshStandardMaterial, L: Look) {
   const ud = m.userData as ModelMatData;
   m.roughness = L.pop ? 0.32 : 0.85;
   if (GLOWING_LIME.has(ud.tk)) {
+    // 라임은 그늘에서도 쨍하게
     m.emissive.set(0x6fae12);
     m.emissiveIntensity = 0.5;
-  } // 라임은 그늘에서도 쨍하게
+  }
   const t = MODEL_TINT[ud.tk];
   ud.uTK.value = t ? t[1] : 0;
   if (t) ud.uTint.value.set(t[0]);

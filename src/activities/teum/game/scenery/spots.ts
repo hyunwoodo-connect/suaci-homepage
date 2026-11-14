@@ -41,15 +41,15 @@ export function corNear(g: Game, v: THREE.Vector3, pad: number): boolean {
 
 /** v 에서 d 방향으로 거리 m 만큼(곧게) */
 export function along(v: THREE.Vector3, d: THREE.Vector3, m: number): THREE.Vector3 {
-  return v
-    .clone()
-    .addScaledVector(d, Math.tan(m / S.R))
-    .normalize();
+  const arc = m / S.R;
+  const step = Math.tan(arc);
+  return v.clone().addScaledVector(d, step).normalize();
 }
 
 /** 마을 hk 중심에서 거리(넓이 배)·방향의 자리 */
 export function hubAt(g: Game, hk: number, d: number, b: number): THREE.Vector3 {
-  return offset(g.scenery.HV[hk], d * S.wide, b);
+  const dist = d * S.wide;
+  return offset(g.scenery.HV[hk], dist, b);
 }
 
 /** 묶음에 하나 찍는다: 땅에 세우고 돌리고(yaw) 살짝 기울인다(tilt). 찍은 번호 */
@@ -62,9 +62,12 @@ export function stamp(
   tilt?: number,
 ): number {
   qI.setFromUnitVectors(UP, v);
-  qY.setFromEuler(new THREE.Euler(tilt || 0, yaw, 0, "YXZ"));
+  const lean = tilt || 0;
+  const turn = new THREE.Euler(lean, yaw, 0, "YXZ");
+  qY.setFromEuler(turn);
   qI.multiply(qY);
-  pI.copy(v).multiplyScalar(S.R + base);
+  const radius = S.R + base;
+  pI.copy(v).multiplyScalar(radius);
   sI.setScalar(size);
   mI.compose(pI, qI, sI);
   return I.add(mI);
@@ -83,8 +86,10 @@ export function restamp(
   qI.setFromUnitVectors(UP, v);
   qY.setFromAxisAngle(UP, yaw);
   qI.multiply(qY);
-  pI.copy(v).multiplyScalar(S.R + base);
-  sI.set(size, size * sy, size);
+  const radius = S.R + base;
+  pI.copy(v).multiplyScalar(radius);
+  const height = size * sy;
+  sI.set(size, height, size);
   mI.compose(pI, qI, sI);
   I.set(i, mI);
 }
@@ -102,8 +107,11 @@ export function putI(
   qI.setFromUnitVectors(UP, v);
   qY.setFromAxisAngle(UP, yaw);
   qI.multiply(qY);
-  pI.copy(v).multiplyScalar(S.R + hAbs);
-  sI.set(size, size * (sy || 1), size);
+  const radius = S.R + hAbs;
+  pI.copy(v).multiplyScalar(radius);
+  const stretch = sy || 1;
+  const height = size * stretch;
+  sI.set(size, height, size);
   mI.compose(pI, qI, sI);
   I.set(i, mI);
 }

@@ -53,8 +53,10 @@ export function createSlings(g: Game): { list: Sling[]; barGeo: THREE.CylinderGe
       m.position.y = 0;
       g.mats.poles.push(m.material);
     }
-    const ba = new THREE.Mesh(barGeo, grey(g.mats, GREY_TOY)),
-      bb = new THREE.Mesh(barGeo, grey(g.mats, GREY_TOY));
+    const baMat = grey(g.mats, GREY_TOY);
+    const ba = new THREE.Mesh(barGeo, baMat);
+    const bbMat = grey(g.mats, GREY_TOY);
+    const bb = new THREE.Mesh(barGeo, bbMat);
     g.scene.add(pa, pb, ba, bb);
     return {
       ...c,
@@ -79,26 +81,26 @@ export function createSlings(g: Game): { list: Sling[]; barGeo: THREE.CylinderGe
 /** 고무줄 자리: 기둥 둘을 옆으로 벌려 세운다 */
 export function layoutSlings(g: Game, keep: THREE.Vector3[]) {
   for (const sg of g.slings) {
-    sg.v.copy(from(sg.dist, sg.bear));
-    sg.d.copy(heading(sg.v, sg.head));
+    const spot = from(sg.dist, sg.bear);
+    sg.v.copy(spot);
+    const facing = heading(sg.v, sg.head);
+    sg.d.copy(facing);
     sg.side.crossVectors(sg.v, sg.d).normalize();
     keep.push(sg.v);
+    const poleStep = 5 / S.R;
+    const otherPoleStep = -5 / S.R;
     const gr = featGround(g, sg.v),
-      a = sg.v
-        .clone()
-        .addScaledVector(sg.side, 5 / S.R)
-        .normalize(),
-      b = sg.v
-        .clone()
-        .addScaledVector(sg.side, -5 / S.R)
-        .normalize();
-    sg.pa.position.copy(a).multiplyScalar(S.R + gr);
+      a = sg.v.clone().addScaledVector(sg.side, poleStep).normalize(),
+      b = sg.v.clone().addScaledVector(sg.side, otherPoleStep).normalize();
+    const groundR = S.R + gr;
+    const bandR = groundR + 2.4;
+    sg.pa.position.copy(a).multiplyScalar(groundR);
     sg.pa.quaternion.setFromUnitVectors(UP, a);
-    sg.pb.position.copy(b).multiplyScalar(S.R + gr);
+    sg.pb.position.copy(b).multiplyScalar(groundR);
     sg.pb.quaternion.setFromUnitVectors(UP, b);
-    sg.A.copy(a).multiplyScalar(S.R + gr + 2.4);
-    sg.B.copy(b).multiplyScalar(S.R + gr + 2.4);
-    sg.C.copy(sg.v).multiplyScalar(S.R + gr + 2.4);
+    sg.A.copy(a).multiplyScalar(bandR);
+    sg.B.copy(b).multiplyScalar(bandR);
+    sg.C.copy(sg.v).multiplyScalar(bandR);
     sg.mid.copy(sg.C);
   }
 }
@@ -126,17 +128,21 @@ export function slingsFrame(g: Game) {
         say(g, "고무줄 — 쭉 늘어났다가 튕겨 날아갑니다");
       }
     }
-    sg.lit = Math.max(0, sg.lit - dt * 0.8);
+    const fadedLit = sg.lit - dt * 0.8;
+    sg.lit = Math.max(0, fadedLit);
     sg.ba.material.color.copy(TC.sling).lerp(lime, sg.lit);
     sg.bb.material.color.copy(sg.ba.material.color);
   }
   if (sling.on) {
     const sg = sling.s!;
     sling.t += dt;
-    const k = Math.sin((Math.min(1, sling.t / 0.5) * Math.PI) / 2);
-    p.copy(sling.s0)
-      .addScaledVector(sg.d, (sling.inc * 5 * k) / S.R)
-      .normalize();
+    // 0.5초 동안 사인 곡선으로 줄을 끝까지(5) 당긴다
+    const pullTime = sling.t / 0.5;
+    const pull = Math.min(1, pullTime);
+    const pullAngle = (pull * Math.PI) / 2;
+    const k = Math.sin(pullAngle);
+    const stretch = (sling.inc * 5 * k) / S.R;
+    p.copy(sling.s0).addScaledVector(sg.d, stretch).normalize();
     sg.lit = Math.max(sg.lit, k);
     if (sling.t > 0.5) {
       sling.on = false;
@@ -156,7 +162,11 @@ export function slingsPose(g: Game) {
     dt = g.t.dt;
   for (const sg of g.slings) {
     if (sling.on && sling.s === sg) sg.mid.copy(g.pl.P);
-    else sg.mid.lerp(sg.C, 1 - Math.exp(-14 * dt));
+    else {
+      const snapRate = -14 * dt;
+      const snap = 1 - Math.exp(snapRate);
+      sg.mid.lerp(sg.C, snap);
+    }
     placeBar(sg.ba, sg.A, sg.mid);
     placeBar(sg.bb, sg.B, sg.mid);
   }

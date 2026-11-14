@@ -86,19 +86,28 @@ export function rnd(g: Game): number {
 
 /** 공 전체에 고르게 뽑은 단위 벡터 */
 export function rv(g: Game): THREE.Vector3 {
+  // 높이(u)를 먼저, 둘레 각(a)을 다음에 뽑는다 — 이 순서가 지형을 정한다
   const u = rnd(g) * 2 - 1,
-    a = rnd(g) * Math.PI * 2,
-    r = Math.sqrt(1 - u * u);
-  return new THREE.Vector3(r * Math.cos(a), u, r * Math.sin(a));
+    a = rnd(g) * Math.PI * 2;
+  const ringSq = 1 - u * u;
+  const r = Math.sqrt(ringSq);
+  const x = r * Math.cos(a),
+    z = r * Math.sin(a);
+  return new THREE.Vector3(x, u, z);
 }
 
 /** 꽃 자리(작은 솜 뭉치) 밭을 뽑는다 — 지형 난수의 첫 순서 */
 export function createBumps(g: Game): Bumps {
   g.terrain = { seed: 7 } as Terrain;
-  const f = field(g, FLN, new THREE.SphereGeometry(1, 14, 10), puffMat(g.ground, 0xcfd3d2)); // 바닥의 작은 솜 뭉치
+  // 바닥의 작은 솜 뭉치
+  const tuftGeo = new THREE.SphereGeometry(1, 14, 10);
+  const tuftMat = puffMat(g.ground, 0xcfd3d2);
+  const f = field(g, FLN, tuftGeo, tuftMat);
   for (let i = 0; i < FLN; i++) {
-    f.v.push(rv(g));
-    f.s.push(0.35 + rnd(g) * 1.0);
+    const v = rv(g);
+    f.v.push(v);
+    const size = 0.35 + rnd(g) * 1.0;
+    f.s.push(size);
   }
   const bumps: Bumps = {
     ...f,
@@ -117,14 +126,24 @@ export function createHills(g: Game) {
   const hillMat = grey(g.mats, 0xd3d6d5);
   hillMat.side = THREE.DoubleSide;
   groundify(g.ground, hillMat);
-  const f = field(g, HLN, bumpGeo(20, 40), hillMat);
+  const hillGeo = bumpGeo(20, 40);
+  const f = field(g, HLN, hillGeo, hillMat);
   const hills: Hills = { ...f, c: [] };
   for (let i = 0; i < HLN; i++) {
-    hills.v.push(rv(g));
-    hills.s.push(6 + rnd(g) * rnd(g) * 34);
+    const v = rv(g);
+    hills.v.push(v);
+    const size = 6 + rnd(g) * rnd(g) * 34;
+    hills.s.push(size);
     const c: [number, number, number][] = [];
-    for (let j = 0; j < 5; j++)
-      c.push([j * 72 + rnd(g) * 40, 0.42 + rnd(g) * 0.2, 0.3 + rnd(g) * 0.14]);
+    for (let j = 0; j < 5; j++) {
+      // [방향, 거리, 크기] — 세 값을 이 순서로 뽑는다
+      const tuft: [number, number, number] = [
+        j * 72 + rnd(g) * 40,
+        0.42 + rnd(g) * 0.2,
+        0.3 + rnd(g) * 0.14,
+      ];
+      c.push(tuft);
+    }
     hills.c.push(c);
   }
   g.terrain.hills = hills;
@@ -133,15 +152,26 @@ export function createHills(g: Game) {
 
 /** 뭉게구름을 뽑는다(덩이 다섯이 뭉친 구름) */
 export function createClouds(g: Game) {
-  const f = field(g, CLOUD_N * 5, new THREE.SphereGeometry(1, 14, 10), puffMat(g.ground, 0xffffff));
+  const puffCount = CLOUD_N * 5;
+  const puffGeo = new THREE.SphereGeometry(1, 14, 10);
+  const cloudMat = puffMat(g.ground, 0xffffff);
+  const f = field(g, puffCount, puffGeo, cloudMat);
   const clouds: Clouds = { ...f, b: [], j: [], c: [], burst: new Float32Array(CLOUD_N) };
-  for (let i = 0; i < CLOUD_N; i++) clouds.c.push(new THREE.Vector3());
   for (let i = 0; i < CLOUD_N; i++) {
-    clouds.v.push(rv(g));
-    clouds.s.push(5 + rnd(g) * 7);
-    clouds.h.push(70 + rnd(g) * 110);
-    clouds.b.push(rnd(g) * 360);
-    clouds.j.push([rnd(g), rnd(g), rnd(g), rnd(g), rnd(g)]);
+    const center = new THREE.Vector3();
+    clouds.c.push(center);
+  }
+  for (let i = 0; i < CLOUD_N; i++) {
+    const v = rv(g);
+    clouds.v.push(v);
+    const size = 5 + rnd(g) * 7;
+    clouds.s.push(size);
+    const height = 70 + rnd(g) * 110;
+    clouds.h.push(height);
+    const bearing = rnd(g) * 360;
+    clouds.b.push(bearing);
+    const wobble = [rnd(g), rnd(g), rnd(g), rnd(g), rnd(g)];
+    clouds.j.push(wobble);
   }
   g.terrain.clouds = clouds;
 }
@@ -154,19 +184,27 @@ export function createFeatures(g: Game) {
     const mat = grey(g.mats, 0xd6d9d8);
     mat.side = THREE.DoubleSide;
     groundify(g.ground, mat);
-    const mesh = new THREE.Mesh(new THREE.BufferGeometry(), mat);
+    const emptyGeo = new THREE.BufferGeometry();
+    const mesh = new THREE.Mesh(emptyGeo, mat);
     g.scene.add(mesh);
     const c: [number, number, number][] = [];
-    for (let j = 0; j < 16; j++) c.push([rnd(g) * 360, 0.2 + rnd(g) * 0.72, 0.09 + rnd(g) * 0.1]);
+    for (let j = 0; j < 16; j++) {
+      // 비탈의 솜 뭉치 [방향, 거리, 크기] — 세 값을 이 순서로 뽑는다
+      const tuft: [number, number, number] = [
+        rnd(g) * 360,
+        0.2 + rnd(g) * 0.72,
+        0.09 + rnd(g) * 0.1,
+      ];
+      c.push(tuft);
+    }
     const at = i ? () => from(h.dist, h.bear) : () => PLACES[3].at();
     return { at, s: h.s, H: h.H, mesh, v: new THREE.Vector3(), c };
   });
   g.terrain.features = features;
-  const clump = new THREE.InstancedMesh(
-    new THREE.SphereGeometry(1, 12, 9),
-    puffMat(g.ground, 0xf2f3f3),
-    CL_H + features.length * 16,
-  );
+  const clumpGeo = new THREE.SphereGeometry(1, 12, 9);
+  const clumpMat = puffMat(g.ground, 0xf2f3f3);
+  const clumpCount = CL_H + features.length * 16;
+  const clump = new THREE.InstancedMesh(clumpGeo, clumpMat, clumpCount);
   clump.frustumCulled = false;
   clump.visible = false;
   g.scene.add(clump);
@@ -179,7 +217,8 @@ export function featGround(g: Game, v: THREE.Vector3): number {
   for (const f of g.terrain.features) {
     const r = v.angleTo(f.v) * S.R;
     if (r >= f.s) continue;
-    const y = f.H * 0.5 * (Math.cos((Math.PI * r) / f.s) + 1);
+    const phase = (Math.PI * r) / f.s;
+    const y = f.H * 0.5 * (Math.cos(phase) + 1);
     if (y > gr) gr = y;
   }
   return gr;
@@ -194,7 +233,8 @@ export function groundAt(g: Game, v: THREE.Vector3): number {
     const s = hills.s[i],
       r = v.angleTo(hills.v[i]) * S.R;
     if (r >= s) continue;
-    const y = 0.15 * s * (Math.cos((Math.PI * r) / s) + 1);
+    const phase = (Math.PI * r) / s;
+    const y = 0.15 * s * (Math.cos(phase) + 1);
     if (y > gr) gr = y;
   }
   return gr;
@@ -204,17 +244,24 @@ export function groundAt(g: Game, v: THREE.Vector3): number {
 export function setCloud(g: Game, i: number, b: number) {
   const clouds = g.terrain.clouds;
   for (let j = 0; j < 5; j++) {
+    // 가운데 덩이(j=2)가 가장 크고, 흩어질수록 덩이 사이가 벌어진다
+    const fromMiddle = j - 2;
     const cs = clouds.s[i],
-      sz = cs * (1.3 - Math.abs(j - 2) * 0.3) * (0.85 + 0.3 * clouds.j[i][j]) * (1 - 0.35 * b);
-    const v = offset(clouds.v[i], (j - 2) * cs * 1.05 * (1 + 1.2 * b), clouds.b[i]);
+      sz = cs * (1.3 - Math.abs(fromMiddle) * 0.3) * (0.85 + 0.3 * clouds.j[i][j]) * (1 - 0.35 * b);
+    const spread = fromMiddle * cs * 1.05 * (1 + 1.2 * b);
+    const v = offset(clouds.v[i], spread, clouds.b[i]);
     q.setFromUnitVectors(UP, v);
-    ps.copy(v).multiplyScalar(
-      S.R + clouds.h[i] + sz * 0.5 + (j % 2) * cs * 0.2 + b * cs * 0.6 * ((j % 3) - 1),
-    );
-    sc.set(sz * 1.15, sz * 0.82, sz);
+    const radius = S.R + clouds.h[i] + sz * 0.5 + (j % 2) * cs * 0.2 + b * cs * 0.6 * ((j % 3) - 1);
+    ps.copy(v).multiplyScalar(radius);
+    const sx = sz * 1.15,
+      sy = sz * 0.82;
+    sc.set(sx, sy, sz);
     m4.compose(ps, q, sc);
-    clouds.m.setMatrixAt(i * 5 + j, m4);
-    clouds.m.setColorAt(i * 5 + j, tc.set(0xffffff).lerp(g.mats.lime, b * 0.6));
+    const slot = i * 5 + j;
+    clouds.m.setMatrixAt(slot, m4);
+    const limeMix = b * 0.6;
+    const color = tc.set(0xffffff).lerp(g.mats.lime, limeMix);
+    clouds.m.setColorAt(slot, color);
   }
 }
 
@@ -228,7 +275,8 @@ export function putClump(
   sy: number,
 ) {
   q.setFromUnitVectors(UP, v);
-  ps.copy(v).multiplyScalar(S.R + lift);
+  const radius = S.R + lift;
+  ps.copy(v).multiplyScalar(radius);
   sc.set(sx, sy, sx);
   m4.compose(ps, q, sc);
   g.terrain.clump.setMatrixAt(k, m4);
@@ -246,12 +294,16 @@ export function cloudsFrame(g: Game) {
     if (b < 0.4 && P.distanceToSquared(clouds.c[i]) < rr * rr) {
       b = 1;
       if (!t.held) pl.vy = Math.max(pl.vy, 2.6);
-      burst(g, P.clone(), 6, 5);
+      const at = P.clone();
+      burst(g, at, 6, 5);
       say(g, "뭉게구름 — 뚫고 지나가면 흩어집니다");
-    } else if (b > 0) b = Math.max(0, b - t.dt * 0.3);
-    else continue;
+    } else if (b > 0) {
+      const faded = b - t.dt * 0.3;
+      b = Math.max(0, faded);
+    } else continue;
     clouds.burst[i] = b;
-    setCloud(g, i, b * b * (3 - 2 * b));
+    const scatter = b * b * (3 - 2 * b);
+    setCloud(g, i, scatter);
     clDirty = true;
   }
   if (clDirty) {
@@ -275,10 +327,13 @@ function field(
 
 // 꼭대기와 자락이 모두 완만한 종 모양
 function bumpGeo(seg: number, around: number) {
-  const pts = [];
+  const pts: THREE.Vector2[] = [];
   for (let i = 0; i <= seg; i++) {
     const r = i / seg;
-    pts.push(new THREE.Vector2(r, 0.5 * (Math.cos(Math.PI * r) + 1) - 0.12 * r * r));
+    const phase = Math.PI * r;
+    const y = 0.5 * (Math.cos(phase) + 1) - 0.12 * r * r;
+    const pt = new THREE.Vector2(r, y);
+    pts.push(pt);
   }
   return new THREE.LatheGeometry(pts, around);
 }

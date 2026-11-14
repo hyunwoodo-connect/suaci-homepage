@@ -35,10 +35,10 @@ export function createWhirls(g: Game): Whirl[] {
       spin = new THREE.Group();
     gr.add(spin);
     for (let i = 0; i < 7; i++) {
-      const t = new THREE.Mesh(
-        new THREE.TorusGeometry(1.4 + i * 0.85, 0.3, 10, 36),
-        grey(g.mats, GREY_TOY),
-      );
+      const ringRadius = 1.4 + i * 0.85;
+      const ringGeo = new THREE.TorusGeometry(ringRadius, 0.3, 10, 36);
+      const ringMat = grey(g.mats, GREY_TOY);
+      const t = new THREE.Mesh(ringGeo, ringMat);
       t.rotation.x = Math.PI / 2;
       t.position.y = 1.2 + i * 2.5;
       spin.add(t);
@@ -53,11 +53,15 @@ export function createWhirls(g: Game): Whirl[] {
 export function layoutWhirls(g: Game, keep: THREE.Vector3[]) {
   const STREAMS = g.streams.list;
   for (const w of g.whirls) {
-    if (w.afterStream != null)
-      w.v.copy(step(STREAMS[w.afterStream].endV, STREAMS[w.afterStream].endD, 10, 0)[0]);
-    else w.v.copy(from(w.dist!, w.bear!));
+    let spot: THREE.Vector3;
+    if (w.afterStream != null) {
+      const stream = STREAMS[w.afterStream];
+      [spot] = step(stream.endV, stream.endD, 10, 0);
+    } else spot = from(w.dist!, w.bear!);
+    w.v.copy(spot);
     keep.push(w.v);
-    w.g.position.copy(w.v).multiplyScalar(S.R + featGround(g, w.v));
+    const radius = S.R + featGround(g, w.v);
+    w.g.position.copy(w.v).multiplyScalar(radius);
     w.g.quaternion.setFromUnitVectors(UP, w.v);
   }
 }
@@ -83,16 +87,18 @@ export function whirlsFrame(g: Game) {
     const w = whirl.w!;
     whirl.t += dt;
     if (p.angleTo(w.v) * S.R < 3.2) {
-      tmp.copy(p).addScaledVector(w.v, -p.dot(w.v));
+      const pUp = p.dot(w.v);
+      tmp.copy(p).addScaledVector(w.v, -pUp);
       if (tmp.lengthSq() < 1e-10) tmp.copy(h);
       tmp.normalize();
-      p.copy(w.v)
-        .addScaledVector(tmp, 3.6 / S.R)
-        .normalize();
+      const rimAngle = 3.6 / S.R;
+      p.copy(w.v).addScaledVector(tmp, rimAngle).normalize();
     }
-    p.applyAxisAngle(w.v, 2.5 * dt).normalize();
+    const turn = 2.5 * dt;
+    p.applyAxisAngle(w.v, turn).normalize();
     h.crossVectors(w.v, p);
-    h.addScaledVector(p, -h.dot(p)).normalize();
+    const hUp = h.dot(p);
+    h.addScaledVector(p, -hUp).normalize();
     vel.copy(h);
     pl.vy = 6.2;
     if (pl.air <= 0) pl.air = 0.01;
@@ -104,5 +110,9 @@ export function whirlsFrame(g: Game) {
     }
   }
   const spinning = whirl.on || g.rides.funnel.on;
-  pl.wB += ((spinning ? 1 : 0) - pl.wB) * (1 - Math.exp(-(spinning ? 5 : 1.5) * dt));
+  const spinTarget = spinning ? 1 : 0;
+  const blendRate = spinning ? 5 : 1.5;
+  const blendDecay = -blendRate * dt;
+  const blendPull = 1 - Math.exp(blendDecay);
+  pl.wB += (spinTarget - pl.wB) * blendPull;
 }

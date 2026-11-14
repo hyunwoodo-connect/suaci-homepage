@@ -20,30 +20,35 @@ export function label(text: string): THREE.Sprite {
   g.fillText(text, 128, 42);
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
-  const s = new THREE.Sprite(
-    new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }),
-  );
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+  const s = new THREE.Sprite(mat);
   s.scale.set(1.9, 0.6, 1);
   return s;
 }
 
 /** 상자 도형(바닥이 y=0 에 닿게) */
 export function box(mats: Mats, w: number, h: number, d: number, c: number, y = h / 2): GreyMesh {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), grey(mats, c));
+  const geo = new THREE.BoxGeometry(w, h, d);
+  const mat = grey(mats, c);
+  const m = new THREE.Mesh(geo, mat);
   m.position.y = y;
   return m;
 }
 
 /** 원기둥 도형(바닥이 y=0 에 닿게) */
 export function cyl(mats: Mats, r: number, h: number, c: number, y = h / 2): GreyMesh {
-  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 28), grey(mats, c));
+  const geo = new THREE.CylinderGeometry(r, r, h, 28);
+  const mat = grey(mats, c);
+  const m = new THREE.Mesh(geo, mat);
   m.position.y = y;
   return m;
 }
 
 /** 공 도형 */
 export function ball(mats: Mats, r: number, c: number, y: number): GreyMesh {
-  const m = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 16), grey(mats, c));
+  const geo = new THREE.SphereGeometry(r, 24, 16);
+  const mat = grey(mats, c);
+  const m = new THREE.Mesh(geo, mat);
   m.position.y = y;
   return m;
 }

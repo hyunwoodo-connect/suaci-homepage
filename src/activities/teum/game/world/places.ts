@@ -82,11 +82,10 @@ export function createPlaces(g: Game): Places {
   const K = 4.5;
   {
     const gr = new THREE.Group();
-    gr.add(
-      cyl(mats, 1.9, 0.1, 0xc9cdcc),
-      cyl(mats, 0.18, 2.1, 0xb9bdbc),
-      ball(mats, 1.0, 0xc2c6c5, 2.7),
-    );
+    const base = cyl(mats, 1.9, 0.1, 0xc9cdcc);
+    const trunk = cyl(mats, 0.18, 2.1, 0xb9bdbc);
+    const crown = ball(mats, 1.0, 0xc2c6c5, 2.7);
+    gr.add(base, trunk, crown);
     const l = label("광장");
     l.visible = false;
     l.position.y = 4.3;
@@ -96,11 +95,10 @@ export function createPlaces(g: Game): Places {
   }
   {
     const gr = new THREE.Group();
-    gr.add(
-      cyl(mats, 1.5, 0.35, 0xc4c8c7),
-      cyl(mats, 0.3, 1.2, 0xb9bdbc),
-      ball(mats, 0.34, 0xcfd3d2, 1.45),
-    );
+    const basin = cyl(mats, 1.5, 0.35, 0xc4c8c7);
+    const column = cyl(mats, 0.3, 1.2, 0xb9bdbc);
+    const spout = ball(mats, 0.34, 0xcfd3d2, 1.45);
+    gr.add(basin, column, spout);
     const l = label("분수");
     l.visible = false;
     l.position.y = 2.6;
@@ -110,12 +108,11 @@ export function createPlaces(g: Game): Places {
   }
   {
     const gr = new THREE.Group();
-    gr.add(
-      box(mats, 1.1, 1.3, 1.1, 0xbfc3c2),
-      ball(mats, 0.65, 0xd3d6d5, 1.8),
-      box(mats, 0.2, 0.2, 0.22, 0xa9adac, 0.6),
-    );
-    gr.children[2].position.z = 0.64;
+    const body = box(mats, 1.1, 1.3, 1.1, 0xbfc3c2);
+    const globe = ball(mats, 0.65, 0xd3d6d5, 1.8);
+    const chute = box(mats, 0.2, 0.2, 0.22, 0xa9adac, 0.6);
+    gr.add(body, globe, chute);
+    chute.position.z = 0.64;
     const l = label("뽑기터");
     l.visible = false;
     l.position.y = 3.1;
@@ -126,23 +123,23 @@ export function createPlaces(g: Game): Places {
   let lamp: Places["lamp"], beam: Places["beam"];
   {
     const gr = new THREE.Group();
-    gr.add(cyl(mats, 2.2, 22, 0xc9cdcc), cyl(mats, 3.4, 1.2, 0xbfc3c2));
-    lamp = new THREE.Mesh(
-      new THREE.SphereGeometry(2.6, 24, 16),
-      new THREE.MeshBasicMaterial({ color: LIME, fog: false }),
-    );
+    const tower = cyl(mats, 2.2, 22, 0xc9cdcc);
+    const plinth = cyl(mats, 3.4, 1.2, 0xbfc3c2);
+    gr.add(tower, plinth);
+    const lampGeo = new THREE.SphereGeometry(2.6, 24, 16);
+    const lampMat = new THREE.MeshBasicMaterial({ color: LIME, fog: false });
+    lamp = new THREE.Mesh(lampGeo, lampMat);
     lamp.position.y = 24;
     gr.add(lamp);
-    beam = new THREE.Mesh(
-      new THREE.CylinderGeometry(1.3, 1.3, 200, 12),
-      new THREE.MeshBasicMaterial({
-        color: LIME,
-        fog: false,
-        transparent: true,
-        opacity: 0.55,
-        depthWrite: false,
-      }),
-    );
+    const beamGeo = new THREE.CylinderGeometry(1.3, 1.3, 200, 12);
+    const beamMat = new THREE.MeshBasicMaterial({
+      color: LIME,
+      fog: false,
+      transparent: true,
+      opacity: 0.55,
+      depthWrite: false,
+    });
+    beam = new THREE.Mesh(beamGeo, beamMat);
     beam.position.y = 125;
     gr.add(beam);
     const l = label("등대");
@@ -162,8 +159,12 @@ export function createPlaces(g: Game): Places {
     [3, 16, 140],
   ];
   spotsAt.forEach(([i, dist, b], k) => {
-    const m = new THREE.Mesh(new THREE.SphereGeometry(0.45, 18, 12), grey(mats, 0xaeb2b1));
-    spots.push({ m, ph: k * 1.3 });
+    const spotGeo = new THREE.SphereGeometry(0.45, 18, 12);
+    const spotMat = grey(mats, 0xaeb2b1);
+    const m = new THREE.Mesh(spotGeo, spotMat);
+    // 공마다 숨 쉬는 박자를 어긋나게
+    const ph = k * 1.3;
+    spots.push({ m, ph });
     addItem(items, scene, m, () => offset(list[i].at(), dist, b), 1.4);
   });
   return {
@@ -190,7 +191,9 @@ export function reactPlace(g: Game, i: number) {
   z.lit = 1;
   z.cool = 2.5;
   say(g, z.msg);
-  burst(g, PV[i].clone().multiplyScalar(S.R + featGround(g, PV[i]) + z.top), 14, 9);
+  const radius = S.R + featGround(g, PV[i]) + z.top;
+  const at = PV[i].clone().multiplyScalar(radius);
+  burst(g, at, 14, 9);
   const bumps = g.terrain.bumps;
   for (let k = 0; k < bumps.v.length; k++)
     if (2 * (1 - PV[i].dot(bumps.v[k])) * S.R * S.R < 500) bumps.lit[k] = 1; // 둘레 꽃도 같이 핀다
@@ -201,18 +204,21 @@ export function placesFrame(g: Game) {
   const { pl, t, time } = g,
     { PLZ, PV, items } = g.places;
   if (!t.held) {
+    // 소원 나무 줄기와 뽑기 기계도 속으로 못 들어간다
     blockAt(g, PV[0], 3.2, 20);
     blockAt(g, PV[2], 4, 11);
-  } // 소원 나무 줄기와 뽑기 기계도 속으로 못 들어간다
+  }
   for (let i = 0; i < 3; i++) {
     const z = PLZ[i],
       dz = pl.p.angleTo(PV[i]) * S.R;
     if (z.cool > 0) z.cool -= t.dt;
     if (z.cool <= 0 && pl.air < 9 && dz < z.r) reactPlace(g, i);
-    z.lit = Math.max(0, z.lit - t.dt * 0.45);
+    const faded = z.lit - t.dt * 0.45;
+    z.lit = Math.max(0, faded);
     const md = items[i].model;
     if (md) {
-      md.rotation.z = Math.sin(time * 11) * 0.07 * z.lit;
+      const shakePhase = time * 11;
+      md.rotation.z = Math.sin(shakePhase) * 0.07 * z.lit;
       md.userData.uLime.value = z.lit * 0.3;
     }
     if (i === 1 && !t.held && dz < 8.5 && pl.air < 9) {
@@ -222,24 +228,12 @@ export function placesFrame(g: Game) {
       g.places.spoutT -= t.dt;
       if (g.places.spoutT <= 0) {
         g.places.spoutT = 0.09;
-        burst(g, PV[1].clone().multiplyScalar(S.R + featGround(g, PV[1]) + 3 + pl.air * 0.5), 2, 7);
+        const radius = S.R + featGround(g, PV[1]) + 3 + pl.air * 0.5;
+        const at = PV[1].clone().multiplyScalar(radius);
+        burst(g, at, 2, 7);
       }
     }
   }
-}
-
-/* ─── 내부 ─────────────────────────── */
-
-function addItem<T extends THREE.Object3D>(
-  items: Item[],
-  scene: THREE.Scene,
-  obj: T,
-  at: () => THREE.Vector3,
-  lift = 0,
-): T {
-  items.push({ at, lift, obj, v: new THREE.Vector3() });
-  scene.add(obj);
-  return obj;
 }
 
 /** 등대에 닿은 뒤의 상태: 언제부터(t), 퍼지는 빛 고리(wave) */
@@ -260,31 +254,38 @@ export function lighthouseFrame(g: Game): number {
     arr.on = true;
     arr.t = 0;
     say(g, "등대 — 불이 켜집니다");
-    arr.wave = new THREE.Mesh(
-      new THREE.RingGeometry(0.965, 1, 120),
-      new THREE.MeshBasicMaterial({
-        color: LIME,
-        transparent: true,
-        opacity: 0.75,
-        depthWrite: false,
-        fog: false,
-        side: THREE.DoubleSide,
-      }),
-    );
+    const waveGeo = new THREE.RingGeometry(0.965, 1, 120);
+    const waveMat = new THREE.MeshBasicMaterial({
+      color: LIME,
+      transparent: true,
+      opacity: 0.75,
+      depthWrite: false,
+      fog: false,
+      side: THREE.DoubleSide,
+    });
+    arr.wave = new THREE.Mesh(waveGeo, waveMat);
     arr.wave.quaternion.setFromUnitVectors(FWD, PV[3]);
-    arr.wave.position.copy(PV[3]).multiplyScalar(S.R + featGround(g, PV[3]) + 3);
+    const waveRadius = S.R + featGround(g, PV[3]) + 3;
+    arr.wave.position.copy(PV[3]).multiplyScalar(waveRadius);
     g.scene.add(arr.wave);
   }
   if (arr.on && dL > 48 && arr.t > 9) arr.on = false;
   arr.t += dt;
   const live = arr.t < 8;
+  // 카메라가 올라 둘러보는 정도: 닿은 뒤 서서히 올랐다가 8초 안에 내려온다
   const oT = live
     ? THREE.MathUtils.smoothstep(arr.t, 0.2, 1.8) * (1 - THREE.MathUtils.smoothstep(arr.t, 6.2, 8))
     : 0;
-  pl.over += (oT - pl.over) * (1 - Math.exp(-4 * dt));
-  const pulse = live ? Math.max(0, 1 - arr.t / 3.5) : 0;
-  g.places.lamp.scale.setScalar(1 + 0.7 * pulse + Math.sin(time * 2) * 0.04);
-  g.places.beam.scale.set(1 + 3 * pulse, 1, 1 + 3 * pulse);
+  const decay = -4 * dt;
+  const ease = 1 - Math.exp(decay);
+  pl.over += (oT - pl.over) * ease;
+  const pulseLeft = 1 - arr.t / 3.5;
+  const pulse = live ? Math.max(0, pulseLeft) : 0;
+  const flickerPhase = time * 2;
+  const lampScale = 1 + 0.7 * pulse + Math.sin(flickerPhase) * 0.04;
+  g.places.lamp.scale.setScalar(lampScale);
+  const beamWidth = 1 + 3 * pulse;
+  g.places.beam.scale.set(beamWidth, 1, beamWidth);
   if (arr.wave) {
     const k = arr.t / 5.5;
     if (k >= 1) {
@@ -293,7 +294,10 @@ export function lighthouseFrame(g: Game): number {
       arr.wave.material.dispose();
       arr.wave = null;
     } else {
-      arr.wave.scale.setScalar(5 + (1 - Math.pow(1 - k, 2)) * 210);
+      // 처음엔 빠르게, 끝으로 갈수록 느리게 퍼진다
+      const waveLeft = 1 - k;
+      const waveScale = 5 + (1 - Math.pow(waveLeft, 2)) * 210;
+      arr.wave.scale.setScalar(waveScale);
       arr.wave.material.opacity = 0.75 * (1 - k);
     }
   }
@@ -302,5 +306,24 @@ export function lighthouseFrame(g: Game): number {
 
 /** 생물 자리 공이 숨 쉬듯 부푼다 */
 export function spotsFrame(g: Game) {
-  for (const s of g.places.spots) s.m.scale.setScalar(1 + Math.sin(g.time * 1.4 + s.ph) * 0.06);
+  for (const s of g.places.spots) {
+    const phase = g.time * 1.4 + s.ph;
+    const breath = 1 + Math.sin(phase) * 0.06;
+    s.m.scale.setScalar(breath);
+  }
+}
+
+/* ─── 내부 ─────────────────────────── */
+
+function addItem<T extends THREE.Object3D>(
+  items: Item[],
+  scene: THREE.Scene,
+  obj: T,
+  at: () => THREE.Vector3,
+  lift = 0,
+): T {
+  const item: Item = { at, lift, obj, v: new THREE.Vector3() };
+  items.push(item);
+  scene.add(obj);
+  return obj;
 }

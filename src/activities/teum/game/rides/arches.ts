@@ -42,12 +42,13 @@ export function createArches(g: Game): Arches {
   const list = g.L.arch.map((a) => {
     const arch: Arch = { ...a, nodes: [] };
     for (let i = 0; i < a.n; i++) {
+      const archPhase = (Math.PI * i) / (a.n - 1);
       const nd = {
         v: new THREE.Vector3(),
         d: new THREE.Vector3(),
         side: new THREE.Vector3(),
         g: 0,
-        hh: a.arch * Math.sin((Math.PI * i) / (a.n - 1)),
+        hh: a.arch * Math.sin(archPhase),
         a: arch,
       };
       arch.nodes.push(nd);
@@ -55,11 +56,9 @@ export function createArches(g: Game): Arches {
     }
     return arch;
   });
-  const planks = new THREE.InstancedMesh(
-    new THREE.SphereGeometry(0.5, 16, 12),
-    grey(g.mats, GREY_TOY),
-    anodes.length,
-  ); // 방석 같은 발판
+  const plankGeo = new THREE.SphereGeometry(0.5, 16, 12);
+  const plankMat = grey(g.mats, GREY_TOY);
+  const planks = new THREE.InstancedMesh(plankGeo, plankMat, anodes.length); // 방석 같은 발판
   return { list, anodes, planks, wasR: false };
 }
 
@@ -78,10 +77,13 @@ export function layoutArches(g: Game, keep: THREE.Vector3[]) {
       keep.push(nd.v);
       m4.makeBasis(nd.side, nd.v, nd.d);
       q.setFromRotationMatrix(m4);
-      ps.copy(v).multiplyScalar(S.R + nd.g + nd.hh + 0.1);
-      sc.set(3.2, 0.8, a.gap * 0.95);
+      const radius = S.R + nd.g + nd.hh + 0.1;
+      ps.copy(v).multiplyScalar(radius);
+      const plankLength = a.gap * 0.95;
+      sc.set(3.2, 0.8, plankLength);
       m4.compose(ps, q, sc);
-      planks.setMatrixAt(ai++, m4);
+      planks.setMatrixAt(ai, m4);
+      ai++;
       [v, d] = step(v, d, a.gap, a.curve);
     }
   }
@@ -97,16 +99,23 @@ export function archesFrame(g: Game) {
   let onRail = false;
   if (!t.held && !g.rides.balloon.on)
     for (const nd of A.anodes) {
-      if (p.angleTo(nd.v) * S.R < 3.4 && Math.abs(t.alt - (nd.g + nd.hh + S.hover)) < 3.2) {
+      const altOffset = t.alt - (nd.g + nd.hh + S.hover);
+      if (p.angleTo(nd.v) * S.R < 3.4 && Math.abs(altOffset) < 3.2) {
         onRail = true;
         const sg = vel.dot(nd.d) >= 0 ? 1 : -1;
         tmp.copy(nd.d).multiplyScalar(sg);
-        vel.lerp(tmp, 1 - Math.exp(-6 * dt)).normalize();
+        const velDecay = -6 * dt;
+        const velPull = 1 - Math.exp(velDecay);
+        vel.lerp(tmp, velPull).normalize();
         pl.boost = Math.max(pl.boost, 0.9);
         pl.vy = 0;
-        pl.air +=
-          (Math.max(0.01, nd.g + nd.hh + 0.35 - Math.max(pl.gh, t.gNow - 0.4)) - pl.air) *
-          (1 - Math.exp(-9 * dt));
+        const groundNow = t.gNow - 0.4;
+        const floorAlt = Math.max(pl.gh, groundNow);
+        const railAir = nd.g + nd.hh + 0.35 - floorAlt;
+        const targetAir = Math.max(0.01, railAir);
+        const airDecay = -9 * dt;
+        const airPull = 1 - Math.exp(airDecay);
+        pl.air += (targetAir - pl.air) * airPull;
         break;
       }
     }

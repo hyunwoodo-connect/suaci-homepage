@@ -33,17 +33,22 @@ export function createRockets(g: Game): Rocket[] {
   return g.L.rocket.map(({ dist, bear }) => {
     const gr = new THREE.Group(),
       mat = grey(g.mats, GREY_TOY);
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(1.15, 2.4, 8, 18), mat);
+    const bodyGeo = new THREE.CapsuleGeometry(1.15, 2.4, 8, 18);
+    const body = new THREE.Mesh(bodyGeo, mat);
     body.position.y = 2.9;
     for (let k = 0; k < 3; k++) {
-      const a = (k * Math.PI * 2) / 3,
-        fin = new THREE.Mesh(new THREE.SphereGeometry(0.75, 12, 10), mat);
+      const a = (k * Math.PI * 2) / 3;
+      const finGeo = new THREE.SphereGeometry(0.75, 12, 10);
+      const fin = new THREE.Mesh(finGeo, mat);
       fin.scale.set(1, 1.5, 0.45);
-      fin.position.set(Math.cos(a) * 1.25, 1.1, Math.sin(a) * 1.25);
+      const finX = Math.cos(a) * 1.25;
+      const finZ = Math.sin(a) * 1.25;
+      fin.position.set(finX, 1.1, finZ);
       fin.rotation.y = -a;
       gr.add(fin);
     }
-    const win = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 10), g.pillars.core);
+    const winGeo = new THREE.SphereGeometry(0.5, 14, 10);
+    const win = new THREE.Mesh(winGeo, g.pillars.core);
     win.position.set(0, 3.6, 1.0);
     gr.add(body, win);
     g.scene.add(gr);
@@ -54,10 +59,12 @@ export function createRockets(g: Game): Rocket[] {
 /** 로켓 자리 */
 export function layoutRockets(g: Game, keep: THREE.Vector3[]) {
   for (const o of g.rockets) {
-    o.v.copy(from(o.dist, o.bear));
+    const spot = from(o.dist, o.bear);
+    o.v.copy(spot);
     o.gnd = featGround(g, o.v);
     keep.push(o.v);
-    o.g.position.copy(o.v).multiplyScalar(S.R + o.gnd);
+    const groundR = S.R + o.gnd;
+    o.g.position.copy(o.v).multiplyScalar(groundR);
     o.g.quaternion.setFromUnitVectors(UP, o.v);
   }
 }
@@ -78,19 +85,28 @@ export function rocketsFrame(g: Game) {
       rocket.o = o;
       say(g, "로켓 풍선 — 하늘 끝까지 솟구칩니다");
     }
-    o.mat.color.copy(TC.rocket).lerp(lime, rocket.on && rocket.o === o ? 1 : 0);
+    const isRiding = rocket.on && rocket.o === o;
+    const glow = isRiding ? 1 : 0;
+    o.mat.color.copy(TC.rocket).lerp(lime, glow);
   }
   if (rocket.on) {
     const o = rocket.o!;
     rocket.t += dt;
-    p.lerp(o.v, 1 - Math.exp(-12 * dt)).normalize();
+    const snapRate = -12 * dt;
+    const snap = 1 - Math.exp(snapRate);
+    p.lerp(o.v, snap).normalize();
     if (rocket.t < 0.9) {
-      pl.air += (3.4 - pl.air) * (1 - Math.exp(-10 * dt));
+      // 덜덜 떠는 동안
+      const hoverRate = -10 * dt;
+      const hoverEase = 1 - Math.exp(hoverRate);
+      pl.air += (3.4 - pl.air) * hoverEase;
       pl.vy = 0;
-    } // 덜덜 떠는 동안
-    else {
+    } else {
       pl.vy = 24;
-      if (Math.random() < 0.6) burst(g, P.clone().addScaledVector(p, -3), 1, 4);
+      if (Math.random() < 0.6) {
+        const exhaust = P.clone().addScaledVector(p, -3);
+        burst(g, exhaust, 1, 4);
+      }
     }
     if (rocket.t > 3.3) {
       rocket.on = false;
@@ -111,10 +127,15 @@ export function rocketsPose(g: Game) {
     o.g.visible = mine || o.cool <= 0;
     if (mine) {
       o.g.position.copy(P).addScaledVector(p, -4.6);
-      if (rocket.t < 0.9) o.g.position.addScaledVector(h, Math.sin(time * 70) * 0.12);
+      if (rocket.t < 0.9) {
+        const shakePhase = time * 70;
+        const shake = Math.sin(shakePhase) * 0.12;
+        o.g.position.addScaledVector(h, shake);
+      }
       o.g.quaternion.setFromUnitVectors(UP, p);
     } else {
-      o.g.position.copy(o.v).multiplyScalar(S.R + o.gnd);
+      const groundR = S.R + o.gnd;
+      o.g.position.copy(o.v).multiplyScalar(groundR);
       o.g.quaternion.setFromUnitVectors(UP, o.v);
     }
   }

@@ -36,11 +36,12 @@ export function placeBrand(
   for (const b of placements) {
     if (!hasModel(g, b.key)) continue;
     // 자리(그룹)는 layout 이 행성 위에 놓고, 모델 틀은 그 안에서 바닥을 땅에 붙인다
-    const gr = new THREE.Group(),
-      m = fit(g, b.key, b.size, b.by);
+    const gr = new THREE.Group();
+    const m = fit(g, b.key, b.size, b.by);
     m.position.y = m.userData.hh;
     gr.add(m);
-    place(g, gr, () => from(b.dist, b.bear), b.lift ?? 0);
+    const lift = b.lift ?? 0;
+    place(g, gr, () => from(b.dist, b.bear), lift);
     holds.push(m);
   }
   return holds;

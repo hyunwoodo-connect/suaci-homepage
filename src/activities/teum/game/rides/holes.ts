@@ -43,21 +43,20 @@ export function createHoles(g: Game): Hole[] {
   pairs.forEach((pair, pi) =>
     pair.forEach(([dist, bear], k) => {
       const gr = new THREE.Group();
-      const disc = new THREE.Mesh(
-        new THREE.CircleGeometry(3, 32),
-        new THREE.MeshBasicMaterial({ color: 0x6f7473 }),
-      );
+      const discGeo = new THREE.CircleGeometry(3, 32);
+      const discMat = new THREE.MeshBasicMaterial({ color: 0x6f7473 });
+      const disc = new THREE.Mesh(discGeo, discMat);
       disc.rotation.x = -Math.PI / 2;
       disc.position.y = 0.08;
-      const rim = new THREE.Mesh(
-        new THREE.TorusGeometry(3.1, 0.55, 10, 40),
-        grey(g.mats, GREY_TOY),
-      );
+      const rimGeo = new THREE.TorusGeometry(3.1, 0.55, 10, 40);
+      const rimMat = grey(g.mats, GREY_TOY);
+      const rim = new THREE.Mesh(rimGeo, rimMat);
       rim.rotation.x = Math.PI / 2;
       rim.position.y = 0.15;
       gr.add(disc, rim);
       g.scene.add(gr);
-      holes.push({ g: gr, rim, dist, bear, pi, k, v: new THREE.Vector3(), cool: 0, lit: 0 });
+      const v = new THREE.Vector3();
+      holes.push({ g: gr, rim, dist, bear, pi, k, v, cool: 0, lit: 0 });
     }),
   );
   return holes;
@@ -66,9 +65,11 @@ export function createHoles(g: Game): Hole[] {
 /** 구멍 자리 */
 export function layoutHoles(g: Game, keep: THREE.Vector3[]) {
   for (const ho of g.holes) {
-    ho.v.copy(from(ho.dist, ho.bear));
+    const spot = from(ho.dist, ho.bear);
+    ho.v.copy(spot);
     keep.push(ho.v);
-    ho.g.position.copy(ho.v).multiplyScalar(S.R + featGround(g, ho.v));
+    const radius = S.R + featGround(g, ho.v);
+    ho.g.position.copy(ho.v).multiplyScalar(radius);
     ho.g.quaternion.setFromUnitVectors(UP, ho.v);
   }
 }
@@ -92,7 +93,8 @@ export function holesFrame(g: Game) {
       warp.done = false;
       say(g, "구름 구멍 — 멀리 있는 짝 구멍으로 나옵니다");
     }
-    ho.lit = Math.max(0, ho.lit - dt * 0.8);
+    const dimmed = ho.lit - dt * 0.8;
+    ho.lit = Math.max(0, dimmed);
     ho.rim.material.color.copy(TC.hole).lerp(lime, ho.lit);
   }
   if (warp.on) {
@@ -100,11 +102,14 @@ export function holesFrame(g: Game) {
     if (!warp.done) {
       const a = warp.a!,
         b = warp.b!;
-      p.lerp(a.v, 1 - Math.exp(-12 * dt)).normalize();
+      const sinkDecay = -12 * dt;
+      const sinkPull = 1 - Math.exp(sinkDecay);
+      p.lerp(a.v, sinkPull).normalize();
       if (warp.t > 0.45) {
         warp.done = true;
         p.copy(b.v);
-        h.addScaledVector(p, -h.dot(p)).normalize();
+        const hUp = h.dot(p);
+        h.addScaledVector(p, -hUp).normalize();
         vel.copy(h);
         pl.snap = true;
         pl.gh = groundAt(g, p);

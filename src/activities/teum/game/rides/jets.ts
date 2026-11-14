@@ -44,7 +44,8 @@ const ps = new THREE.Vector3(),
 /** 제트 기류를 만든다 */
 export function createJets(g: Game): Jets {
   const jnodes: PathNode[] = [];
-  const data = SKY_JETS.concat(g.L.jet || []).map((jt) => {
+  const extraJets = g.L.jet || [];
+  const data = SKY_JETS.concat(extraJets).map((jt) => {
     const nodes: PathNode[] = [];
     for (let i = 0; i < jt.n; i++) {
       const nd = {
@@ -59,11 +60,15 @@ export function createJets(g: Game): Jets {
     }
     return { ...jt, nodes };
   });
-  const jetM = new THREE.InstancedMesh(
-    new THREE.SphereGeometry(1, 8, 6),
-    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8, fog: false }),
-    jnodes.length * 2,
-  );
+  const streakGeo = new THREE.SphereGeometry(1, 8, 6);
+  const streakMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.8,
+    fog: false,
+  });
+  const streakCount = jnodes.length * 2;
+  const jetM = new THREE.InstancedMesh(streakGeo, streakMat, streakCount);
   jetM.frustumCulled = false;
   g.scene.add(jetM);
   const jetTubeMat = new THREE.MeshStandardMaterial({
@@ -91,7 +96,9 @@ export function createJets(g: Game): Jets {
     fog: false,
   }); // 오로라 길은 라임빛
   const list: Jet[] = data.map((jt) => {
-    const tube = new THREE.Mesh(new THREE.BufferGeometry(), jt.aurora ? auroraMat : jetTubeMat);
+    const tubeGeo = new THREE.BufferGeometry();
+    const tubeMat = jt.aurora ? auroraMat : jetTubeMat;
+    const tube = new THREE.Mesh(tubeGeo, tubeMat);
     tube.frustumCulled = false;
     g.scene.add(tube);
     return { ...jt, tube };
@@ -110,18 +117,16 @@ export function layoutJets(g: Game) {
       nd.d.copy(d);
       nd.side.crossVectors(v, d).normalize();
       nd.g = featGround(g, v);
-      [v, d] = step(v, d, jt.gap, jt.wig * Math.sin(i++ * 0.21));
+      const bendPhase = i * 0.21;
+      i++;
+      const bend = jt.wig * Math.sin(bendPhase);
+      [v, d] = step(v, d, jt.gap, bend);
     }
     jt.tube.geometry.dispose();
-    jt.tube.geometry = new THREE.TubeGeometry(
-      new THREE.CatmullRomCurve3(
-        jt.nodes.map((nd) => nd.v.clone().multiplyScalar(S.R + nd.g + JH)),
-      ),
-      jt.nodes.length * 4,
-      3.4,
-      18,
-      false,
-    );
+    const tubePoints = jt.nodes.map((nd) => nd.v.clone().multiplyScalar(S.R + nd.g + JH));
+    const tubePath = new THREE.CatmullRomCurve3(tubePoints);
+    const tubeSegments = jt.nodes.length * 4;
+    jt.tube.geometry = new THREE.TubeGeometry(tubePath, tubeSegments, 3.4, 18, false);
   }
 }
 
@@ -135,27 +140,37 @@ export function jetsFrame(g: Game) {
   if (J.jetCool > 0) J.jetCool -= dt;
   else if (!t.held && pl.air > 20)
     for (const nd of J.jnodes) {
-      if (p.angleTo(nd.v) * S.R < 6.5 && Math.abs(t.alt - (nd.g + JH)) < 9) {
+      const altOffset = t.alt - (nd.g + JH);
+      if (p.angleTo(nd.v) * S.R < 6.5 && Math.abs(altOffset) < 9) {
         inJet = true;
-        vel.lerp(nd.d, 1 - Math.exp(-5 * dt)).normalize();
-        h.lerp(nd.d, 1 - Math.exp(-2 * dt));
-        h.addScaledVector(p, -h.dot(p)).normalize();
+        const velDecay = -5 * dt;
+        const velPull = 1 - Math.exp(velDecay);
+        vel.lerp(nd.d, velPull).normalize();
+        const headDecay = -2 * dt;
+        const headPull = 1 - Math.exp(headDecay);
+        h.lerp(nd.d, headPull);
+        const hUp = h.dot(p);
+        h.addScaledVector(p, -hUp).normalize();
         pl.boost = Math.max(pl.boost, 3.2);
         pl.vy = 0;
-        pl.air +=
-          (Math.max(0.01, nd.g + JH - Math.max(pl.gh, t.gNow - 0.4) - S.hover) - pl.air) *
-          (1 - Math.exp(-3 * dt));
+        const groundNow = t.gNow - 0.4;
+        const floorAlt = Math.max(pl.gh, groundNow);
+        const jetAir = nd.g + JH - floorAlt - S.hover;
+        const targetAir = Math.max(0.01, jetAir);
+        const airDecay = -3 * dt;
+        const airPull = 1 - Math.exp(airDecay);
+        pl.air += (targetAir - pl.air) * airPull;
         if (t.m0 > 0.7 && Math.abs(t.fx) > 0.8) J.jetCool = 1.5; // 옆으로 세게 끌면 빠져나온다
         break;
       }
     }
-  if (inJet && !J.wasJet)
-    say(
-      g,
-      p.angleTo(START) * S.R > 560
-        ? "오로라 길 — 광장 쪽으로 실려 갑니다. 옆으로 끌면 빠져나옵니다"
-        : "제트 기류 — 하늘에서 멀리 실려 갑니다. 옆으로 끌면 빠져나옵니다",
-    );
+  if (inJet && !J.wasJet) {
+    const isFarFromPlaza = p.angleTo(START) * S.R > 560;
+    const message = isFarFromPlaza
+      ? "오로라 길 — 광장 쪽으로 실려 갑니다. 옆으로 끌면 빠져나옵니다"
+      : "제트 기류 — 하늘에서 멀리 실려 갑니다. 옆으로 끌면 빠져나옵니다";
+    say(g, message);
+  }
   J.wasJet = inJet;
   {
     let ji = 0;
@@ -164,16 +179,22 @@ export function jetsFrame(g: Game) {
         for (let k = 0; k < 2; k++) {
           const al = ((time * 14 + (k * jt.gap) / 2 + nd.ph) % jt.gap) - jt.gap / 2,
             fade = 1 - Math.abs(al) / (jt.gap / 2);
+          const alongStep = al / S.R;
+          const sideStep = (k ? 1.4 : -1.4) / S.R;
           ps.copy(nd.v)
-            .addScaledVector(nd.d, al / S.R)
-            .addScaledVector(nd.side, (k ? 1.4 : -1.4) / S.R)
+            .addScaledVector(nd.d, alongStep)
+            .addScaledVector(nd.side, sideStep)
             .normalize();
           m4.makeBasis(nd.side, nd.v, nd.d);
           q.setFromRotationMatrix(m4);
-          ps.multiplyScalar(S.R + nd.g + JH + Math.sin(time * 1.5 + nd.ph) * 0.8);
-          sc.set(0.16, 0.16, 0.6 + 2.6 * fade);
+          const swayPhase = time * 1.5 + nd.ph;
+          const radius = S.R + nd.g + JH + Math.sin(swayPhase) * 0.8;
+          ps.multiplyScalar(radius);
+          const streakLength = 0.6 + 2.6 * fade;
+          sc.set(0.16, 0.16, streakLength);
           m4.compose(ps, q, sc);
-          J.jetM.setMatrixAt(ji++, m4);
+          J.jetM.setMatrixAt(ji, m4);
+          ji++;
         }
     J.jetM.instanceMatrix.needsUpdate = true;
   }

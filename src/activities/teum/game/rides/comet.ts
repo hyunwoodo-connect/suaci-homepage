@@ -34,18 +34,18 @@ export function createComet(g: Game): Comet {
   const gr = new THREE.Group(),
     mat = new THREE.MeshBasicMaterial({ color: 0xffd21f, fog: false });
   {
-    const ball = new THREE.Mesh(new THREE.SphereGeometry(2.2, 20, 14), mat);
-    const tail = new THREE.Mesh(
-      new THREE.ConeGeometry(1.9, 15, 16, 1, true),
-      new THREE.MeshBasicMaterial({
-        color: 0xffffff,
-        transparent: true,
-        opacity: 0.55,
-        fog: false,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-      }),
-    );
+    const ballGeo = new THREE.SphereGeometry(2.2, 20, 14);
+    const ball = new THREE.Mesh(ballGeo, mat);
+    const tailGeo = new THREE.ConeGeometry(1.9, 15, 16, 1, true);
+    const tailMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.55,
+      fog: false,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    const tail = new THREE.Mesh(tailGeo, tailMat);
     tail.rotation.z = Math.PI / 2;
     tail.position.x = -8;
     gr.add(ball, tail);
@@ -62,22 +62,29 @@ export function cometFrame(g: Game) {
     cride = g.rides.comet,
     C = g.comet;
   const cdeg = ((time * 26) / (120 * S.wide)) * 57.2958 + 40;
-  C.v.copy(from(120, -cdeg));
-  C.f.copy(from(120, -cdeg - 1)).sub(C.v);
-  C.f.addScaledVector(C.v, -C.f.dot(C.v)).normalize();
-  C.g.position.copy(C.v).multiplyScalar(S.R + CH);
+  const cometSpot = from(120, -cdeg);
+  C.v.copy(cometSpot);
+  const aheadDeg = -cdeg - 1;
+  const aheadSpot = from(120, aheadDeg);
+  C.f.copy(aheadSpot).sub(C.v);
+  const fUp = C.f.dot(C.v);
+  C.f.addScaledVector(C.v, -fUp).normalize();
+  const cometRadius = S.R + CH;
+  C.g.position.copy(C.v).multiplyScalar(cometRadius);
   bx.crossVectors(C.v, C.f).normalize().negate();
   m4.makeBasis(C.f, C.v, bx);
   C.g.quaternion.setFromRotationMatrix(m4);
-  C.mat.color.copy(g.mats.toy.comet).lerp(g.mats.lime, cride.on ? 1 : 0);
+  const cometLit = cride.on ? 1 : 0;
+  C.mat.color.copy(g.mats.toy.comet).lerp(g.mats.lime, cometLit);
   if (cride.cool > 0) cride.cool -= dt;
+  const altOffset = t.alt - CH;
   if (
     !cride.on &&
     cride.cool <= 0 &&
     !t.held &&
     pl.air > 6 &&
     p.angleTo(C.v) * S.R < 16 &&
-    Math.abs(t.alt - CH) < 13
+    Math.abs(altOffset) < 13
   ) {
     cride.on = true;
     cride.t = 0;
@@ -85,14 +92,23 @@ export function cometFrame(g: Game) {
   }
   if (cride.on) {
     cride.t += dt;
-    const k = 1 - Math.exp(-7 * dt);
+    const decay = -7 * dt;
+    const k = 1 - Math.exp(decay);
     p.lerp(C.v, k).normalize();
     h.lerp(C.f, k);
-    h.addScaledVector(p, -h.dot(p)).normalize();
+    const hUp = h.dot(p);
+    h.addScaledVector(p, -hUp).normalize();
     vel.copy(h);
     pl.vy = 0;
-    pl.air += (Math.max(0.01, CH + 2.9 - Math.max(pl.gh, t.gNow - 0.4) - S.hover) - pl.air) * k;
-    if (Math.random() < 0.5) burst(g, C.g.position.clone().addScaledVector(C.f, -6), 1, 3);
+    const groundNow = t.gNow - 0.4;
+    const floorAlt = Math.max(pl.gh, groundNow);
+    const rideAir = CH + 2.9 - floorAlt - S.hover;
+    const targetAir = Math.max(0.01, rideAir);
+    pl.air += (targetAir - pl.air) * k;
+    if (Math.random() < 0.5) {
+      const tailPos = C.g.position.clone().addScaledVector(C.f, -6);
+      burst(g, tailPos, 1, 3);
+    }
     if ((cride.t > 1 && t.m0 > 0.6) || cride.t > 16) {
       cride.on = false;
       cride.cool = 5;

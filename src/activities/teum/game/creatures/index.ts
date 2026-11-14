@@ -94,9 +94,6 @@ const cf = new THREE.Vector3(),
   cq2 = new THREE.Quaternion(),
   ceu = new THREE.Euler();
 
-const rnd = (a: number, b: number) => a + (b - a) * Math.random(),
-  ez = (r: number, dt: number) => 1 - Math.exp(-r * dt);
-
 /** 생물을 놓는다: 출발 앞 첫 무리, 마을마다 아홉 무리, 떠도는 무리, 열쇠 떼, 전설, 물고기, 해파리 */
 export function placeCreatures(g: Game): Creatures {
   const CR: Creature[] = [];
@@ -134,7 +131,9 @@ export function placeCreatures(g: Game): Creatures {
     );
     g.scene.add(m);
     m.visible = false;
-    an.set(6.28 * Math.random(), 0, 0, 0);
+    // 난수 순서: 부른 쪽 옵션(o) → fit 안의 모델 돌림 → 몸 휘기 위상 → 걸음 위상(ph) → 처음 보는 쪽
+    const bendPhase = 6.28 * Math.random();
+    an.set(bendPhase, 0, 0, 0);
     const base = {
       k,
       m,
@@ -162,8 +161,11 @@ export function placeCreatures(g: Game): Creatures {
       type: "sheep" as Creature["type"],
     };
     const c: Creature = Object.assign(base, o);
-    c.f.copy(offset(c.v, 2, 360 * Math.random())).sub(c.v);
-    c.f.addScaledVector(c.v, -c.f.dot(c.v)).normalize();
+    const faceBearing = 360 * Math.random();
+    const facePoint = offset(c.v, 2, faceBearing);
+    c.f.copy(facePoint).sub(c.v);
+    const fUp = c.f.dot(c.v);
+    c.f.addScaledVector(c.v, -fUp).normalize();
     CR.push(c);
     return c;
   };
@@ -172,7 +174,9 @@ export function placeCreatures(g: Game): Creatures {
     const sp = SP[n % SP.length],
       out: Creature[] = [];
     for (let j = 0; j < sp.count; j++) {
-      const c = crit(sp.key, sp.size, "h", offset(hv, 2.8, (j * 360) / sp.count + n * 40), {
+      const bearing = (j * 360) / sp.count + n * 40;
+      const spot = offset(hv, 2.8, bearing);
+      const c = crit(sp.key, sp.size, "h", spot, {
         type: "sheep",
         sp: sp.key,
         gait: sp.gait,
@@ -185,33 +189,42 @@ export function placeCreatures(g: Game): Creatures {
     return out;
   };
   {
-    cv.copy(p)
-      .addScaledVector(h, 13 / S.R)
-      .normalize();
+    const startStep = 13 / S.R;
+    cv.copy(p).addScaledVector(h, startStep).normalize();
     const v0 = cv.clone();
     occAdd(g, v0, 5);
     mkHerd(v0, 0);
     for (let hk = 0, n = 1; hk < HV.length; hk++)
       for (let q0 = 0, got = 0; q0 < 60 && got < 9; q0++) {
-        const i = hk * 70 + q0,
-          v = hubAt(g, hk, 8 + 105 * Math.sqrt(fr(i, 201)), 360 * fr(i, 202));
+        const i = hk * 70 + q0;
+        const distHash = fr(i, 201);
+        const dist = 8 + 105 * Math.sqrt(distHash);
+        const bearing = 360 * fr(i, 202);
+        const v = hubAt(g, hk, dist, bearing);
         if (!freeAt(g, v, 6)) continue;
         got++;
         occAdd(g, v, 5);
-        mkHerd(v, n++);
+        mkHerd(v, n);
+        n++;
       }
   } // 마을마다 아홉 무리
   // 어디로 가든 앞길에 손님이 있게: 떠도는 무리는 내가 멀어지면 내 앞쪽 먼 곳으로 조용히 옮겨 간다
   const ROAM = C.ROAM;
-  for (let i = 0; i < 27; i++) ROAM.push({ mem: mkHerd(p, i + 1), kind: "sheep" });
+  for (let i = 0; i < 27; i++) {
+    const herdN = i + 1;
+    const mem = mkHerd(p, herdN);
+    ROAM.push({ mem, kind: "sheep" });
+  }
   for (let i = 0; i < 10; i++) {
     const grp: RoamGroup = { mem: [], kind: "flock" },
       rad = 14 + 16 * fr(i, 243),
       dir = i % 2 ? 1 : -1,
       alt = 4 + 6 * fr(i, 244),
       a0 = 360 * fr(i, 245);
+    const key = i % 2 ? "c_wheart" : "key";
+    const by = i % 2 ? "z" : "w";
     for (let j = 0; j < 3; j++) {
-      const c = crit(i % 2 ? "c_wheart" : "key", 2.2, i % 2 ? "z" : "w", p, {
+      const c = crit(key, 2.2, by, p, {
         type: "flock",
         ctr: p,
         rad,
@@ -236,29 +249,28 @@ export function placeCreatures(g: Game): Creatures {
   // 날개 달린 열쇠: 마을 하늘을 셋씩 낮게 돈다
   for (let hk = 0; hk < HV.length; hk++)
     for (let q0 = 0; q0 < 3; q0++) {
-      const i = hk * 9 + q0,
-        ctr = hubAt(g, hk, 12 + 60 * fr(i, 211), 360 * fr(i, 212)),
+      const i = hk * 9 + q0;
+      const ctrDist = 12 + 60 * fr(i, 211);
+      const ctrBearing = 360 * fr(i, 212);
+      const ctr = hubAt(g, hk, ctrDist, ctrBearing),
         rad = 14 + 16 * fr(i, 213),
         dir = q0 % 2 ? 1 : -1,
         alt = 4 + 6 * fr(i, 214),
         a0 = 360 * fr(i, 215);
+      const key = q0 === 1 ? "c_wheart" : "key";
+      const by = q0 === 1 ? "z" : "w";
       for (let j = 0; j < 3; j++) {
-        const c = crit(
-          q0 === 1 ? "c_wheart" : "key",
-          2.2,
-          q0 === 1 ? "z" : "w",
-          offset(ctr, rad, a0),
-          {
-            type: "flock",
-            ctr,
-            rad,
-            dir,
-            alt,
-            ang: a0 - dir * j * 14,
-            slot: j,
-            st: "fly",
-          },
-        );
+        const start = offset(ctr, rad, a0);
+        const c = crit(key, 2.2, by, start, {
+          type: "flock",
+          ctr,
+          rad,
+          dir,
+          alt,
+          ang: a0 - dir * j * 14,
+          slot: j,
+          st: "fly",
+        });
         if (c) c.g0 = groundAt(g, ctr);
       }
     }
@@ -287,18 +299,19 @@ export function placeCreatures(g: Game): Creatures {
     [4, 360, 20],
   ];
   crownAt.forEach(([hk, d, b]) => {
-    const ctr = offset(HV[hk], d, b),
-      c = crit("c_wcrown", 6, "z", offset(ctr, 22, 0), {
-        type: "flock",
-        ctr,
-        rad: 22,
-        dir: 1,
-        alt: 16,
-        ang: 0,
-        slot: 0,
-        st: "fly",
-        legend: 1,
-      });
+    const ctr = offset(HV[hk], d, b);
+    const start = offset(ctr, 22, 0);
+    const c = crit("c_wcrown", 6, "z", start, {
+      type: "flock",
+      ctr,
+      rad: 22,
+      dir: 1,
+      alt: 16,
+      ang: 0,
+      slot: 0,
+      st: "fly",
+      legend: 1,
+    });
     if (c) {
       c.g0 = groundAt(g, ctr);
       C.LEG.push(c);
@@ -307,18 +320,23 @@ export function placeCreatures(g: Game): Creatures {
   // 흔한 손님 3: 물고기 — 호수마다 둘씩, 수면에서 원을 그리며 헤엄친다
   g.lakes.list.forEach((l, i) => {
     for (let j = 0; j < 2; j++) {
-      const rad = 3 + j * 1.5,
-        c = crit("bfish", 3.0, "x", offset(l.v, l.r * (0.4 + 0.25 * j), i * 67 + j * 170), {
-          type: "fish",
-          st: "swim",
-          rad,
-          ang: 360 * Math.random(),
-          dir: j ? -1 : 1,
-          jt: rnd(2, 8),
-        });
+      const rad = 3 + j * 1.5;
+      const pondDist = l.r * (0.4 + 0.25 * j);
+      const pondBearing = i * 67 + j * 170;
+      const pondAt = offset(l.v, pondDist, pondBearing);
+      // 난수 순서: 헤엄 각도(ang) → 다음 뛰기(jt) → crit 안
+      const c = crit("bfish", 3.0, "x", pondAt, {
+        type: "fish",
+        st: "swim",
+        rad,
+        ang: 360 * Math.random(),
+        dir: j ? -1 : 1,
+        jt: rnd(2, 8),
+      });
       if (c) {
         c.a = 0.25;
-        c.v.copy(offset(c.home, rad, c.ang!));
+        const swimAt = offset(c.home, rad, c.ang!);
+        c.v.copy(swimAt);
       }
     }
   });
@@ -335,10 +353,18 @@ export function placeCreatures(g: Game): Creatures {
       [185, 281],
       [560, 45],
     ];
-    jellyAt.forEach(([d, b]) => jl(from(d, b)));
+    jellyAt.forEach(([d, b]) => {
+      const spot = from(d, b);
+      jl(spot);
+    });
     for (let hk = 0; hk < HV.length; hk++)
-      for (let j = 0; j < 7; j++)
-        jl(hubAt(g, hk, 18 + 95 * fr(hk * 11 + j, 221), 360 * fr(hk * 11 + j, 222)));
+      for (let j = 0; j < 7; j++) {
+        const jellySeed = hk * 11 + j;
+        const dist = 18 + 95 * fr(jellySeed, 221);
+        const bearing = 360 * fr(jellySeed, 222);
+        const spot = hubAt(g, hk, dist, bearing);
+        jl(spot);
+      }
   }
   return C;
 }
@@ -346,7 +372,10 @@ export function placeCreatures(g: Game): Creatures {
 /** 전설의 손님 곁에는 늘 빛가루가 인다 */
 export function legendsFrame(g: Game) {
   for (const c of g.creatures.LEG)
-    if (c.m.visible && Math.random() < g.t.dt * 5) burst(g, c.m.position.clone(), 2, 4);
+    if (c.m.visible && Math.random() < g.t.dt * 5) {
+      const sparkAt = c.m.position.clone();
+      burst(g, sparkAt, 2, 4);
+    }
 }
 
 /** 생물 프레임: 멀어진 무리는 앞쪽으로 옮기고, 가까운 생물은 저마다의 상태대로 움직인다 */
@@ -382,17 +411,25 @@ export function creaturesFrame(g: Game) {
       head = 0;
     if (c.st === "follow") {
       // 만난 손님은 그 방문 동안 줄지어 따라온다
-      const hg = hist[Math.min(hist.length - 1, 5 * (babyN + c.order + 1) + 2)];
+      const lastHist = hist.length - 1;
+      const trailIndex = 5 * (babyN + c.order + 1) + 2;
+      const histIndex = Math.min(lastHist, trailIndex);
+      const hg = hist[histIndex];
       if (hg) {
         const d = c.v.angleTo(hg.p) * S.R;
         if (d > 0.25) {
-          const sp = Math.min(14, d * 4);
-          go(g, c, hg.p, sp, dt, sp > 5 ? 2.6 : 4.6);
-          amt = Math.min(1, 0.4 + sp / 6);
+          const chase = d * 4;
+          const sp = Math.min(14, chase);
+          const stride = sp > 5 ? 2.6 : 4.6;
+          go(g, c, hg.p, sp, dt, stride);
+          const pace = 0.4 + sp / 6;
+          amt = Math.min(1, pace);
         }
         const gl = groundAt(g, c.v),
           air0 = hg.a - 1.6 - gl;
-        c.a += (Math.max(gl, hg.a - 1.6) - c.a) * ez(8, dt);
+        const trailAlt = hg.a - 1.6;
+        const targetAlt = Math.max(gl, trailAlt);
+        c.a += (targetAlt - c.a) * ez(8, dt);
         if (air0 > 0.6) amt = 0.3;
       }
       head = 0.3;
@@ -427,14 +464,17 @@ export function creaturesFrame(g: Game) {
       const scare = dP < 9 && rush && Math.abs(dA) < 6,
         seen = dP < 13 && Math.abs(dA) < 7;
       if (c.sp === "teapot") {
-        const pour = c.st === "graze" && Math.sin(time * 0.7 + c.an.x) > 0.25;
-        c.pitch += ((pour ? -0.34 : 0) - c.pitch) * ez(3, dt);
+        const pourPhase = time * 0.7 + c.an.x;
+        const pour = c.st === "graze" && Math.sin(pourPhase) > 0.25;
+        const pourTilt = pour ? -0.34 : 0;
+        c.pitch += (pourTilt - c.pitch) * ez(3, dt);
         if (pour && c.pitch < -0.25) {
           c.bt = (c.bt || 0) - dt;
           if (c.bt <= 0) {
             c.bt = 0.5;
             cv.copy(c.m.position).addScaledVector(c.f, 1.3).addScaledVector(c.v, 0.3);
-            burst(g, cv.clone(), 1, 2.5);
+            const steamAt = cv.clone();
+            burst(g, steamAt, 1, 2.5);
           }
         }
       } // 찻주전자는 가끔 몸을 기울여 김을 뿜는다
@@ -460,13 +500,17 @@ export function creaturesFrame(g: Game) {
           // 풀 뜯다 말고 고개를 들어 쳐다본다
           c.st = "watch";
           head = 0.75;
-          face(c, p, ez(2.2, dt));
+          const turn = ez(2.2, dt);
+          face(c, p, turn);
           if (calm && dP < 6.5 && Math.abs(dA) < 4) {
             c.still += dt;
             if (c.still > 2.2) {
               c.st = "come";
             }
-          } else c.still = Math.max(0, c.still - dt);
+          } else {
+            const stillLeft = c.still - dt;
+            c.still = Math.max(0, stillLeft);
+          }
         } else if (c.st === "watch") {
           c.st = "graze";
           c.t = rnd(2, 5);
@@ -475,7 +519,10 @@ export function creaturesFrame(g: Game) {
           c.t -= dt;
           if (c.t <= 0) {
             c.st = "wander";
-            c.goal = offset(c.hv!, rnd(1, 5.5), 360 * Math.random());
+            // 난수 순서: 거리 → 방향
+            const wanderDist = rnd(1, 5.5);
+            const wanderBearing = 360 * Math.random();
+            c.goal = offset(c.hv!, wanderDist, wanderBearing);
           }
         } else {
           amt = 0.7;
@@ -488,8 +535,11 @@ export function creaturesFrame(g: Game) {
         // 카드 병정은 놀라면 벌렁 넘어졌다가 일어난다
         c.t += dt;
         const dn = c.t < 1.9;
-        c.pitch += ((dn ? 1.5 : 0) - c.pitch) * ez(dn ? 10 : 5, dt);
-        c.sink = 0.64 * Math.min(1, Math.abs(c.pitch) / 1.5);
+        const fallTilt = dn ? 1.5 : 0;
+        const fallRate = dn ? 10 : 5;
+        c.pitch += (fallTilt - c.pitch) * ez(fallRate, dt);
+        const fallDepth = Math.abs(c.pitch) / 1.5;
+        c.sink = 0.64 * Math.min(1, fallDepth);
         if (c.t > 2.7) {
           c.st = "lookback";
           c.t = 1.2;
@@ -511,7 +561,8 @@ export function creaturesFrame(g: Game) {
         away(g, c, c.rs!, dt);
         amt = 1;
         head = 0.4;
-        c.rs = Math.max(1.4, c.rs! - 3.1 * dt);
+        const slowed = c.rs! - 3.1 * dt;
+        c.rs = Math.max(1.4, slowed);
         c.t -= dt;
         if (c.hop <= 0 && c.rs > 2.6) {
           c.hopV = 2.2 + c.rs * 0.35;
@@ -523,7 +574,8 @@ export function creaturesFrame(g: Game) {
         }
       } else if (c.st === "lookback") {
         head = 0.8;
-        face(c, p, ez(3, dt));
+        const turn = ez(3, dt);
+        face(c, p, turn);
         c.t -= dt;
         if (scare) {
           c.st = "startle";
@@ -556,9 +608,13 @@ export function creaturesFrame(g: Game) {
       } else if (c.st === "nuzzle") {
         // 머리를 비비며 기댄다
         c.t += dt;
-        face(c, p, ez(4, dt));
-        head = 0.2 + 0.6 * Math.sin(c.t * 5);
-        c.roll = 0.12 * Math.sin(Math.min(1, c.t / 1.6) * Math.PI);
+        const turn = ez(4, dt);
+        face(c, p, turn);
+        const nuzzlePhase = c.t * 5;
+        head = 0.2 + 0.6 * Math.sin(nuzzlePhase);
+        const leanT = c.t / 1.6;
+        const lean = Math.min(1, leanT) * Math.PI;
+        c.roll = 0.12 * Math.sin(lean);
         if (c.t > 0.5) meet(g, c);
         if (c.t > 1.7) {
           if (!join(g, c)) {
@@ -576,10 +632,15 @@ export function creaturesFrame(g: Game) {
       c.ph += dt * (9 + 6 * c.amt);
       c.ang! += ((c.dir! * 6.5) / c.rad!) * 57.3 * dt;
       const nv = offset(c.ctr!, c.rad!, c.ang!);
-      face(c, offset(c.ctr!, c.rad!, c.ang! + c.dir! * 10), ez(8, dt));
+      const lookAng = c.ang! + c.dir! * 10;
+      const lookAt = offset(c.ctr!, c.rad!, lookAng);
+      const turn = ez(8, dt);
+      face(c, lookAt, turn);
       c.v.copy(nv);
-      c.a = c.g0! + c.alt! + 1.2 * Math.sin(time * 0.6 + c.an.x) + c.slot! * 0.5;
-      amt = 0.55 + 0.45 * Math.sin(time * 0.9 + c.an.x * 2);
+      const bobPhase = time * 0.6 + c.an.x;
+      c.a = c.g0! + c.alt! + 1.2 * Math.sin(bobPhase) + c.slot! * 0.5;
+      const flapPhase = time * 0.9 + c.an.x * 2;
+      amt = 0.55 + 0.45 * Math.sin(flapPhase);
       c.roll = -c.dir! * 0.3;
       if (dP < 9 && Math.abs(dA) < 6) meet(g, c);
     } else if (c.type === "fish") {
@@ -588,12 +649,17 @@ export function creaturesFrame(g: Game) {
       if (wsp > 0) {
         c.ang! += ((c.dir! * wsp) / c.rad!) * 57.3 * dt;
         const nv = offset(c.home, c.rad!, c.ang!);
-        face(c, offset(c.home, c.rad!, c.ang! + c.dir! * 12), ez(6, dt));
+        const lookAng = c.ang! + c.dir! * 12;
+        const lookAt = offset(c.home, c.rad!, lookAng);
+        const turn = ez(6, dt);
+        face(c, lookAt, turn);
         c.v.copy(nv);
       }
       const scare = dP < 9 && rush;
       if (c.st === "swim") {
-        c.a += (0.25 + 0.07 * Math.sin(time * 1.4 + c.an.x) - c.a) * ez(5, dt);
+        const swimPhase = time * 1.4 + c.an.x;
+        const swimAlt = 0.25 + 0.07 * Math.sin(swimPhase);
+        c.a += (swimAlt - c.a) * ez(5, dt);
         c.pitch += (0 - c.pitch) * ez(5, dt);
         amt = 0.35;
         c.rt = (c.rt || 0) - dt;
@@ -634,8 +700,11 @@ export function creaturesFrame(g: Game) {
         }
       } else if (c.st === "visit") {
         // 멈춰 선 사람 쪽으로 몸을 돌리고 고개를 내밀어 방울을 분다
-        face(c, p, ez(3, dt));
-        c.a += (0.5 + 0.08 * Math.sin(time * 2) - c.a) * ez(4, dt);
+        const turn = ez(3, dt);
+        face(c, p, turn);
+        const bobPhase = time * 2;
+        const visitAlt = 0.5 + 0.08 * Math.sin(bobPhase);
+        c.a += (visitAlt - c.a) * ez(4, dt);
         c.pitch += (0.4 - c.pitch) * ez(4, dt);
         amt = 0.15;
         c.t += dt;
@@ -643,7 +712,8 @@ export function creaturesFrame(g: Game) {
         if (c.bt! <= 0) {
           c.bt = 2.3;
           cv.copy(c.m.position).addScaledVector(c.v, 0.9);
-          burst(g, cv.clone(), 3, 4);
+          const bubbleAt = cv.clone();
+          burst(g, bubbleAt, 3, 4);
           ripple(g, c.v, 0.7, 0);
         }
         if (c.t > 2.5) meet(g, c);
@@ -675,11 +745,15 @@ export function creaturesFrame(g: Game) {
     } else if (c.type === "jelly") {
       // 갓을 오므릴 때마다 조금씩 솟고, 천천히 가라앉는다
       c.ph += dt * 2.1;
-      cw.copy(c.f).applyAxisAngle(c.v, dt * 0.12);
+      const drift = dt * 0.12;
+      cw.copy(c.f).applyAxisAngle(c.v, drift);
       c.f.copy(cw);
       if (c.v.angleTo(c.home) * S.R > 40) face(c, c.home, 0.05);
-      c.v.addScaledVector(c.f, (0.6 * dt) / S.R).normalize();
-      c.a = c.base! + 0.8 * Math.sin(c.ph - 1.9) + Math.sin(time * 0.3 + c.an.x) * 0.8;
+      const glide = (0.6 * dt) / S.R;
+      c.v.addScaledVector(c.f, glide).normalize();
+      const pulsePhase = c.ph - 1.9;
+      const swayPhase = time * 0.3 + c.an.x;
+      c.a = c.base! + 0.8 * Math.sin(pulsePhase) + Math.sin(swayPhase) * 0.8;
       if (c.hop !== 0 || c.hopV !== 0) {
         c.hopV += (-60 * c.hop - 7 * c.hopV) * dt;
         c.hop += c.hopV * dt;
@@ -697,7 +771,8 @@ export function creaturesFrame(g: Game) {
         c.ph = 4.7;
         meet(g, c);
       }
-      if (dP < 7 && Math.abs(dA - u.hh) < 6) meet(g, c);
+      const headGap = dA - u.hh;
+      if (dP < 7 && Math.abs(headGap) < 6) meet(g, c);
     }
     c.amt += (amt - c.amt) * ez(7, dt);
     c.head += (head - c.head) * ez(5, dt); // 동작과 동작 사이는 늘 부드럽게 넘어간다
@@ -707,12 +782,28 @@ export function creaturesFrame(g: Game) {
 
 /* ─── 내부 ─────────────────────────── */
 
+// a~b 사이 난수. Math.random 을 한 번 부른다 — 부르는 순서가 바뀌면 무리 자리·행동이 달라진다
+function rnd(a: number, b: number): number {
+  return a + (b - a) * Math.random();
+}
+
+// 프레임 길이(dt)가 달라도 같은 빠르기로 다가가게 하는 섞는 비율
+function ez(r: number, dt: number): number {
+  const decay = -r * dt;
+  return 1 - Math.exp(decay);
+}
+
 // 떠도는 무리를 옮긴다: 처음엔 내 둘레 아무 데나, 그 뒤엔 내 앞쪽 먼 곳
 function placeRoam(g: Game, grp: RoamGroup, first: boolean) {
   const p = g.pl.p;
   let ctr: THREE.Vector3 | null = null;
   for (let k = 0; k < 24; k++) {
-    ctr = first ? offset(p, rnd(25, 210), 360 * Math.random()) : ahead(g, 125, 200, 1.2);
+    if (first) {
+      // 난수 순서: 거리 → 방향
+      const dist = rnd(25, 210);
+      const bearing = 360 * Math.random();
+      ctr = offset(p, dist, bearing);
+    } else ctr = ahead(g, 125, 200, 1.2);
     if (grp.kind !== "sheep" || freeAt(g, ctr, 6)) break;
   }
   setGroup(g, grp, ctr!);
@@ -720,11 +811,13 @@ function placeRoam(g: Game, grp: RoamGroup, first: boolean) {
 
 function ahead(g: Game, dmin: number, dmax: number, spread: number): THREE.Vector3 {
   const { p, h } = g.pl;
-  cw.copy(h).applyAxisAngle(p, rnd(-spread, spread));
-  return p
-    .clone()
-    .addScaledVector(cw, Math.tan(rnd(dmin, dmax) / S.R))
-    .normalize();
+  // 난수 순서: 방향 → 거리
+  const turn = rnd(-spread, spread);
+  cw.copy(h).applyAxisAngle(p, turn);
+  const dist = rnd(dmin, dmax);
+  const arc = dist / S.R;
+  const step = Math.tan(arc);
+  return p.clone().addScaledVector(cw, step).normalize();
 }
 
 function setGroup(g: Game, grp: RoamGroup, ctr: THREE.Vector3) {
@@ -733,7 +826,9 @@ function setGroup(g: Game, grp: RoamGroup, ctr: THREE.Vector3) {
     if (c.st === "follow") return;
     if (c.type === "sheep") {
       c.hv = ctr;
-      c.home.copy(offset(ctr, 2.8, (j * 360) / grp.mem.length + 20));
+      const bearing = (j * 360) / grp.mem.length + 20;
+      const spot = offset(ctr, 2.8, bearing);
+      c.home.copy(spot);
       c.pitch = 0;
       c.sink = 0;
       c.v.copy(c.home);
@@ -746,7 +841,8 @@ function setGroup(g: Game, grp: RoamGroup, ctr: THREE.Vector3) {
     } else if (c.type === "flock") {
       c.ctr = ctr;
       c.g0 = groundAt(g, ctr);
-      c.v.copy(offset(ctr, c.rad!, c.ang!));
+      const start = offset(ctr, c.rad!, c.ang!);
+      c.v.copy(start);
       c.met = false;
     } else {
       c.home.copy(ctr);
@@ -769,11 +865,15 @@ function putCreature(g: Game, c: Creature, dt: number) {
   cm.makeBasis(cf, c.v, cx);
   c.m.quaternion.setFromRotationMatrix(cm);
   if (c.pitch || c.roll) {
-    cq2.setFromEuler(ceu.set(c.roll, 0, c.pitch));
+    ceu.set(c.roll, 0, c.pitch);
+    cq2.setFromEuler(ceu);
     c.m.quaternion.multiply(cq2);
   }
-  c.m.position.copy(c.v).multiplyScalar(S.R + c.a + c.hop + u.hh * (1 - c.sink));
-  c.m.scale.setScalar(u.k * c.vis);
+  const lift = u.hh * (1 - c.sink);
+  const radius = S.R + c.a + c.hop + lift;
+  c.m.position.copy(c.v).multiplyScalar(radius);
+  const scale = u.k * c.vis;
+  c.m.scale.setScalar(scale);
   c.an.y = c.ph;
   c.an.z = c.amt;
   c.an.w = c.head;
@@ -781,10 +881,12 @@ function putCreature(g: Game, c: Creature, dt: number) {
 
 // 그쪽(tv)을 본다(k 만큼 돌린다)
 function face(c: Creature, tv: THREE.Vector3, k?: number) {
-  cv.copy(tv).addScaledVector(c.v, -tv.dot(c.v));
+  const upPart = tv.dot(c.v);
+  cv.copy(tv).addScaledVector(c.v, -upPart);
   if (cv.lengthSq() < 1e-10) return;
   cv.normalize();
-  c.f.lerp(cv, k === undefined ? 0.15 : k).normalize();
+  const blend = k === undefined ? 0.15 : k;
+  c.f.lerp(cv, blend).normalize();
 }
 
 // 걸어서 간다: 몸을 먼저 돌리고, 보는 쪽으로 나아간다. 걸음 수는 간 거리만큼. 남은 거리를 돌려준다
@@ -798,10 +900,15 @@ function go(
 ): number {
   const d = c.v.angleTo(tv) * S.R;
   if (d < 0.05) return d;
-  face(c, tv, ez(5, dt));
-  const st = Math.min(d, spd * dt);
-  c.v.addScaledVector(c.f, Math.tan(st / S.R)).normalize();
-  c.f.addScaledVector(c.v, -c.f.dot(c.v)).normalize();
+  const turn = ez(5, dt);
+  face(c, tv, turn);
+  const reach = spd * dt;
+  const st = Math.min(d, reach);
+  const arc = st / S.R;
+  const step = Math.tan(arc);
+  c.v.addScaledVector(c.f, step).normalize();
+  const fUp = c.f.dot(c.v);
+  c.f.addScaledVector(c.v, -fUp).normalize();
   c.ph += st * (stride || 4.6);
   return d;
 }
@@ -809,12 +916,17 @@ function go(
 // 나에게서 멀어진다
 function away(g: Game, c: Creature, spd: number, dt: number, stride?: number) {
   cv.copy(c.v).sub(g.pl.p);
-  cv.addScaledVector(c.v, -cv.dot(c.v));
+  const cvUp = cv.dot(c.v);
+  cv.addScaledVector(c.v, -cvUp);
   if (cv.lengthSq() < 1e-10) cv.copy(c.f);
   cv.normalize();
-  c.f.lerp(cv, ez(7, dt)).normalize();
-  c.v.addScaledVector(c.f, Math.tan((spd * dt) / S.R)).normalize();
-  c.f.addScaledVector(c.v, -c.f.dot(c.v)).normalize();
+  const turn = ez(7, dt);
+  c.f.lerp(cv, turn).normalize();
+  const arc = (spd * dt) / S.R;
+  const step = Math.tan(arc);
+  c.v.addScaledVector(c.f, step).normalize();
+  const fUp = c.f.dot(c.v);
+  c.f.addScaledVector(c.v, -fUp).normalize();
   c.ph += spd * dt * (stride || 2.6);
 }
 
@@ -826,8 +938,14 @@ function meet(g: Game, c: Creature) {
     first = !MET.has(c.k);
   MET.add(c.k);
   cv.copy(c.m.position);
-  burst(g, cv.clone(), first ? 16 : 6, first ? 9 : 6);
-  if (first) burst(g, cv.clone(), 10, 13);
+  const sparkAt = cv.clone();
+  const sparkN = first ? 16 : 6;
+  const sparkPower = first ? 9 : 6;
+  burst(g, sparkAt, sparkN, sparkPower);
+  if (first) {
+    const bigAt = cv.clone();
+    burst(g, bigAt, 10, 13);
+  }
 }
 
 // 줄지어 따라오기에 넣는다(여섯까지)
@@ -841,5 +959,7 @@ function join(g: Game, c: Creature): boolean {
 }
 
 function splash(g: Game, c: Creature, n: number) {
-  splashAt(g, c.v, 0.5 + n * 0.12, n * 2);
+  const power = 0.5 + n * 0.12;
+  const drops = n * 2;
+  splashAt(g, c.v, power, drops);
 }

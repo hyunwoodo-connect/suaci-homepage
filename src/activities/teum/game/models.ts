@@ -88,7 +88,8 @@ export function deliverModel(g: Game, k: string, root: THREE.Group) {
   const bake = CREATURES[k]?.bake;
   if (bake) {
     // 새 손님 모델은 앞이 +x 를 보도록, 기운 것은 바로 서도록 돌려 놓는다
-    const bm = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(...bake));
+    const bakeTurn = new THREE.Euler(...bake),
+      bm = new THREE.Matrix4().makeRotationFromEuler(bakeTurn);
     root.traverse((c) => {
       if (c instanceof THREE.Mesh) c.geometry.applyMatrix4(bm);
     });
@@ -102,7 +103,9 @@ export function deliverModel(g: Game, k: string, root: THREE.Group) {
 /** 원본 크기 상자 */
 export function boxOf(g: Game, k: string): THREE.Box3 {
   const b = g.models.manifest.assets[k].box!;
-  return new THREE.Box3(new THREE.Vector3(b[0], b[1], b[2]), new THREE.Vector3(b[3], b[4], b[5]));
+  const min = new THREE.Vector3(b[0], b[1], b[2]),
+    max = new THREE.Vector3(b[3], b[4], b[5]);
+  return new THREE.Box3(min, max);
 }
 
 /**
@@ -118,21 +121,26 @@ export function fit(
   onArrive?: (o: THREE.Group) => void,
 ): Hold {
   const box = boxOf(g, k),
-    sz = box.getSize(new THREE.Vector3()),
-    ct = box.getCenter(new THREE.Vector3());
+    sz = new THREE.Vector3(),
+    ct = new THREE.Vector3();
+  box.getSize(sz);
+  box.getCenter(ct);
   const hold = new THREE.Group() as Hold;
-  const s =
-    size / (by === "w" ? Math.max(sz.x, sz.z) : by === "x" ? sz.x : by === "z" ? sz.z : sz.y);
+  const s = size / extentBy(sz, by);
   hold.scale.setScalar(s);
+  // 제자리에서 도는 것의 처음 각도. Math.random() 은 틀마다 꼭 한 번, 틀 그룹 다음·대역 앞에서 쓴다(난수 순서를 시제품과 같게)
+  const spinAngle = Math.random() * 6.28,
+    yq = new THREE.Quaternion().setFromAxisAngle(UP, spinAngle);
   hold.userData = {
     k: s,
     hh: (sz.y * s) / 2,
     rw: (Math.max(sz.x, sz.z) * s) / 2,
     uLime: { value: 0 },
-    yq: new THREE.Quaternion().setFromAxisAngle(UP, Math.random() * 6.28),
+    yq,
   };
   // 모델이 오기 전에도 상자 셈(Box3.setFromObject)이 원본과 같게, 원본 상자를 가진 보이지 않는 대역을 둔다
-  const proxy = new THREE.Mesh(new THREE.BufferGeometry());
+  const proxyGeometry = new THREE.BufferGeometry(),
+    proxy = new THREE.Mesh(proxyGeometry);
   proxy.geometry.boundingBox = box.clone();
   proxy.position.copy(ct).negate();
   proxy.visible = false;
@@ -146,11 +154,10 @@ export function fit(
     const center = ct.clone();
     if (CREATURES[k]?.bake) {
       const b2 = new THREE.Box3().setFromObject(o),
-        sz2 = b2.getSize(new THREE.Vector3());
+        sz2 = new THREE.Vector3();
+      b2.getSize(sz2);
       b2.getCenter(center);
-      const s2 =
-        size /
-        (by === "w" ? Math.max(sz2.x, sz2.z) : by === "x" ? sz2.x : by === "z" ? sz2.z : sz2.y);
+      const s2 = size / extentBy(sz2, by);
       hold.scale.setScalar(s2);
       Object.assign(hold.userData, {
         k: s2,
@@ -179,11 +186,13 @@ export function swapWhenReady(g: Game, k: string, prims: THREE.Object3D[]) {
 export function inst(g: Game, k: string, n: number): Instancer | null {
   if (!hasModel(g, k)) return null;
   const box = boxOf(g, k),
-    sz = box.getSize(new THREE.Vector3()),
-    c = box.getCenter(new THREE.Vector3());
-  const norm = new THREE.Matrix4()
-    .makeScale(1 / sz.y, 1 / sz.y, 1 / sz.y)
-    .multiply(new THREE.Matrix4().makeTranslation(-c.x, -box.min.y, -c.z));
+    sz = new THREE.Vector3(),
+    c = new THREE.Vector3();
+  box.getSize(sz);
+  box.getCenter(c);
+  const unit = 1 / sz.y,
+    bottomToOrigin = new THREE.Matrix4().makeTranslation(-c.x, -box.min.y, -c.z),
+    norm = new THREE.Matrix4().makeScale(unit, unit, unit).multiply(bottomToOrigin);
   const p = g.pl.p;
   const I: Instancer = {
     key: k,
@@ -237,9 +246,8 @@ export function inst(g: Game, k: string, n: number): Instancer | null {
     root.updateMatrixWorld(true);
     root.traverse((o) => {
       if (!(o instanceof THREE.Mesh)) return;
-      const geo: THREE.BufferGeometry = o.geometry
-          .clone()
-          .applyMatrix4(new THREE.Matrix4().multiplyMatrices(norm, o.matrixWorld)),
+      const toUnit = new THREE.Matrix4().multiplyMatrices(norm, o.matrixWorld),
+        geo: THREE.BufferGeometry = o.geometry.clone().applyMatrix4(toUnit),
         mat = (o.material as THREE.MeshStandardMaterial).clone();
       applyLook(g, mat, { value: 0 }, k);
       const im = new THREE.InstancedMesh(geo, mat, n);
@@ -271,8 +279,9 @@ export function topDir(
     part.copy(geometry.boundingBox!).applyMatrix4(m);
     box.union(part);
   });
-  const c = box.getCenter(new THREE.Vector3()),
-    cut = box.min.y + (box.max.y - box.min.y) * 0.72,
+  const c = new THREE.Vector3();
+  box.getCenter(c);
+  const cut = box.min.y + (box.max.y - box.min.y) * 0.72,
     acc = new THREE.Vector3(),
     t = new THREE.Vector3();
   let n = 0;
@@ -288,8 +297,21 @@ export function topDir(
       }
     }
   });
-  acc.multiplyScalar(1 / Math.max(1, n)).sub(c);
+  const mean = 1 / Math.max(1, n);
+  acc.multiplyScalar(mean).sub(c);
   acc.y = 0;
-  const ext = Math.max(box.max.x - box.min.x, box.max.z - box.min.z);
+  const width = box.max.x - box.min.x,
+    depth = box.max.z - box.min.z,
+    ext = Math.max(width, depth);
   return { x: acc.x, z: acc.z, len: acc.length(), ext };
+}
+
+/* ─── 내부 ─────────────────────────── */
+
+// 맞출 기준 길이: w 는 가로·세로 중 긴 쪽, x·z 는 그 축, 나머지(h)는 키
+function extentBy(sz: THREE.Vector3, by: string): number {
+  if (by === "w") return Math.max(sz.x, sz.z);
+  if (by === "x") return sz.x;
+  if (by === "z") return sz.z;
+  return sz.y;
 }

@@ -36,7 +36,8 @@ const flQ = new THREE.Quaternion(),
 
 /** 꽃마다 고정된 난수(번호 k, 갈래 n) — 0..1 */
 export function fr(k: number, n: number): number {
-  const x = Math.sin(k * 12.9898 + n * 78.233) * 43758.5453;
+  const phase = k * 12.9898 + n * 78.233;
+  const x = Math.sin(phase) * 43758.5453;
   return x - Math.floor(x);
 }
 
@@ -50,7 +51,8 @@ export function createFlowers(g: Game): Flowers {
       pg.scale(0.5, 0.25, 0.34);
       pg.translate(0.6, 0, 0);
       pg.rotateZ(0.22);
-      pg.rotateY((i * Math.PI) / 3);
+      const turn = (i * Math.PI) / 3;
+      pg.rotateY(turn);
       parts.push(pg);
     }
     return mergeGeometries(parts);
@@ -62,17 +64,11 @@ export function createFlowers(g: Game): Flowers {
     }),
     coreMat = new THREE.MeshStandardMaterial({ color: 0xffd21f, roughness: 0.25 }),
     stemMat = new THREE.MeshStandardMaterial({ color: 0x2e8f45, roughness: 0.9 });
-  const petals = new THREE.InstancedMesh(flGeo, petalMat, FLN),
-    core = new THREE.InstancedMesh(
-      new THREE.SphereGeometry(0.36, 14, 10).scale(1, 0.75, 1).translate(0, 0.14, 0),
-      coreMat,
-      FLN,
-    );
-  const stem = new THREE.InstancedMesh(
-    new THREE.CylinderGeometry(0.045, 0.06, 1, 6).translate(0, 0.5, 0),
-    stemMat,
-    FLN,
-  );
+  const petals = new THREE.InstancedMesh(flGeo, petalMat, FLN);
+  const coreGeo = new THREE.SphereGeometry(0.36, 14, 10).scale(1, 0.75, 1).translate(0, 0.14, 0);
+  const core = new THREE.InstancedMesh(coreGeo, coreMat, FLN);
+  const stemGeo = new THREE.CylinderGeometry(0.045, 0.06, 1, 6).translate(0, 0.5, 0);
+  const stem = new THREE.InstancedMesh(stemGeo, stemMat, FLN);
   petalMat.onBeforeCompile = (sh) => {
     sh.vertexShader =
       "varying vec3 vFp;\n" +
@@ -111,7 +107,8 @@ export function flCull(g: Game) {
   for (let k = 0; k < FLN; k++)
     if (fl.slot[k] >= 0) {
       const l = bumps.lit[k];
-      setFlower(g, k, l * l * (3 - 2 * l));
+      const bloom = l * l * (3 - 2 * l);
+      setFlower(g, k, bloom);
     }
   for (const m of [fl.petals, fl.core, fl.stem]) {
     m.count = n;
@@ -133,22 +130,30 @@ export function setFlower(g: Game, k0: number, e: number) {
     sz = (bumps.s[k] * 0.75 + 0.4) * (1 + 0.35 * e),
     yaw = fr(k, 2) * 6.283;
   q.setFromUnitVectors(UP, v);
-  flAx.set(Math.cos(yaw), 0, Math.sin(yaw));
-  flQ.setFromAxisAngle(flAx, 0.15 + fr(k, 3) * 0.55);
-  flQ2
-    .copy(q)
-    .multiply(flQ)
-    .multiply(flQ.setFromAxisAngle(UP, yaw * 3));
-  ps.copy(v).multiplyScalar(S.R + gr + st);
+  const yawCos = Math.cos(yaw),
+    yawSin = Math.sin(yaw);
+  flAx.set(yawCos, 0, yawSin);
+  const tilt = 0.15 + fr(k, 3) * 0.55;
+  flQ.setFromAxisAngle(flAx, tilt);
+  // 기울기(flQ)를 먼저 곱한 뒤에 같은 flQ 를 돌림으로 바꿔 곱한다 — 순서를 바꾸면 기울기가 사라진다
+  flQ2.copy(q).multiply(flQ);
+  const yawTurn = yaw * 3;
+  const spin = flQ.setFromAxisAngle(UP, yawTurn);
+  flQ2.multiply(spin);
+  const headRadius = S.R + gr + st;
+  ps.copy(v).multiplyScalar(headRadius);
   sc.set(sz, sz, sz);
   m4.compose(ps, flQ2, sc);
   fl.petals.setMatrixAt(sl, m4);
   fl.core.setMatrixAt(sl, m4);
-  ps.copy(v).multiplyScalar(S.R + gr - 0.15);
-  sc.set(1, st + 0.15, 1);
+  const stemRadius = S.R + gr - 0.15;
+  ps.copy(v).multiplyScalar(stemRadius);
+  const stemLength = st + 0.15;
+  sc.set(1, stemLength, 1);
   m4.compose(ps, q, sc);
   fl.stem.setMatrixAt(sl, m4);
-  fl.petals.setColorAt(sl, tc.set(bumps.base[k]).lerp(g.mats.lime, e));
+  const petalColor = tc.set(bumps.base[k]).lerp(g.mats.lime, e);
+  fl.petals.setColorAt(sl, petalColor);
 }
 
 /** 꽃: 낮게 스치면 라임으로 부풀어 피고, 천천히 제 색으로 돌아온다. 지나온 길이 라임 꽃길로 남는다 */
@@ -162,11 +167,14 @@ export function flowersFrame(g: Game) {
     let l = bumps.lit[k];
     const reach = 1.3 + bumps.s[k] * 1.5;
     if (air < 5 && 2 * (1 - p.dot(bumps.v[k])) * S.R * S.R < reach * reach) l = 1;
-    else if (l > 0) l = Math.max(0, l - dt * 0.14);
-    else continue;
+    else if (l > 0) {
+      const faded = l - dt * 0.14;
+      l = Math.max(0, faded);
+    } else continue;
     bumps.lit[k] = l;
     flDirty = true;
-    setFlower(g, k, l * l * (3 - 2 * l));
+    const bloom = l * l * (3 - 2 * l);
+    setFlower(g, k, bloom);
   }
   if (flDirty) {
     for (const m of [fl.petals, fl.core, fl.stem]) m.instanceMatrix.needsUpdate = true;

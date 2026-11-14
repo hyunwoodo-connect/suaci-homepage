@@ -54,7 +54,9 @@ export interface Seeds {
 /** 봉오리 밭을 만든다 */
 export function createSeedFields(g: Game): SeedField[] {
   return g.L.seed.map(({ dist, bear }) => {
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(24, 0.28, 8, 80), grey(g.mats, GREY_TOY));
+    const ringGeo = new THREE.TorusGeometry(24, 0.28, 8, 80);
+    const ringMat = grey(g.mats, GREY_TOY);
+    const ring = new THREE.Mesh(ringGeo, ringMat);
     ring.rotation.x = Math.PI / 2;
     ring.position.y = 0.75;
     const gr = new THREE.Group();
@@ -62,16 +64,15 @@ export function createSeedFields(g: Game): SeedField[] {
     ring.visible = false;
     const dots: Bud[] = [];
     for (let k = 0; k < 44; k++) {
-      const dot = new THREE.Mesh(new THREE.SphereGeometry(0.7, 12, 9), ring.material);
+      const dotGeo = new THREE.SphereGeometry(0.7, 12, 9);
+      const dot = new THREE.Mesh(dotGeo, ring.material);
       g.scene.add(dot);
-      dots.push({
-        m: dot,
-        a: k * 2.399 * 57.2958,
-        r: 23 * Math.sqrt((k + 0.5) / 44),
-        v: new THREE.Vector3(),
-        g: 0,
-        cool: 0,
-      });
+      // 해바라기 씨 배치: 황금각 2.399 라디안(offset 은 도를 받는다)씩 돌고, 반지름은 √ 로 벌려 넓이에 고르게
+      const budAngle = k * 2.399 * 57.2958;
+      const areaFrac = (k + 0.5) / 44;
+      const budR = 23 * Math.sqrt(areaFrac);
+      const bud: Bud = { m: dot, a: budAngle, r: budR, v: new THREE.Vector3(), g: 0, cool: 0 };
+      dots.push(bud);
     }
     g.scene.add(gr);
     return { g: gr, ring, dist, bear, r: 24, v: new THREE.Vector3(), dots };
@@ -82,13 +83,13 @@ export function createSeedFields(g: Game): SeedField[] {
 export function createSprouts(g: Game): Sprout[] {
   const sprouts: Sprout[] = [];
   for (let i = 0; i < 12; i++) {
-    const m = new THREE.Mesh(
-      new THREE.SphereGeometry(1, 18, 12),
-      new THREE.MeshBasicMaterial({ color: 0xfafbfb }),
-    );
+    const sproutGeo = new THREE.SphereGeometry(1, 18, 12);
+    const sproutMat = new THREE.MeshBasicMaterial({ color: 0xfafbfb });
+    const m = new THREE.Mesh(sproutGeo, sproutMat);
     m.visible = false;
     g.scene.add(m);
-    sprouts.push({ m, v: new THREE.Vector3(), on: false, t: 0, g: 0, cool: 0, sq: 0 });
+    const sprout: Sprout = { m, v: new THREE.Vector3(), on: false, t: 0, g: 0, cool: 0, sq: 0 };
+    sprouts.push(sprout);
   }
   return sprouts;
 }
@@ -96,9 +97,12 @@ export function createSprouts(g: Game): Sprout[] {
 /** 봉오리 밭 자리(언덕이 덮지 않게 넓은 자리로) */
 export function layoutSeedFields(g: Game) {
   for (const f of g.seeds.fields) {
-    f.v.copy(from(f.dist, f.bear));
+    const spot = from(f.dist, f.bear);
+    f.v.copy(spot);
     g.zones.push({ v: f.v, r: 25 });
-    f.g.position.copy(f.v).multiplyScalar(S.R + featGround(g, f.v));
+    const fieldGround = featGround(g, f.v);
+    const fieldR = S.R + fieldGround;
+    f.g.position.copy(f.v).multiplyScalar(fieldR);
     f.g.quaternion.setFromUnitVectors(UP, f.v);
   }
 }
@@ -107,9 +111,11 @@ export function layoutSeedFields(g: Game) {
 export function layoutBuds(g: Game) {
   for (const f of g.seeds.fields)
     for (const d of f.dots) {
-      d.v.copy(offset(f.v, d.r, d.a));
+      const spot = offset(f.v, d.r, d.a);
+      d.v.copy(spot);
       d.g = groundAt(g, d.v);
-      d.m.position.copy(d.v).multiplyScalar(S.R + d.g + 0.55);
+      const budR = S.R + d.g + 0.55;
+      d.m.position.copy(d.v).multiplyScalar(budR);
       d.cool = 0;
     }
   for (const sp of g.seeds.sprouts) sp.on = false;
@@ -135,7 +141,9 @@ export function seedsFrame(g: Game) {
         d.m.scale.setScalar(k);
         continue;
       }
-      d.m.scale.setScalar(1 + 0.12 * Math.sin(time * 3 + d.a));
+      const pulsePhase = time * 3 + d.a;
+      const pulse = 1 + 0.12 * Math.sin(pulsePhase);
+      d.m.scale.setScalar(pulse);
       if (!t.held && pl.air < 3.5 && p.angleTo(d.v) * S.R < 2.6) {
         d.cool = 9;
         const sp = nextSprout(g);
@@ -147,7 +155,8 @@ export function seedsFrame(g: Game) {
         sp.sq = 1;
         pl.vy = Math.max(pl.vy, 5.5);
         if (pl.air <= 0) pl.air = 0.01;
-        burst(g, d.m.position.clone(), 5, 7);
+        const popAt = d.m.position.clone();
+        burst(g, popAt, 5, 7);
         if (!g.said.seed) {
           g.said.seed = true;
           say(g, "봉오리 밭 — 스치면 퐁 터지며 구름 싹이 솟습니다");
@@ -172,12 +181,21 @@ export function seedsFrame(g: Game) {
       sp.cool = 0.8;
       sp.sq = 1;
     }
-    sp.sq = Math.max(0, sp.sq - dt * 2.4);
-    const gk = Math.min(1, sp.t / 0.35),
-      k = gk * (2 - gk) * Math.min(1, 16 - sp.t) * (1 - Math.sin(sp.sq * Math.PI) * 0.5);
+    const easedSq = sp.sq - dt * 2.4;
+    sp.sq = Math.max(0, easedSq);
+    // 솟을 때 부풀고(gk), 지기 1초 전부터 줄고, 밟히면 잠깐 눌린다(sq)
+    const growTime = sp.t / 0.35;
+    const gk = Math.min(1, growTime);
+    const lifeLeft = 16 - sp.t;
+    const fade = Math.min(1, lifeLeft);
+    const squashAngle = sp.sq * Math.PI;
+    const k = gk * (2 - gk) * fade * (1 - Math.sin(squashAngle) * 0.5);
     sp.m.visible = true;
-    sp.m.scale.set(2.5 * gk, 1.4 * k, 2.5 * gk);
-    sp.m.position.copy(sp.v).multiplyScalar(S.R + sp.g + 0.9 * k);
+    const width = 2.5 * gk;
+    const height = 1.4 * k;
+    sp.m.scale.set(width, height, width);
+    const sproutR = S.R + sp.g + 0.9 * k;
+    sp.m.position.copy(sp.v).multiplyScalar(sproutR);
     sp.m.quaternion.setFromUnitVectors(UP, sp.v);
   }
 }

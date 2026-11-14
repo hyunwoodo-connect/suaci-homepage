@@ -35,7 +35,9 @@ export function setupAvatar(g: Game) {
     // 머리 크기: 머리뼈보다 위에 있는 점들만 잰다(자동 뼈대가 손끝을 머리에 묶어 둔 곳이 있어서 뼈 이름으로는 못 잰다). 세계에 놓기 전, 모델 기준일 때 재야 한다
     const hb = new THREE.Box3(),
       tv = new THREE.Vector3(),
-      hy0 = B.Head.getWorldPosition(new THREE.Vector3()).y + 0.03;
+      headBase = new THREE.Vector3();
+    B.Head.getWorldPosition(headBase);
+    const hy0 = headBase.y + 0.03;
     av.traverse((c) => {
       if (!(c instanceof THREE.SkinnedMesh)) return;
       c.skeleton.update();
@@ -45,23 +47,33 @@ export function setupAvatar(g: Game) {
         if (tv.y > hy0) hb.expandByPoint(tv);
       }
     });
-    const hf = B.headfront.getWorldPosition(new THREE.Vector3()),
-      hd = B.Head.getWorldPosition(new THREE.Vector3()),
-      fs = hf.x - hd.x > 0 ? 1 : -1,
-      zl = Math.sign(B.LeftArm.getWorldPosition(new THREE.Vector3()).z - hd.z) || 1;
+    // 얼굴이 x 축 어느 쪽을 보는지(faceDir), 왼팔이 z 축 어느 쪽에 있는지(leftDir)를 재서 몸짓의 부호를 맞춘다
+    const headFront = new THREE.Vector3();
+    B.headfront.getWorldPosition(headFront);
+    const head = new THREE.Vector3();
+    B.Head.getWorldPosition(head);
+    const faceDir = headFront.x - head.x > 0 ? 1 : -1;
+    const leftArm = new THREE.Vector3();
+    B.LeftArm.getWorldPosition(leftArm);
+    const leftArmZ = leftArm.z - head.z,
+      leftDir = Math.sign(leftArmZ) || 1;
     const R0: Record<string, Rest> = {};
     for (const k in B) {
-      const w = B[k].getWorldQuaternion(new THREE.Quaternion());
+      const w = new THREE.Quaternion();
+      B[k].getWorldQuaternion(w);
       R0[k] = { q: B[k].quaternion.clone(), w, wi: w.clone().invert() };
     }
     const box = new THREE.Box3().setFromObject(av),
-      sz = box.getSize(new THREE.Vector3()),
-      ct = box.getCenter(new THREE.Vector3()),
-      hold = new THREE.Group();
+      sz = new THREE.Vector3(),
+      ct = new THREE.Vector3();
+    box.getSize(sz);
+    box.getCenter(ct);
+    const hold = new THREE.Group();
     av.position.sub(ct);
     hold.add(av);
-    hold.scale.setScalar(1.5 / sz.y);
-    hold.rotation.y = fs > 0 ? -Math.PI / 2 : Math.PI / 2; // 얼굴이 앞(+z)을 보게
+    const holdScale = 1.5 / sz.y;
+    hold.scale.setScalar(holdScale);
+    hold.rotation.y = faceDir > 0 ? -Math.PI / 2 : Math.PI / 2; // 얼굴이 앞(+z)을 보게
     hold.userData = { uLime: uL };
     M.body.visible = false;
     M.nose.visible = false;
@@ -79,7 +91,8 @@ export function setupAvatar(g: Game) {
       const b = B[name],
         r = R0[name];
       if (!b) return;
-      D.setFromAxisAngle(AZ, sw * fs);
+      const swing = sw * faceDir;
+      D.setFromAxisAngle(AZ, swing);
       if (tw) {
         D3.setFromAxisAngle(AY, tw);
         D.multiply(D3);
@@ -91,50 +104,100 @@ export function setupAvatar(g: Game) {
       Q.copy(r.wi).multiply(D).multiply(r.w);
       b.quaternion.copy(r.q).multiply(Q);
     };
+    // st.f = 나아가는 정도, st.r = 솟음(+)·떨어짐(-), st.b = 옆으로 끄는 기울기. 모두 천천히 따라간다
     M.avFrame = (dt, tot, vy, air) => {
       const e = (r: number) => 1 - Math.exp(-r * dt),
         inp = g.input.inp,
         fx = inp.drag ? inp.fx || 0 : 0;
-      st.f += (clamp(tot / 0.85, 0, 1) - st.f) * e(3.5);
-      st.r += ((vy > 2.5 ? 1 : vy < -2 && air > 2 ? -1 : 0) - st.r) * e(6);
-      st.b = (st.b || 0) + (fx * Math.min(1, tot) - (st.b || 0)) * e(4);
-      const up = Math.max(0, st.r),
-        dn = Math.max(0, -st.r),
-        gg = st.f * (1 - up) * (1 - dn),
-        id = 1 - st.f,
+      const forward = tot / 0.85,
+        forwardTarget = clamp(forward, 0, 1);
+      st.f += (forwardTarget - st.f) * e(3.5);
+      const riseTarget = vy > 2.5 ? 1 : vy < -2 && air > 2 ? -1 : 0;
+      st.r += (riseTarget - st.r) * e(6);
+      const bankTarget = fx * Math.min(1, tot);
+      st.b = (st.b || 0) + (bankTarget - (st.b || 0)) * e(4);
+      // 몸짓의 무게: 나아감(glide)은 솟거나 떨어지는 동안 줄고, 멈춤(idle)은 나아가지 않는 만큼
+      const rise = Math.max(0, st.r),
+        fall = Math.max(0, -st.r),
+        glide = st.f * (1 - rise) * (1 - fall),
+        idle = 1 - st.f,
         t = g.time;
-      const s1 = Math.sin(t * 1.7),
-        s2 = Math.sin(t * 1.7 + 1.3),
-        fl = Math.sin(t * 6.5),
-        fa = Math.sin(t * 11);
-      hold.position.y = 0.06 * s1 * id; // 둥실
-      const lean = clamp(1.25 * gg - tiltG.rotation.x, 0, 0.95) * gg; // 화면 기울기와 합쳐서 거의 엎드린 자세까지
-      pose("Hips", -lean + 0.05 * s2 * id, fs * 0.4 * st.b, -fs * 0.25 * st.b * 0);
-      pose("Spine01", 0.16 * gg + 0.03 * s1, 0);
-      pose("neck", 0.3 * gg + 0.15 * up - 0.1 * dn, 0);
-      pose("Head", 0.42 * gg + 0.2 * up - 0.15 * dn + 0.04 * s2 * id, -fs * 0.12 * st.b);
+      const swayPhase = t * 1.7,
+        swayLatePhase = t * 1.7 + 1.3,
+        kickPhase = t * 6.5,
+        flailPhase = t * 11;
+      const sway = Math.sin(swayPhase),
+        swayLate = Math.sin(swayLatePhase),
+        kick = Math.sin(kickPhase),
+        flail = Math.sin(flailPhase);
+      hold.position.y = 0.06 * sway * idle; // 둥실
+      const leanWanted = 1.25 * glide - tiltG.rotation.x,
+        lean = clamp(leanWanted, 0, 0.95) * glide; // 화면 기울기와 합쳐서 거의 엎드린 자세까지
+      const hipsSwing = -lean + 0.05 * swayLate * idle,
+        hipsSide = faceDir * 0.4 * st.b,
+        hipsTwist = -faceDir * 0.25 * st.b * 0;
+      pose("Hips", hipsSwing, hipsSide, hipsTwist);
+      const spineSwing = 0.16 * glide + 0.03 * sway;
+      pose("Spine01", spineSwing, 0);
+      const neckSwing = 0.3 * glide + 0.15 * rise - 0.1 * fall;
+      pose("neck", neckSwing, 0);
+      const headSwing = 0.42 * glide + 0.2 * rise - 0.15 * fall + 0.04 * swayLate * idle,
+        headSide = -faceDir * 0.12 * st.b;
+      pose("Head", headSwing, headSide);
       // 다리: 멈추면 물장구처럼 번갈아 늘어뜨리고, 나아가면 뒤로 모아 살랑, 솟으면 곧게, 떨어지면 무릎을 접는다
-      const lu = 0.22 * id + 0.12 * id * s1 - 0.2 * gg + 0.2 * gg * fl + 0.55 * dn + 0.08 * dn * fa,
-        ru = 0.22 * id - 0.12 * id * s1 - 0.2 * gg - 0.2 * gg * fl + 0.55 * dn - 0.08 * dn * fa;
-      pose("LeftUpLeg", lu, 0.05 * zl);
-      pose("RightUpLeg", ru, -0.05 * zl);
-      pose("LeftLeg", -0.5 * id - 0.15 * id * s1 - 0.12 * gg - 0.18 * gg * fl - 1.0 * dn, 0);
-      pose("RightLeg", -0.5 * id + 0.15 * id * s1 - 0.12 * gg + 0.18 * gg * fl - 1.0 * dn, 0);
-      pose("LeftFoot", 0.5 * (gg + up), 0);
-      pose("RightFoot", 0.5 * (gg + up), 0); // 발끝을 편다
+      const leftThigh =
+          0.22 * idle +
+          0.12 * idle * sway -
+          0.2 * glide +
+          0.2 * glide * kick +
+          0.55 * fall +
+          0.08 * fall * flail,
+        rightThigh =
+          0.22 * idle -
+          0.12 * idle * sway -
+          0.2 * glide -
+          0.2 * glide * kick +
+          0.55 * fall -
+          0.08 * fall * flail,
+        leftThighSide = 0.05 * leftDir,
+        rightThighSide = -0.05 * leftDir;
+      pose("LeftUpLeg", leftThigh, leftThighSide);
+      pose("RightUpLeg", rightThigh, rightThighSide);
+      const leftKnee =
+          -0.5 * idle - 0.15 * idle * sway - 0.12 * glide - 0.18 * glide * kick - 1.0 * fall,
+        rightKnee =
+          -0.5 * idle + 0.15 * idle * sway - 0.12 * glide + 0.18 * glide * kick - 1.0 * fall;
+      pose("LeftLeg", leftKnee, 0);
+      pose("RightLeg", rightKnee, 0);
+      const toePoint = 0.5 * (glide + rise); // 발끝을 편다
+      pose("LeftFoot", toePoint, 0);
+      pose("RightFoot", toePoint, 0);
       // 팔: 멈추면 살짝 벌려 늘어뜨리고 살랑, 나아가면 옆으로 펴서 뒤로 젖힌 날개, 솟으면 위로, 떨어지면 위에서 허우적
-      const low = 0.8 * id + 0.07 * id * s2 - 0.18 * gg - 1.25 * up - 0.85 * dn,
-        back = 0.55 * gg,
-        wob = 0.22 * dn * fa + 0.06 * gg * Math.sin(t * 2.3);
-      pose("LeftArm", 0.12 * id * s1, (low + wob) * zl + 0.3 * st.b * gg, -fs * zl * back);
-      pose("RightArm", -0.12 * id * s1, -(low - wob) * zl + 0.3 * st.b * gg, fs * zl * back);
-      pose("LeftForeArm", 0.3 * id, 0.15 * id * zl, 0);
-      pose("RightForeArm", 0.3 * id, -0.15 * id * zl, 0);
+      const wobPhase = t * 2.3,
+        wobWave = Math.sin(wobPhase);
+      const low = 0.8 * idle + 0.07 * idle * swayLate - 0.18 * glide - 1.25 * rise - 0.85 * fall,
+        back = 0.55 * glide,
+        wob = 0.22 * fall * flail + 0.06 * glide * wobWave;
+      const leftArmSwing = 0.12 * idle * sway,
+        leftArmSide = (low + wob) * leftDir + 0.3 * st.b * glide,
+        leftArmTwist = -faceDir * leftDir * back,
+        rightArmSwing = -0.12 * idle * sway,
+        rightArmSide = -(low - wob) * leftDir + 0.3 * st.b * glide,
+        rightArmTwist = faceDir * leftDir * back;
+      pose("LeftArm", leftArmSwing, leftArmSide, leftArmTwist);
+      pose("RightArm", rightArmSwing, rightArmSide, rightArmTwist);
+      const elbowBend = 0.3 * idle,
+        leftElbowSide = 0.15 * idle * leftDir,
+        rightElbowSide = -0.15 * idle * leftDir;
+      pose("LeftForeArm", elbowBend, leftElbowSide, 0);
+      pose("RightForeArm", elbowBend, rightElbowSide, 0);
     };
     // 꾸미기: 칸(slot)마다 하나씩, 같은 칸에 새로 끼우면 바뀐다
-    const hs = hb.getSize(new THREE.Vector3()),
-      hc = hb.getCenter(new THREE.Vector3()),
-      worn: Record<string, THREE.Group | null> = {};
+    const hs = new THREE.Vector3(),
+      hc = new THREE.Vector3();
+    hb.getSize(hs);
+    hb.getCenter(hc);
+    const worn: Record<string, THREE.Group | null> = {};
     const wear = (key: string, then: () => void) => {
       const d = PARTS[key];
       if (!d) return then();
@@ -146,9 +209,11 @@ export function setupAvatar(g: Game) {
       whenModel(g, key, (root) => {
         const m = root.clone(true),
           bb = new THREE.Box3().setFromObject(m),
-          bs = bb.getSize(new THREE.Vector3()),
-          bc = bb.getCenter(new THREE.Vector3()),
-          G = new THREE.Group(),
+          bs = new THREE.Vector3(),
+          bc = new THREE.Vector3();
+        bb.getSize(bs);
+        bb.getCenter(bc);
+        const G = new THREE.Group(),
           s = (hs.z * d.w) / bs.z;
         m.traverse((c) => {
           if (c instanceof THREE.Mesh) {
@@ -160,19 +225,16 @@ export function setupAvatar(g: Game) {
         m.position.copy(bc).negate();
         G.add(m);
         G.scale.setScalar(s);
-        G.rotation.y = fs > 0 ? 0 : Math.PI; // 뽑아 온 부품은 앞이 +x를 본다. 그 앞을 얼굴 쪽으로
-        if (d.slot === "hair")
-          G.position.set(
-            hc.x + fs * (d.f || 0) * hs.x,
-            hb.max.y + d.top! * hs.y - (bs.y * s) / 2,
-            hc.z,
-          );
-        else
-          G.position.set(
-            hc.x + fs * (hs.x / 2 + (d.f || 0) * hs.x - (bs.x * s) / 2),
-            hc.y + (d.y || 0) * hs.y,
-            hc.z,
-          );
+        G.rotation.y = faceDir > 0 ? 0 : Math.PI; // 뽑아 온 부품은 앞이 +x를 본다. 그 앞을 얼굴 쪽으로
+        if (d.slot === "hair") {
+          const partX = hc.x + faceDir * (d.f || 0) * hs.x,
+            partY = hb.max.y + d.top! * hs.y - (bs.y * s) / 2;
+          G.position.set(partX, partY, hc.z);
+        } else {
+          const partX = hc.x + faceDir * (hs.x / 2 + (d.f || 0) * hs.x - (bs.x * s) / 2),
+            partY = hc.y + (d.y || 0) * hs.y;
+          G.position.set(partX, partY, hc.z);
+        }
         av.add(G);
         av.updateMatrixWorld(true);
         B.Head.attach(G);

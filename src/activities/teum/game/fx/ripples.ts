@@ -48,15 +48,13 @@ export function createRipples(): Ripples {
 /** 물 위에 고리 하나가 퍼진다(delay 초 뒤에) */
 export function ripple(g: Game, n: THREE.Vector3, sz?: number, delay?: number) {
   const R = g.ripples;
-  const rm = new THREE.Mesh(
-    R.ripGeo,
-    new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0,
-      depthWrite: false,
-    }),
-  );
+  const ringMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+  });
+  const rm = new THREE.Mesh(R.ripGeo, ringMat);
   rm.quaternion.setFromUnitVectors(FWD, n);
   rm.userData = {
     n: n.clone(),
@@ -74,18 +72,20 @@ export function ripple(g: Game, n: THREE.Vector3, sz?: number, delay?: number) {
 export function splashAt(g: Game, n: THREE.Vector3, power: number, cnt: number) {
   const R = g.ripples;
   ripple(g, n, power, 0);
-  ripple(g, n, power * 1.5, 0.18);
+  const outerSize = power * 1.5;
+  ripple(g, n, outerSize, 0.18);
+  const startR = S.R + 0.4;
   for (let i = 0; i < cnt && R.drops.length < 70; i++) {
-    const m = new THREE.Mesh(R.dropGeo, R.dropMat),
-      a = Math.random() * 6.283,
-      t = refT(n).applyAxisAngle(n, a),
-      sp = (0.8 + Math.random() * 1.6) * power;
-    m.userData = {
-      pos: n.clone().multiplyScalar(S.R + 0.4),
-      vel: t.multiplyScalar(sp).addScaledVector(n, (3 + Math.random() * 3.5) * Math.sqrt(power)),
-      t: 0,
-      s: 0.7 + Math.random() * 1.1,
-    } satisfies DropData;
+    const m = new THREE.Mesh(R.dropGeo, R.dropMat);
+    // 난수 순서: 퍼지는 방위 a → 옆 속도 sp → 솟는 속도 → 크기 s
+    const a = Math.random() * 6.283;
+    const t = refT(n).applyAxisAngle(n, a);
+    const sp = (0.8 + Math.random() * 1.6) * power;
+    const pos = n.clone().multiplyScalar(startR);
+    const upSpeed = (3 + Math.random() * 3.5) * Math.sqrt(power);
+    const vel = t.multiplyScalar(sp).addScaledVector(n, upSpeed);
+    const s = 0.7 + Math.random() * 1.1;
+    m.userData = { pos, vel, t: 0, s } satisfies DropData;
     g.scene.add(m);
     R.drops.push(m);
   }
@@ -95,6 +95,7 @@ export function splashAt(g: Game, n: THREE.Vector3, power: number, cnt: number) 
 export function ripplesFrame(g: Game) {
   const dt = g.t.dt,
     { puffs, drops } = g.ripples;
+  const fall = -16 * dt;
   for (let i = puffs.length - 1; i >= 0; i--) {
     const u = puffs[i],
       ud = u.userData as PuffData;
@@ -109,17 +110,21 @@ export function ripplesFrame(g: Game) {
       puffs.splice(i, 1);
       continue;
     }
-    const e = 1 - Math.pow(1 - k, 3);
-    u.scale.setScalar((0.4 + e * 2.6) * (ud.s || 1));
-    u.material.opacity = 0.8 * (1 - k);
-    u.position.copy(ud.n).multiplyScalar(S.R + ud.g + 0.08 + k * 0.08);
+    // 처음엔 빨리, 끝으로 갈수록 천천히 퍼진다
+    const rest = 1 - k;
+    const e = 1 - Math.pow(rest, 3);
+    const scale = (0.4 + e * 2.6) * (ud.s || 1);
+    u.scale.setScalar(scale);
+    u.material.opacity = 0.8 * rest;
+    const lift = S.R + ud.g + 0.08 + k * 0.08;
+    u.position.copy(ud.n).multiplyScalar(lift);
   }
   for (let i = drops.length - 1; i >= 0; i--) {
     const d = drops[i],
       u = d.userData as DropData;
     u.t += dt;
     dropN.copy(u.pos).normalize();
-    u.vel.addScaledVector(dropN, -16 * dt);
+    u.vel.addScaledVector(dropN, fall);
     u.pos.addScaledVector(u.vel, dt);
     if (u.t > 0.25 && u.pos.length() < S.R + 0.35) {
       g.scene.remove(d);
@@ -127,6 +132,8 @@ export function ripplesFrame(g: Game) {
       continue;
     }
     d.position.copy(u.pos);
-    d.scale.setScalar(u.s * (1 - 0.5 * Math.min(1, u.t)));
+    const age = Math.min(1, u.t);
+    const shrink = u.s * (1 - 0.5 * age);
+    d.scale.setScalar(shrink);
   }
 }

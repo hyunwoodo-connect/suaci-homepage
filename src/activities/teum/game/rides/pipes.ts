@@ -44,11 +44,10 @@ export function createPipes(g: Game): Pipes {
     combo: 0,
     idle: 0,
   }));
-  const ramps = new THREE.InstancedMesh(
-    new THREE.SphereGeometry(0.5, 18, 12),
-    grey(g.mats, GREY_TOY),
-    list.length * 16,
-  ); // 부푼 쿠션 벽
+  const rampGeo = new THREE.SphereGeometry(0.5, 18, 12);
+  const rampMat = grey(g.mats, GREY_TOY);
+  const rampCount = list.length * 16;
+  const ramps = new THREE.InstancedMesh(rampGeo, rampMat, rampCount); // 부푼 쿠션 벽
   return { list, ramps };
 }
 
@@ -57,25 +56,33 @@ export function layoutPipes(g: Game) {
   const ramps = g.pipes.ramps;
   let rmi = 0;
   for (const pp of g.pipes.list) {
-    pp.v.copy(from(pp.dist, pp.bear));
-    pp.d.copy(heading(pp.v, pp.head));
+    const spot = from(pp.dist, pp.bear);
+    pp.v.copy(spot);
+    const dir = heading(pp.v, pp.head);
+    pp.d.copy(dir);
     pp.side.crossVectors(pp.v, pp.d).normalize();
     g.zones.push({ v: pp.v, r: 36 });
     const gr = featGround(g, pp.v);
     for (let j = 0; j < 8; j++)
       for (const sgn of [-1, 1]) {
+        const alongStep = ((j - 3.5) * 8) / S.R;
+        const sideStep = (sgn * 12) / S.R;
         ps.copy(pp.v)
-          .addScaledVector(pp.d, ((j - 3.5) * 8) / S.R)
-          .addScaledVector(pp.side, (sgn * 12) / S.R)
+          .addScaledVector(pp.d, alongStep)
+          .addScaledVector(pp.side, sideStep)
           .normalize();
         bx.crossVectors(ps, pp.d).normalize();
         m4.makeBasis(bx, ps, pp.d);
         q.setFromRotationMatrix(m4);
-        q.multiply(new THREE.Quaternion().setFromAxisAngle(FWD, sgn * 0.85));
-        ps.multiplyScalar(S.R + gr + 2.6);
+        const tiltAngle = sgn * 0.85;
+        const tilt = new THREE.Quaternion().setFromAxisAngle(FWD, tiltAngle);
+        q.multiply(tilt);
+        const radius = S.R + gr + 2.6;
+        ps.multiplyScalar(radius);
         sc.set(8.2, 1.7, 8.6);
         m4.compose(ps, q, sc);
-        ramps.setMatrixAt(rmi++, m4);
+        ramps.setMatrixAt(rmi, m4);
+        rmi++;
       }
   }
   ramps.instanceMatrix.needsUpdate = true;
@@ -103,10 +110,13 @@ export function pipesFrame(g: Game) {
         Math.abs(la) > 9 &&
         vel.dot(pp.side) * Math.sign(la) > 0.15
       ) {
-        pp.combo = Math.min(6, pp.combo + 1);
+        const nextCombo = pp.combo + 1;
+        pp.combo = Math.min(6, nextCombo);
         pl.vy = 4.5 + 2.3 * pp.combo;
         if (pl.air <= 0) pl.air = 0.01;
-        vel.addScaledVector(pp.side, -2 * vel.dot(pp.side)).normalize();
+        const sideSpeed = vel.dot(pp.side);
+        const reflect = -2 * sideSpeed;
+        vel.addScaledVector(pp.side, reflect).normalize();
         pl.boost = Math.max(pl.boost, 1.1);
         pl.stun = 0.9;
         pp.cool = 0.5;

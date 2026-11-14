@@ -24,35 +24,40 @@ export function cameraFrame(g: Game) {
   cdir.copy(h);
   if (wB > 0.01) {
     // 회오리 안에서는 화면이 같이 돌지 않게, 들어올 때의 방향을 유지한다
-    tmp.copy(whirl.h0).addScaledVector(p, -whirl.h0.dot(p)).normalize();
+    const h0Radial = whirl.h0.dot(p);
+    tmp.copy(whirl.h0).addScaledVector(p, -h0Radial).normalize();
     cdir.lerp(tmp, wB);
     if (cdir.lengthSq() < 1e-4) cdir.copy(tmp);
-    cdir.addScaledVector(p, -cdir.dot(p)).normalize();
+    const cdirRadial = cdir.dot(p);
+    cdir.addScaledVector(p, -cdirRadial).normalize();
   }
-  cdir.applyAxisAngle(p, 2.6 * over);
+  const orbit = 2.6 * over;
+  cdir.applyAxisAngle(p, orbit);
   const sp = clamp(t.tot, 0, 2.2);
-  want
-    .copy(P)
-    .addScaledVector(p, S.camH + 24 * over + pl.air * 0.22 + 5 * wB + 4 * rB)
-    .addScaledVector(
-      cdir,
-      -S.camD * (1 + 0.22 * sp) - 20 * over - pl.air * 0.35 - 9 * wB - 10 * rB,
-    );
+  // 빠를수록·높이 뜰수록·회오리(wB)·놀이기구(rB)에 탈수록 위로 올라가고 뒤로 물러난다
+  const rise = S.camH + 24 * over + pl.air * 0.22 + 5 * wB + 4 * rB;
+  const back = -S.camD * (1 + 0.22 * sp) - 20 * over - pl.air * 0.35 - 9 * wB - 10 * rB;
+  want.copy(P).addScaledVector(p, rise).addScaledVector(cdir, back);
   if (pl.snap) {
     camera.position.copy(want);
     pl.snap = false;
-  } else camera.position.lerp(want, 1 - Math.exp(-6 * t.dt));
+  } else {
+    const followDecay = -6 * t.dt;
+    const follow = 1 - Math.exp(followDecay);
+    camera.position.lerp(want, follow);
+  }
   cn.copy(camera.position).normalize();
   const minR = S.R + groundAt(g, cn) + 1.2;
   if (camera.position.length() < minR) camera.position.setLength(minR);
   camera.up.copy(p);
-  look
-    .copy(P)
-    .addScaledVector(p, 0.8 - 6 * over)
-    .addScaledVector(cdir, 5 + 45 * over);
+  const lookRise = 0.8 - 6 * over;
+  const lookAhead = 5 + 45 * over;
+  look.copy(P).addScaledVector(p, lookRise).addScaledVector(cdir, lookAhead);
   camera.lookAt(look);
   const fov = S.fov + 9 * Math.min(1.6, sp);
-  if (Math.abs(camera.fov - fov) > 0.05) {
+  // 조금씩 바뀔 때마다 투영 행렬을 다시 만들지 않는다
+  const fovDelta = camera.fov - fov;
+  if (Math.abs(fovDelta) > 0.05) {
     camera.fov = fov;
     camera.updateProjectionMatrix();
   }

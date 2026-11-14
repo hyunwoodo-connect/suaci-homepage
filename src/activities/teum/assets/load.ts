@@ -39,7 +39,10 @@ export function createAssetLoader(manifest: Manifest): AssetLoader {
     const cached = cache.get(key);
     if (cached) return cached;
     const entry = manifest.assets[key];
-    if (!entry) return Promise.reject(new Error(`manifest 에 없는 에셋: ${key}`));
+    if (!entry) {
+      const missing = new Error(`manifest 에 없는 에셋: ${key}`);
+      return Promise.reject(missing);
+    }
     const url = assetUrl(entry.file);
     const job = entry.file.endsWith(".glb")
       ? gltf.loadAsync(url).then((g): LoadedAsset => {
@@ -89,13 +92,15 @@ function dequantize(root: THREE.Object3D) {
       const attr = geometry.getAttribute(name);
       if (!attr || (attr instanceof THREE.BufferAttribute && attr.array instanceof Float32Array))
         continue;
-      const out = new Float32Array(attr.count * attr.itemSize);
+      const floats = attr.count * attr.itemSize;
+      const out = new Float32Array(floats);
       for (let i = 0; i < attr.count; i++) {
         out[i * attr.itemSize] = attr.getX(i);
         out[i * attr.itemSize + 1] = attr.getY(i);
         if (attr.itemSize > 2) out[i * attr.itemSize + 2] = attr.getZ(i);
       }
-      geometry.setAttribute(name, new THREE.BufferAttribute(out, attr.itemSize));
+      const floatAttr = new THREE.BufferAttribute(out, attr.itemSize);
+      geometry.setAttribute(name, floatAttr);
     }
   });
 }

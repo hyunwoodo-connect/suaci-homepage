@@ -30,12 +30,13 @@ export interface BalloonRide {
 export function createBalloons(g: Game): Balloon[] {
   return g.L.balloon.map(({ dist, bear }) => {
     const gr = new THREE.Group();
-    const b = new THREE.Mesh(new THREE.SphereGeometry(1.5, 20, 14), grey(g.mats, 0xc9cdcc));
+    const ballGeo = new THREE.SphereGeometry(1.5, 20, 14);
+    const ballMat = grey(g.mats, 0xc9cdcc);
+    const b = new THREE.Mesh(ballGeo, ballMat);
     b.scale.y = 1.15;
-    const str = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.04, 0.04, 4, 6),
-      grey(g.mats, 0x9a9f9e),
-    );
+    const strGeo = new THREE.CylinderGeometry(0.04, 0.04, 4, 6);
+    const strMat = grey(g.mats, 0x9a9f9e);
+    const str = new THREE.Mesh(strGeo, strMat);
     str.position.y = -3.4;
     gr.add(b, str);
     g.scene.add(gr);
@@ -46,7 +47,8 @@ export function createBalloons(g: Game): Balloon[] {
 /** 풍선 자리 */
 export function layoutBalloons(g: Game, keep: THREE.Vector3[]) {
   for (const b of g.balloons) {
-    b.v.copy(from(b.dist, b.bear));
+    const spot = from(b.dist, b.bear);
+    b.v.copy(spot);
     b.gnd = featGround(g, b.v);
     keep.push(b.v);
     b.cool = 0;
@@ -86,14 +88,15 @@ export function balloonsPose(g: Game) {
   for (const b of g.balloons) {
     const mine = balloon.on && balloon.b === b;
     b.g.visible = mine || b.cool <= 0;
-    b.g.scale.setScalar(mine ? 0.6 : 1); // 잡고 있을 때는 시야를 가리지 않게 작게
+    const size = mine ? 0.6 : 1; // 잡고 있을 때는 시야를 가리지 않게 작게
+    b.g.scale.setScalar(size);
     if (mine) {
       b.g.position.copy(P).addScaledVector(p, 3.1);
       b.g.quaternion.setFromUnitVectors(UP, p);
     } else {
-      b.g.position
-        .copy(b.v)
-        .multiplyScalar(S.R + b.gnd + 5.6 + Math.sin(time * 1.1 + b.dist) * 0.3);
+      const bobPhase = time * 1.1 + b.dist;
+      const radius = S.R + b.gnd + 5.6 + Math.sin(bobPhase) * 0.3;
+      b.g.position.copy(b.v).multiplyScalar(radius);
       b.g.quaternion.setFromUnitVectors(UP, b.v);
     }
   }

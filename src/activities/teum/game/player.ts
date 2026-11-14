@@ -17,9 +17,11 @@ const d = new THREE.Vector3(),
 export function goHome(g: Game) {
   const { pl, rides } = g,
     { p, h, vel } = pl;
-  p.copy(offset(START, 20, 200));
+  const home = offset(START, 20, 200);
+  p.copy(home);
   h.copy(START).sub(p);
-  h.addScaledVector(p, -h.dot(p)).normalize();
+  const hRadial = h.dot(p);
+  h.addScaledVector(p, -hRadial).normalize();
   vel.copy(h);
   pl.spd = 0;
   pl.boost = 0;
@@ -39,7 +41,8 @@ export function goHome(g: Game) {
   rides.rocket.on = false;
   rides.comet.on = false;
   rides.wing.t = 0;
-  const P0 = p.clone().multiplyScalar(S.R + S.hover);
+  const bodyR = S.R + S.hover;
+  const P0 = p.clone().multiplyScalar(bodyR);
   resetTrail(g, P0);
 }
 
@@ -93,33 +96,53 @@ export function moveFrame(g: Game) {
   if (m > 0) {
     right.crossVectors(h, p).normalize();
     d.copy(h).multiplyScalar(t.fy).addScaledVector(right, fx).normalize();
-    h.applyAxisAngle(p, -S.turn * dt * fx * m);
-    if (pl.stun <= 0) vel.lerp(d, 1 - Math.exp(-6 * dt)).normalize(); // 튕기거나 쏘아진 직후에는 잠깐 방향이 안 먹는다
+    const turnAngle = -S.turn * dt * fx * m;
+    h.applyAxisAngle(p, turnAngle);
+    // 튕기거나 쏘아진 직후에는 잠깐 방향이 안 먹는다
+    if (pl.stun <= 0) {
+      const steerDecay = -6 * dt;
+      const steerEase = 1 - Math.exp(steerDecay);
+      vel.lerp(d, steerEase).normalize();
+    }
   }
-  pl.spd += (m - pl.spd) * (1 - Math.exp(-(m > pl.spd ? 2.2 : 1.1) * dt));
-  pl.boost *= Math.exp(-0.85 * dt);
+  // 빨라질 때는 빨리, 느려질 때는 천천히 따라간다
+  const spdRate = m > pl.spd ? 2.2 : 1.1;
+  const spdDecay = -spdRate * dt;
+  const spdEase = 1 - Math.exp(spdDecay);
+  pl.spd += (m - pl.spd) * spdEase;
+  const boostDecay = -0.85 * dt;
+  pl.boost *= Math.exp(boostDecay);
   const gNow = groundAt(g, p);
   t.gNow = gNow;
   // 순항: 곧게 오래 날수록 조금씩 더 빨라진다. 꺾거나 멈추면 풀린다
-  pl.cruise +=
-    ((m > 0.8 && Math.abs(fx) < 0.35 ? 0.9 : 0) - pl.cruise) *
-    (1 - Math.exp(-(m > 0.8 && Math.abs(fx) < 0.35 ? 0.22 : 1.2) * dt));
-  const tot = t.held
-    ? 0
-    : (pl.spd * (1 + pl.sl + pl.cruise) + pl.boost) *
-      (rides.balloon.on ? 0.6 : 1) *
-      (rides.wing.t > 0 && pl.air > 1 ? 1.35 : 1);
+  const isCruising = m > 0.8 && Math.abs(fx) < 0.35;
+  const cruiseTarget = isCruising ? 0.9 : 0;
+  const cruiseRate = isCruising ? 0.22 : 1.2;
+  const cruiseDecay = -cruiseRate * dt;
+  const cruiseEase = 1 - Math.exp(cruiseDecay);
+  pl.cruise += (cruiseTarget - pl.cruise) * cruiseEase;
+  const balloonMul = rides.balloon.on ? 0.6 : 1;
+  const wingMul = rides.wing.t > 0 && pl.air > 1 ? 1.35 : 1;
+  const tot = t.held ? 0 : (pl.spd * (1 + pl.sl + pl.cruise) + pl.boost) * balloonMul * wingMul;
   t.tot = tot;
+  const slDecay = -3 * dt;
   if (tot > 0.002) {
-    vel.addScaledVector(p, -vel.dot(p)).normalize();
+    const velRadial = vel.dot(p);
+    vel.addScaledVector(p, -velRadial).normalize();
     axis.crossVectors(p, vel).normalize();
     // 비탈: 내리막이면 빨라지고 오르막이면 느려진다
-    tmp.copy(p).applyAxisAngle(axis, 1.5 / S.R);
+    const lookAhead = 1.5 / S.R;
+    tmp.copy(p).applyAxisAngle(axis, lookAhead);
     const slope = pl.air < 0.6 ? (groundAt(g, tmp) - gNow) / 1.5 : 0;
-    pl.sl += (clamp(-slope * 1.6, -0.35, 1.0) - pl.sl) * (1 - Math.exp(-3 * dt));
-    p.applyAxisAngle(axis, (S.speed / S.R) * tot * dt).normalize();
-    h.addScaledVector(p, -h.dot(p)).normalize();
-  } else pl.sl *= Math.exp(-3 * dt);
+    const slopePush = -slope * 1.6;
+    const slTarget = clamp(slopePush, -0.35, 1.0);
+    const slEase = 1 - Math.exp(slDecay);
+    pl.sl += (slTarget - pl.sl) * slEase;
+    const stepAngle = (S.speed / S.R) * tot * dt;
+    p.applyAxisAngle(axis, stepAngle).normalize();
+    const hRadial = h.dot(p);
+    h.addScaledVector(p, -hRadial).normalize();
+  } else pl.sl *= Math.exp(slDecay);
   // 떠오름과 내려앉음 — 천천히 활공해 내려온다
   const wing = rides.wing;
   if (wing.t > 0) wing.t -= dt;
@@ -135,12 +158,15 @@ export function moveFrame(g: Game) {
       pl.vy = 0;
     }
   }
-  pl.gh += (gNow - pl.gh) * (1 - Math.exp(-5 * dt));
+  const ghDecay = -5 * dt;
+  const ghEase = 1 - Math.exp(ghDecay);
+  pl.gh += (gNow - pl.gh) * ghEase;
   updateAlt(g);
 }
 
 /** 지금 높이(땅 + 떠 있는 높이 + 솟은 높이) */
 export function updateAlt(g: Game) {
   const pl = g.pl;
-  g.t.alt = Math.max(pl.gh, g.t.gNow - 0.4) + S.hover + pl.air;
+  const settledGround = g.t.gNow - 0.4;
+  g.t.alt = Math.max(pl.gh, settledGround) + S.hover + pl.air;
 }

@@ -68,10 +68,14 @@ export function createSites(g: Game): Site[] {
     for (const [k, list] of Object.entries(L)) {
       if (SKIP_IN_SIZING.includes(k)) continue;
       for (const o of list as { dist?: number; bear?: number }[])
-        if (o && typeof o.dist === "number") pts.push(from(o.dist, o.bear!));
+        if (o && typeof o.dist === "number") {
+          const at = from(o.dist, o.bear!);
+          pts.push(at);
+        }
     }
     const lk = L.lake.map((l) => ({ v: from(l.dist, l.bear), r: l.r })),
       sv = L.site.map((s) => from(s.dist, s.bear));
+    // 자리표의 크기를 그 자리에서 바로 키운다 — 뒤의 조형물은 앞에서 이미 키운 크기(o.size)를 보고 정한다
     L.site.forEach((s, i) => {
       let k = 1.25;
       if (s.kind === "land") {
@@ -100,32 +104,38 @@ export function createSites(g: Game): Site[] {
   const BUB = bubbleTex(),
     ringGeo = new THREE.TorusGeometry(1, 0.035, 8, 64);
   const made = L.site.map((s) => {
-    const gr = new THREE.Group(),
-      prim = ball(g.mats, s.kind === "land" ? 5 : 2, 0xc2c6c5, s.kind === "land" ? 5 : 2);
+    const gr = new THREE.Group();
+    // 모델이 오기 전의 자리 공: 반지름과 높이가 같아 바닥에 닿는다
+    const primSize = s.kind === "land" ? 5 : 2;
+    const prim = ball(g.mats, primSize, 0xc2c6c5, primSize);
     gr.add(prim);
     let ring: Site["ring"], bub: Site["bub"];
     if (s.kind === "rest") {
-      ring = new THREE.Mesh(
-        ringGeo,
-        new THREE.MeshBasicMaterial({
-          color: 0xffffff,
-          transparent: true,
-          opacity: 0.7,
-          depthWrite: false,
-        }),
-      );
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.7,
+        depthWrite: false,
+      });
+      ring = new THREE.Mesh(ringGeo, ringMat);
       ring.rotation.x = Math.PI / 2;
       ring.scale.setScalar(s.r);
       ring.position.y = 0.35;
       gr.add(ring);
-      bub = new THREE.Sprite(
-        new THREE.SpriteMaterial({ map: BUB, transparent: true, depthWrite: false, fog: false }),
-      );
+      const bubMat = new THREE.SpriteMaterial({
+        map: BUB,
+        transparent: true,
+        depthWrite: false,
+        fog: false,
+      });
+      bub = new THREE.Sprite(bubMat);
       bub.scale.setScalar(3.4);
       bub.position.y = s.size + 3;
       gr.add(bub);
     }
-    place(g, gr, () => from(s.dist, s.bear), s.lift || 0);
+    const at = () => from(s.dist, s.bear);
+    const lift = s.lift || 0;
+    place(g, gr, at, lift);
     const items = g.places.items;
     return {
       ...s,
@@ -156,7 +166,9 @@ export function createSites(g: Game): Site[] {
     tag.material.opacity = 0;
     tag.material.fog = false;
     const big = s.kind === "land";
-    tag.scale.set(big ? 15 : 7.5, big ? 4.7 : 2.4, 1);
+    const tagWidth = big ? 15 : 7.5,
+      tagHeight = big ? 4.7 : 2.4;
+    tag.scale.set(tagWidth, tagHeight, 1);
     tag.position.y = s.size + (big ? 5 : 6.5);
     s.g.add(tag);
     return Object.assign(s, { tag });
@@ -185,12 +197,16 @@ export function sitesFrame(g: Game) {
       p.copy(R0.s0).lerp(R0.a, e).normalize();
       pl.air = s.top * 0.74 * e;
     } else {
-      const k = Math.min(1, (R0.t - T1) / T2);
-      p.copy(R0.a)
-        .lerp(R0.b, k * k * 0.6 + k * 0.4)
-        .normalize();
-      pl.air = Math.max(0.05, s.top * 0.74 * Math.pow(1 - k, 1.4));
-      vel.copy(R0.d).addScaledVector(p, -R0.d.dot(p)).normalize();
+      const slideT = (R0.t - T1) / T2;
+      const k = Math.min(1, slideT);
+      // 처음엔 천천히, 갈수록 빨리 미끄러진다
+      const glide = k * k * 0.6 + k * 0.4;
+      p.copy(R0.a).lerp(R0.b, glide).normalize();
+      const left = 1 - k;
+      const height = s.top * 0.74 * Math.pow(left, 1.4);
+      pl.air = Math.max(0.05, height);
+      const dAlong = R0.d.dot(p);
+      vel.copy(R0.d).addScaledVector(p, -dAlong).normalize();
     }
     if (R0.t >= T1 + T2) {
       R0.on = false;
@@ -199,20 +215,26 @@ export function sitesFrame(g: Game) {
       s.cool = 4;
       s.hit = 2.5;
       s.lit = 1;
-      burst(g, P.clone(), 10, 7);
+      const at = P.clone();
+      burst(g, at, 10, 7);
     }
   }
   for (const s of g.sites) {
     if (s.cool > 0) s.cool -= dt;
     if (s.hit > 0) s.hit -= dt;
-    s.pos.copy(s.g.position).addScaledVector(s.v, s.top * 0.5);
+    const midHeight = s.top * 0.5;
+    s.pos.copy(s.g.position).addScaledVector(s.v, midHeight);
     const dg = p.angleTo(s.v) * S.R,
       d3 = s.sky ? P.distanceTo(s.pos) : dg,
       big = s.kind === "land";
     // 가까이 가면: 이름표가 뜨고, 한 번 꿀렁 인사하고, 저마다 다르게 움직인다
     const nr = (s.sky ? d3 : pl.air < s.top + 14 ? dg : 1e9) < s.core + (big ? 30 : 13);
-    s.near += ((nr ? 1 : 0) - s.near) * (1 - Math.exp(-3 * dt));
-    s.hello = Math.max(0, s.hello - dt * 0.9);
+    const nearTarget = nr ? 1 : 0;
+    const nearDecay = -3 * dt;
+    const nearEase = 1 - Math.exp(nearDecay);
+    s.near += (nearTarget - s.near) * nearEase;
+    const helloLeft = s.hello - dt * 0.9;
+    s.hello = Math.max(0, helloLeft);
     if (nr && !s.wasNear) {
       s.hello = 1;
       if (s.cool <= 0) {
@@ -227,7 +249,10 @@ export function sitesFrame(g: Game) {
       let bump = false;
       if (s.k === "dome") {
         // 돔은 막지 않는다. 닿는 곳이 어디든 크게 튕겨 올린다
-        const hd = dg < s.core ? s.top * Math.sqrt(1 - (dg / s.core) * (dg / s.core)) : -1;
+        // 반구 지붕 높이(hd): 가운데서 멀수록 낮다. 돔 밖이면 -1
+        const across = dg / s.core;
+        const capSq = 1 - across * across;
+        const hd = dg < s.core ? s.top * Math.sqrt(capSq) : -1;
         if (hd >= 0 && pl.air < hd + 0.4) {
           pl.air = hd + 0.5;
           pl.vy = Math.max(pl.vy, 14);
@@ -240,34 +265,31 @@ export function sitesFrame(g: Game) {
           R0.s = s;
           R0.s0.copy(p);
           R0.d.set(s.fx!, 0, s.fz!).applyQuaternion(s.g.quaternion).normalize();
-          R0.a
-            .copy(s.v)
-            .addScaledVector(R0.d, (-s.sl * 0.42) / S.R)
-            .normalize();
-          R0.b
-            .copy(s.v)
-            .addScaledVector(R0.d, (s.sl * 0.6) / S.R)
-            .normalize();
+          // 꼭대기(a)는 미끄럼 길이의 42% 뒤쪽, 내려온 끝(b)은 60% 앞쪽
+          const backArc = (-s.sl * 0.42) / S.R;
+          R0.a.copy(s.v).addScaledVector(R0.d, backArc).normalize();
+          const frontArc = (s.sl * 0.6) / S.R;
+          R0.b.copy(s.v).addScaledVector(R0.d, frontArc).normalize();
           bump = true;
           say(g, s.msg);
         }
       } else if (s.k === "stairs") {
+        // 계단은 막지 않고 위로 올려 보낸다
         if (dg < s.core + 1.5 && pl.air < s.top) {
           pl.vy = Math.max(pl.vy, 13);
           if (pl.air <= 0) pl.air = 0.01;
           bump = true;
         }
-      } // 계단은 막지 않고 위로 올려 보낸다
-      else if (s.sky) {
+      } else if (s.sky) {
         if (d3 < s.core) {
+          // 떠 있는 것: blockAt 의 높이 검사를 건너뛰게 잠깐 air 를 0 으로 두고, 지금 높이에서 자른 공의 단면 반지름만큼 밀어낸다
           const a0 = pl.air;
           pl.air = 0;
-          bump = blockAt(
-            g,
-            s.v,
-            Math.sqrt(Math.max(1, s.core * s.core - Math.pow(P.length() - s.pos.length(), 2))) + 1,
-            1,
-          );
+          const heightGap = P.length() - s.pos.length();
+          const sliceSq = s.core * s.core - Math.pow(heightGap, 2);
+          const sliceSqSafe = Math.max(1, sliceSq);
+          const sliceR = Math.sqrt(sliceSqSafe) + 1;
+          bump = blockAt(g, s.v, sliceR, 1);
           pl.air = a0;
         }
       } else bump = blockAt(g, s.v, s.core, s.top);
@@ -275,7 +297,8 @@ export function sitesFrame(g: Game) {
         s.hit = 0.6;
         s.lit = 1;
         s.hello = 1;
-        burst(g, P.clone(), 6, 5);
+        const at = P.clone();
+        burst(g, at, 6, 5);
         for (let k = 0; k < bumps.v.length; k++)
           if (2 * (1 - s.v.dot(bumps.v[k])) * S.R * S.R < (big ? 900 : 300)) bumps.lit[k] = 1;
       }
@@ -283,84 +306,109 @@ export function sitesFrame(g: Game) {
     if (s.kind === "rest") {
       // 쉬는 곳: 고리 안에 있으면 고리와 말풍선이 라임이 된다
       const inside = pl.air < 4 && dg < s.r;
-      s.inn += ((inside ? 1 : 0) - s.inn) * (1 - Math.exp(-5 * dt));
+      const innTarget = inside ? 1 : 0;
+      const innDecay = -5 * dt;
+      const innEase = 1 - Math.exp(innDecay);
+      s.inn += (innTarget - s.inn) * innEase;
       s.was = inside;
       siteCol.copy(WHITE).lerp(lime, s.inn);
       s.ring!.material.color.copy(siteCol);
       s.bub!.material.color.copy(siteCol);
-      s.ring!.scale.setScalar(s.r * (1 + 0.03 * Math.sin(time * 2 + s.dist)));
-      s.bub!.position.y = s.top + 3 + Math.sin(time * 1.6 + s.bear) * 0.35;
-      s.bub!.scale.setScalar(3.4 + s.inn * 0.8);
+      const ringPhase = time * 2 + s.dist;
+      const ringScale = s.r * (1 + 0.03 * Math.sin(ringPhase));
+      s.ring!.scale.setScalar(ringScale);
+      const bobPhase = time * 1.6 + s.bear;
+      s.bub!.position.y = s.top + 3 + Math.sin(bobPhase) * 0.35;
+      const bubScale = 3.4 + s.inn * 0.8;
+      s.bub!.scale.setScalar(bubScale);
       s.tag.position.y = s.top + 6.6;
-      if (inside && pl.spd > 0) pl.spd *= Math.exp(-0.9 * dt); // 쉬는 곳에서는 저절로 느려진다
+      if (inside && pl.spd > 0) {
+        // 쉬는 곳에서는 저절로 느려진다
+        const slowDecay = -0.9 * dt;
+        pl.spd *= Math.exp(slowDecay);
+      }
     }
-    s.lit = Math.max(0, s.lit - dt * 0.4);
+    const litLeft = s.lit - dt * 0.4;
+    s.lit = Math.max(0, litLeft);
     const m = s.model;
     if (!m) continue;
+    const topLift = s.top * 0.45;
     const u = m.userData,
-      top = s.pos.clone().addScaledVector(s.v, s.top * 0.45);
+      top = s.pos.clone().addScaledVector(s.v, topLift);
     s.tick -= dt;
-    m.scale.set(
-      u.k * (1 - 0.05 * s.hello * Math.sin(time * 13)),
-      u.k * (1 + 0.09 * s.hello * Math.sin(time * 13)),
-      u.k * (1 - 0.05 * s.hello * Math.sin(time * 13)),
-    );
-    u.uLime.value = Math.max(s.lit * 0.35, s.kind === "rest" ? s.inn * 0.12 : 0);
+    // 꿀렁 인사: 옆과 위가 엇갈려 늘고 준다(hello 가 0 이 되면 멈춘다)
+    const helloPhase = time * 13;
+    const helloWave = Math.sin(helloPhase);
+    const squash = u.k * (1 - 0.05 * s.hello * helloWave),
+      stretch = u.k * (1 + 0.09 * s.hello * helloWave);
+    m.scale.set(squash, stretch, squash);
+    const litGlow = s.lit * 0.35,
+      restGlow = s.kind === "rest" ? s.inn * 0.12 : 0;
+    u.uLime.value = Math.max(litGlow, restGlow);
     if (s.k === "carousel") {
+      // 다가가면 빨리 돈다
       m.rotation.y += dt * (0.2 + 2.2 * s.near);
-      m.position.y = u.hh + Math.abs(Math.sin(time * 3)) * 0.5 * s.near;
-    } // 다가가면 빨리 돈다
-    else if (s.k === "ferris") {
+      const hopPhase = time * 3;
+      const hopWave = Math.sin(hopPhase);
+      m.position.y = u.hh + Math.abs(hopWave) * 0.5 * s.near;
+    } else if (s.k === "ferris") {
+      // 불빛이 바퀴를 따라 돈다
       if (u.spin) {
         u.spin.rotation.z += dt * (0.1 + 0.7 * s.near);
         for (const qq of u.parts!) qq.userData.uLime.value = s.lit * 0.35;
-      } else m.rotation.z = Math.sin(time * 1.2) * 0.06 * s.near;
+      } else {
+        const swayPhase = time * 1.2;
+        m.rotation.z = Math.sin(swayPhase) * 0.06 * s.near;
+      }
       if (s.near > 0.5 && s.tick <= 0) {
         s.tick = 0.35;
         const a = time * 1.4;
-        burst(
-          g,
-          s.pos
-            .clone()
-            .addScaledVector(s.v, Math.sin(a) * s.top * 0.42)
-            .addScaledVector(heading(s.v, 90), Math.cos(a) * s.top * 0.42),
-          1,
-          3,
-        );
+        const rimUp = Math.sin(a) * s.top * 0.42,
+          rimSide = Math.cos(a) * s.top * 0.42;
+        const sideDir = heading(s.v, 90);
+        const at = s.pos.clone().addScaledVector(s.v, rimUp).addScaledVector(sideDir, rimSide);
+        burst(g, at, 1, 3);
       }
-    } // 불빛이 바퀴를 따라 돈다
-    else if (s.k === "castle" || s.k === "palace") {
+    } else if (s.k === "castle" || s.k === "palace") {
+      // 지붕에서 불꽃이 터진다
       if (s.near > 0.5 && s.tick <= 0) {
         s.tick = 0.9;
-        burst(g, top.addScaledVector(s.v, 3), 12, 12);
+        const roof = top.addScaledVector(s.v, 3);
+        burst(g, roof, 12, 12);
       }
-    } // 지붕에서 불꽃이 터진다
-    else if (s.k === "moon") {
+    } else if (s.k === "moon") {
       m.rotation.y += dt * (0.08 + 0.9 * s.near);
-      m.position.y = u.hh + Math.sin(time * 0.5) * 1.2;
+      const floatPhase = time * 0.5;
+      m.position.y = u.hh + Math.sin(floatPhase) * 1.2;
       if (s.near > 0.5 && s.tick <= 0) {
         s.tick = 0.5;
         burst(g, s.pos, 2, 6);
       }
     } else if (s.k === "island") {
-      m.position.y = u.hh + Math.sin(time * 0.5 + 2) * (1.2 + 2 * s.near);
+      const floatPhase = time * 0.5 + 2;
+      m.position.y = u.hh + Math.sin(floatPhase) * (1.2 + 2 * s.near);
       m.rotation.y += dt * 0.05;
     } else if (s.k === "campfire") {
+      // 불티가 오른다
       if (s.near > 0.3 && s.tick <= 0) {
         s.tick = 0.22;
         burst(g, s.pos, 1, 4);
       }
-    } // 불티가 오른다
-    else if (s.k === "bathtub") {
+    } else if (s.k === "bathtub") {
+      // 거품이 오른다
       if (s.near > 0.3 && s.tick <= 0) {
         s.tick = 0.3;
         burst(g, top, 1, 2.5);
       }
-    } // 거품이 오른다
-    else if (s.k === "hammock")
-      m.rotation.x = Math.sin(time * 1.8) * 0.12 * s.near; // 흔들린다
-    else if (s.k === "stairs") m.rotation.z = 0;
-    else m.rotation.z = Math.sin(time * 2.2 + s.dist) * 0.04 * s.near;
+    } else if (s.k === "hammock") {
+      // 흔들린다
+      const swingPhase = time * 1.8;
+      m.rotation.x = Math.sin(swingPhase) * 0.12 * s.near;
+    } else if (s.k === "stairs") m.rotation.z = 0;
+    else {
+      const swayPhase = time * 2.2 + s.dist;
+      m.rotation.z = Math.sin(swayPhase) * 0.04 * s.near;
+    }
   }
 }
 
