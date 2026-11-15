@@ -2,6 +2,7 @@
 // 새 에셋을 넣을 때는 여기에 한 줄을 더한다. 분류에 없는 이름은 빌드가 멈춘다.
 const group = (cat, tris, tex, names) =>
   Object.fromEntries(names.split(" ").map((n) => [n, { cat, tris, tex }]));
+const sounds = (cat, names) => Object.fromEntries(names.split(" ").map((n) => [n, { cat }]));
 
 /** 소리 원본으로 받는 형식(확장자). 소리는 다시 누르지 않고 그대로 싣는다 — 형식·크기는 원본을 넣기 전에 정한다 */
 export const AUDIO_EXTENSIONS = [".mp3", ".m4a", ".ogg", ".webm"];
@@ -56,7 +57,12 @@ export const CATALOG = {
     "cannon bell bumper balloon hotairballoon star whale lime lime_half r_funnel r_bud w_butterfly",
   ),
   // suaci 프로모션 오브젝트(로고·제품 등)는 'brand' 분류로 넣는다. 예: ...group("brand", 5000, 1024, "logo_sign bottle"),
-  // 소리는 효과음 'audio/sfx'·배경 음악 'audio/bgm' 분류로 넣는다(v3 부터). 예: pop: { cat: "audio/sfx" },
+  // 소리(v3 부터): 원본은 raw/snd_<이름>.mp3(시제품 v78 assets16.js 에서 푼 것). 되풀이하는 것은 'audio/bgm', 한 번씩 나는 것은 'audio/sfx'
+  ...sounds("audio/bgm", "snd_bgm snd_wind"),
+  ...sounds(
+    "audio/sfx",
+    "snd_up snd_boing snd_quad snd_swim snd_wing snd_jelly snd_legend snd_rocket snd_cannon snd_rail snd_whale snd_splash snd_ring snd_stamp snd_pick snd_palin snd_open snd_blank snd_win",
+  ),
 };
 
 /**
@@ -69,6 +75,6 @@ export const RETIRED = new Set(["avatar_base", "sheep", "fish", "bird", "turtle"
 export const fileName = (k) =>
   k
     .replace(/^SUACI_AV$/, "base")
-    .replace(/^(c|s|d|r|w)_/, "")
+    .replace(/^(c|s|d|r|w|snd)_/, "")
     .replace(/_/g, "-")
     .toLowerCase();
