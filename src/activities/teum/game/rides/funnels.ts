@@ -23,6 +23,8 @@ export interface Funnel {
   lit: number;
   /** 소용돌이 그릇(모델) */
   bowl?: Hold;
+  /** 그릇 윗면 높이(땅에서) — 그릇 모델이 오면 정한다. 몸이 그릇 속에 파묻히지 않게 이 위로 세운다 */
+  topY?: number;
 }
 
 /** 빨려 드는 깔때기: 남은 반지름 r, 도는 쪽 sgn */
@@ -32,9 +34,10 @@ interface FunnelRide {
   sgn: number;
 }
 
-/** 그릇 폭(m)과 눌러 까는 높이 배율 */
+/** 그릇 폭(m)과 눌러 까는 높이 배율 · 그릇 바닥이 받치는 거리(m) */
 const BOWL_W = 46,
-  BOWL_SQUASH = 0.07;
+  BOWL_SQUASH = 0.07,
+  FLOOR_REACH = 24;
 
 const tmp = new THREE.Vector3(),
   ax = new THREE.Vector3();
@@ -103,9 +106,30 @@ export class Funnels implements Thing, Holder {
       bowl.position.y = bowl.userData.hh * BOWL_SQUASH + 0.1;
       f.g.add(bowl);
       f.bowl = bowl;
+      const topY = bowl.userData.hh * BOWL_SQUASH * 2 + 0.1;
+      models.when("r_funnel", () => {
+        f.topY = topY;
+      });
       models.swapWhenReady("r_funnel", prims);
     }
   }
+
+  /**
+   * 그릇 바닥: 그릇 위(24m 안)에서는 그릇 윗면보다 아래로 내려가지 않는다 — 땅이 그릇보다 낮은 자리에서 몸이 그릇 속에 파묻히던 것을 막는다.
+   * 몸 가운데가 기준이라 발끝까지 올라오게 키의 반만큼(1.15m) 더 띄운다. 날개 다음, 혜성 앞(시제품의 차례)
+   */
+  readonly floor: Thing = {
+    update: () => {
+      const { player, terrain } = this.s;
+      for (const fu of this.list) {
+        if (fu.topY === undefined || player.p.angleTo(fu.v) * S.R >= FLOOR_REACH) continue;
+        const bowlTop = terrain.featGround(fu.v) + fu.topY;
+        const need = bowlTop + 1.15 - player.floor - S.hover;
+        player.keepAbove(need);
+      }
+    },
+    dispose() {},
+  };
 
   /** 가장자리에 들어가면 돌며 빨려들고, 가운데서 솟구친다 */
   update(f: Frame) {

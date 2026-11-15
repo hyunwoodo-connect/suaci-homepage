@@ -9,6 +9,7 @@ import type { GameMap } from "./maps/map";
 // 개발 중 시험용 — 운영 빌드에서는 NODE_ENV 비교가 상수가 되어 통째로 빠진다.
 // ?seed=숫자: 게임 난수를 고정하고, 시제품과 같은지 보는 시험 창구(window.__teum.probe)를 건다.
 // ?map=이름: 그 지도로 짓는다(maps/index 의 목록). 운영은 늘 기본 지도.
+// ?fest=숫자: 오늘의 축제 지역을 그 지역으로 고정한다(운영은 늘 한국 시간 날짜로).
 // 창구가 돌려주는 모양은 시제품 계측 사본과 같다(배치 목록·몸 상태·놀이기구 자리) — /tmp 의 비교 도구가 읽는다.
 // 지도 점검 명령(tools/map-check.sh)은 counts·firstScreen·check 를 읽는다
 
@@ -31,6 +32,12 @@ interface Probe {
   rideTargets(): unknown[];
   /** 지은 지도의 이름 */
   mapName(): string;
+  /** 고래: 자리·높이·시계 */
+  whale(): number[];
+  /** 오늘의 축제 지역과 출발 자리 */
+  festStart(): unknown;
+  /** 지금 랜드마크 말풍선의 글 */
+  talk(): string;
   /** 놓인 것의 수(갈래마다) */
   counts(): Record<string, unknown>;
   /** 첫 화면에 받은 에셋 키와 바이트(전체 manifest 바이트도) */
@@ -52,6 +59,15 @@ export function devSeed(): number | null {
   if (seed === null) return null;
   const n = Number(seed);
   return n >>> 0;
+}
+
+/** ?fest=숫자 가 있으면 그 축제 지역으로 고정(개발에서만). 없으면 null(날짜로 정한다) */
+export function devFestival(): number | null {
+  if (process.env.NODE_ENV === "production") return null;
+  const fest = new URLSearchParams(location.search).get("fest");
+  if (fest === null || fest === "") return null;
+  const n = Number(fest);
+  return Number.isFinite(n) ? Math.trunc(n) : null;
 }
 
 /** ?map=이름 이 있으면 그 지도(개발에서만). 없으면 null, 모르는 이름이면 알리고 null(기본 지도로 짓는다) */
@@ -115,11 +131,12 @@ function createProbe(g: Game, firstScreen: readonly string[]): Probe {
         legend: c.legend || 0,
         a: n6(c.a),
         follow: c.st === "follow",
+        gone: c.gone,
       })),
     bubs: () => g.bubbles.list,
     place: () => ({
-      WH: n6(g.whale.WH),
-      WR: n6(g.whale.WR),
+      WPROF: (g.whale.profile ?? []).map((a) => Array.from(a, (x) => Math.round(x * 1000) / 1000)),
+      lmk: g.sculptures.landmarks.map((o) => (o ? [o.I.key, ...v6(o.v), n6(o.H), n6(o.r)] : null)),
       lawn: [n6(g.signature.lawn.dist), n6(g.signature.lawn.bear), g.signature.lawn.free],
       sites: g.sites.list.map((s) => [s.k, ...v6(s.v), n6(s.top), n6(s.core)]),
       deco: g.sculptures.list.map((o) => [o.I.key, ...v6(o.v), n6(o.H), n6(o.yaw), n6(o.r)]),
@@ -157,6 +174,9 @@ function createProbe(g: Game, firstScreen: readonly string[]): Probe {
       },
     }),
     rideTargets: () => rideTargets(g),
+    whale: () => [...v6(g.whale.v), n6(g.whale.WH), n6(g.whale.clock)],
+    festStart: () => ({ fest: g.s.today.festival, p: v6(pl.p), h: v6(pl.h) }),
+    talk: () => g.s.hud.talkLine,
     mapName: () => g.s.map.name,
     counts: () => countsOf(g),
     firstScreen: () => {

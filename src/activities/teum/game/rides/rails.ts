@@ -147,7 +147,10 @@ export class Rails implements Thing, Tappable {
       const slowerSp = this.railSp - dt * 1.5;
       this.railSp = Math.max(1.3, slowerSp);
     }
-    if (onRail && !this.wasOn) hud.say("무지개 레일 — 미끄러지다 칙 하면 뛰어오릅니다");
+    if (onRail && !this.wasOn) {
+      hud.say("무지개 레일 — 미끄러지다 칙 하면 뛰어오릅니다");
+      this.s.events.emit("railed", {});
+    }
     this.wasOn = onRail;
     this.railOn = onRail;
     if (onRail) fx.glow(player.P, 3.2, 0.8);

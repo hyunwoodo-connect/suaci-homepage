@@ -16,6 +16,9 @@ export interface SkyUniforms {
   uSun: { value: THREE.Vector3 };
   uMap: { value: THREE.Texture | null };
   uHas: { value: number };
+  /** 지금 지역의 하늘빛과 섞는 정도 */
+  uReg: { value: THREE.Color };
+  uRegW: { value: number };
 }
 
 /** 하늘 공 */
@@ -36,6 +39,8 @@ export class Sky implements Thing {
       uSun: { value: sunDir },
       uMap: { value: null },
       uHas: { value: 0 },
+      uReg: { value: new THREE.Color(s.map.regions[0]?.sky ?? LOOK.top) },
+      uRegW: { value: 0 },
     };
     const skyGeo = new THREE.SphereGeometry(700, 28, 18);
     const skyMat = new THREE.ShaderMaterial({
@@ -46,7 +51,7 @@ export class Sky implements Thing {
       fog: false,
       vertexShader:
         "varying vec3 vDir; void main() { vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
-      fragmentShader: `varying vec3 vDir; uniform vec3 uTop; uniform vec3 uHor; uniform vec3 uUp; uniform vec3 uSun; uniform sampler2D uMap; uniform float uHas;
+      fragmentShader: `varying vec3 vDir; uniform vec3 uTop; uniform vec3 uHor; uniform vec3 uUp; uniform vec3 uSun; uniform sampler2D uMap; uniform float uHas; uniform vec3 uReg; uniform float uRegW;
       void main() { vec3 d = normalize(vDir); float t = dot(d, uUp); vec3 c = mix(uHor, uTop, smoothstep(0.0, 0.7, t));
         if (uHas > 0.5) { // 하늘 그림: 해 쪽을 가운데로 두고 좌우로 거울처럼 이어 붙여 이음매가 없다. 지평선에서 66도까지 덮고 그 위는 단색
           vec3 h1 = normalize(uSun - uUp * dot(uSun, uUp) + vec3(1e-4)), h2 = cross(uUp, h1);
@@ -54,6 +59,7 @@ export class Sky implements Thing {
           float um = abs(mod(az * 2.0 + 4.712389, 6.283185) - 3.141593) / 3.141593, ve = (el - 0.14) / 0.67, vm = clamp(ve, 0.004, 0.996); // 그림을 네 번 이어 붙여 구름을 절반 크기로, 지평선에서 조금 위로 올려 놓는다
           c = mix(texture2D(uMap, vec2(um, vm)).rgb, uTop, smoothstep(0.88, 0.99, ve));
         }
+        c = mix(c, uReg * (0.5 + 0.75 * dot(c, vec3(0.333))), uRegW); // 지역마다 하늘빛이 다르다
         c += vec3(1.0, 0.96, 0.88) * pow(max(dot(d, uSun), 0.0), 20.0) * 0.18; gl_FragColor = vec4(c, 1.0);
         #include <colorspace_fragment>
       }`,

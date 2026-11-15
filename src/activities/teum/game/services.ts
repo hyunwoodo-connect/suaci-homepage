@@ -13,7 +13,9 @@ import type { CameraRig } from "./player/camera";
 import type { Player } from "./player/player";
 import type { Culler } from "./world/culler";
 import type { Occupancy } from "./world/occupancy";
+import type { Regions } from "./world/regions";
 import type { Terrain } from "./world/terrain";
+import type { Today } from "./world/today";
 
 // 세계 위의 것들이 만들 때 받는 창구 묶음. 이것 말고 다른 모듈의 상태를 직접 만지지 않는다
 // (다른 놀이기구가 필요하면 Game 이 만들 때 그 객체를 넘겨 준다)
@@ -31,6 +33,10 @@ export interface Services {
   terrain: Terrain;
   /** 자리 차지(빈자리·비행 통로·넓은 놀이 자리·마을 중심) */
   occ: Occupancy;
+  /** 지역(마을마다 색·윤곽·사는 생물) */
+  regions: Regions;
+  /** 오늘(한국 시간 날짜와 축제 지역 — 판 도중에도 자정에 바뀐다) */
+  today: Today;
   /** 가까운 것만 장면에 두기 */
   culler: Culler;
   /** 나 — 좁은 요청으로만 */

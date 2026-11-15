@@ -1,6 +1,7 @@
 import * as THREE from "three";
 
 import { GLOWING_LIME, MODEL_STRIPES, MODEL_TINT } from "../../assets/settings";
+import { AVATAR_BODY, PARTS } from "../avatar/parts";
 import type { LookUniforms } from "../look";
 import { LOOK } from "../look";
 
@@ -29,6 +30,10 @@ export interface ModelLookOptions {
   batch: boolean;
 }
 
+/** 지역 색을 돌리지 않는 모델: 나(몸·입는 부품)와 고래 */
+const PART_KEYS = Object.keys(PARTS);
+const REGION_FREE = new Set([AVATAR_BODY, ...PART_KEYS, "whale"]);
+
 /** 같은 묶음 셰이더(인스턴스 속성)를 쓰는지 */
 const BATCH_DEFINE = "TEUM_BATCH";
 
@@ -56,6 +61,10 @@ export function styleModel(mat: THREE.MeshStandardMaterial, o: ModelLookOptions)
   }
   if (o.batch) mat.defines = { ...mat.defines, [BATCH_DEFINE]: "" };
   const { uAn, uAk, uAx } = o.motion;
+  // 지역 색: 물건이 선 자리의 지역 색으로 색상을 돌린다(나·고래는 돌리지 않는다, 생물은 몸 휘기 uAk 로 셰이더가 뺀다)
+  const uRegK = { value: REGION_FREE.has(o.key) ? 0 : 1 };
+  // 지역 수는 셰이더를 만들 때 센다(그 전에 지도가 마을을 채운다)
+  const regionCount = () => o.lookU.regionHub.value.length;
   mat.onBeforeCompile = (sh) => {
     sh.uniforms.uSat = o.lookU.sat;
     sh.uniforms.uWash = o.lookU.wash;
@@ -68,17 +77,28 @@ export function styleModel(mat: THREE.MeshStandardMaterial, o: ModelLookOptions)
     sh.uniforms.uAn = uAn;
     sh.uniforms.uAk = uAk;
     sh.uniforms.uAx = uAx;
-    sh.vertexShader = VERTEX_HEAD + sh.vertexShader.replace("#include <begin_vertex>", BEND_GLSL);
+    sh.uniforms.uHubV = o.lookU.regionHub;
+    sh.uniforms.uRegH = o.lookU.regionHue;
+    sh.uniforms.uRegE = o.lookU.regionEdge;
+    sh.uniforms.uRegK = uRegK;
+    const regions = regionCount();
+    const regionHead = `#define TEUM_REGIONS ${regions}\n`;
+    sh.vertexShader =
+      regionHead + VERTEX_HEAD + sh.vertexShader.replace("#include <begin_vertex>", BEND_GLSL);
+    const tone = TONE_GLSL + REGION_GLSL;
     sh.fragmentShader =
-      FRAGMENT_HEAD + sh.fragmentShader.replace("#include <map_fragment>", TONE_GLSL);
+      regionHead + FRAGMENT_HEAD + sh.fragmentShader.replace("#include <map_fragment>", tone);
   };
-  mat.customProgramCacheKey = () => (o.batch ? "teum-look8-batch" : "teum-look8");
+  mat.customProgramCacheKey = () => {
+    const regions = regionCount();
+    return (o.batch ? "teum-look9-batch-r" : "teum-look9-r") + regions;
+  };
   mat.needsUpdate = true;
 }
 
 /* ─── 내부 ─────────────────────────── */
 
-const VERTEX_HEAD = `varying vec3 vOp; uniform float uAk; uniform float uAx;
+const VERTEX_HEAD = `varying vec3 vOp; varying vec3 vRo; uniform float uAk; uniform float uAx;
 #ifdef ${BATCH_DEFINE}
 attribute vec4 aAn; attribute float aLime; varying float vLime;
 #define TEUM_AN aAn
@@ -90,6 +110,11 @@ uniform vec4 uAn;
 
 const BEND_GLSL = `#include <begin_vertex>
   vOp = position;
+  #ifdef USE_INSTANCING
+  vRo = (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+  #else
+  vRo = (modelMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+  #endif
   #ifdef ${BATCH_DEFINE}
   vLime = aLime;
   #endif
@@ -122,7 +147,10 @@ const BEND_GLSL = `#include <begin_vertex>
     transformed.y += dY;
   }`;
 
-const FRAGMENT_HEAD = `uniform float uSat; uniform float uWash; uniform vec3 uTint; uniform float uTK; uniform float uPat; uniform float uPY; uniform vec3 uTint2; varying vec3 vOp;
+const FRAGMENT_HEAD = `uniform float uSat; uniform float uWash; uniform vec3 uTint; uniform float uTK; uniform float uPat; uniform float uPY; uniform vec3 uTint2; varying vec3 vOp; varying vec3 vRo; uniform float uAk;
+#if TEUM_REGIONS > 0
+uniform vec3 uHubV[TEUM_REGIONS]; uniform float uRegH[TEUM_REGIONS]; uniform vec2 uRegE; uniform float uRegK;
+#endif
 #ifdef ${BATCH_DEFINE}
 varying float vLime;
 #define TEUM_LIME vLime
@@ -144,3 +172,14 @@ const TONE_GLSL = `#include <map_fragment>
       diffuseColor.rgb = mix(diffuseColor.rgb, mapped, uTK);
       diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), uWash);
       diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.397, 1.0, 0.041), TEUM_LIME * 0.8);`;
+
+// 지역 색: 물건이 선 자리(인스턴스 원점)에서 가장 가까운 마을의 각만큼 YIQ 색상을 돌린다. 흰색은 그대로(색이 없다), 라임은 알아보고 뺀다.
+// 지역 사이에서는 채도를 조금 낮춰 지역이 더 또렷하다
+const REGION_GLSL = `
+      #if TEUM_REGIONS > 0
+      if (uRegK > 0.5 && uAk < 0.5 && dot(vRo, vRo) > 1.0) { vec3 rn = normalize(vRo), rc = diffuseColor.rgb; float rb = -1.0, rh = 0.0; for (int i = 0; i < TEUM_REGIONS; i++) { float dH = dot(rn, uHubV[i]); if (dH > rb) { rb = dH; rh = uRegH[i]; } }
+        float rw = smoothstep(uRegE.x, uRegE.x + uRegE.y, rb), lk = smoothstep(0.12, 0.35, rc.g - max(rc.r * 0.75, rc.b)), ra = rh * rw * (1.0 - lk), cs = cos(ra), sn = sin(ra);
+        vec3 yiq = vec3(dot(rc, vec3(0.299, 0.587, 0.114)), dot(rc, vec3(0.596, -0.274, -0.322)), dot(rc, vec3(0.211, -0.523, 0.312))); vec2 iq = vec2(yiq.y * cs - yiq.z * sn, yiq.y * sn + yiq.z * cs);
+        rc = vec3(yiq.x + 0.956 * iq.x + 0.621 * iq.y, yiq.x - 0.272 * iq.x - 0.647 * iq.y, yiq.x - 1.106 * iq.x + 1.703 * iq.y);
+        diffuseColor.rgb = clamp(mix(vec3(yiq.x), rc, mix(0.6, 1.0, max(rw, lk))), 0.0, 1.0); }
+      #endif`;

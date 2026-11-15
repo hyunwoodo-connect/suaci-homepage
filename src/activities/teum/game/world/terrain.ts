@@ -7,7 +7,7 @@ import { from } from "./sphere";
 import { chordOf, SphereGrid } from "./sphereGrid";
 
 // 지형(높이만): 꽃 자리, 완만한 둔덕, 하늘의 뭉게구름 자리, 큰 언덕과 등대 산.
-// 자리는 지도의 지형 씨앗(v64 는 7)으로 뽑는다 — 뽑는 순서(꽃 자리 → 둔덕 → 구름 → 큰 언덕)가 곧 지형이라 바꾸지 않는다.
+// 자리는 지도의 지형 씨앗(v78 은 7)으로 뽑는다 — 뽑는 순서(꽃 자리 → 둔덕 → 구름 → 큰 언덕)가 곧 지형이라 바꾸지 않는다.
 // 그리는 것은 world/terrainView·world/clouds·world/flowers 가 이 값을 보고 한다
 
 /** 큰 언덕 비탈에 얹는 솜 뭉치 수 */

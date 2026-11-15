@@ -10,6 +10,9 @@ import type { Player } from "./player";
 // 카메라 — 뒤에서 따라간다. 빨라지거나 높이 뜨면 물러나고, 등대에 닿으면 올라 둘러본다.
 // 놀이기구는 카메라를 직접 옮기지 않고 섞는 정도만 부탁한다: 회오리·깔때기(spin), 고래·혜성(ride), 등대(overlook)
 
+/** 이만큼 데리고 다니면 카메라가 가장 높고 멀다 */
+const COMPANY_FULL = 3;
+
 const cdir = new THREE.Vector3(),
   tmp = new THREE.Vector3(),
   want = new THREE.Vector3(),
@@ -21,6 +24,9 @@ export class CameraRig {
   private over = 0;
   private spin = 0;
   private ride = 0;
+  /** 데리고 다니는 손님 수(셋까지)만큼 높이·멀리(0..1, 천천히 따라간다) */
+  private company = 0;
+  private companyWant = 0;
   /** 회오리·깔때기에 들어올 때의 보는 쪽(안에서 화면이 같이 돌지 않게) */
   private readonly h0 = new THREE.Vector3();
 
@@ -42,6 +48,11 @@ export class CameraRig {
   easeOverlook(target: number, k: number) {
     this.over += (target - this.over) * k;
   }
+  /** 데리고 다니는 손님 수 — 하나·둘·셋으로 늘 때마다 카메라가 한 단계씩 높아지고 멀어진다 */
+  setCompany(count: number) {
+    const share = count / COMPANY_FULL;
+    this.companyWant = Math.min(1, share);
+  }
   /** 지금 보는 쪽을 붙잡아 둔다(회오리·깔때기에 들어서는 순간) */
   lockHeading(h: THREE.Vector3) {
     this.h0.copy(h);
@@ -56,6 +67,10 @@ export class CameraRig {
       over = this.over,
       wB = this.spin,
       rB = this.ride;
+    const companyStep = f.dt * 2;
+    const companyEase = Math.min(1, companyStep);
+    this.company += (this.companyWant - this.company) * companyEase;
+    const folK = this.company;
     cdir.copy(pl.h);
     if (wB > 0.01) {
       // 회오리 안에서는 화면이 같이 돌지 않게, 들어올 때의 방향을 유지한다
@@ -70,8 +85,9 @@ export class CameraRig {
     cdir.applyAxisAngle(p, orbit);
     const sp = clamp(pl.tot, 0, 2.2);
     // 빠를수록·높이 뜰수록·회오리(wB)·놀이기구(rB)에 탈수록 위로 올라가고 뒤로 물러난다
-    const rise = S.camH + 24 * over + pl.air * 0.22 + 5 * wB + 4 * rB;
-    const back = -S.camD * (1 + 0.22 * sp) - 20 * over - pl.air * 0.35 - 9 * wB - 10 * rB;
+    const rise = S.camH + 24 * over + pl.air * 0.22 + 5 * wB + 4 * rB + 2.7 * folK;
+    const back =
+      -S.camD * (1 + 0.22 * sp) - 20 * over - pl.air * 0.35 - 9 * wB - 10 * rB - 3.9 * folK;
     want.copy(P).addScaledVector(p, rise).addScaledVector(cdir, back);
     if (pl.takeSnap()) camera.position.copy(want);
     else {

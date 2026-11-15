@@ -2,7 +2,7 @@ import { firstScreenKeys } from "../assets/firstScreen";
 import { createAssetLoader } from "../assets/load";
 import type { LoadedAsset } from "../assets/load";
 import type { Manifest } from "../assets/manifest";
-import { devMap, devSeed, exposeGame } from "./debug";
+import { devFestival, devMap, devSeed, exposeGame } from "./debug";
 import { Game } from "./Game";
 import { DEFAULT_MAP } from "./maps";
 
@@ -30,7 +30,8 @@ export function start(
 ): RunningGame {
   const seed = devSeed() ?? randomSeed();
   const map = devMap() ?? DEFAULT_MAP;
-  const game = new Game(canvas, assets, seed, map);
+  const festival = devFestival();
+  const game = new Game(canvas, assets, seed, map, festival);
   let stopped = false,
     raf = 0,
     last = 0;

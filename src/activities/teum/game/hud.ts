@@ -1,7 +1,8 @@
 import type { Frame } from "./core/frame";
 
 // 화면 위 글자와 끌기 표시. 게임은 맵만 보이고, 아래쪽 안내 한 줄과 끄는 동안의 동그라미만 둔다.
-// 소리가 생기면(낼 소리가 있을 때만) 오른쪽 위에 작은 소리 끄기 단추가 붙는다
+// 소리가 생기면(낼 소리가 있을 때만) 오른쪽 위에 작은 소리 끄기 단추가 붙는다.
+// 랜드마크의 말은 아래 안내 줄이 아니라 그 랜드마크 위의 말풍선에 뜬다(안내 줄은 놀이기구 안내만)
 
 const FONT = '-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif';
 
@@ -15,6 +16,9 @@ export class Hud {
   readonly hint: HTMLDivElement;
   readonly stick: HTMLDivElement;
   readonly knob: HTMLDivElement;
+  /** 랜드마크 말풍선 */
+  readonly talk: HTMLDivElement;
+  private readonly talkText: HTMLSpanElement;
   /** 안내가 남아 있을 시간(초) */
   private toast = 0;
   /** 처음 한 번만 하는 안내를 이미 했나 */
@@ -64,14 +68,47 @@ export class Hud {
       pointerEvents: "none",
       display: "none",
     });
-    parent.append(this.hint, this.stick, this.knob);
+    this.talk = document.createElement("div");
+    Object.assign(this.talk.style, {
+      position: "fixed",
+      left: "50%",
+      top: "110px",
+      transform: "translate(-50%, -100%)",
+      maxWidth: "230px",
+      background: "#fff",
+      borderRadius: "14px",
+      padding: "9px 13px",
+      fontSize: "13px",
+      lineHeight: "1.45",
+      fontFamily: FONT,
+      color: "#2b2e2d",
+      boxShadow: "0 3px 14px rgba(0,0,0,.12)",
+      opacity: "0",
+      transition: "opacity .25s",
+      pointerEvents: "none",
+      textAlign: "center",
+    });
+    this.talkText = document.createElement("span");
+    const tail = document.createElement("div");
+    Object.assign(tail.style, {
+      position: "absolute",
+      left: "50%",
+      bottom: "-6px",
+      width: "12px",
+      height: "12px",
+      marginLeft: "-6px",
+      background: "#fff",
+      transform: "rotate(45deg)",
+    });
+    this.talk.append(this.talkText, tail);
+    parent.append(this.hint, this.stick, this.knob, this.talk);
   }
 
-  /** 안내 한 줄을 띄운다(2.2초) */
-  say(text: string) {
+  /** 안내 한 줄을 띄운다(seconds 초, 없으면 2.2초) */
+  say(text: string, seconds = 2.2) {
     this.hint.textContent = text;
     this.hint.style.opacity = "1";
-    this.toast = 2.2;
+    this.toast = seconds;
   }
 
   /** 이 안내(key)는 처음 한 번만 */
@@ -124,6 +161,28 @@ export class Hud {
     this.parent.append(b);
   }
 
+  /** 말풍선을 띄운다 */
+  showTalk(text: string) {
+    this.talkText.textContent = text;
+    this.talk.style.opacity = "1";
+  }
+
+  /** 말풍선을 화면의 (x, y) 위에 둔다(꼬리가 그 자리를 가리킨다) */
+  placeTalk(x: number, y: number) {
+    this.talk.style.left = `${x}px`;
+    this.talk.style.top = `${y}px`;
+  }
+
+  /** 말풍선을 숨긴다 */
+  hideTalk() {
+    this.talk.style.opacity = "0";
+  }
+
+  /** 지금 말풍선의 글(시험 창구가 읽는다) */
+  get talkLine(): string {
+    return this.talkText.textContent ?? "";
+  }
+
   /** 안내가 시간이 다 되면 사라진다 */
   update(f: Frame) {
     if (this.toast <= 0) return;
@@ -136,6 +195,7 @@ export class Hud {
     this.hint.remove();
     this.stick.remove();
     this.knob.remove();
+    this.talk.remove();
     this.mute?.remove();
   }
 }

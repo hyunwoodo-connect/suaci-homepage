@@ -7,7 +7,7 @@ import { S } from "../settings";
 import { fr } from "../world/hash";
 import { offset } from "../world/sphere";
 
-// 비눗방울: 닿으면 뽁 터지며 살짝 튀어 오른다. 잇달아 터뜨릴수록 더 높이 튄다. 마을마다 방울 무리 몇(지도 bubbles — v64 는 열, 최대 420 개)
+// 비눗방울: 닿으면 뽁 터지며 살짝 튀어 오른다. 잇달아 터뜨릴수록 더 높이 튄다. 마을마다 방울 무리 몇(지도 bubbles — v78 은 열, 최대 420 개)
 
 /** 비눗방울 하나: 땅 높이(g)·떠 있는 높이(h)·반지름(r)·다시 생길 때까지(t)·크기(s) */
 export interface Bubble {

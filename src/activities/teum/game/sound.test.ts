@@ -10,7 +10,8 @@ class FakeAudioContext {
   static made: FakeAudioContext[] = [];
   state: AudioContextState = "suspended";
   readonly destination = {};
-  readonly started: { loop: boolean }[] = [];
+  readonly started: { loop: boolean; playbackRate: { value: number }; at: number }[] = [];
+  currentTime = 0;
   constructor() {
     FakeAudioContext.made.push(this);
   }
@@ -33,8 +34,13 @@ class FakeAudioContext {
     const source = {
       buffer: null as unknown,
       loop: false,
+      playbackRate: { value: 1 },
+      at: -1,
       connect: (to: unknown) => to,
-      start: () => this.started.push(source),
+      start: (at: number) => {
+        source.at = at;
+        this.started.push(source);
+      },
     };
     return source;
   }
@@ -47,6 +53,7 @@ const MANIFEST: Manifest = {
   version: "v3",
   assets: {
     pop: { file: "audio/sfx/pop.m4a", category: "audio/sfx", bytes: 9000 },
+    ding: { file: "audio/sfx/ding.m4a", category: "audio/sfx", bytes: 7000 },
     tune: { file: "audio/bgm/tune.m4a", category: "audio/bgm", bytes: 400000 },
   },
 };
@@ -101,9 +108,47 @@ describe("SoundManager", () => {
     sound.dispose();
   });
 
-  it("manifest 에 없는 소리 키 → 없는 것으로 친다", () => {
-    const { sound } = manager({ effects: { bubblePopped: { key: "nope" } } });
+  it("manifest 에 소리 에셋이 없으면(옛 에셋 판) → 아무것도 듣지 않는다", () => {
+    const { sound } = manager({ manifest: { version: "v2", assets: {} } });
     expect(sound.hasSounds).toBe(false);
+    sound.dispose();
+  });
+
+  it("규칙: 그 일의 값을 보고 소리를 고르고, null 이면 소리 없음", async () => {
+    const { events, sound } = manager({
+      effects: { sparkled: ({ dist }) => (dist < 45 ? { key: "ding", rate: 2 } : null) },
+    });
+    touch();
+    events.emit("sparkled", { n: 6, dist: 80 });
+    events.emit("sparkled", { n: 6, dist: 10 });
+    await settle();
+    expect(ctx().started.map((s) => s.playbackRate.value)).toEqual([2]);
+    sound.dispose();
+  });
+
+  it("같은 소리는 gap 초 안에 다시 내지 않는다 · 빠르기 범위는 그 사이에서 고른다", async () => {
+    const { events, sound } = manager({
+      effects: { bubblePopped: { key: "pop", gap: 0.5, rate: [1, 2] } },
+      random: () => 0.5,
+    });
+    touch();
+    events.emit("bubblePopped", { combo: 1 });
+    events.emit("bubblePopped", { combo: 2 });
+    ctx().currentTime = 0.6;
+    events.emit("bubblePopped", { combo: 3 });
+    await settle();
+    expect(ctx().started.map((s) => s.playbackRate.value)).toEqual([1.5, 1.5]);
+    sound.dispose();
+  });
+
+  it("여러 소리 · 늦게 내기(delay)", async () => {
+    const { events, sound } = manager({
+      effects: { boxOpened: [{ key: "pop" }, { key: "ding", delay: 0.35 }] },
+    });
+    touch();
+    events.emit("boxOpened", { prize: "blank" });
+    await settle();
+    expect(ctx().started.map((s) => s.at)).toEqual([0, 0.35]);
     sound.dispose();
   });
 
@@ -115,23 +160,26 @@ describe("SoundManager", () => {
     sound.dispose();
   });
 
-  it("첫 손짓 → 소리를 열고 효과음 파일을 받기 시작, 그 뒤의 일은 효과음으로 난다", async () => {
+  it("첫 손짓 → 소리를 열고 효과음 파일을 다 받기 시작, 그 뒤의 일은 효과음으로 난다", async () => {
     const { events, sound } = manager();
     touch();
-    expect([ctx().state, fetched]).toEqual(["running", ["https://cdn.test/audio/sfx/pop.m4a"]]);
+    expect([ctx().state, fetched]).toEqual([
+      "running",
+      ["https://cdn.test/audio/sfx/pop.m4a", "https://cdn.test/audio/sfx/ding.m4a"],
+    ]);
     events.emit("bubblePopped", { combo: 1 });
     await settle();
     expect(ctx().started).toHaveLength(1);
     sound.dispose();
   });
 
-  it("같은 소리를 여러 번 → 파일은 한 번만 받는다", async () => {
+  it("같은 소리를 여러 번 → 파일은 한 번만 받고, 기본 쉬는 시간(0.05초) 안의 것은 한 번만 난다", async () => {
     const { events, sound } = manager();
     touch();
     events.emit("bubblePopped", { combo: 1 });
     events.emit("bubblePopped", { combo: 2 });
     await settle();
-    expect([fetched.length, ctx().started.length]).toEqual([1, 2]);
+    expect([fetched.length, ctx().started.length]).toEqual([2, 1]);
     sound.dispose();
   });
 

@@ -68,7 +68,12 @@ const REST_COS = 0.8,
   REBUILD_MOVE = 30,
   REBUILD_TIME = 1;
 
-const cf = new THREE.Vector3(),
+/** 따라오는 손님의 몸 반지름(m) — 비켜서는 거리에 더한다 */
+const FOLLOW_BODY = 1.1;
+
+const fSide = new THREE.Vector3(),
+  fAim = new THREE.Vector3(),
+  cf = new THREE.Vector3(),
   cx = new THREE.Vector3(),
   cm = new THREE.Matrix4(),
   cv = new THREE.Vector3(),
@@ -99,7 +104,11 @@ export class Creatures implements Thing {
   private readonly sense: Sense = { dP: 0, dA: 0, scare: false, seen: false };
   // ---- 가까운 것만 움직이기 ----
   private active: number[] = [];
-  private readonly activeMark: Uint8Array;
+  private activeMark: Uint8Array;
+  /** 마을 무리에 매기는 번호(무리 안에서 둘러선 각을 엇갈리게) */
+  private herdN = 1;
+  /** 오늘의 축제 지역에 더 놓인 무리(날이 바뀌면 떠나고 새 축제 지역에 새로 온다) */
+  private festivalHerds: Creature[] = [];
   private readonly lastAt = new THREE.Vector3();
   private lastTime = -1e9;
   private lastJumps = -1;
@@ -123,13 +132,14 @@ export class Creatures implements Thing {
     this.restCut = Math.cos(restAngle);
     this.place();
     this.activeMark = new Uint8Array(this.list.length);
+    s.events.on("dayChanged", ({ festival }) => this.setFestival(festival));
     this.pPrev.copy(s.player.p);
   }
 
   /** 따라오지 않는 생물 하나라도 14m 안에 있나(무리는 무리 중심으로 본다) — 지루함 감독이 '새로 마주친 순간'을 센다 */
   isAnyNear(p: Readonly<THREE.Vector3>): boolean {
     for (const c of this.list) {
-      if (c.st === "follow") continue;
+      if (c.st === "follow" || c.gone) continue;
       const at = c.hv || c.v;
       if (at.dot(p) > 0.9996 && p.angleTo(at) * S.R < 14) return true;
     }
@@ -189,6 +199,8 @@ export class Creatures implements Thing {
       this.put(c, dt);
     }
     for (const b of this.batches) b.end();
+    // 데리고 다니는 손님 수만큼 카메라가 높아지고 멀어진다(다 같이 화면에 들어오게)
+    this.s.camera.setCompany(this.followers.length);
   }
 
   /** 치운다(그리는 묶음은 모델 창구가 치운다) */
@@ -207,12 +219,21 @@ export class Creatures implements Thing {
     const histIndex = Math.min(lastHist, trailIndex);
     const hg = histIndex >= 0 ? steps.at(histIndex) : undefined;
     if (hg) {
-      const d = c.v.angleTo(hg.p) * S.R;
+      // 내 바로 뒤가 아니라 좌우로 번갈아 비켜서 온다(카메라가 내 뒤라서, 바로 뒤에 서면 화면을 가린다). 뒤의 것일수록 더 비켜선다
+      const pl = this.s.player;
+      fSide.crossVectors(pl.h, pl.p).normalize();
+      const half = c.order / 2;
+      const pair = Math.floor(half);
+      const sign = c.order % 2 ? 1 : -1,
+        lane = 3 + 1.5 * pair + FOLLOW_BODY;
+      const sideArc = (sign * lane) / S.R;
+      fAim.copy(hg.p).addScaledVector(fSide, sideArc).normalize();
+      const d = c.v.angleTo(fAim) * S.R;
       if (d > 0.25) {
         const chase = d * 4;
         const sp = Math.min(14, chase);
         const stride = sp > 5 ? 2.6 : 4.6;
-        go(c, hg.p, sp, dt, stride);
+        go(c, fAim, sp, dt, stride);
         const pace = 0.4 + sp / 6;
         pose.amt = Math.min(1, pace);
       }
@@ -623,7 +644,8 @@ export class Creatures implements Thing {
     }
     const first = !this.met.has(c.k);
     this.met.add(c.k);
-    events.emit("creatureMet", { kind, first });
+    const legend = Boolean(c.legend);
+    events.emit("creatureMet", { kind, first, legend });
     const sparkN = first ? 16 : 6;
     const sparkPower = first ? 9 : 6;
     this.s.fx.burst(c.pos, sparkN, sparkPower);
@@ -675,6 +697,7 @@ export class Creatures implements Thing {
     mark.fill(0);
     const next: number[] = [];
     this.list.forEach((c, i) => {
+      if (c.gone) return;
       if (c.role === "flock" || c.st === "follow" || c.v.dot(p) >= this.restCut) {
         mark[i] = 1;
         next.push(i);
@@ -696,7 +719,69 @@ export class Creatures implements Thing {
     if (added) this.active.sort(byNumber);
   }
 
+  // 날이 바뀌어 축제 지역이 바뀌었다: 어제 더 온 무리는 떠나고(따라오는 것은 남는다), 새 축제 지역에 무리가 더 온다
+  private setFestival(hk: number) {
+    for (const c of this.festivalHerds)
+      if (c.st !== "follow") {
+        c.gone = true;
+        c.visible = false;
+      }
+    const own = this.s.map.regions[hk].herds.length,
+      want = own * this.s.map.creatures.festival;
+    this.festivalHerds = this.placeHerds(hk, own, want);
+    if (this.activeMark.length < this.list.length) {
+      const grown = new Uint8Array(this.list.length);
+      grown.set(this.activeMark);
+      this.activeMark = grown;
+    }
+    this.lastTime = -1e9;
+  }
+
   /* ─── 내부: 놓기 ─────────────────────────── */
+
+  // 땅 위 무리 하나: key 가 없으면 무리 종을 차례로 돌려 쓰고(떠도는 무리), count 가 없으면 그 종의 마릿수
+  private mkHerd(hv: THREE.Vector3, n: number, key?: string, count?: number): Creature[] {
+    const SP = herdSpecies();
+    const named = key ? SP.find((q) => q.key === key) : undefined;
+    const sp = named ?? SP[n % SP.length],
+      N = count || sp.count,
+      out: Creature[] = [];
+    for (let j = 0; j < N; j++) {
+      const bearing = (j * 360) / N + n * 40;
+      const spot = offset(hv, 2.8, bearing);
+      const c = this.crit(sp.key, "herd", spot, { gait: sp.gait, st: "graze", hv });
+      if (!c) continue;
+      c.t = c.rng.range(1, 6);
+      out.push(c);
+    }
+    return out;
+  }
+
+  // 마을 hk 의 땅 위 무리 가운데 from 번째부터 to 번째 앞까지(빈자리를 차례로 찾는다 — 앞의 것이 놓인 뒤라면 그다음 자리부터).
+  // 종은 그 지역의 herds 를 돌려 가며, 한 마리·두 마리를 번갈아
+  private placeHerds(hk: number, from: number, to: number): Creature[] {
+    const { occ, map } = this.s,
+      herds = map.creatures.herds,
+      kinds = map.regions[hk].herds,
+      out: Creature[] = [];
+    for (let q0 = 0, got = from; q0 < herds.tries && got < to; q0++) {
+      const i = hk * HERD_STRIDE + q0;
+      const distHash = fr(i, 201);
+      const far = Math.sqrt(distHash);
+      const dist = within(herds.dist, far);
+      const bearing = 360 * fr(i, 202);
+      const v = occ.hubAt(hk, dist, bearing);
+      if (!occ.isFree(v, herds.clear)) continue;
+      occ.fill(v, 5);
+      const key = kinds[got % kinds.length],
+        count = 1 + (got % 2);
+      const members = this.mkHerd(v, this.herdN, key, count);
+      out.push(...members);
+      this.herdN++;
+      got++;
+    }
+    return out;
+  }
 
   // 생물을 놓는다(수와 자리는 지도 creatures): 출발 앞 첫 무리, 마을마다의 무리, 떠도는 무리, 마을 하늘의 무리, 전설, 호수, 해파리
   private place() {
@@ -706,42 +791,24 @@ export class Creatures implements Thing {
       p = player.p,
       h = player.h,
       HV = occ.hubs,
-      SP = herdSpecies(),
       FLK = skySpecies(),
       LAKE = lakeSpecies();
-    const mkHerd = (hv: THREE.Vector3, n: number) => {
-      const sp = SP[n % SP.length],
-        out: Creature[] = [];
-      for (let j = 0; j < sp.count; j++) {
-        const bearing = (j * 360) / sp.count + n * 40;
-        const spot = offset(hv, 2.8, bearing);
-        const c = this.crit(sp.key, "herd", spot, { gait: sp.gait, st: "graze", hv });
-        if (!c) continue;
-        c.t = c.rng.range(1, 6);
-        out.push(c);
-      }
-      return out;
-    };
-    // 땅 위의 손님: 첫 무리는 출발하자마자 눈앞에
+    const mkHerd = (hv: THREE.Vector3, n: number) => this.mkHerd(hv, n);
+    // 땅 위의 손님: 첫 무리는 출발하자마자 눈앞에 — 그날 축제 지역에 사는 첫 종
+    const festival = s.today.festival;
     const startStep = plan.firstHerdAhead / S.R;
     const v0 = p.clone().addScaledVector(h, startStep).normalize();
     occ.fill(v0, 5);
-    mkHerd(v0, 0);
-    const herds = plan.herds;
-    for (let hk = 0, n = 1; hk < HV.length; hk++)
-      for (let q0 = 0, got = 0; q0 < herds.tries && got < herds.perHub; q0++) {
-        const i = hk * HERD_STRIDE + q0;
-        const distHash = fr(i, 201);
-        const far = Math.sqrt(distHash);
-        const dist = within(herds.dist, far);
-        const bearing = 360 * fr(i, 202);
-        const v = occ.hubAt(hk, dist, bearing);
-        if (!occ.isFree(v, herds.clear)) continue;
-        got++;
-        occ.fill(v, 5);
-        mkHerd(v, n);
-        n++;
-      }
+    const firstKey = s.map.regions[festival]?.herds[0];
+    if (firstKey) this.mkHerd(v0, 0, firstKey, plan.firstHerd);
+    // 마을마다 그 지역에 사는 종만 한두 마리씩(축제 지역은 더 많이)
+    for (let hk = 0; hk < HV.length; hk++) {
+      const own = s.map.regions[hk].herds.length;
+      this.placeHerds(hk, 0, own);
+      // 축제 지역은 그다음 빈자리에 더(날이 바뀌면 이것만 떠나고 새 축제 지역에 새로 온다)
+      const extra = own * plan.festival;
+      if (hk === festival) this.festivalHerds = this.placeHerds(hk, own, extra);
+    }
     // 어디로 가든 앞길에 손님이 있게: 떠도는 무리는 내가 멀어지면 내 앞쪽 먼 곳으로 조용히 옮겨 간다
     for (let i = 0; i < plan.roaming.herds; i++) {
       const herdN = i + 1;
@@ -773,7 +840,7 @@ export class Creatures implements Thing {
     for (const grp of this.roam) this.placeRoam(grp, true); // 빈자리를 못 찾아도 어딘가에는 놓는다
     // 하늘 무리: 마을 하늘을 셋씩 낮게 돈다(마을마다 몇 무리, 하늘 종을 돌려 가며)
     for (let hk = 0; hk < HV.length; hk++)
-      for (let q0 = 0; q0 < plan.townFlocks.perHub; q0++) {
+      for (let q0 = 0; q0 < s.map.regions[hk].flocks; q0++) {
         const i = hk * FLOCK_STRIDE + q0;
         const ctrRoll = fr(i, 211);
         const ctrDist = within(plan.townFlocks.dist, ctrRoll);
@@ -783,7 +850,7 @@ export class Creatures implements Thing {
           dir = q0 % 2 ? 1 : -1,
           alt = 4 + 6 * fr(i, 214),
           a0 = 360 * fr(i, 215);
-        const kindAt = (hk * 2 + q0) % FLK.length;
+        const kindAt = q0 % FLK.length;
         const kind = FLK[kindAt];
         const g0 = s.terrain.groundAt(ctr);
         for (let j = 0; j < 3; j++) {
@@ -843,7 +910,7 @@ export class Creatures implements Thing {
       jl(spot);
     }
     for (let hk = 0; hk < HV.length; hk++)
-      for (let j = 0; j < jellies.perHub; j++) {
+      for (let j = 0; j < s.map.regions[hk].jellies; j++) {
         const jellySeed = hk * JELLY_STRIDE + j;
         const distRoll = fr(jellySeed, 221);
         const dist = within(jellies.dist, distRoll);
@@ -889,6 +956,7 @@ export class Creatures implements Thing {
       want: 1,
       order: -1,
       met: false,
+      gone: false,
       sink: 0,
       pitch: 0,
       roll: 0,

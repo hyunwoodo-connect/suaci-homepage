@@ -13,9 +13,10 @@ import { fr } from "../world/hash";
 import { along, offset } from "../world/sphere";
 import type { Height, HasHeights } from "../world/tall";
 
-// 조형물: 고르게 뿌리지 않는다. 마을 기준탑 → 길목의 문 → 가로수 터널 → 숲 덩어리 → 높이 사다리 → 열기구 왕관 → 사이 채움 → 외딴 거대 조형물.
-// 큰 것(14 이상)은 크게 놓으려고 뽑은 열두 가지에서, 작은 것은 여섯 가지에서. 같은 것이 가까이 또 나오지 않게 가장 멀리 떨어진 종류를 고른다.
-// 놓는 차례·고르는 셈이 곧 배치라 시제품 그대로 둔다. 단계마다의 수와 크기는 지도(sculptures)가 정한다
+// 조형물: 고르게 뿌리지 않는다. 마을 기준탑(그 마을의 랜드마크) → 길목의 문 → 가로수 터널 → 숲 덩어리 → 높이 사다리 → 열기구 왕관 → 사이 채움
+// → 외딴 거대 조형물 → 지역의 하늘 열기구. 큰 것(14 이상)은 크게 놓으려고 뽑은 열두 가지에서, 작은 것은 여섯 가지에서 —
+// 지역 한가운데 쪽이면 그 지역에 서는 종류만. 같은 것이 가까이 또 나오지 않게 가장 멀리 떨어진 종류를 고른다.
+// 지역마다 빽빽함·나무 키가 다르고 지역 사이는 성기다(지도 regions). 놓는 차례·고르는 셈이 곧 배치라 시제품 그대로 둔다. 단계마다의 수와 크기는 지도(sculptures)가 정한다
 
 /** 놓인 조형물·열기구 하나 */
 export interface Deco {
@@ -48,11 +49,15 @@ interface PlaceStats {
   crown: number;
   fill: number;
   lone: number;
+  sky: number;
 }
+
+/** 지역 한가운데 쪽으로 이만큼 넘으면 그 지역 종류만 고른다 */
+const REGION_POOL = 0.25;
 
 /** 작은 것·큰 것·열기구 한 종류에 찍는 수 */
 const SMALL_N = 520,
-  LARGE_N = 70,
+  LARGE_N = 120,
   BALLOON_N = 160;
 
 /** 조형물 전체(숲의 나무는 Trees 가 갖는다) */
@@ -67,7 +72,10 @@ export class Sculptures implements Thing, HasHeights {
     crown: 0,
     fill: 0,
     lone: 0,
+    sky: 0,
   };
+  /** 마을마다의 랜드마크: 그 마을 기준탑(지역 종류에서 뽑힌 큰 조형물). 못 놓은 마을은 비어 있다 */
+  readonly landmarks: (Deco | undefined)[] = [];
   private readonly near = new NearSet(30);
   private readonly squashing = new Set<Deco>();
 
@@ -106,7 +114,17 @@ export class Sculptures implements Thing, HasHeights {
     };
     const clearHub = (v: THREE.Vector3, r: number) =>
       !HV.some((hv) => hv.angleTo(v) * S.R < 24 + r) && p.angleTo(v) * S.R > 16 + r;
-    const pick = (list: Instancer[], v: THREE.Vector3, i: number, cap: number) => {
+    const regions = s.regions,
+      between = plan.between;
+    // 지역 한가운데 쪽(0.25 넘게)이면 그 지역에 서는 종류 가운데서만 고른다
+    const pick = (list0: Instancer[], v: THREE.Vector3, i: number, cap: number) => {
+      let list = list0;
+      const at = regions.of(v);
+      if (at.w > REGION_POOL) {
+        const pool = list0 === DKB ? at.region.big : at.region.small;
+        const inRegion = list0.filter((I) => pool.includes(I.key));
+        if (inRegion.length) list = inRegion;
+      }
       let best: Instancer | null = null,
         bs = -1e9;
       const startPick = fr(i, 307) * list.length;
@@ -134,6 +152,13 @@ export class Sculptures implements Thing, HasHeights {
       this.near.add(o.v, reach);
     };
     const putD = (v: THREE.Vector3, H: number, i: number, k?: number) => {
+      // 지역마다 빽빽함이 다르고, 어느 지역도 아닌 사이는 성기다(기준탑·문·외딴 것·높이 사다리는 솎지 않는다)
+      if (!k && (i < 9800 || i >= 9900)) {
+        const at = regions.of(v);
+        const skipRoll = fr(i, 403);
+        if (skipRoll < at.region.skip * at.w) return false;
+        if (at.w < 0.1 && fr(i, 404) < between.skip) return false;
+      }
       const I = H >= 14 && DKB.length ? pick(DKB, v, i, LARGE_N) : pick(DK, v, i, SMALL_N);
       if (!I) return false;
       const r = I.rw * H;
@@ -169,7 +194,16 @@ export class Sculptures implements Thing, HasHeights {
     };
     const TKS = trees.kinds;
     const putT = (v: THREE.Vector3, H: number, i: number) => {
-      const T = TKS[i % TKS.length];
+      const at = regions.of(v);
+      // 숲의 나무(가로수·높이 사다리는 빼고): 지역마다 솎는 비율과 키가 다르다
+      if (i >= 4000 && i < 9900) {
+        const skipRoll = fr(i, 405);
+        if (skipRoll < at.region.treeSkip * at.w) return false;
+        if (at.w < 0.1 && fr(i, 406) < between.treeSkip) return false;
+        H *= 1 + (at.region.treeHeight - 1) * at.w;
+      }
+      const own = at.w > REGION_POOL ? trees.kindOf(at.region.tree) : null;
+      const T = own ?? TKS[i % TKS.length];
       if (!T || T.I.n >= 300 || !occ.isFree(v, 7) || !clearHub(v, 6) || occ.nearCorridor(v, 3))
         return false;
       const canopyR = T.I.rw * H;
@@ -179,6 +213,12 @@ export class Sculptures implements Thing, HasHeights {
       return true;
     };
     const putB = (v: THREE.Vector3, alt: number, H: number, i: number) => {
+      // 높이 사다리의 열기구는 솎지 않는다
+      if (i < 500 || i >= 560) {
+        const at = regions.of(v);
+        const skipRoll = fr(i, 407);
+        if (skipRoll < at.region.balloonSkip * at.w) return false;
+      }
       if (!DBAL || DBAL.n >= BALLOON_N) return false;
       const gr = terrain.groundAt(v) + alt,
         yaw = 6.28 * fr(i, 355),
@@ -202,7 +242,7 @@ export class Sculptures implements Thing, HasHeights {
     };
     // 1) 마을마다 기준탑 하나: 멀리서도 저기가 마을임을 안다
     for (let hk = 0; hk < HV.length; hk++)
-      for (let t = 0; t < 40; t++) {
+      for (let t = 0; t < plan.anchorTries; t++) {
         const dist = 30 + t * 1.5;
         const bearing = 40 + hk * 67 + t * 37;
         const spot = occ.hubAt(hk, dist, bearing);
@@ -211,6 +251,7 @@ export class Sculptures implements Thing, HasHeights {
         const seed = 9000 + hk * 50 + t;
         if (putD(spot, height, seed, 0.35)) {
           st.anchor++;
+          this.landmarks[hk] = DECO[DECO.length - 1];
           break;
         }
       }
@@ -373,6 +414,24 @@ export class Sculptures implements Thing, HasHeights {
       const height = within(lone.height, heightRoll);
       if (putD(spot, height, i, 0.4)) st.lone++;
     }
+    // 9) 지역의 하늘 열기구(구름 마을은 하늘에 열기구가 가득)
+    regions.list.forEach((region, hk) => {
+      const sb = region.skyBalloons;
+      if (!sb) return;
+      for (let j = 0; j < sb.count; j++) {
+        const distRoll = fr(j, 411),
+          far = Math.sqrt(distRoll),
+          dist = within(sb.dist, far),
+          bearing = 360 * fr(j, 412),
+          spot = occ.hubAt(hk, dist, bearing);
+        const altRoll = fr(j, 413),
+          sizeRoll = fr(j, 414);
+        const alt = within(sb.alt, altRoll),
+          size = within(sb.size, sizeRoll);
+        const seed = 700 + j;
+        if (putB(spot, alt, size, seed)) st.sky++;
+      }
+    });
   }
 
   /** 고래 길을 정할 때 보는 꼭대기 높이 */

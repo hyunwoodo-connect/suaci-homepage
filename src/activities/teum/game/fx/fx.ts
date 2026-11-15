@@ -3,6 +3,7 @@ import * as THREE from "three";
 import type { Frame } from "../core/frame";
 import { Fifo } from "../core/pool";
 import type { Random } from "../core/random";
+import type { GameEvents } from "../events";
 import { LOOK } from "../look";
 import type { Player } from "../player/player";
 
@@ -45,6 +46,7 @@ export class Fx {
     scene: THREE.Scene,
     private readonly player: Player,
     private readonly rng: Random,
+    private readonly events: GameEvents,
   ) {
     this.glowTex = createGlowTexture();
     for (let i = 0; i < GLOW_N; i++) {
@@ -92,6 +94,8 @@ export class Fx {
 
   /** 빛 방울을 튀긴다(pos 는 복사해 쓴다 — 부른 쪽 벡터를 그대로 넘겨도 된다) */
   burst(pos: THREE.Vector3, n: number, power: number) {
+    const dist = pos.distanceTo(this.player.P);
+    this.events.emit("sparkled", { n, dist });
     const r = this.rng;
     for (let k = 0; k < n; k++) {
       const sk = this.sparks.push();

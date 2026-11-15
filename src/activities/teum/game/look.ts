@@ -74,6 +74,10 @@ export const LOOK = Object.freeze({
 export interface LookUniforms {
   sat: { value: number };
   wash: { value: number };
+  /** 지역: 마을 중심들(지역 차례) · 물건 색상을 돌리는 각(라디안) · 테두리(코사인 from, width) */
+  regionHub: { value: THREE.Vector3[] };
+  regionHue: { value: number[] };
+  regionEdge: { value: THREE.Vector2 };
 }
 
 /** 코드로 만든 도형의 재질 메시 */
@@ -83,7 +87,13 @@ export type GreyMesh = THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMateri
 export class Mats {
   readonly toy: Record<ToyKind, THREE.Color>;
   readonly lime = new THREE.Color(LIME);
-  readonly lookU: LookUniforms = { sat: { value: LOOK.sat }, wash: { value: LOOK.wash } };
+  readonly lookU: LookUniforms = {
+    sat: { value: LOOK.sat },
+    wash: { value: LOOK.wash },
+    regionHub: { value: [] },
+    regionHue: { value: [] },
+    regionEdge: { value: new THREE.Vector2(0.78, 0.12) },
+  };
 
   constructor() {
     const toy = {} as Record<ToyKind, THREE.Color>;

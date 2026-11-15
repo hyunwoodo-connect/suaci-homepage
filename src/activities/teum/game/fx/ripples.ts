@@ -3,6 +3,8 @@ import * as THREE from "three";
 import type { Frame } from "../core/frame";
 import type { Random } from "../core/random";
 import type { Tap, Tappable } from "../core/tap";
+import type { GameEvents } from "../events";
+import type { Player } from "../player/player";
 import { LIME, S } from "../settings";
 import { FWD, refTInto } from "../world/sphere";
 import type { Terrain } from "../world/terrain";
@@ -51,6 +53,8 @@ export class Ripples implements Tappable {
     scene: THREE.Scene,
     private readonly rng: Random,
     private readonly terrain: Terrain,
+    private readonly player: Player,
+    private readonly events: GameEvents,
   ) {
     const tapGeo = new THREE.CircleGeometry(1, 36),
       ringGeo = new THREE.RingGeometry(0.86, 1, 48),
@@ -109,6 +113,8 @@ export class Ripples implements Tappable {
 
   /** 물이 튄다: 고리 두 겹이 퍼지고 물방울이 솟았다 떨어진다 */
   splash(n: THREE.Vector3, power: number, cnt: number) {
+    const dist = n.angleTo(this.player.p) * S.R;
+    this.events.emit("splashed", { dist });
     this.ripple(n, power, 0);
     const outerSize = power * 1.5;
     this.ripple(n, outerSize, 0.18);

@@ -155,6 +155,11 @@ export class Trees implements Thing, HasHeights {
     return t;
   }
 
+  /** 나무 종류(에셋 키) — 없으면 null */
+  kindOf(key: string): TreeKind | null {
+    return this.byKey[key] ?? null;
+  }
+
   /** 고래 길을 정할 때 보는 꼭대기 높이 */
   pushHeights(out: Height[]) {
     for (const t of this.list) out.push([t.v, t.H]);

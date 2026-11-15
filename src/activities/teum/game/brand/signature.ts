@@ -184,7 +184,7 @@ export class Signature implements Thing {
       mkBal(spot, plan.between.alt); // 마을 사이
     }
     this.lawnMesh = createLawnMesh(s, lawn, tex.lawn);
-    // 높은 풍선: 출발 마을에서 가장 가까운 로켓 바로 위(지도 highAlt, v64 는 138m)
+    // 높은 풍선: 출발 마을에서 가장 가까운 로켓 바로 위(지도 highAlt, v78 은 138m)
     {
       let rk: { v: THREE.Vector3 } | null = null,
         rd = 1e9;

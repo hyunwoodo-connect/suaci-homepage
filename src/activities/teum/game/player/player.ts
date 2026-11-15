@@ -7,7 +7,7 @@ import { clamp, offset, START } from "../world/sphere";
 import type { Terrain } from "../world/terrain";
 
 // 나(몸)의 상태와 움직임. 다른 모듈은 이 상태를 직접 바꾸지 않고 아래의 좁은 요청으로만 부탁한다:
-//   튕겨 올리기(bounce·lift·raise·hop·easeLift·standOn) · 빨라지기(boost·boostAtLeast) · 잠깐 방향 안 먹기(stun) ·
+//   튕겨 올리기(bounce·lift·raise·hop·easeLift·standOn·keepAbove) · 빨라지기(boost·boostAtLeast) · 잠깐 방향 안 먹기(stun) ·
 //   방향 틀기(turnTo·lookTo·kick) · 길에 실어 가기(glide·keepOnLine) · 막히기(block·blockBody) · 느려지기(slowDown) ·
 //   붙잡기(grab → 붙잡은 쪽만 몸을 옮기는 손잡이, release — 시제품처럼 여럿이 함께 붙잡을 수 있다) · 날개(giveWings·flap) · 풍선에 매달리기(hang·letGo).
 // 끌기·방향키로 가고, 곧게 오래 날수록 조금씩 빨라지고, 내리막에서 빨라진다. 떠오르면 천천히 활공해 내려온다
@@ -53,6 +53,10 @@ export interface Release {
   hop?: boolean;
 }
 
+/** 이만큼 빠르게 솟으면 '솟구쳤다' · 이만큼 높이 떠 있다가 땅에 닿으면 '내려앉았다' */
+const ROSE_VY = 6,
+  LANDED_FROM = 1.2;
+
 const d = new THREE.Vector3(),
   right = new THREE.Vector3(),
   axis = new THREE.Vector3(),
@@ -96,6 +100,9 @@ export class Player {
   private hanger: object | null = null;
   private _held = false;
   private wingT = 0;
+  /** 지난 프레임 끝의 위 속도·떠 있는 높이(솟구침·내려앉음을 알릴 때 본다) */
+  private prevVy = 0;
+  private prevAir = 0;
   private _jumps = 0;
   private readonly body: HeldBody;
 
@@ -239,11 +246,11 @@ export class Player {
   }
 
   // ---- 프레임 ----
-  /** 출발점으로: 광장 곁에서 광장을 보고 선다 */
-  goHome() {
-    const home = offset(START, 20, 200);
+  /** 출발점으로: 그 마을 중심(center, 없으면 광장) 곁에서 중심을 보고 선다 */
+  goHome(center: THREE.Vector3 = START) {
+    const home = offset(center, 20, 200);
     this._p.copy(home);
-    this._h.copy(START).sub(this._p);
+    this._h.copy(center).sub(this._p);
     const hRadial = this._h.dot(this._p);
     this._h.addScaledVector(this._p, -hRadial).normalize();
     this._vel.copy(this._h);
@@ -356,6 +363,11 @@ export class Player {
       bob = Math.sin(bobPhase) * 0.08,
       radius = S.R + this._alt + bob;
     this._P.copy(this._p).multiplyScalar(radius);
+    // 솟구치기 시작한 순간(위 속도가 6 을 넘어섬)과, 높이(1.2m 넘게) 떠 있다가 내려앉은 순간을 알린다
+    if (this._vy > ROSE_VY && this.prevVy <= ROSE_VY) this.events.emit("rose", { vy: this._vy });
+    if (this.prevAir > LANDED_FROM && this._air <= 0.02) this.events.emit("landed", {});
+    this.prevVy = this._vy;
+    this.prevAir = this._air;
   }
 
   // ---- 요청: 튕겨 올리기 ----
@@ -384,6 +396,13 @@ export class Player {
   easeLift(target: number, k: number) {
     this._vy += (target - this._vy) * k;
     this.takeOff();
+  }
+
+  /** 이 높이 아래로는 내려가지 않는다(깔때기 그릇 윗면처럼): 낮으면 올려 세우고 떨어지던 것은 멈춘다 */
+  keepAbove(air: number) {
+    if (this._air >= air) return;
+    this._air = air;
+    if (this._vy < 0) this._vy = 0;
   }
 
   /** 그 높이 위에 몸을 올려 세운다(돔 지붕처럼 막지 않고 위로 올리는 것) */
@@ -535,6 +554,7 @@ export class Player {
   }
   /** 풍선 줄에 매달린다(느리게 간다) */
   hang(by: object) {
+    if (this.hanger === null) this.events.emit("hung", {});
     this.hanger = by;
   }
   /** 풍선을 놓는다 */

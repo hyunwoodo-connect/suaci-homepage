@@ -42,6 +42,8 @@ export interface Creature {
   /** 줄지어 따라오는 차례(-1 이면 아님) */
   order: number;
   met: boolean;
+  /** 떠났다(날이 바뀌어 축제 지역을 떠난 무리) — 그리지도 움직이지도 않는다 */
+  gone: boolean;
   sink: number;
   pitch: number;
   roll: number;

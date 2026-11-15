@@ -1,7 +1,7 @@
 import type * as THREE from "three";
 
 import type { Manifest } from "../../assets/manifest";
-import { CREATURES, TREE_CROWN_BASE } from "../../assets/settings";
+import { CREATURES, SCULPTURES, TREE_CROWN_BASE } from "../../assets/settings";
 import { S } from "../settings";
 import type { Path } from "../world/paths";
 import {
@@ -192,13 +192,28 @@ function checkBounds(map: GameMap, out: MapProblem[]) {
     ["bigFlowers", map.bigFlowers],
     ["bubbles", map.bubbles],
     ["babyLimes", map.babyLimes],
-    ["creatures.herds", map.creatures.herds],
   ];
   for (const [name, sc] of scatters) {
     if (!(sc.perHub >= 0 && sc.tries >= sc.perHub))
       bad(`${name}: perHub ${sc.perHub} · tries ${sc.tries}`);
     checkSpan(name, sc.dist, bad);
   }
+  checkSpan("creatures.herds", map.creatures.herds.dist, bad);
+  const ratio = (x: number) => x >= 0 && x <= 1;
+  map.regions.forEach((r, i) => {
+    const name = `regions#${i}(${r.name})`;
+    if (![r.skip, r.treeSkip, r.balloonSkip].every(ratio)) bad(`${name}: 솎는 비율은 0~1`);
+    if (!(r.treeHeight > 0)) bad(`${name}: 나무 키 배율 ${r.treeHeight}`);
+    if (!(r.flocks >= 0 && r.jellies >= 0)) bad(`${name}: 하늘 무리·해파리 수`);
+    if (r.skyBalloons) {
+      checkSpan(`${name}.skyBalloons.dist`, r.skyBalloons.dist, bad);
+      checkSpan(`${name}.skyBalloons.alt`, r.skyBalloons.alt, bad);
+      checkSpan(`${name}.skyBalloons.size`, r.skyBalloons.size, bad);
+    }
+  });
+  const edge = map.regionEdge;
+  if (!(edge.width > 0 && edge.from > -1 && edge.from + edge.width <= 1))
+    bad(`regionEdge: ${edge.from} + ${edge.width}`);
   for (const z of map.zones)
     if (!(z.from >= 0 && z.from < z.to && z.to <= 360)) bad(`구역 ${z.name}: ${z.from}~${z.to}`);
 }
@@ -224,6 +239,8 @@ function checkShape(map: GameMap, out: MapProblem[]) {
     if (!isUnder) bad("첫 큰 언덕(등대 산)은 등대(place#3)와 같은 자리여야 한다");
   }
   if (!L.hub.length) bad("마을(hub)이 하나는 있어야 한다");
+  if (map.regions.length !== L.hub.length)
+    bad(`지역은 마을과 같은 수여야 한다(지역 ${map.regions.length} · 마을 ${L.hub.length})`);
 }
 
 // ④ 에셋 없음: 랜드마크·키 큰 나무·브랜드 오브젝트·전설의 손님
@@ -241,6 +258,22 @@ function checkAssets(map: GameMap, manifest: Manifest, out: MapProblem[]) {
     if (!has(b.key)) missing(`brand.objects#${i}: ${b.key}`);
     else if (manifest.assets[b.key].category !== "brand")
       missing(`brand.objects#${i}: ${b.key} — 분류가 brand 가 아니다`);
+  });
+  map.regions.forEach((r, i) => {
+    const name = `regions#${i}(${r.name})`;
+    for (const k of [...r.big, ...r.small]) {
+      if (!Object.hasOwn(SCULPTURES, k)) missing(`${name}: ${k} — 조형물 설정표에 없다`);
+      else if (!has(k)) missing(`${name}: ${k}`);
+    }
+    if (!Object.hasOwn(TREE_CROWN_BASE, r.tree))
+      missing(`${name}: ${r.tree} — 나무 종류 표에 없다`);
+    for (const k of new Set([...r.herds, ...r.residents])) {
+      if (!Object.hasOwn(CREATURES, k)) missing(`${name}: ${k} — 생물 설정표에 없다`);
+      else if (!has(k)) missing(`${name}: ${k}`);
+    }
+    for (const k of r.herds)
+      if (Object.hasOwn(CREATURES, k) && !CREATURES[k].herd)
+        missing(`${name}: ${k} — 땅 위 무리로 나오는 종이 아니다`);
   });
   for (const key of Object.keys(map.creatures.legends)) {
     if (!CREATURES[key]?.legend) missing(`legends.${key} — 생물 설정표에 legend 가 없다`);

@@ -1,7 +1,7 @@
 import type { Layout, LayoutJet } from "./layout";
 
 // 지도 하나: 무엇을 어디에 몇 개 놓는지(값)만 담는다. 놓는 규칙(겹침 피하기·고르는 셈·차례)은 각 모듈의 코드에 있다.
-// 지도를 바꾸는 것은 이 모양의 값을 고치는 일이다(maps/v64.ts · v64.layout.json). 거리 단위는 줄마다 적었다 —
+// 지도를 바꾸는 것은 이 모양의 값을 고치는 일이다(maps/v78.ts · v78.layout.json). 거리 단위는 줄마다 적었다 —
 // '자리표 거리'는 넓이(S.wide) 배를 하는 거리, 'm' 는 행성 위 실제 거리
 
 /** [가장 작게, 가장 크게] — 그 사이에서 자리마다 고정된 난수로 고른다 */
@@ -51,8 +51,9 @@ export interface BrandPlacement {
  * 5) 높이 사다리는 마을마다 같은 모양(낮은 것 → 큰 것 → 나무 → 열기구)이라 코드에 있다
  */
 export interface SculptureMap {
-  /** 1) 마을 기준탑 높이 */
+  /** 1) 마을 기준탑 높이와 자리를 찾아보는 횟수 — 이 탑이 그 마을의 랜드마크다(지역 종류에서 뽑힌다) */
   anchorHeight: Span;
+  anchorTries: number;
   /** 2) 다른 마을로 가는 길목의 문 높이 */
   gateHeight: Span;
   /** 3) 대포 길 양옆 가로수: 대포마다 양옆에 이만큼씩 */
@@ -65,22 +66,63 @@ export interface SculptureMap {
   fillTries: number;
   /** 8) 외딴 거대 조형물: 수 · 찾아보는 횟수 · 높이 */
   lone: { count: number; tries: number; height: Span };
+  /** 지역 사이(어느 지역에도 들지 않는 곳)에서 솎는 비율: 조형물 · 숲의 나무 */
+  between: { skip: number; treeSkip: number };
 }
 
-/** 생물(creatures): 어디에 몇 무리 — 종은 생물 설정표(assets/settings CREATURES)의 차례대로 돌려 쓴다 */
+/** 지역 하나. 차례는 마을(layout.hub)과 같다 — 마을 i 가 지역 i 의 가운데다 */
+export interface MapRegion {
+  name: string;
+  /** 땅 체커의 두 색 */
+  ground: readonly [number, number];
+  /** 물건 색상을 돌리는 각(도, YIQ) — 흰색·라임·생물·나·고래는 돌리지 않는다 */
+  hue: number;
+  /** 그 지역에 들어서면 하늘·안개에 섞이는 색 */
+  sky: number;
+  /** 서는 조형물 종류(조형물 설정 키): 큰 것 · 작은 것 */
+  big: readonly string[];
+  small: readonly string[];
+  /** 숲·가로수의 키 큰 나무 종류(나무 설정 키) */
+  tree: string;
+  /** 지역 한가운데에서 솎는 비율(0..1): 조형물 · 숲의 나무 · 열기구 */
+  skip: number;
+  treeSkip: number;
+  balloonSkip: number;
+  /** 숲 나무의 키 배율 */
+  treeHeight: number;
+  /** 하늘에 따로 띄우는 열기구: 수 · 마을 중심에서 거리(자리표 거리) · 높이 · 크기 */
+  skyBalloons?: { count: number; dist: Span; alt: Span; size: Span };
+  /** 이 지역에 사는 생물(종 키) — 랜드마크가 '우리 동네 애'를 알아본다 */
+  residents: readonly string[];
+  /** 땅 위 무리: 이 차례로 돌려 가며 한두 마리씩 놓는 종 */
+  herds: readonly string[];
+  /** 마을 하늘을 셋씩 도는 무리 수 · 마을 둘레 하늘의 해파리 수 */
+  flocks: number;
+  jellies: number;
+}
+
+/** 지역의 테두리: 가장 가까운 마을 중심과 이루는 코사인이 from 에서 from + width 로 갈수록 그 지역이 된다(0 → 1) */
+export interface RegionEdge {
+  from: number;
+  width: number;
+}
+
+/** 생물(creatures): 어디에 몇 무리 — 마을마다 사는 종과 수는 지역(regions)이 정하고, 여기는 놓는 거리와 수 */
 export interface CreatureMap {
-  /** 출발하자마자 눈앞(이만큼 앞, m)에 첫 무리 */
+  /** 출발하자마자 눈앞(이만큼 앞, m)에 첫 무리 — 그날 축제 지역에 사는 첫 종이 firstHerd 마리 */
   firstHerdAhead: number;
-  /** 마을마다 땅 위 무리 */
-  herds: HubScatter;
+  firstHerd: number;
+  /** 마을마다 땅 위 무리를 놓는 자리 찾기(수는 지역의 herds — 축제 지역은 festival 배) */
+  herds: Omit<HubScatter, "perHub">;
+  festival: number;
   /** 떠도는 무리(내가 멀어지면 내 앞쪽 먼 곳으로 옮겨 간다): 땅 위·하늘·해파리 */
   roaming: { herds: number; flocks: number; jellies: number };
-  /** 마을 하늘을 셋씩 도는 무리: 마을마다 수 · 마을 중심에서 거리(자리표 거리) */
-  townFlocks: { perHub: number; dist: Span };
+  /** 마을 하늘을 셋씩 도는 무리(수는 지역의 flocks): 마을 중심에서 거리(자리표 거리) */
+  townFlocks: { dist: Span };
   /** 호수마다 헤엄치는 수 */
   perLake: number;
-  /** 해파리: 정해 둔 자리([자리표 거리, 방향]) · 마을마다 수 · 마을 중심에서 거리(자리표 거리) */
-  jellies: { at: readonly (readonly [number, number])[]; perHub: number; dist: Span };
+  /** 해파리: 정해 둔 자리([자리표 거리, 방향]) · 마을 중심에서 거리(자리표 거리, 마을마다 수는 지역의 jellies) */
+  jellies: { at: readonly (readonly [number, number])[]; dist: Span };
   /** 전설의 손님: 종 키 → 자리. 온 행성에 이 자리뿐이고 옮기지 않는다(종은 설정표에 legend 가 있어야 한다) */
   legends: Readonly<Record<string, readonly LegendSpot[]>>;
 }
@@ -111,6 +153,9 @@ export interface GameMap {
   zones: readonly MapZone[];
   /** 자리표: 장소·랜드마크·키 큰 나무·호수·놀이기구·큰 언덕(첫째는 등대 산)·마을 중심 */
   layout: Layout;
+  /** 지역(마을과 같은 차례) — 색·윤곽·사는 생물. 날마다 한 지역씩 축제 지역이 된다(출발지·생물 두 배) */
+  regions: readonly MapRegion[];
+  regionEdge: RegionEdge;
   /** 높은 하늘의 제트 기류(자리표의 오로라 길 jet 앞에 놓인다) */
   skyJets: readonly LayoutJet[];
   /** 장소 곁 생물 자리 공 */

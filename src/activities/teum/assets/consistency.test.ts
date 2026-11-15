@@ -7,25 +7,24 @@ import { AVATAR_BODY, AVATAR_COMPANION, PARTS } from "../game/avatar/parts";
 import { MAPS } from "../game/maps";
 import { CATALOG, RETIRED } from "../tools/catalog.mjs";
 import { ASSET_VERSION } from "./config";
-import manifestJson from "./manifest.v2.json";
+import manifestJson from "./manifest.v3.json";
 import {
-  BACKGROUND_MUSIC,
   BIG_FLOWERS,
   CREATURES,
   MODEL_STRIPES,
   MODEL_TINT,
   SCULPTURES,
-  SOUND_EFFECTS,
   TREE_CROWN_BASE,
 } from "./settings";
 
-// 배포본 manifest(올린 v2 와 같은 사본)와 분류표·코드가 서로 맞는지 본다
+// 배포본 manifest(v3 사본)와 분류표·코드가 서로 맞는지 본다
 
 /** 올라가 있지만 일부러 받지 않는 에셋과 그 까닭 */
 const INTENTIONALLY_UNUSED: Record<string, string> = {
   ferris:
     "관람차 자리는 이 키가 있는지만 보고, 모양은 받침(ferris_stand)과 바퀴(ferris_wheel)로 따로 세운다",
   lime_half: "라임 반쪽은 놓는 자리가 없다(빛나는 라임 규칙에만 이름이 있다)",
+  snd_wind: "바람 반복음은 '숨소리 같다'는 지적으로 꺼 두었다(시제품 v67 — 자리만)",
 };
 
 const assets: Record<string, { category: string; box?: number[] }> = manifestJson.assets;
@@ -93,9 +92,10 @@ function referencedKeys(): Set<string> {
     ...maps.flatMap((m) => m.layout.site.map((s) => s.k)).filter((k) => k !== "ferris"),
     ...maps.flatMap((m) => m.layout.tree.map((t) => t.t)),
     ...maps.flatMap((m) => m.brand.objects.map((b) => b.key)),
-    ...Object.values(SOUND_EFFECTS).map((sound) => sound.key),
-    ...(BACKGROUND_MUSIC ? [BACKGROUND_MUSIC.key] : []),
   ]);
+  // 소리 표(assets/settings 의 소리 규칙)에 글자 그대로 적은 소리 키(snd_…)
+  const settingsText = fs.readFileSync(path.join(__dirname, "settings.ts"), "utf8");
+  for (const m of settingsText.matchAll(/"(snd_\w+)"/g)) keys.add(m[1]);
   // 모델 창구(models.fit·inst·batch·has·when·swapWhenReady·motionOf)와 장소 모델(placeModel)에 글자 그대로 넘긴 키.
   // 생물은 설정 표(CREATURES)의 키가 곧 에셋 키다
   const CALL =

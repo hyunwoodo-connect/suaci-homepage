@@ -16,10 +16,13 @@ import { Fx } from "./fx/fx";
 import { Petals } from "./fx/petals";
 import { Ripples } from "./fx/ripples";
 import { Hud } from "./hud";
+import { Landmarks } from "./landmarks/landmarks";
 import { Mats } from "./look";
 import type { GameMap } from "./maps/map";
 import { cloneLayout } from "./maps/map";
 import { ModelLibrary } from "./models/library";
+import { Progress } from "./progress/progress";
+import { LocalSaveStore } from "./progress/store";
 import { CameraRig } from "./player/camera";
 import { Input } from "./player/input";
 import { Player } from "./player/player";
@@ -66,12 +69,15 @@ import { Ground } from "./world/ground";
 import { Lakes } from "./world/lakes";
 import { Occupancy } from "./world/occupancy";
 import { Places } from "./world/places";
+import { RegionLook } from "./world/regionLook";
+import { Regions } from "./world/regions";
 import { Sites } from "./world/sites";
 import { Sky } from "./world/sky";
 import { from } from "./world/sphere";
 import { createStage } from "./world/stage";
 import type { Stage } from "./world/stage";
 import { Terrain } from "./world/terrain";
+import { Today } from "./world/today";
 import { TerrainView } from "./world/terrainView";
 
 // 게임 한 판(조립하는 곳). 여기서만 정한다:
@@ -96,6 +102,8 @@ export class Game {
   // ---- 세계 위의 것들(시험·개발 창구가 읽는다) ----
   readonly ground: Ground;
   readonly sky: Sky;
+  /** 지금 지역의 하늘빛·안개(새 지역에 들어서면 알린다) */
+  readonly regionLook: RegionLook;
   readonly places: Places;
   readonly sites: Sites;
   readonly brand: BrandObjects;
@@ -137,6 +145,10 @@ export class Game {
   readonly bubbles: Bubbles;
   readonly babyLimes: BabyLimes;
   readonly sculptures: Sculptures;
+  /** 마을마다 말을 거는 랜드마크 */
+  readonly landmarks: Landmarks;
+  /** 이번 판의 기록(랜드마크가 다녀간 것을 남긴다 — 수집·상자·부탁은 구조만) */
+  readonly progress: Progress;
   readonly signature: Signature;
   readonly bubbleTrail: BubbleTrail;
   readonly director: Director;
@@ -154,8 +166,14 @@ export class Game {
   /** 이번 프레임(모두가 같은 값을 본다) */
   readonly frame: Frame = { dt: 0, time: 0 };
 
-  /** seed: 이번 판의 게임 난수 씨앗, map: 지을 지도(세계는 이 지도의 값만 보고 놓인다) */
-  constructor(canvas: HTMLCanvasElement, manifest: Manifest, seed: number, map: GameMap) {
+  /** seed: 이번 판의 게임 난수 씨앗, map: 지을 지도(세계는 이 지도의 값만 보고 놓인다), festival: 고정할 축제 지역(개발 ?fest, 없으면 날짜로) */
+  constructor(
+    canvas: HTMLCanvasElement,
+    manifest: Manifest,
+    seed: number,
+    map: GameMap,
+    festival: number | null = null,
+  ) {
     const stage = createStage(canvas);
     this.stage = stage;
     const scene = stage.scene;
@@ -170,18 +188,21 @@ export class Game {
     const models = new ModelLibrary(manifest, mats.lookU, scene);
     const fxRng = rng.fork("fx"),
       rippleRng = rng.fork("ripples");
+    const occ = new Occupancy();
     const s: Services = {
       scene,
       map,
       events,
       layout,
       terrain,
-      occ: new Occupancy(),
+      occ,
+      regions: new Regions(occ.hubs, map.regions, map.regionEdge),
+      today: new Today(events, map.regions.length, festival),
       culler: new Culler(scene, player),
       player,
       camera: new CameraRig(stage.camera, player, terrain),
-      fx: new Fx(scene, player, fxRng),
-      ripples: new Ripples(scene, rippleRng, terrain),
+      fx: new Fx(scene, player, fxRng, events),
+      ripples: new Ripples(scene, rippleRng, terrain, player, events),
       hud,
       models,
       mats,
@@ -192,9 +213,14 @@ export class Game {
       const hubV = from(h.dist, h.bear);
       s.occ.hubs.push(hubV);
     }
+    // 물건 셰이더가 보는 지역: 마을 중심·색상 돌림 각·테두리
+    mats.lookU.regionHub.value = s.occ.hubs;
+    mats.lookU.regionHue.value = map.regions.map((r) => THREE.MathUtils.degToRad(r.hue));
+    mats.lookU.regionEdge.value.set(map.regionEdge.from, map.regionEdge.width);
     // ---- 장면·땅·하늘 ----
     this.ground = new Ground(s);
     this.sky = new Sky(s, stage.sun);
+    this.regionLook = new RegionLook(s, this.sky);
     const places = new Places(s);
     this.places = places;
     this.sites = new Sites(s, places);
@@ -253,7 +279,9 @@ export class Game {
     s.camera.resize(stage.renderer);
     // ---- 놓기: 자리표 → 행성 위 자리 ----
     this.layoutWorld();
-    player.goHome();
+    // 출발은 오늘의 축제 지역 마을에서
+    const startHub = s.occ.hubs[s.today.festival];
+    player.goHome(startHub);
     this.thermals.usePetals(this.petals);
     this.streams.usePetals(this.petals);
     // ---- 모델 자리와 풍경(모델을 받기 전에 배치를 끝낸다) ----
@@ -274,6 +302,9 @@ export class Game {
     this.babyLimes = new BabyLimes(s, this.footsteps);
     this.sculptures = new Sculptures(s, this.trees, this.cannons);
     this.whale.choosePath([this.trees, this.bigFlowers, this.sculptures, this.sites]);
+    const store = new LocalSaveStore();
+    this.progress = new Progress(store);
+    this.landmarks = new Landmarks(s, this.sculptures.landmarks, this.progress);
     this.signature = new Signature(s, lawn, this.sites, this.rockets);
     this.bubbleTrail = new BubbleTrail(s);
     this.creatures = new Creatures(s, {
@@ -295,6 +326,7 @@ export class Game {
     // ---- 한 프레임의 순서 ----
     const { camera, fx, ripples, culler } = s;
     this.frameOrder = [
+      s.today,
       () => fx.begin(),
       this.lakes.clock,
       () => player.begin(this.frame.dt, this.input.read()),
@@ -323,6 +355,7 @@ export class Game {
       this.rockets,
       this.thermals,
       this.wings,
+      this.funnels.floor,
       this.comet,
       this.jets,
       this.holes,
@@ -349,11 +382,13 @@ export class Game {
       this.bubbleTrail,
       this.director,
       this.creatures,
+      this.regionLook,
       places,
       this.clouds,
       places.lighthouse,
       hud,
       camera,
+      this.landmarks,
       places.spots,
       ripples,
       this.flowers,

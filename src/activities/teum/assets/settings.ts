@@ -1,4 +1,4 @@
-import type { GameEventName } from "../game/events";
+import type { GameEventMap, GameEventName, RideName } from "../game/events";
 
 // 에셋 종류마다의 설정. 시제품 곳곳에 있던 표(KIND·BAKE·SP·색조 tint·줄무늬 pat·조형물 목록)를 한곳에 모았다.
 // 생물·조형물을 늘릴 때: 파일을 raw/ 에 넣고 → tools/catalog.mjs 에 한 줄 → 여기 표에 한 줄.
@@ -239,20 +239,106 @@ export function sculptureKeys(size: SculptureSetting["size"]): string[] {
 /** 소리 채널: 배경 음악(bgm)과 효과음(sfx) — 크기를 따로 정한다 */
 export type SoundChannel = "bgm" | "sfx";
 
-/** 소리 하나: manifest 의 소리 에셋 키(분류 audio/…)와 크기(0..1, 없으면 1) */
-export interface SoundSetting {
+/**
+ * 소리 한 번: manifest 의 소리 에셋 키(분류 audio/…), 크기(0..1, 없으면 0.6), 빠르기(음높이 — 수 하나 또는 [가장 낮게, 가장 높게] 사이 아무거나),
+ * 같은 소리를 다시 내기까지 쉬는 시간(초, 없으면 0.05), 늦게 내기(초)
+ */
+export interface SoundCue {
   key: string;
   volume?: number;
+  rate?: number | readonly [number, number];
+  gap?: number;
+  delay?: number;
 }
 
-/**
- * 일어난 일(game/events) → 효과음. 기획이 정하면 한 줄씩 채운다.
- * 비어 있으면(그리고 배경 음악도 없으면) 아무 소리도 받지 않고, 소리 끄기 단추도 보이지 않는다
- */
-export const SOUND_EFFECTS: Readonly<Partial<Record<GameEventName, SoundSetting>>> = {};
+/** 일어난 일 하나에 낼 소리: 늘 같은 소리, 여러 소리, 또는 그 일의 값을 보고 고르는 규칙(null 이면 소리 없음) */
+export type SoundRule<K extends GameEventName> =
+  | SoundCue
+  | readonly SoundCue[]
+  | ((payload: GameEventMap[K]) => SoundCue | readonly SoundCue[] | null);
 
-/** 배경 음악(되풀이). 정하기 전에는 null */
-export const BACKGROUND_MUSIC: SoundSetting | null = null;
+/** 일어난 일 → 소리 */
+export type SoundTable = { readonly [K in GameEventName]?: SoundRule<K> };
+
+/** 놀이기구가 붙잡을 때(시제품 v78 자리) — 미끄럼틀은 소리 없음 */
+const GRAB_SOUND: Readonly<Partial<Record<RideName, SoundCue>>> = {
+  rocket: { key: "snd_rocket", volume: 0.6 },
+  cannon: { key: "snd_cannon", volume: 0.7 },
+  funnel: { key: "snd_rail", volume: 0.5, rate: 0.75 },
+  whirl: { key: "snd_up", volume: 0.5, rate: 0.7 },
+  whale: { key: "snd_whale", volume: 0.6 },
+  comet: { key: "snd_legend", volume: 0.4, rate: 0.8 },
+  swing: { key: "snd_boing", volume: 0.4, rate: 1.2 },
+  hole: { key: "snd_palin", volume: 0.6, rate: 0.7 },
+  sling: { key: "snd_up", volume: 0.5, rate: 1.3 },
+};
+
+/** 생물 인사: 몸 휘는 방식(motion)마다 소리, 두 발(5)은 통통 튀는 소리. 종마다 음높이가 조금씩 다르다 */
+const GREET_SOUND: Readonly<Record<number, string>> = {
+  1: "snd_quad",
+  2: "snd_swim",
+  3: "snd_wing",
+  4: "snd_jelly",
+};
+
+/**
+ * 일어난 일(game/events) → 효과음. 시제품 v78 의 소리 자리(CHANGES-v65-v78 4장)를 그대로 옮겼다 — 크기·음높이는 아직 다듬지 않았다.
+ * 바람 반복음(snd_wind)은 '숨소리 같다'는 지적으로 꺼 두었다(자리만 manifest 에)
+ */
+export const SOUND_EFFECTS: SoundTable = {
+  grabbed: ({ by }) => GRAB_SOUND[by] ?? null,
+  hung: { key: "snd_boing", volume: 0.5, rate: 1.5 },
+  railed: { key: "snd_rail", volume: 0.5 },
+  whaleNear: { key: "snd_whale", volume: 0.5, rate: 0.9, gap: 5 },
+  rose: { key: "snd_up", volume: 0.45, rate: [0.9, 1.15], gap: 0.5 },
+  landed: { key: "snd_boing", volume: 0.3, rate: 0.6, gap: 0.3 },
+  // 빛 방울이 튀는 모든 곳: 가까울수록 크게(45m 밖은 없음)
+  sparkled: ({ n, dist }) => {
+    if (n < 5 || dist > 45) return null;
+    const near = 1 - dist / 45;
+    return { key: "snd_ring", volume: 0.06 + 0.2 * near, rate: [0.8, 1.7], gap: 0.09 };
+  },
+  splashed: ({ dist }) =>
+    dist < 40 ? { key: "snd_splash", volume: 0.4, rate: [0.9, 1.2], gap: 0.25 } : null,
+  creatureMet: ({ kind, legend }) => {
+    if (legend) return { key: "snd_legend", volume: 0.6, gap: 2 };
+    const pitch = speciesPitch(kind),
+      motion = CREATURES[kind]?.motion ?? 1;
+    if (motion === 5) return { key: "snd_boing", volume: 0.45, rate: 1.3 + pitch * 0.08, gap: 0.2 };
+    return { key: GREET_SOUND[motion], volume: 0.5, rate: 0.82 + pitch * 0.07, gap: 0.2 };
+  },
+  landmarkTalked: { key: "snd_quad", volume: 0.5, rate: 0.55, gap: 0.3 },
+  regionEntered: { key: "snd_legend", volume: 0.35, rate: 1.2, gap: 3 },
+  // ---- 수집·상자·부탁·도장·이동(아직 알리는 곳이 없다 — 그 흐름이 생기면 바로 난다) ----
+  collected: { key: "snd_stamp", volume: 0.7 },
+  stamped: { key: "snd_stamp", volume: 0.7 },
+  boxPicked: { key: "snd_pick", volume: 0.7 },
+  boxOpened: ({ prize }) => [
+    { key: "snd_open", volume: 0.6 },
+    prize === "blank"
+      ? { key: "snd_blank", volume: 0.5, delay: 0.35, gap: 0.01 }
+      : prize === "physical"
+        ? { key: "snd_win", volume: 0.8, delay: 0.35, gap: 0.01 }
+        : { key: "snd_ring", volume: 0.5, delay: 0.35, gap: 0.01 },
+  ],
+  questDone: { key: "snd_win", volume: 0.7 },
+  travelled: { key: "snd_rocket", volume: 0.6 },
+};
+
+/** 배경 음악(되풀이) */
+export const BACKGROUND_MUSIC: SoundCue | null = { key: "snd_bgm", volume: 0.3 };
 
 /** 채널 크기(0..1) */
 export const SOUND_VOLUME: Readonly<Record<SoundChannel, number>> = { bgm: 1, sfx: 1 };
+
+/* ─── 내부 ─────────────────────────── */
+
+// 종 키마다 고정된 음높이 칸(0..7) — 시제품의 글자 해시
+function speciesPitch(kind: string): number {
+  let hash = 0;
+  for (let i = 0; i < kind.length; i++) {
+    const code = kind.charCodeAt(i);
+    hash = (hash * 31 + code) % 97;
+  }
+  return hash % 8;
+}

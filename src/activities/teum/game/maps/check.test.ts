@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
 
 import type { Manifest } from "../../assets/manifest";
-import manifestJson from "../../assets/manifest.v2.json";
+import manifestJson from "../../assets/manifest.v3.json";
 import { checkMap } from "./check";
 import { MAPS } from "./index";
 import type { GameMap } from "./map";
-import { V64_MAP } from "./v64";
+import { V78_MAP } from "./v78";
 
 // 지도 점검: 등록된 지도는 모두 깨끗하고, 흔한 실수(겹치게·물 위·행성 밖·없는 에셋·차례 바꿈)는 잡는다
 
 const manifest = manifestJson as unknown as Manifest;
 
-// v64 를 복사해 한 군데만 고친 지도
+// v78 을 복사해 한 군데만 고친 지도
 function edited(change: (m: GameMap) => void): GameMap {
-  const m = structuredClone(V64_MAP);
+  const m = structuredClone(V78_MAP);
   change(m);
   return m;
 }
