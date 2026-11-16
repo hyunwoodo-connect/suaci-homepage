@@ -5,6 +5,9 @@ import type { GameEventMap, GameEventName, GameEvents } from "./events";
 // 소리판: 알림판(events)을 듣고 표(소리 규칙)대로 소리를 낸다. manifest 에 소리가 없으면(옛 에셋 판) 아무것도 듣지 않는다.
 // - 브라우저는 사람이 건드리기 전에는 소리를 막는다 → 첫 터치·클릭·키에 소리를 연다(그 전의 일은 소리 없이 지나간다)
 // - 끄기는 이 기기에 기억한다. 꺼져 있거나 탭이 숨으면 소리 장치를 멈춘다(배터리)
+// - 아이폰은 무음 스위치를 켜 두면 웹 소리를 끈다 → 소리가 나는 동안은 소리 세션을 '재생'으로 두어 무음에서도 나게 한다(끄기는 게임의
+//   소리 단추로). 재생 세션은 다른 앱의 음악을 멈추므로, 끄거나 탭이 숨으면 세션을 기본으로 돌려 그 음악이 다시 돌 수 있게 한다.
+//   이 창구(navigator.audioSession)가 없는 브라우저(안드로이드·옛 사파리)는 그대로
 // - 채널 둘: 배경 음악(bgm)·효과음(sfx), 크기를 따로 둔다
 // - 소리 파일은 첫 화면과 같이 받지 않는다: 소리를 연 뒤에 받는다
 
@@ -102,6 +105,7 @@ export class SoundManager {
       this.applyState();
       return;
     }
+    setAudioSession("playback");
     const ctx = new AudioContext();
     this.ctx = ctx;
     const master = ctx.createGain();
@@ -123,6 +127,8 @@ export class SoundManager {
     const ctx = this.ctx;
     if (!ctx) return;
     const isSilent = this.muted || document.hidden;
+    const session = isSilent ? "auto" : "playback";
+    setAudioSession(session);
     if (isSilent && ctx.state === "running") void ctx.suspend();
     else if (!isSilent && ctx.state !== "running") void ctx.resume();
   }
@@ -221,4 +227,15 @@ function writeMuted(muted: boolean) {
     if (muted) localStorage.setItem(MUTED_KEY, "1");
     else localStorage.removeItem(MUTED_KEY);
   } catch {}
+}
+
+/** 사파리의 소리 세션(무음 스위치를 따를지 정한다) */
+interface AudioSessionNavigator {
+  audioSession?: { type: string };
+}
+
+// 소리 세션 종류를 바꾼다(창구가 없으면 아무것도 하지 않는다)
+function setAudioSession(type: "playback" | "auto") {
+  const session = (navigator as Navigator & AudioSessionNavigator).audioSession;
+  if (session && session.type !== type) session.type = type;
 }

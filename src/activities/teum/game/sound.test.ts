@@ -232,3 +232,38 @@ describe("SoundManager", () => {
     expect([ctx().state, ctx().started.length]).toEqual(["closed", 0]);
   });
 });
+
+describe("SoundManager 소리 세션(아이폰 무음 스위치)", () => {
+  it("소리를 열면 → 재생 세션(무음에서도 난다), 끄면 → 기본 세션, 다시 켜면 → 재생", () => {
+    const session = { type: "auto" };
+    Object.defineProperty(navigator, "audioSession", { configurable: true, value: session });
+    const { sound } = manager({});
+    touch();
+    const opened = session.type;
+    sound.setMuted(true);
+    const muted = session.type;
+    sound.setMuted(false);
+    expect([opened, muted, session.type]).toEqual(["playback", "auto", "playback"]);
+    sound.dispose();
+    Reflect.deleteProperty(navigator, "audioSession");
+  });
+
+  it("탭이 숨으면 → 기본 세션(다른 앱 음악이 다시 돌 수 있게)", () => {
+    const session = { type: "auto" };
+    Object.defineProperty(navigator, "audioSession", { configurable: true, value: session });
+    const { sound } = manager({});
+    touch();
+    hidden = true;
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(session.type).toBe("auto");
+    sound.dispose();
+    Reflect.deleteProperty(navigator, "audioSession");
+  });
+
+  it("창구가 없는 브라우저 → 그대로 소리를 연다", () => {
+    const { sound } = manager({});
+    touch();
+    expect(FakeAudioContext.made.length).toBe(1);
+    sound.dispose();
+  });
+});
