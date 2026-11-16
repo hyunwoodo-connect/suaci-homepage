@@ -69,6 +69,8 @@ export interface GameEventMap {
   landmarkTalked: { region: number };
   /** 한국 시간으로 날이 바뀌었다(festival: 새 축제 지역) */
   dayChanged: { day: number; festival: number };
+  /** 옷장에서 하나 골랐다(random: 아무거나 단추) */
+  outfitPicked: { random: boolean };
   // ---- 수집·상자·부탁·도장·이동(구조만 — 아직 알리는 곳이 없다. 기획이 정하면 그 흐름이 알린다) ----
   /** 처음 친해진 종이 보관함에 남았다 */
   collected: { kind: string };

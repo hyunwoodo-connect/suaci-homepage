@@ -61,6 +61,10 @@ export class ModelLibrary {
   /** 놓인 자리(첫 화면에 받을 모델을 고르는 데 쓴다): 틀, 여러 번 찍는 묶음, 한꺼번에 그리는 묶음의 자리 */
   private readonly holds: { k: string; hold: THREE.Object3D }[] = [];
   private readonly batchSpots: { k: string; spots: readonly THREE.Vector3[] }[] = [];
+  /** 첫 화면·뒤 받기 밖에서 필요해진 모델(갈아입는 부품)을 받아 오는 창구. 달기 전에 부탁한 것은 모아 둔다 */
+  private requester: ((k: string) => void) | null = null;
+  private readonly asked = new Set<string>();
+  private disposed = false;
 
   constructor(
     readonly manifest: Manifest,
@@ -79,6 +83,19 @@ export class ModelLibrary {
     const min = new THREE.Vector3(b[0], b[1], b[2]),
       max = new THREE.Vector3(b[3], b[4], b[5]);
     return new THREE.Box3(min, max);
+  }
+
+  /** 받아 오는 창구를 단다(게임을 시작할 때). 그 전에 부탁한 것도 이때 받는다 */
+  useRequester(fn: (k: string) => void) {
+    this.requester = fn;
+    for (const k of this.asked) if (!this.arrived.has(k)) fn(k);
+  }
+
+  /** 이 모델이 지금 필요하다: 아직 안 왔으면 받아 달라고 한 번 부탁한다 */
+  need(k: string) {
+    if (!this.has(k) || this.arrived.has(k) || this.asked.has(k)) return;
+    this.asked.add(k);
+    this.requester?.(k);
   }
 
   /** 모델이 오면(이미 왔으면 바로) cb */
@@ -107,6 +124,8 @@ export class ModelLibrary {
 
   /** 받은 모델을 넘긴다: 앞이 +x 를 보게 돌려 두고, 키의 재질을 한 번 칠하고, 기다리던 자리를 채운다 */
   deliver(k: string, root: THREE.Group) {
+    // 같은 키가 두 길(첫 화면·뒤 받기와 need)로 와도 한 번만, 치운 뒤에 온 것은 버린다
+    if (this.disposed || this.arrived.has(k)) return;
     const bake = MODEL_BAKE[k];
     if (bake) {
       const bakeTurn = new THREE.Euler(...bake),
@@ -245,6 +264,7 @@ export class ModelLibrary {
 
   /** 찍어 둔 묶음·한꺼번에 그리는 묶음을 치운다 */
   dispose() {
+    this.disposed = true;
     for (const I of this.instancers) I.dispose();
     for (const B of this.batches) B.dispose();
     for (const m of this.instMats.values()) m.dispose();

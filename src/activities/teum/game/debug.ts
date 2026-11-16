@@ -10,6 +10,7 @@ import type { GameMap } from "./maps/map";
 // ?seed=숫자: 게임 난수를 고정하고, 시제품과 같은지 보는 시험 창구(window.__teum.probe)를 건다.
 // ?map=이름: 그 지도로 짓는다(maps/index 의 목록). 운영은 늘 기본 지도.
 // ?fest=숫자: 오늘의 축제 지역을 그 지역으로 고정한다(운영은 늘 한국 시간 날짜로).
+// ?quick: 처음 온 사람에게 먼저 뜨는 꾸미기 씬을 건너뛴다.
 // 창구가 돌려주는 모양은 시제품 계측 사본과 같다(배치 목록·몸 상태·놀이기구 자리) — /tmp 의 비교 도구가 읽는다.
 // 지도 점검 명령(tools/map-check.sh)은 counts·firstScreen·check 를 읽는다
 
@@ -50,6 +51,12 @@ interface Probe {
 export function isDirectorOff(): boolean {
   if (process.env.NODE_ENV === "production") return false;
   return new URLSearchParams(location.search).has("nodir");
+}
+
+/** 시험용 주소 인자 ?quick: 처음 온 사람의 꾸미기 씬을 건너뛴다(세상부터 볼 때). 운영에선 늘 false */
+export function isStudioSkipped(): boolean {
+  if (process.env.NODE_ENV === "production") return false;
+  return new URLSearchParams(location.search).has("quick");
 }
 
 /** ?seed 가 있으면 그 씨앗(개발에서만). 없으면 null */

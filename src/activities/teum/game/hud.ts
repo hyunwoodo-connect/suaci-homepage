@@ -4,7 +4,9 @@ import type { Frame } from "./core/frame";
 // 소리가 생기면(낼 소리가 있을 때만) 오른쪽 위에 작은 소리 끄기 단추가 붙는다.
 // 랜드마크의 말은 아래 안내 줄이 아니라 그 랜드마크 위의 말풍선에 뜬다(안내 줄은 놀이기구 안내만)
 
-const FONT = '-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif';
+/** 게임 위 글자의 글꼴(옷장도 같이 쓴다) */
+export const HUD_FONT =
+  '-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif';
 
 // 소리 끄기 단추 그림(스피커 — 켜짐은 소리 물결, 꺼짐은 ×)
 const SPEAKER = '<path d="M4 9.5h3.2L12 5.5v13l-4.8-4H4z" fill="currentColor"/>';
@@ -39,7 +41,7 @@ export class Hud {
       bottom: "calc(22px + env(safe-area-inset-bottom))",
       textAlign: "center",
       fontSize: "13px",
-      fontFamily: FONT,
+      fontFamily: HUD_FONT,
       // 진한 바탕(초현실 팝)에서는 안내 글자를 희게
       color: "#fff",
       textShadow: "0 1px 4px rgba(0,0,0,.4)",
@@ -80,7 +82,7 @@ export class Hud {
       padding: "9px 13px",
       fontSize: "13px",
       lineHeight: "1.45",
-      fontFamily: FONT,
+      fontFamily: HUD_FONT,
       color: "#2b2e2d",
       boxShadow: "0 3px 14px rgba(0,0,0,.12)",
       opacity: "0",
@@ -176,6 +178,12 @@ export class Hud {
   /** 말풍선을 숨긴다 */
   hideTalk() {
     this.talk.style.opacity = "0";
+  }
+
+  /** 꾸미기 씬 동안은 안내 줄·말풍선·소리 단추를 숨긴다(씬을 닫으면 돌아온다) */
+  setStudio(on: boolean) {
+    const display = on ? "none" : "";
+    for (const el of [this.hint, this.talk, this.mute]) if (el) el.style.display = display;
   }
 
   /** 지금 말풍선의 글(시험 창구가 읽는다) */

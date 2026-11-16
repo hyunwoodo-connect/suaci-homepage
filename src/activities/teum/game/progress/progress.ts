@@ -8,9 +8,11 @@ import type { SaveStore } from "./store";
 export class Progress {
   /** 지금 기록(읽기 전에는 빈 기록) */
   save: TeumSave = emptySave();
+  /** 기록을 다 읽었다(읽지 못했어도 빈 기록으로 끝난다) */
+  readonly ready: Promise<void>;
 
   constructor(private readonly store: SaveStore) {
-    void store.load().then((loaded) => {
+    this.ready = store.load().then((loaded) => {
       this.save = loaded;
     });
   }

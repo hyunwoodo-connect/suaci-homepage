@@ -7,7 +7,7 @@ import type { Services } from "../services";
 import { LIME, S } from "../settings";
 import { clamp, FWD } from "../world/sphere";
 import { AVATAR_COMPANION } from "./parts";
-import type { PoseFn, PoseInput } from "./rig";
+import type { PoseFn, PoseInput, RigHandle } from "./rig";
 import { setupRig } from "./rig";
 
 // 나: 자리(me)와 기울기(tiltG) 안에 몸. 뼈대 있는 아바타가 오기 전까지는 도형 몸과 라임 공 고양이가 대신 선다.
@@ -36,6 +36,9 @@ export class Avatar implements Thing {
   private catModel: Hold | null = null;
   private tilt = 0;
   private pose: PoseFn | null = null;
+  /** 뼈대 있는 몸(오기 전에는 null) */
+  private rig: RigHandle | null = null;
+  private readonly rigWaiting: ((rig: RigHandle) => void)[] = [];
   private readonly poseIn: PoseInput = { dt: 0, tot: 0, vy: 0, air: 0, fx: 0, time: 0 };
 
   /** 내 도형 몸·고양이·그림자를 만든다(등의 날개도 같이 단다) */
@@ -76,8 +79,10 @@ export class Avatar implements Thing {
   /** 뼈대 있는 몸과 고양이 모델 자리(받기 전에 끼울 틀을 둔다) */
   fitModels() {
     const { models } = this.s;
-    setupRig(this.s, this, (pose) => {
-      this.pose = pose;
+    setupRig(this.s, this, (rig) => {
+      this.pose = rig.pose;
+      this.rig = rig;
+      for (const cb of this.rigWaiting.splice(0)) cb(rig);
     });
     if (!models.has(AVATAR_COMPANION)) return;
     const C = models.fit(AVATAR_COMPANION, 0.48, "h", { ownLime: true });
@@ -86,6 +91,12 @@ export class Avatar implements Thing {
     models.swapWhenReady(AVATAR_COMPANION, [this.catPrim]);
     C.userData.uLime.value = 0.55; // 고양이는 어느 색에서도 라임
     this.catModel = C;
+  }
+
+  /** 뼈대 있는 몸이 오면(이미 왔으면 바로) cb — 부품을 끼우는 쪽(옷장)이 쓴다 */
+  whenRig(cb: (rig: RigHandle) => void) {
+    if (this.rig) cb(this.rig);
+    else this.rigWaiting.push(cb);
   }
 
   /** 나를 이번 프레임 자리에 놓는다: 둥실(자리는 Player.place), 앞을 보고, 빠를수록 눕고, 대포·구멍에선 작아진다. 그림자도 */

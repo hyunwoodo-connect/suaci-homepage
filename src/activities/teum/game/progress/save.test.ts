@@ -34,6 +34,22 @@ describe("readSave", () => {
   });
 });
 
+describe("readSave · 차림", () => {
+  it("차림이 없던 기록 → look 은 null, 꾸미기 씬은 안 지남", () => {
+    const save = readSave({ v: 1, boxes: 1 });
+    expect(save.look).toBeNull();
+    expect(save.dressed).toBe(false);
+  });
+
+  it("차림은 표에 있는 값만, 꾸미기 씬을 지난 것은 true 일 때만", () => {
+    const save = readSave({ v: 1, look: { top: "stripe", face: "nope" }, dressed: 1 });
+    expect(save.look?.top).toBe("stripe");
+    expect(save.look?.face).toBe("glass_heart");
+    expect(save.dressed).toBe(false);
+    expect(readSave({ v: 1, dressed: true }).dressed).toBe(true);
+  });
+});
+
 describe("SaveStore", () => {
   it("LocalSaveStore: 쓴 것을 다시 읽는다(suaci.teum.save 칸)", async () => {
     const store = new LocalSaveStore();

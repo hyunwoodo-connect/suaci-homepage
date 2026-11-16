@@ -3,11 +3,12 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { AVATAR_BODY, AVATAR_COMPANION, PARTS } from "../game/avatar/parts";
+import { PRINTS, printKey } from "../game/avatar/outfit";
+import { AVATAR_BODY, AVATAR_COMPANION, PARTS, thumbKey } from "../game/avatar/parts";
 import { MAPS } from "../game/maps";
 import { CATALOG, RETIRED } from "../tools/catalog.mjs";
 import { ASSET_VERSION } from "./config";
-import manifestJson from "./manifest.v3.json";
+import manifestJson from "./manifest.v4.json";
 import {
   BIG_FLOWERS,
   CREATURES,
@@ -17,7 +18,7 @@ import {
   TREE_CROWN_BASE,
 } from "./settings";
 
-// 배포본 manifest(v3 사본)와 분류표·코드가 서로 맞는지 본다
+// 배포본 manifest(v4 사본)와 분류표·코드가 서로 맞는지 본다
 
 /** 올라가 있지만 일부러 받지 않는 에셋과 그 까닭 */
 const INTENTIONALLY_UNUSED: Record<string, string> = {
@@ -28,8 +29,9 @@ const INTENTIONALLY_UNUSED: Record<string, string> = {
 };
 
 const assets: Record<string, { category: string; box?: number[] }> = manifestJson.assets;
-/** 모델이 아닌 분류(하늘 그림·소리) — 크기 상자가 없다 */
-const isModel = (category: string) => category !== "sky" && !category.startsWith("audio/");
+/** 모델이 아닌 것(하늘 그림·소리·옷 무늬·옷장 칸 그림) — 크기 상자가 없다 */
+const isModel = (key: string, category: string) =>
+  category !== "sky" && !category.startsWith("audio/") && !CATALOG[key]?.image;
 const GAME_DIR = path.resolve(__dirname, "../game");
 
 describe("manifest 사본", () => {
@@ -49,7 +51,7 @@ describe("manifest 사본", () => {
 
   it("모든 모델 → 배치에 쓸 크기 상자(6개 숫자)가 있다", () => {
     for (const [k, a] of Object.entries(assets)) {
-      if (!isModel(a.category)) continue;
+      if (!isModel(k, a.category)) continue;
       expect(a.box?.length, k).toBe(6);
     }
   });
@@ -84,6 +86,8 @@ function referencedKeys(): Set<string> {
     AVATAR_BODY,
     AVATAR_COMPANION,
     ...Object.keys(PARTS),
+    ...Object.keys(PARTS).map(thumbKey),
+    ...PRINTS.map(printKey),
     ...Object.keys(CREATURES),
     ...Object.keys(SCULPTURES),
     ...Object.keys(TREE_CROWN_BASE),

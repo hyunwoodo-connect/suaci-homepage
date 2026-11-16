@@ -24,10 +24,17 @@ export class Input {
   private readonly keys = new Set<string>();
   private readonly intent: Intent = { fx: 0, fy: 0, m: 0, dragFx: 0 };
   private readonly detachAll: () => void;
+  /** 꾸미기 씬처럼 게임 입력을 막은 동안(끌기·방향키를 읽지 않는다) */
+  private held = false;
+  /** 끌기 동그라미를 숨긴다 */
+  private readonly hideStick: () => void;
 
   /** onTap: 짧게 톡 친 화면 좌표 */
   constructor(canvas: HTMLCanvasElement, hud: Hud, onTap: (x: number, y: number) => void) {
     const { stick, knob } = hud;
+    this.hideStick = () => {
+      stick.style.display = knob.style.display = "none";
+    };
     const onMenu = (e: Event) => e.preventDefault();
     const onDown = (e: PointerEvent) => {
       if (this.id !== null) return;
@@ -73,6 +80,7 @@ export class Input {
       stick.style.display = knob.style.display = "none";
     };
     const onKeyDown = (e: KeyboardEvent) => {
+      if (this.held) return;
       const k = e.key.toLowerCase();
       this.keys.add(k);
     };
@@ -98,8 +106,24 @@ export class Input {
     };
   }
 
-  /** 이번 프레임의 끌기(방향키가 눌려 있으면 방향키) */
+  /** 게임 입력을 막거나 푼다. 막을 때 끌던 것은 놓는다 */
+  hold(on: boolean) {
+    this.held = on;
+    if (!on) return;
+    this.id = null;
+    this.drag = false;
+    this.dm = 0;
+    this.keys.clear();
+    this.hideStick();
+  }
+
+  /** 이번 프레임의 끌기(방향키가 눌려 있으면 방향키). 막은 동안은 가만히 */
   read(): Intent {
+    if (this.held) {
+      const still = this.intent;
+      still.fx = still.fy = still.m = still.dragFx = 0;
+      return still;
+    }
     const keys = this.keys;
     const right = keys.has("arrowright") || keys.has("d") ? 1 : 0,
       left = keys.has("arrowleft") || keys.has("a") ? 1 : 0,

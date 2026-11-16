@@ -1,5 +1,9 @@
+import type { AvatarLook } from "../avatar/outfit";
+import { readLook } from "../avatar/outfit";
+
 // 한 사람의 '틈' 기록(구조만 — 수집·상자·부탁·도장의 화면과 보상은 아직 정하지 않았다).
-// 모양은 시제품 v78 스케치(CHANGES-v65-v78 3장)와 같고, 판(v)이 있어 모양이 바뀌면 옮겨 읽는다.
+// 모양은 시제품 v78 스케치(CHANGES-v65-v78 3장)와 같고, v82 에서 아바타 차림(look)과 꾸미기 씬을 지났는지(dressed)가 늘었다.
+// 판(v)이 있어 모양이 바뀌면 옮겨 읽는다(칸을 더하기만 한 것은 판을 올리지 않는다 — 없던 칸은 빈 값으로 읽는다).
 // 저장하는 곳(store)과 뽑기·판정(judge)은 따로 둔다 — 지금은 이 기기, 실물 보상이 걸리면 서버로 바꾼다
 
 /** 저장 모양의 판 */
@@ -55,6 +59,10 @@ export interface TeumSave {
   bonusDay: number | null;
   /** 오늘의 부탁(없으면 null) */
   quest: QuestState | null;
+  /** 아바타 차림(한 번도 고르지 않았으면 null) */
+  look: AvatarLook | null;
+  /** 꾸미기 씬을 한 번 지났나(지나기 전에는 세상보다 꾸미기 씬이 먼저 뜬다) */
+  dressed: boolean;
 }
 
 /** 빈 기록 */
@@ -69,6 +77,8 @@ export function emptySave(): TeumSave {
     stamps: { w: -1, d: [] },
     bonusDay: null,
     quest: null,
+    look: null,
+    dressed: false,
   };
 }
 
@@ -98,6 +108,8 @@ export function readSave(raw: unknown): TeumSave {
   }
   if (isNumber(raw.bonusDay)) out.bonusDay = raw.bonusDay;
   out.quest = readQuest(raw.quest);
+  if (isRecord(raw.look)) out.look = readLook(raw.look);
+  out.dressed = raw.dressed === true;
   return out;
 }
 

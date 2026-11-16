@@ -1,0 +1,199 @@
+import * as THREE from "three";
+
+import type { Avatar } from "../avatar/avatar";
+import type { LookTab } from "../avatar/outfit";
+import { PRINTS, STUDIO_BG } from "../avatar/outfit";
+import { PARTS } from "../avatar/parts";
+import type { Wardrobe } from "../avatar/wardrobe";
+import type { Frame, Thing } from "../core/frame";
+import { ease } from "../core/frame";
+import type { Input } from "../player/input";
+import type { Services } from "../services";
+import { Closet } from "./closet";
+
+// 꾸미기 씬(스튜디오): 세상을 가리고 단색 배경 앞에 아바타만 세운다.
+// 열면 카메라가 아바타만 올린 층(STUDIO_LAYER)을 본다 — 물건을 숨기는 방식이 아니라서 게임이 visible 을 건드려도 영향이 없다.
+// 배경은 윗옷 무늬에 맞춘 단색, 무대를 밀면 카메라가 아바타 둘레를 돌고, 고를 때마다 저절로 조금(4분의 1 바퀴쯤) 돈다.
+// 처음 온 사람(꾸미기 씬을 지난 적 없는 사람)은 세상보다 여기를 먼저 본다.
+// 프레임 차례: 따라가는 카메라 다음 — 열려 있는 동안 카메라 자리를 덮어쓴다
+
+/** 아바타·부품·바닥 원판·빛만 올리는 층 */
+const STUDIO_LAYER = 1;
+/** 미는 만큼 도는 각(라디안/px) */
+const TURN_PER_PX = 0.012;
+/** 고를 때·아무거나 누를 때 도는 빠르기(라디안/초) — 줄어들며 빠르기/SPIN_DAMP 라디안만큼 돈다 */
+const PICK_SPIN = 7,
+  SHUFFLE_SPIN = 9;
+/** 도는 빠르기가 줄어드는 비율(초당), 배경색이 따라가는 빠르기 */
+const SPIN_DAMP = 4.5,
+  BG_FOLLOW = 8;
+/** 카메라 거리: 세로 화면은 조금 더 멀리(옷장이 아래를 가린다) */
+const CAM_DIST_TALL = 3.7,
+  CAM_DIST_WIDE = 3.5;
+
+const right = new THREE.Vector3(),
+  aim = new THREE.Vector3();
+
+/** 꾸미기 씬 */
+export class Studio implements Thing {
+  private open = false;
+  private angle = 0;
+  private spin = 0;
+  private readonly bg = new THREE.Color();
+  private readonly bgTarget = new THREE.Color();
+  /** 열기 전 세상의 배경색(닫으면 돌려 놓는다) */
+  private readonly worldBg = new THREE.Color();
+  private readonly floor: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
+  private readonly closet: Closet;
+  private hold: THREE.Group | null = null;
+
+  /** urlOf: 에셋 키 → 받을 주소(옷장 칸 그림) */
+  constructor(
+    private readonly s: Services,
+    private readonly avatar: Avatar,
+    private readonly wardrobe: Wardrobe,
+    private readonly input: Input,
+    parent: HTMLElement,
+    urlOf: (key: string) => string | null,
+  ) {
+    const floorGeometry = new THREE.CircleGeometry(1.15, 40),
+      floorMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false });
+    this.floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    this.floor.rotation.x = -Math.PI / 2;
+    this.floor.layers.set(STUDIO_LAYER);
+    this.floor.visible = false;
+    avatar.tiltG.add(this.floor);
+    // 빛도 층을 따진다 — 아바타를 비추는 빛을 씬 층에도 올린다
+    s.scene.traverse((c) => {
+      if (c instanceof THREE.Light) c.layers.enable(STUDIO_LAYER);
+    });
+    avatar.whenRig((rig) => {
+      this.hold = rig.hold;
+    });
+    this.closet = new Closet(parent, urlOf, {
+      onOpen: () => this.show(true),
+      onDone: () => this.show(false),
+      onPick: (tab, value) => this.pick(tab, value),
+      onUndo: () => {
+        if (!this.wardrobe.undo()) return;
+        this.followLook();
+      },
+      onShuffle: () => {
+        this.wardrobe.shuffle();
+        this.spin = SHUFFLE_SPIN;
+        this.followLook();
+        s.events.emit("outfitPicked", { random: true });
+      },
+      onTurn: (dx) => {
+        this.angle -= dx * TURN_PER_PX;
+        this.closet.hideTip();
+      },
+    });
+  }
+
+  /** 열려 있나 */
+  get isOpen(): boolean {
+    return this.open;
+  }
+
+  /** 꾸미기 씬을 지난 적 없는 사람에게 세상보다 먼저 연다(skip: 개발용 ?quick) */
+  greetNewcomer(skip: boolean) {
+    if (skip) return;
+    void this.wardrobe.ready.then(() => {
+      if (this.wardrobe.hasDressed) return;
+      this.avatar.whenRig(() => this.show(true));
+    });
+  }
+
+  /** 열고 닫는다. 닫으면 꾸미기 씬을 지났다고 기록한다 */
+  show(on: boolean) {
+    if (on === this.open) return;
+    this.open = on;
+    const { scene, hud, camera, models } = this.s;
+    const cam = camera.camera,
+      background = scene.background as THREE.Color;
+    hud.setStudio(on);
+    this.input.hold(on);
+    this.floor.visible = on;
+    if (on) {
+      this.angle = 0.35;
+      this.spin = 0;
+      this.wardrobe.clearHistory();
+      this.worldBg.copy(background);
+      const bg = this.bgFor();
+      this.bgTarget.set(bg);
+      this.bg.copy(this.bgTarget);
+      cam.layers.set(STUDIO_LAYER);
+      // 고르는 순간 바로 입게 옷장의 부품·무늬를 미리 받아 둔다
+      for (const k of Object.keys(PARTS)) models.need(k);
+      this.wardrobe.prefetchPrints(PRINTS);
+    } else {
+      cam.layers.set(0);
+      background.copy(this.worldBg);
+      this.wardrobe.markDressed();
+    }
+    this.closet.show(on, this.wardrobe.look);
+  }
+
+  /** 열려 있으면 카메라를 아바타 둘레에 두고 배경을 칠한다 */
+  update(f: Frame) {
+    if (!this.open) return;
+    const { player, scene, camera } = this.s;
+    // 끼운 부품은 나중에 붙으므로 매 프레임 층을 올린다(몸·부품 수십 개라 가볍다)
+    this.hold?.traverse((c) => c.layers.enable(STUDIO_LAYER));
+    this.floor.position.y = this.wardrobe.look.board ? -1.0 : -0.78;
+    this.angle += this.spin * f.dt;
+    const damp = -SPIN_DAMP * f.dt,
+      follow = ease(BG_FOLLOW, f.dt);
+    this.spin *= Math.exp(damp);
+    this.bg.lerp(this.bgTarget, follow);
+    (scene.background as THREE.Color).copy(this.bg);
+    this.floor.material.color.copy(this.bg).multiplyScalar(0.86);
+    // 얼굴 앞(h)에서 옆(right)으로 angle 만큼 돈 자리. 세로 화면은 아래 옷장 몫만큼 아바타를 위로 올려 보이게 조금 아래를 본다
+    const cam = camera.camera,
+      P = player.P,
+      up = player.p,
+      ahead = player.h,
+      isTall = innerHeight > innerWidth,
+      d = isTall ? CAM_DIST_TALL : CAM_DIST_WIDE,
+      front = d * Math.cos(this.angle),
+      side = d * Math.sin(this.angle);
+    right.crossVectors(ahead, up).normalize();
+    cam.position
+      .copy(P)
+      .addScaledVector(ahead, front)
+      .addScaledVector(right, side)
+      .addScaledVector(up, 0.05);
+    cam.up.copy(up);
+    const drop = isTall ? -0.68 : -0.62;
+    aim.copy(P).addScaledVector(up, drop);
+    cam.lookAt(aim);
+  }
+
+  dispose() {
+    this.closet.dispose();
+    this.floor.removeFromParent();
+    this.floor.geometry.dispose();
+    this.floor.material.dispose();
+  }
+
+  /* ─── 내부 ─────────────────────────── */
+
+  private pick(tab: LookTab, value: string) {
+    this.wardrobe.pick(tab, value);
+    this.spin = PICK_SPIN;
+    this.followLook();
+    this.s.events.emit("outfitPicked", { random: false });
+  }
+
+  // 차림이 바뀌면 배경색과 옷장 칸을 따라 바꾼다
+  private followLook() {
+    const bg = this.bgFor();
+    this.bgTarget.set(bg);
+    this.closet.draw(this.wardrobe.look);
+  }
+
+  private bgFor(): string {
+    return STUDIO_BG[this.wardrobe.look.top] ?? STUDIO_BG[""];
+  }
+}

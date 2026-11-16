@@ -8,7 +8,8 @@ import { LOOK } from "../look";
 // 모델 재질의 톤 셰이더: 채도·색조·줄무늬·라임 물들기, 그리고 생물·날개는 뼈대 없이 몸을 휜다
 // (1 네발 걸음·고갯짓, 2 꼬리 헤엄, 3 날갯짓, 4 해파리 갓과 촉수, 5 두 발).
 // 같은 키의 모델은 재질 하나를 같이 쓴다. 몸 휘기 값(uAn)·라임(uLime)이 저마다 다른 것은 여러 개를 한 번에 그리는 묶음(batch)으로
-// 그리고, 그때는 같은 값이 인스턴스마다의 속성(aAn·aLime)으로 온다 — 셰이더 갈래는 이 둘뿐이다
+// 그리고, 그때는 같은 값이 인스턴스마다의 속성(aAn·aLime)으로 온다 — 셰이더 갈래는 이 둘뿐이다.
+// 아바타 몸만 하나 더: 몸과 옷이 한 덩어리인 모델이라 옷 자리를 색으로 가려 무늬·색을 덮는다(OUTFIT_GLSL)
 
 /** 몸 휘기 값: x 고유 위상, y 걸음 위상, z 움직임 세기, w 고개 */
 export interface MotionUniforms {
@@ -61,6 +62,7 @@ export function styleModel(mat: THREE.MeshStandardMaterial, o: ModelLookOptions)
   }
   if (o.batch) mat.defines = { ...mat.defines, [BATCH_DEFINE]: "" };
   const { uAn, uAk, uAx } = o.motion;
+  const isBody = o.key === AVATAR_BODY;
   // 지역 색: 물건이 선 자리의 지역 색으로 색상을 돌린다(나·고래는 돌리지 않는다, 생물은 몸 휘기 uAk 로 셰이더가 뺀다)
   const uRegK = { value: REGION_FREE.has(o.key) ? 0 : 1 };
   // 지역 수는 셰이더를 만들 때 센다(그 전에 지도가 마을을 채운다)
@@ -81,17 +83,25 @@ export function styleModel(mat: THREE.MeshStandardMaterial, o: ModelLookOptions)
     sh.uniforms.uRegH = o.lookU.regionHue;
     sh.uniforms.uRegE = o.lookU.regionEdge;
     sh.uniforms.uRegK = uRegK;
+    if (isBody) Object.assign(sh.uniforms, o.lookU.outfit);
     const regions = regionCount();
     const regionHead = `#define TEUM_REGIONS ${regions}\n`;
+    const vertexHead = VERTEX_HEAD + (isBody ? BODY_VERTEX_HEAD : ""),
+      bend = BEND_GLSL + (isBody ? BODY_VERTEX : "");
     sh.vertexShader =
-      regionHead + VERTEX_HEAD + sh.vertexShader.replace("#include <begin_vertex>", BEND_GLSL);
-    const tone = TONE_GLSL + REGION_GLSL;
+      regionHead + vertexHead + sh.vertexShader.replace("#include <begin_vertex>", bend);
+    // 몸은 톤을 칠하기 전의 텍스처 색(rawC)으로 옷 자리를 가린다
+    const tone = isBody
+      ? TONE_GLSL.replace("#include <map_fragment>", BODY_RAW) + OUTFIT_GLSL + REGION_GLSL
+      : TONE_GLSL + REGION_GLSL;
+    const fragmentHead = FRAGMENT_HEAD + (isBody ? BODY_FRAGMENT_HEAD : "");
     sh.fragmentShader =
-      regionHead + FRAGMENT_HEAD + sh.fragmentShader.replace("#include <map_fragment>", tone);
+      regionHead + fragmentHead + sh.fragmentShader.replace("#include <map_fragment>", tone);
   };
   mat.customProgramCacheKey = () => {
     const regions = regionCount();
-    return (o.batch ? "teum-look9-batch-r" : "teum-look9-r") + regions;
+    const kind = isBody ? "teum-look9-body-r" : o.batch ? "teum-look9-batch-r" : "teum-look9-r";
+    return kind + regions;
   };
   mat.needsUpdate = true;
 }
@@ -183,3 +193,30 @@ const REGION_GLSL = `
         rc = vec3(yiq.x + 0.956 * iq.x + 0.621 * iq.y, yiq.x - 0.272 * iq.x - 0.647 * iq.y, yiq.x - 1.106 * iq.x + 1.703 * iq.y);
         diffuseColor.rgb = clamp(mix(vec3(yiq.x), rc, mix(0.6, 1.0, max(rw, lk))), 0.0, 1.0); }
       #endif`;
+
+// ---- 아바타 몸: 옷 갈아입히기 ----
+
+const BODY_VERTEX_HEAD = `varying vec3 vOn;
+`;
+
+const BODY_VERTEX = `
+  vOn = normal;`;
+
+const BODY_FRAGMENT_HEAD = `varying vec3 vOn; uniform sampler2D uPrT; uniform sampler2D uPrB; uniform float uPrTon; uniform float uPrBon; uniform float uPrS; uniform vec3 uSkC; uniform float uSkOn; uniform vec3 uShC; uniform float uShOn;
+`;
+
+const BODY_RAW = `#include <map_fragment>
+      vec3 rawC = diffuseColor.rgb;`;
+
+// 옷 자리 = 원래 텍스처 색 + 처음 선 자세의 높이(vOp.y, 키 1.2). 분홍·라임 스웨터와 그 둘이 만나는 경계색은 윗옷(0.44~0.84 — 앞섶 밑단까지),
+// 허리께 흰색은 치마(0.34~0.68), 발께 흰색은 신발(0.22 아래). 살색은 파랑이 많아서 경계색에서 빠진다.
+// 무늬는 몸에 붙은 좌표로 세 방향에서 입혀서(삼면 투영) 움직여도 미끄러지지 않는다. 명암은 원래 옷의 밝기를 따른다
+const OUTFIT_GLSL = `
+      { float yy = vOp.y, rmx = max(rawC.r, max(rawC.g, rawC.b)), rmn = min(rawC.r, min(rawC.g, rawC.b)), rl = dot(rawC, vec3(0.3, 0.59, 0.11)), rsat = (rmx - rmn) / max(rmx, 0.001);
+        float isPink = step(0.1, rawC.r) * step(rawC.g, rawC.r * 0.4) * step(rawC.b, rawC.r * 0.7), isLime = step(0.25, rawC.g) * step(rawC.r, rawC.g * 0.85) * step(rawC.b, rawC.g * 0.35);
+        float isMix = step(0.25, rsat) * step(rawC.b, rmx * 0.55);
+        float topM = max(max(isPink, isLime), isMix) * step(0.44, yy) * step(yy, 0.84), wh = step(0.22, rmx) * step(rsat, 0.2), botM = wh * step(0.34, yy) * step(yy, 0.68), shoeM = wh * step(yy, 0.22);
+        vec3 an = pow(abs(normalize(vOn)), vec3(4.0)); an /= (an.x + an.y + an.z); vec3 q = vOp * uPrS;
+        if (uPrTon > 0.5 && topM > 0.5) { vec3 pt = texture2D(uPrT, q.zy).rgb * an.x + texture2D(uPrT, q.xz).rgb * an.y + texture2D(uPrT, q.xy).rgb * an.z; float pl = dot(pt, vec3(0.3, 0.59, 0.11)); pt = clamp(mix(vec3(pl), pt, 1.3), 0.0, 1.0); diffuseColor.rgb = pt * (isLime > 0.5 ? 0.98 : mix(1.0, clamp(rl / 0.24, 0.6, 1.15), 0.55)); }
+        if (botM > 0.5) { if (uPrBon > 0.5) { vec3 pb = texture2D(uPrB, q.zy).rgb * an.x + texture2D(uPrB, q.xz).rgb * an.y + texture2D(uPrB, q.xy).rgb * an.z; float pl2 = dot(pb, vec3(0.3, 0.59, 0.11)); pb = clamp(mix(vec3(pl2), pb, 1.3), 0.0, 1.0); diffuseColor.rgb = pb * clamp(rl / 0.75, 0.5, 1.1); } else if (uSkOn > 0.5) diffuseColor.rgb = uSkC * clamp(rl / 0.75, 0.45, 1.1); }
+        if (shoeM > 0.5 && uShOn > 0.5) diffuseColor.rgb = uShC * clamp(rl / 0.75, 0.45, 1.1); }`;

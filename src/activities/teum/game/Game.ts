@@ -1,16 +1,19 @@
 import * as THREE from "three";
 
+import type { AssetLoader } from "../assets/load";
 import type { Manifest } from "../assets/manifest";
 import { assetUrl } from "../assets/manifest";
 import { BACKGROUND_MUSIC, SOUND_EFFECTS, SOUND_VOLUME } from "../assets/settings";
 import { Avatar } from "./avatar/avatar";
 import { Trail } from "./avatar/trail";
+import { Wardrobe } from "./avatar/wardrobe";
 import { BrandObjects } from "./brand/objects";
 import { Signature } from "./brand/signature";
 import type { Frame, Thing } from "./core/frame";
 import { Random } from "./core/random";
 import type { Tap, Tappable } from "./core/tap";
 import { Creatures } from "./creatures/creatures";
+import { isStudioSkipped } from "./debug";
 import { GameEvents } from "./events";
 import { Fx } from "./fx/fx";
 import { Petals } from "./fx/petals";
@@ -62,6 +65,7 @@ import { Sculptures } from "./sculptures/sculptures";
 import type { Services } from "./services";
 import { S } from "./settings";
 import { SoundManager } from "./sound";
+import { Studio } from "./studio/studio";
 import { Clouds } from "./world/clouds";
 import { Culler } from "./world/culler";
 import { Flowers } from "./world/flowers";
@@ -149,6 +153,10 @@ export class Game {
   readonly landmarks: Landmarks;
   /** 이번 판의 기록(랜드마크가 다녀간 것을 남긴다 — 수집·상자·부탁은 구조만) */
   readonly progress: Progress;
+  /** 지금 차림(옷은 몸 셰이더, 소품은 뼈) — 기록에 둔다 */
+  readonly wardrobe: Wardrobe;
+  /** 꾸미기 씬: 세상을 가리고 아바타만 세워 옷장에서 고른다 */
+  readonly studio: Studio;
   readonly signature: Signature;
   readonly bubbleTrail: BubbleTrail;
   readonly director: Director;
@@ -304,6 +312,19 @@ export class Game {
     this.whale.choosePath([this.trees, this.bigFlowers, this.sculptures, this.sites]);
     const store = new LocalSaveStore();
     this.progress = new Progress(store);
+    // ---- 꾸미기: 처음 온 사람은 아무 차림이나 입고 세상보다 꾸미기 씬을 먼저 본다(개발 ?quick 이면 건너뛴다) ----
+    const skipStudio = isStudioSkipped(),
+      lookRng = rng.fork("look");
+    this.wardrobe = new Wardrobe(mats.lookU.outfit, this.avatar, this.progress, {
+      dressNewcomer: !skipStudio,
+      rand: () => lookRng.next(),
+    });
+    const urlOf = (k: string) => {
+      const entry = manifest.assets[k];
+      return entry ? assetUrl(entry.file) : null;
+    };
+    this.studio = new Studio(s, this.avatar, this.wardrobe, this.input, hudParent, urlOf);
+    this.studio.greetNewcomer(skipStudio);
     this.landmarks = new Landmarks(s, this.sculptures.landmarks, this.progress);
     this.signature = new Signature(s, lawn, this.sites, this.rockets);
     this.bubbleTrail = new BubbleTrail(s);
@@ -388,6 +409,7 @@ export class Game {
       places.lighthouse,
       hud,
       camera,
+      this.studio,
       this.landmarks,
       places.spots,
       ripples,
@@ -469,6 +491,23 @@ export class Game {
       if (this.frustum.intersectsSphere(probe)) keys.add(key);
     }
     return [...keys];
+  }
+
+  /**
+   * 에셋 받는 창구를 단다(시작할 때 한 번): 첫 화면·뒤 받기 밖에서 필요해진 모델(갈아입는 부품)과 옷 무늬 그림을 이 창구로 받는다.
+   * 같은 키는 창구가 한 번만 받는다
+   */
+  useLoader(loader: AssetLoader) {
+    const models = this.s.models;
+    models.useRequester((k) => {
+      loader
+        .fetch(k)
+        .then((asset) => {
+          if (asset.kind === "model") models.deliver(k, asset.scene);
+        })
+        .catch((err) => console.error("teum asset", k, err));
+    });
+    this.wardrobe.useLoader(loader);
   }
 
   /** 받은 하늘 그림을 건다 */

@@ -1,5 +1,5 @@
 {
-  "version": "v3",
+  "version": "v4",
   "assets": {
     "snd_bgm": {
       "file": "audio/bgm/bgm.mp3",
@@ -106,6 +106,16 @@
       "category": "audio/sfx",
       "bytes": 11537
     },
+    "board": {
+      "file": "avatar/board/board.glb",
+      "category": "avatar/board",
+      "bytes": 109612,
+      "tris": 5006,
+      "box": [
+        -0.4998416006565094, -0.18673674762248993, -0.21072575449943542, 0.49994349479675293,
+        0.18695053458213806, 0.2105395793914795
+      ]
+    },
     "SUACI_AV": {
       "file": "avatar/body/base.glb",
       "category": "avatar/body",
@@ -127,6 +137,16 @@
         0.3998395502567291
       ]
     },
+    "earring": {
+      "file": "avatar/ear/earring.glb",
+      "category": "avatar/ear",
+      "bytes": 55752,
+      "tris": 3002,
+      "box": [
+        -0.10862445086240768, -0.49991118907928467, -0.3623482882976532, 0.1099575012922287,
+        0.49993985891342163, 0.3629123568534851
+      ]
+    },
     "glass_heart": {
       "file": "avatar/face/glass-heart.glb",
       "category": "avatar/face",
@@ -135,6 +155,16 @@
       "box": [
         -0.4978369176387787, -0.17570102214813232, -0.49975526332855225, 0.49778398871421814,
         0.17577223479747772, 0.4997224509716034
+      ]
+    },
+    "sunglass": {
+      "file": "avatar/face/sunglass.glb",
+      "category": "avatar/face",
+      "bytes": 77644,
+      "tris": 5000,
+      "box": [
+        -0.3166762590408325, -0.26108086109161377, -0.49960559606552124, 0.31729498505592346,
+        0.26020145416259766, 0.499666303396225
       ]
     },
     "hair_bob": {
@@ -146,6 +176,106 @@
         -0.45857954025268555, -0.44290482997894287, -0.5, 0.45855194330215454, 0.443108469247818,
         0.49973851442337036
       ]
+    },
+    "scarf": {
+      "file": "avatar/hair/scarf.glb",
+      "category": "avatar/hair",
+      "bytes": 137896,
+      "tris": 5999,
+      "box": [
+        -0.435861200094223, -0.49926549196243286, -0.4703958034515381, 0.4369828701019287,
+        0.4995143711566925, 0.46915364265441895
+      ]
+    },
+    "bag": {
+      "file": "avatar/hand/bag.glb",
+      "category": "avatar/hand",
+      "bytes": 88776,
+      "tris": 4000,
+      "box": [
+        -0.22769169509410858, -0.49989351630210876, -0.409010648727417, 0.22720429301261902,
+        0.4999253749847412, 0.411057710647583
+      ]
+    },
+    "bouquet": {
+      "file": "avatar/hand/bouquet.glb",
+      "category": "avatar/hand",
+      "bytes": 120888,
+      "tris": 5994,
+      "box": [
+        -0.3631378412246704, -0.4997256398200989, -0.41111478209495544, 0.3624846041202545,
+        0.4991724491119385, 0.4119948148727417
+      ]
+    },
+    "print_daisy": {
+      "file": "avatar/prints/daisy.webp",
+      "category": "avatar/prints",
+      "bytes": 70768
+    },
+    "print_ditsy": {
+      "file": "avatar/prints/ditsy.webp",
+      "category": "avatar/prints",
+      "bytes": 97474
+    },
+    "print_gingham": {
+      "file": "avatar/prints/gingham.webp",
+      "category": "avatar/prints",
+      "bytes": 75870
+    },
+    "print_patch": {
+      "file": "avatar/prints/patch.webp",
+      "category": "avatar/prints",
+      "bytes": 70060
+    },
+    "print_rose": {
+      "file": "avatar/prints/rose.webp",
+      "category": "avatar/prints",
+      "bytes": 89054
+    },
+    "print_stripe": {
+      "file": "avatar/prints/stripe.webp",
+      "category": "avatar/prints",
+      "bytes": 18670
+    },
+    "thumb_bag": {
+      "file": "avatar/thumbs/bag.webp",
+      "category": "avatar/thumbs",
+      "bytes": 2082
+    },
+    "thumb_board": {
+      "file": "avatar/thumbs/board.webp",
+      "category": "avatar/thumbs",
+      "bytes": 3206
+    },
+    "thumb_bouquet": {
+      "file": "avatar/thumbs/bouquet.webp",
+      "category": "avatar/thumbs",
+      "bytes": 2882
+    },
+    "thumb_earring": {
+      "file": "avatar/thumbs/earring.webp",
+      "category": "avatar/thumbs",
+      "bytes": 2322
+    },
+    "thumb_glass_heart": {
+      "file": "avatar/thumbs/glass-heart.webp",
+      "category": "avatar/thumbs",
+      "bytes": 1670
+    },
+    "thumb_hair_bob": {
+      "file": "avatar/thumbs/hair-bob.webp",
+      "category": "avatar/thumbs",
+      "bytes": 1672
+    },
+    "thumb_scarf": {
+      "file": "avatar/thumbs/scarf.webp",
+      "category": "avatar/thumbs",
+      "bytes": 4118
+    },
+    "thumb_sunglass": {
+      "file": "avatar/thumbs/sunglass.webp",
+      "category": "avatar/thumbs",
+      "bytes": 1372
     },
     "bfish": {
       "file": "creatures/common/bfish.glb",

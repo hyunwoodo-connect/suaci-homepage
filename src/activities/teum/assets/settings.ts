@@ -313,6 +313,10 @@ export const SOUND_EFFECTS: SoundTable = {
   collected: { key: "snd_stamp", volume: 0.7 },
   stamped: { key: "snd_stamp", volume: 0.7 },
   boxPicked: { key: "snd_pick", volume: 0.7 },
+  outfitPicked: ({ random }) =>
+    random
+      ? { key: "snd_pick", volume: 0.5, rate: 1.2 }
+      : { key: "snd_pick", volume: 0.4, rate: 1.4 },
   boxOpened: ({ prize }) => [
     { key: "snd_open", volume: 0.6 },
     prize === "blank"

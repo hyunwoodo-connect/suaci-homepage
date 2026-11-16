@@ -3,6 +3,8 @@
 const group = (cat, tris, tex, names) =>
   Object.fromEntries(names.split(" ").map((n) => [n, { cat, tris, tex }]));
 const sounds = (cat, names) => Object.fromEntries(names.split(" ").map((n) => [n, { cat }]));
+const images = (cat, names) =>
+  Object.fromEntries(names.split(" ").map((n) => [n, { cat, image: true }]));
 
 /** 소리 원본으로 받는 형식(확장자). 소리는 다시 누르지 않고 그대로 싣는다 — 형식·크기는 원본을 넣기 전에 정한다 */
 export const AUDIO_EXTENSIONS = [".mp3", ".m4a", ".ogg", ".webm"];
@@ -10,11 +12,29 @@ export const AUDIO_EXTENSIONS = [".mp3", ".m4a", ".ogg", ".webm"];
 /** 분류(cat)가 소리인가 — 'audio/sfx' 효과음·'audio/bgm' 배경 음악 */
 export const isAudioCategory = (cat) => cat.startsWith("audio/");
 
-/** 이름 → 모델 { cat 폴더, tris 폴리곤 목표, tex 텍스처 한 변 } · 소리 { cat 'audio/…' 폴더 } */
+/** 그림 원본으로 받는 형식. 그림(옷 무늬·옷장 썸네일)도 다시 누르지 않고 그대로 싣는다 — 크기는 원본을 넣기 전에 정한다 */
+export const IMAGE_EXTENSIONS = [".webp"];
+
+/** 이름 → 모델 { cat 폴더, tris 폴리곤 목표, tex 텍스처 한 변 } · 소리 { cat 'audio/…' 폴더 } · 그림 { cat, image } */
 export const CATALOG = {
   ...group("avatar/body", 0, 1024, "SUACI_AV"), // 뼈대가 있는 몸은 폴리곤을 줄이지 않는다(스키닝이 깨진다)
+  // 꾸미기 부품(v4 부터 — 시제품 v82 assets18.js 에서 푼 것). 소품은 시제품 쪽에서 이미 줄여 와서 목표를 그 폴리곤 수에 둔다
   ...group("avatar/hair", 5000, 512, "hair_bob"),
+  ...group("avatar/hair", 6000, 512, "scarf"),
   ...group("avatar/face", 3500, 512, "glass_heart"),
+  ...group("avatar/face", 5000, 512, "sunglass"),
+  ...group("avatar/ear", 3500, 512, "earring"),
+  ...group("avatar/hand", 6000, 512, "bouquet bag"),
+  ...group("avatar/board", 5500, 512, "board"),
+  // 옷 무늬(512px, 시제품 v82 assets17.js)와 옷장 칸 그림(부품마다 하나) — raw/<이름>.webp
+  ...images(
+    "avatar/prints",
+    "print_daisy print_ditsy print_stripe print_patch print_rose print_gingham",
+  ),
+  ...images(
+    "avatar/thumbs",
+    "thumb_hair_bob thumb_scarf thumb_glass_heart thumb_sunglass thumb_earring thumb_bouquet thumb_bag thumb_board",
+  ),
   ...group("avatar/companion", 3500, 512, "cat_lime"),
   ...group(
     "creatures/common",
@@ -75,6 +95,6 @@ export const RETIRED = new Set(["avatar_base", "sheep", "fish", "bird", "turtle"
 export const fileName = (k) =>
   k
     .replace(/^SUACI_AV$/, "base")
-    .replace(/^(c|s|d|r|w|snd)_/, "")
+    .replace(/^(c|s|d|r|w|snd|print|thumb)_/, "")
     .replace(/_/g, "-")
     .toLowerCase();
