@@ -28,18 +28,37 @@ describe("RoundLog", () => {
     expect(readList(store)[0]).toMatchObject({ chiks: 3, sneezeChiks: 1, dragChiks: 1 });
   });
 
-  it("찾기 → 가림이 걷힌 때부터 초를 재고, 첫 상자 시간과 꾀꼬리 수를 남긴다", () => {
+  it("찾기 → 가림이 걷힌 때부터 초를 재고, 첫 상자 시간과 눈으로 찾은 수를 남긴다", () => {
     const store = memoryStore();
     const log = new RoundLog(store);
     log.begin(2, true, "390x844", NOW, 10);
     log.seekStarted(15);
-    log.found("wishtree", "behind", 27.34, "touch");
-    log.found("tree-e", "behind", 80, "kkoekkori");
+    log.found({ spot: "wishtree", kind: "behind", how: "touch", eyes: true, gaveUp: false }, 27.34);
+    log.found({ spot: "pad-n-top", kind: "high", how: "drop", eyes: false, gaveUp: true }, 80);
     log.finish(90);
     const [saved] = readList(store);
     expect(saved.firstFound).toBe(12.3);
     expect(saved.found.map((f) => f.seconds)).toEqual([12.3, 65]);
-    expect(saved.kkoekkori).toBe(1);
+    expect(saved.eyesFound).toBe(1);
+    expect(saved.found[1]).toMatchObject({ how: "drop", gaveUp: true });
+  });
+
+  it("아이템·전설·못 찾겠다·끝난 까닭 → 종류별 횟수와 함께 남긴다", () => {
+    const store = memoryStore();
+    const log = new RoundLog(store);
+    log.begin(1, false, "390x844", NOW, 0);
+    log.itemUsed("tattle");
+    log.itemUsed("wake");
+    log.itemUsed("wake");
+    log.legendAppeared();
+    log.gaveUp();
+    log.ended("sunset");
+    const [saved] = readList(store);
+    expect(saved.items).toEqual({ tattle: 1, wake: 2 });
+    expect(saved.legend).toEqual({ appeared: true, ridden: false });
+    expect(saved.giveUps).toBe(1);
+    expect(saved.endedBy).toBe("sunset");
+    expect(saved.total).toBeNull();
   });
 
   it("다 열면 → 판 전체 시간과 UTC·한국 시간을 담아 기기에 남긴다", () => {

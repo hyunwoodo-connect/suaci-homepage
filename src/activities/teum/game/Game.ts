@@ -95,7 +95,9 @@ import { TerrainView } from "./world/terrainView";
 const START_VIEW_LIFT = 30,
   START_VIEW_RADIUS = 60,
   /** 생물을 그리는 거리(행성 위 각도의 cos) */
-  CREATURE_VIEW_COS = 0.9;
+  CREATURE_VIEW_COS = 0.9,
+  /** 멈춘 동안 화면을 당기는 배수 */
+  PAUSE_ZOOM = 1.05;
 
 /** 한 프레임에 부르는 것: 세계 위의 것(update) 또는 몸·입력처럼 한 줄로 끝나는 일 */
 type Step = Thing | (() => void);
@@ -159,7 +161,7 @@ export class Game {
   /** 꾸미기 씬: 세상을 가리고 아바타만 세워 옷장에서 고른다 */
   readonly studio: Studio;
   readonly signature: Signature;
-  /** 숨바꼭질(조각 01 시험판 — 메인 퀘스트) */
+  /** 숨바꼭질(메인 퀘스트 시험판) */
   readonly hideSeek: HideSeek;
   readonly bubbleTrail: BubbleTrail;
   readonly director: Director;
@@ -176,6 +178,8 @@ export class Game {
   private readonly ndc = new THREE.Vector2();
   /** 이번 프레임(모두가 같은 값을 본다) */
   readonly frame: Frame = { dt: 0, time: 0 };
+  /** 멈춰 있을 남은 시간(초) — 숨바꼭질이 상자를 찾는 순간 잠깐 멈춘다 */
+  private pauseLeft = 0;
 
   /** seed: 이번 판의 게임 난수 씨앗, map: 지을 지도(세계는 이 지도의 값만 보고 놓인다), festival: 고정할 축제 지역(개발 ?fest, 없으면 날짜로) */
   constructor(
@@ -331,13 +335,19 @@ export class Game {
     this.landmarks = new Landmarks(s, this.sculptures.landmarks, this.progress);
     this.signature = new Signature(s, lawn, this.sites, this.rockets);
     this.bubbleTrail = new BubbleTrail(s);
+    this.creatures = new Creatures(s, {
+      footsteps: this.footsteps,
+      babyLimes: this.babyLimes,
+      lakes: this.lakes,
+      signature: this.signature,
+      whale: this.whale,
+    });
     const avatar = this.avatar,
-      whale = this.whale;
+      whale = this.whale,
+      { trees, sculptures, pads } = this;
     this.hideSeek = new HideSeek(
       s,
       {
-        footsteps: this.footsteps,
-        babyLimes: this.babyLimes,
         input: this.input,
         studio: this.studio,
         unbox: {
@@ -350,17 +360,21 @@ export class Game {
           callWhale: (over, dir) => whale.flyBy(over, dir),
           keepWhaleOff: () => whale.keepOff(),
         },
+        creatures: this.creatures,
+        whale,
+        sky: this.sky,
+        // 재채기한 상자를 가리던 것·칙이 닿은 것이 흔들린다
+        shake: (at, reach) => {
+          trees.shakeNear(at, reach);
+          sculptures.shakeNear(at, reach);
+          pads.shakeNear(at, reach);
+          places.shakeNear(at, reach);
+        },
+        pause: (seconds) => this.pause(seconds),
+        setPlaceGlow: (on) => places.setLimeGlow(on),
       },
       hudParent,
     );
-    this.creatures = new Creatures(s, {
-      footsteps: this.footsteps,
-      babyLimes: this.babyLimes,
-      boxes: this.hideSeek,
-      lakes: this.lakes,
-      signature: this.signature,
-      whale: this.whale,
-    });
     this.director = new Director(s, this.bubbleTrail, this.seeds, this.creatures);
     this.whale.fitModels();
     this.balloons.fitModels();
@@ -429,8 +443,8 @@ export class Game {
       this.bubbleTrail,
       this.director,
       this.creatures,
-      // 데리고 다니는 손님·찾은 상자 수만큼 카메라가 높아지고 멀어진다(다 같이 화면에 들어오게)
-      () => camera.setCompany(this.creatures.followers.length + this.hideSeek.joined),
+      // 데리고 다니는 손님 수만큼 카메라가 높아지고 멀어진다(다 같이 화면에 들어오게)
+      () => camera.setCompany(this.creatures.followers.length),
       this.regionLook,
       places,
       this.clouds,
@@ -469,9 +483,14 @@ export class Game {
     ];
   }
 
-  /** 한 프레임. 한 프레임은 길어도 0.1 초로 자른다 */
+  /** 한 프레임. 한 프레임은 길어도 0.1 초로 자른다. 멈춰 있는 동안은 시간이 흐르지 않은 프레임을 그린다(모두 제자리) */
   step(elapsed: number) {
-    const dt = Math.min(0.1, elapsed);
+    const isPaused = this.pauseLeft > 0;
+    if (isPaused) {
+      this.pauseLeft -= elapsed;
+      if (this.pauseLeft <= 0) this.stage.renderer.domElement.style.transform = "";
+    }
+    const dt = isPaused ? 0 : Math.min(0.1, elapsed);
     this.frame.dt = dt;
     this.frame.time += dt;
     for (const t of this.frameOrder) {
@@ -494,10 +513,12 @@ export class Game {
   startViewKeys(): string[] {
     const dt = this.frame.dt;
     this.frame.dt = 0;
-    for (const t of this.frameOrder) {
-      if (typeof t === "function") t();
-      else t.update(this.frame);
-    }
+    // 두 번 돈다: 숨바꼭질이 첫 프레임 끝에 나를 무대 마을 출발 자리로 옮기므로, 카메라가 그 자리를 따라간 뒤의 시야로 고른다
+    for (let pass = 0; pass < 2; pass++)
+      for (const t of this.frameOrder) {
+        if (typeof t === "function") t();
+        else t.update(this.frame);
+      }
     this.frame.dt = dt;
     const camera = this.stage.camera,
       p = this.s.player.p,
@@ -566,6 +587,14 @@ export class Game {
   }
 
   /* ─── 내부 ─────────────────────────── */
+
+  // 시간을 seconds 초 멈추고 화면을 살짝(5%) 당긴다 — 상자를 찾은 순간의 정지
+  private pause(seconds: number) {
+    this.pauseLeft = seconds;
+    const canvas = this.stage.renderer.domElement;
+    canvas.style.transition = "transform .08s ease-out";
+    canvas.style.transform = `scale(${PAUSE_ZOOM})`;
+  }
 
   // 칙: 화면 좌표를 땅에 쏘아 맞은 자리를 정하고, 정해 둔 차례로 알린다. 언박싱 중에는 숨바꼭질만 받는다(상자를 여는 누름)
   private tap(x: number, y: number) {

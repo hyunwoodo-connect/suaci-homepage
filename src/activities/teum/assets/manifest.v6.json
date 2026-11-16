@@ -1,5 +1,5 @@
 {
-  "version": "v5",
+  "version": "v6",
   "assets": {
     "snd_bgm": {
       "file": "audio/bgm/bgm.mp3",
@@ -20,6 +20,66 @@
       "file": "audio/sfx/boing.mp3",
       "category": "audio/sfx",
       "bytes": 8821
+    },
+    "snd_box_allfound": {
+      "file": "audio/sfx/box-allfound.mp3",
+      "category": "audio/sfx",
+      "bytes": 23815
+    },
+    "snd_box_fall_b": {
+      "file": "audio/sfx/box-fall-b.mp3",
+      "category": "audio/sfx",
+      "bytes": 15404
+    },
+    "snd_box_found_a": {
+      "file": "audio/sfx/box-found-a.mp3",
+      "category": "audio/sfx",
+      "bytes": 13941
+    },
+    "snd_box_found_b": {
+      "file": "audio/sfx/box-found-b.mp3",
+      "category": "audio/sfx",
+      "bytes": 2970
+    },
+    "snd_box_giggle_a": {
+      "file": "audio/sfx/box-giggle-a.mp3",
+      "category": "audio/sfx",
+      "bytes": 12844
+    },
+    "snd_box_giggle_b": {
+      "file": "audio/sfx/box-giggle-b.mp3",
+      "category": "audio/sfx",
+      "bytes": 10284
+    },
+    "snd_box_legend": {
+      "file": "audio/sfx/box-legend.mp3",
+      "category": "audio/sfx",
+      "bytes": 43198
+    },
+    "snd_box_phew_b": {
+      "file": "audio/sfx/box-phew-b.mp3",
+      "category": "audio/sfx",
+      "bytes": 15038
+    },
+    "snd_box_sneeze_a": {
+      "file": "audio/sfx/box-sneeze-a.mp3",
+      "category": "audio/sfx",
+      "bytes": 9187
+    },
+    "snd_box_steps_a": {
+      "file": "audio/sfx/box-steps-a.mp3",
+      "category": "audio/sfx",
+      "bytes": 29301
+    },
+    "snd_box_thud_big": {
+      "file": "audio/sfx/box-thud-big.mp3",
+      "category": "audio/sfx",
+      "bytes": 15404
+    },
+    "snd_box_thud_small": {
+      "file": "audio/sfx/box-thud-small.mp3",
+      "category": "audio/sfx",
+      "bytes": 13941
     },
     "snd_cannon": {
       "file": "audio/sfx/cannon.mp3",

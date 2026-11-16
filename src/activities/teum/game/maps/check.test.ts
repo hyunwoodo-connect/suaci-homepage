@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Manifest } from "../../assets/manifest";
-import manifestJson from "../../assets/manifest.v5.json";
+import manifestJson from "../../assets/manifest.v6.json";
 import { checkMap } from "./check";
 import { MAPS } from "./index";
 import type { GameMap } from "./map";

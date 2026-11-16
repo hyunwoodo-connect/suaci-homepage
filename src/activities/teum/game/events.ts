@@ -1,4 +1,5 @@
-import type { Content } from "./hideseek/tuning";
+import type { FoundHow } from "./hideseek/stats";
+import type { Content, ItemKind } from "./hideseek/tuning";
 import type { BoxSource, Prize, QuestType } from "./progress/save";
 
 // 게임에서 일어나는 일을 알리는 작은 알림판. 놀이기구·생물·만남이 알리기만 하고, 소리(sound/)가 듣는다.
@@ -72,15 +73,36 @@ export interface GameEventMap {
   dayChanged: { day: number; festival: number };
   /** 옷장에서 하나 골랐다(random: 아무거나 단추) */
   outfitPicked: { random: boolean };
-  // ---- 숨바꼭질(조각 01 시험판) ----
-  /** 꼭꼭 숨어라: 가림막이 내려오고 상자들이 후다닥 흩어진다 */
+  // ---- 숨바꼭질 ----
+  /** 꼭꼭 숨어라: 상자들이 숨을 곳으로 흩어져 달려간다 */
   hideStarted: Record<string, never>;
-  /** 칙 안개가 퍼졌다(sneezed: 그 칙에 재채기한 상자 수) */
+  /** 칙 안개가 퍼졌다(sneezed: 그 칙에 재채기하거나 떨어진 상자 수) */
   hideChik: { sneezed: number };
-  /** 숨은 상자가 재채기했다(auto: 60초 동안 못 찾아 저절로) */
-  hideBoxSneezed: { auto: boolean };
-  /** 상자를 찾았다(count: 찾은 수, how: 닿아서·꾀꼬리) */
-  hideBoxFound: { count: number; how: "touch" | "kkoekkori" };
+  /** 숨은 상자가 재채기했다 */
+  hideBoxSneezed: Record<string, never>;
+  /** 칙이 닿는 거리 안에 상자가 있는데 화면 밖이다 — 내 머리 위 '킁?' */
+  hideSniffed: Record<string, never>;
+  /** 높이 숨은 상자가 칙에 맞아 굴러떨어진다 */
+  hideBoxDropped: Record<string, never>;
+  /** 상자를 찾았다(count: 찾은 수, how: 닿아서·떨어뜨려서·전설이 데려다줘서) */
+  hideBoxFound: { count: number; how: FoundHow };
+  /** 숨은 상자가 '휴' 했다(내가 못 보고 지나쳤다) */
+  hideBoxSighed: Record<string, never>;
+  /** 킥킥: 오래 못 찾아 숨은 상자가 웃는다 · 해가 저물 무렵 · 일러바친 생물이 웃는다 */
+  hideBoxGiggled: Record<string, never>;
+  /** 넷을 다 찾았다(칸 넷이 번쩍인다) */
+  hideAllFound: Record<string, never>;
+  /** 아이템(잡은 생물)을 썼다 */
+  hideItemUsed: { kind: ItemKind };
+  /** 전설의 생물이 판 위에 나타났다 · 나를 태웠다 */
+  hideLegendCame: Record<string, never>;
+  hideLegendBoarded: Record<string, never>;
+  /** '못 찾겠다'를 눌렀다 — 가장 가까운 상자가 뛰어오른다 */
+  hideGaveUp: Record<string, never>;
+  /** 해가 져서 남은 상자들이 튀어나와 이겼다고 뛴다 */
+  hideBoxesWon: Record<string, never>;
+  /** 금색 상자가 하늘에서 떨어지기 시작했다(휘파람) */
+  hideBonusFalling: Record<string, never>;
   /** 보너스 상자가 하늘에서 떨어져 내려앉았다 */
   hideBonusLanded: Record<string, never>;
   /** 언박싱: 상자가 들썩했다 */

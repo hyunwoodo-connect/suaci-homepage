@@ -335,22 +335,38 @@ export const SOUND_EFFECTS: SoundTable = {
         : { key: "snd_ring", volume: 0.5, delay: 0.35, gap: 0.01 },
   ],
   questDone: { key: "snd_win", volume: 0.7 },
-  // ---- 숨바꼭질(조각 01) — 전용 소리가 없어 있는 효과음을 빌려 쓴다 ----
-  hideStarted: [0, 0.12, 0.24, 0.4, 0.55, 0.72].map((delay, i) => ({
-    key: "snd_quad",
-    volume: 0.45,
-    rate: 1.7 + (i % 3) * 0.2,
-    delay,
-    gap: 0.01,
-  })),
+  // ---- 숨바꼭질 — 기획이 넘긴 소리(snd_box_…). 소리가 없는 순간(칙 헛손질·킁?·아이템 쓰기·전설에 올라탐·여기야!·휘파람·언박싱)은 있던 효과음을 빌려 쓴다 ----
+  hideStarted: { key: "snd_box_steps_a", volume: 0.7, rate: [0.95, 1.1] },
   hideChik: ({ sneezed }) =>
     sneezed ? null : { key: "snd_ring", volume: 0.16, rate: 0.55, gap: 0.2 },
-  hideBoxSneezed: { key: "snd_boing", volume: 0.6, rate: 2.1, gap: 0.08 },
-  hideBoxFound: [
-    { key: "snd_pick", volume: 0.75, rate: 1.15 },
-    { key: "snd_ring", volume: 0.45, rate: 1.3, delay: 0.08, gap: 0.01 },
+  hideBoxSneezed: { key: "snd_box_sneeze_a", volume: 0.7, rate: [0.9, 1.15], gap: 0.08 },
+  hideSniffed: { key: "snd_quad", volume: 0.35, rate: 0.8, gap: 0.3 },
+  // 높은 상자: 놓치는 순간 떨어지는 소리, 바닥에 꽂힐 때 쿵
+  hideBoxDropped: [
+    { key: "snd_box_fall_b", volume: 0.4, delay: 0.9, gap: 0.01 },
+    { key: "snd_box_thud_small", volume: 0.7, delay: 1.3, gap: 0.01 },
   ],
-  hideBonusLanded: { key: "snd_legend", volume: 0.55 },
+  hideBoxFound: mixWhenRepeated(
+    { key: "snd_box_found_a", volume: 0.75 },
+    { key: "snd_box_found_b", volume: 0.75 },
+    4,
+  ),
+  hideBoxSighed: { key: "snd_box_phew_b", volume: 0.5, rate: [0.95, 1.1], gap: 0.5 },
+  hideBoxGiggled: inTurn(
+    { key: "snd_box_giggle_a", volume: 0.5, gap: 0.5 },
+    { key: "snd_box_giggle_b", volume: 0.6, gap: 0.5 },
+  ),
+  hideItemUsed: ({ kind }) =>
+    kind === "tattle"
+      ? { key: "snd_wing", volume: 0.55, rate: 1.2 }
+      : { key: "snd_quad", volume: 0.6, rate: 0.6 },
+  hideLegendCame: { key: "snd_box_legend", volume: 0.7 },
+  hideLegendBoarded: { key: "snd_legend", volume: 0.6 },
+  hideGaveUp: { key: "snd_boing", volume: 0.55, rate: 1.4 },
+  hideBoxesWon: { key: "snd_box_steps_a", volume: 0.7, rate: 1.15 },
+  hideAllFound: { key: "snd_box_allfound", volume: 0.7 },
+  hideBonusFalling: { key: "snd_up", volume: 0.5, rate: 1.8 },
+  hideBonusLanded: { key: "snd_box_thud_big", volume: 0.9 },
   hideBoxShaken: { key: "snd_boing", volume: 0.4, rate: 0.8 },
   hideBoxOpened: ({ content }) => {
     const open = { key: "snd_open", volume: 0.6 };
@@ -369,6 +385,25 @@ export const BACKGROUND_MUSIC: SoundCue | null = { key: "snd_bgm", volume: 0.3 }
 export const SOUND_VOLUME: Readonly<Record<SoundChannel, number>> = { bgm: 1, sfx: 1 };
 
 /* ─── 내부 ─────────────────────────── */
+
+// 두 벌(a·b)인 소리를 번갈아 낸다(킥킥처럼 자주 나는 소리가 덜 물리게)
+function inTurn(a: SoundCue, b: SoundCue): () => SoundCue {
+  let count = 0;
+  return () => (count++ % 2 === 0 ? a : b);
+}
+
+// 두 벌인 소리: a 를 먼저 쓰고, 같은 소리가 within 초 안에 또 나면 b 를 섞는다
+function mixWhenRepeated(a: SoundCue, b: SoundCue, within: number): () => SoundCue {
+  let lastAt = -Infinity,
+    wasA = false;
+  return () => {
+    const now = performance.now() / 1000,
+      isRepeat = now - lastAt < within;
+    lastAt = now;
+    wasA = !(isRepeat && wasA);
+    return wasA ? a : b;
+  };
+}
 
 // 종 키마다 고정된 음높이 칸(0..7) — 시제품의 글자 해시
 function speciesPitch(kind: string): number {

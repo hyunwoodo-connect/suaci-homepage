@@ -1,46 +1,163 @@
 {
-  "_about": "숨바꼭질 값. 기획이 코드 없이 직접 고친다 — 칸마다 뜻·단위·고치는 법은 teum-handoff/slice-01/RESULT.md. 고친 뒤 pnpm test 가 모양과 규칙(한 판 넷끼리 30m, 첫 상자는 출발 25m 안 등)을 확인한다",
+  "_about": "숨바꼭질 값. 기획이 코드 없이 직접 고친다 — 칸마다 뜻·단위·고치는 법은 teum-handoff/slice-01b/RESULT.md. 고친 뒤 pnpm test 가 모양과 규칙(자리는 무대 반경 안, 한 판 넷은 서로 떨어져 있기, 시작 둘레 생물 수 등)을 확인한다",
   "copy": {
-    "curtain": "꼭꼭 숨어라",
+    "hide": "꼭꼭 숨어라",
+    "it": "술래는 너",
     "found": "찾았다!",
-    "kkoekkori": "꾀꼬리",
+    "tap": "톡",
+    "useItem": "칸을 눌러 써 봐",
+    "sneeze": "에취!",
+    "sniff": "킁?",
+    "giveUp": "못 찾겠다",
+    "giveUpCost": "꽝이 나와",
+    "here": "여기야!",
     "open": "깔까?",
+    "boxesWin": "우리가 이겼다!",
     "again": "한 판 더"
+  },
+  "colors": {
+    "lime": "#A9FF39",
+    "gold": "#FFD23F",
+    "ink": "#141414"
+  },
+  "stage": {
+    "hub": 0,
+    "radius": 70
+  },
+  "round": {
+    "seconds": 180,
+    "redFrom": 150
   },
   "start": {
     "lineAhead": 8,
     "lineGap": 1.5,
-    "readySeconds": 1.4,
-    "coveredSeconds": 3
+    "textAt": 0.6,
+    "startleAt": 0.9,
+    "scurryAt": 1.3,
+    "offscreenAt": 2.2,
+    "closeAt": 2.8,
+    "openAt": 3.3,
+    "goAt": 3.6,
+    "laterShare": 0.5,
+    "firstShowShare": 0.6,
+    "firstSneezeEvery": 5
+  },
+  "screen": {
+    "bigSeconds": 1.5,
+    "tapHintReach": 15
   },
   "chik": {
-    "reach": 40,
+    "reach": 20,
     "sneezeCooldown": 3
   },
   "find": {
-    "reach": 6
+    "reach": 4,
+    "pauseSeconds": 0.3,
+    "coverSeconds": 0.3,
+    "hopSeconds": 0.3,
+    "flySeconds": 0.4
+  },
+  "nearby": {
+    "holdBreathReach": 15,
+    "passReach": 6,
+    "watchShare": 0.4
+  },
+  "drop": {
+    "minAbove": 2,
+    "reach": 12
+  },
+  "item": {
+    "reach": 2.6,
+    "band": 6,
+    "tattleSeconds": 4,
+    "tattleStop": 10,
+    "wakeSeconds": 3,
+    "wakeHop": 4,
+    "circleSeconds": 0.5,
+    "waveSpeed": 45
+  },
+  "guests": [
+    {
+      "note": "시작 앞 오른쪽 — 날개 편지 셋(일러바치기)",
+      "species": "c_wletter",
+      "count": 3,
+      "x": -4,
+      "y": -26,
+      "orbit": 5,
+      "alt": 3
+    },
+    {
+      "note": "시작 왼쪽 — 컵케이크 둘(깨우기)",
+      "species": "c_cupcake",
+      "count": 2,
+      "x": -30,
+      "y": 8
+    },
+    {
+      "note": "광장 건너편 — 날개 편지 셋",
+      "species": "c_wletter",
+      "count": 3,
+      "x": 30,
+      "y": 25,
+      "orbit": 10,
+      "alt": 3
+    },
+    {
+      "note": "광장 오른쪽 — 컵케이크 둘",
+      "species": "c_cupcake",
+      "count": 2,
+      "x": 10,
+      "y": -40
+    }
+  ],
+  "legend": {
+    "chance": 0.5,
+    "from": 40,
+    "to": 100,
+    "staySeconds": 25,
+    "rideSeconds": 6,
+    "lift": 36,
+    "reach": 30,
+    "span": 110,
+    "aside": 30,
+    "flinchReach": 18
   },
   "stuck": {
-    "autoSneezeEvery": 60,
-    "kkoekkoriAfter": 120
+    "restlessAfter": 30,
+    "giveUpAfter": 45,
+    "pillarSeconds": 5,
+    "restlessPeek": 0.4
+  },
+  "lost": {
+    "popAt": 0.5,
+    "gatherAt": 1.2,
+    "climbAt": 2.5,
+    "buttonsAt": 3.5
+  },
+  "moves": {
+    "stepSeconds": 0.12,
+    "waddleDegrees": 12,
+    "hopSquash": 0.8,
+    "hopStretch": 1.15,
+    "startleStretch": 1.3,
+    "sneezeLeanDegrees": 15,
+    "flinchDegrees": 3,
+    "flailDegrees": 25
   },
   "box": {
-    "height": 1.05,
-    "showShare": 0.15,
+    "height": 1.65,
+    "showShare": 0.4,
     "breathSeconds": 2.2,
     "breathSquash": 0.03,
-    "sneezeHop": 0.3,
-    "sneezeSeconds": 0.25,
-    "leapHop": 0.6,
-    "leapSeconds": 0.5,
-    "peekEvery": [4, 7],
-    "peekSeconds": 0.8,
-    "peekReach": 0.4
+    "sneezeHop": 0.45,
+    "peekEvery": [3, 5],
+    "peekReach": 0.6
   },
   "bonus": {
     "waitSeconds": 1,
     "dropHeight": 32,
-    "scale": 1.4
+    "scale": 1.4,
+    "ahead": 5
   },
   "unbox": {
     "duds": ["nested", "lime", "bubbles"],
@@ -55,13 +172,10 @@
   "measure": {
     "dragTapMs": 200
   },
-  "stage": {
-    "hub": 0
-  },
   "spots": [
     {
       "id": "wishtree",
-      "note": "소원 나무 뒤 — 첫 상자",
+      "note": "소원 나무 줄기 뒤 — 첫 판의 '제일 못 숨은 놈'",
       "kind": "behind",
       "x": 0,
       "y": 0,
@@ -69,8 +183,18 @@
       "side": 1
     },
     {
+      "id": "wishtree-fruit",
+      "note": "소원 나무 라임 열매 사이에 매달림",
+      "kind": "high",
+      "x": 0,
+      "y": 0,
+      "top": 6.4,
+      "edge": 6.6,
+      "slide": 0.6
+    },
+    {
       "id": "tree-e",
-      "note": "줄무늬 나무 B 뒤",
+      "note": "줄무늬 나무 B 줄기 뒤",
       "kind": "behind",
       "x": 31,
       "y": 58.3,
@@ -78,99 +202,56 @@
       "side": -1
     },
     {
-      "id": "tree-ee",
-      "note": "줄무늬 나무 A 뒤",
+      "id": "pad-n",
+      "note": "통통 구름(북) 뒤",
       "kind": "behind",
-      "x": 16.5,
-      "y": 77.5,
-      "w": 2.75,
+      "x": -26.2,
+      "y": 40.1,
+      "w": 4.3,
       "side": 1
     },
     {
-      "id": "cake-se",
-      "note": "케이크 B 뒤",
+      "id": "pad-n-top",
+      "note": "통통 구름(북) 위",
+      "kind": "high",
+      "x": -26.2,
+      "y": 40.1,
+      "top": 3,
+      "edge": 0,
+      "slide": 5.5
+    },
+    {
+      "id": "pad-s",
+      "note": "통통 구름(남) 뒤",
       "kind": "behind",
-      "x": 47,
-      "y": 69.7,
-      "w": 3.1,
+      "x": 33.5,
+      "y": -51,
+      "w": 4.3,
       "side": -1
     },
     {
-      "id": "tree-w",
-      "note": "줄무늬 나무 C 뒤",
+      "id": "pad-s-top",
+      "note": "통통 구름(남) 위",
+      "kind": "high",
+      "x": 33.5,
+      "y": -51,
+      "top": 3,
+      "edge": 0,
+      "slide": 5.5
+    },
+    {
+      "id": "pad-e",
+      "note": "징검 구름 첫 칸(동) 뒤",
       "kind": "behind",
-      "x": -25.6,
-      "y": -70.3,
-      "w": 3.85,
+      "x": 64.6,
+      "y": 13.3,
+      "w": 3,
       "side": 1
-    },
-    {
-      "id": "tree-nw",
-      "note": "큰 줄무늬 나무 D 뒤",
-      "kind": "behind",
-      "x": -54.2,
-      "y": -69.3,
-      "w": 6.15,
-      "side": -1
-    },
-    {
-      "id": "ball-nw",
-      "note": "회색 공 뒤",
-      "kind": "behind",
-      "x": -45.2,
-      "y": -85.7,
-      "w": 1,
-      "side": 1
-    },
-    {
-      "id": "cake-w",
-      "note": "케이크 A 뒤",
-      "kind": "behind",
-      "x": -13.9,
-      "y": -87.6,
-      "w": 2.2,
-      "side": -1
-    },
-    {
-      "id": "parasol-top",
-      "note": "파라솔 위",
-      "kind": "high",
-      "x": 74.5,
-      "y": 72,
-      "top": 11.1,
-      "edge": 3.8
-    },
-    {
-      "id": "tree-w-top",
-      "note": "나무 C 꼭대기",
-      "kind": "high",
-      "x": -25.6,
-      "y": -70.3,
-      "top": 51,
-      "edge": 3
-    },
-    {
-      "id": "macaron-top",
-      "note": "마카롱 탑 위",
-      "kind": "high",
-      "x": 49.1,
-      "y": 88.1,
-      "top": 9.5,
-      "edge": 1.6
-    },
-    {
-      "id": "tree-e-top",
-      "note": "나무 B 꼭대기",
-      "kind": "high",
-      "x": 31,
-      "y": 58.3,
-      "top": 45,
-      "edge": 3
     }
   ],
   "rounds": [
-    ["wishtree", "tree-ee", "cake-w", "parasol-top"],
-    ["wishtree", "tree-e", "tree-nw", "tree-w-top"],
-    ["wishtree", "tree-w", "tree-ee", "macaron-top"]
+    ["wishtree", "wishtree-fruit", "pad-n", "tree-e"],
+    ["wishtree", "pad-n-top", "pad-s", "pad-e"],
+    ["wishtree", "pad-s-top", "pad-n", "tree-e"]
   ]
 }

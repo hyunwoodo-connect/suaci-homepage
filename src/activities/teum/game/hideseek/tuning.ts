@@ -1,6 +1,7 @@
+import { CREATURES } from "../../assets/settings";
 import data from "./hideseek.data.json";
 
-// 숨바꼭질 값(숨는 자리·묶음·언박싱 내용물·문구·거리·시간)은 hideseek.data.json 한 파일에 있고, 기획이 코드 없이 직접 고친다.
+// 숨바꼭질 값(숨는 자리·묶음·언박싱 내용물·문구·거리·시간·판에 부르는 생물)은 hideseek.data.json 한 파일에 있고, 기획이 코드 없이 직접 고친다.
 // 여기서는 그 파일을 읽어 모양을 확인하고 이름 붙은 값으로 내준다. 모양이 틀리면 어느 칸이 왜 틀렸는지 알리고 멈춘다(시험이 먼저 잡는다)
 
 /** 코드가 아는 언박싱 내용물 다섯 */
@@ -11,6 +12,9 @@ export type Content = (typeof CONTENTS)[number];
 
 /** 숨는 수법 */
 export type HideKind = "behind" | "high";
+
+/** 생물이 주는 아이템 두 가지: 일러바치기(하늘을 도는 작은 생물) · 깨우기(땅 위의 큰 생물) */
+export type ItemKind = "tattle" | "wake";
 
 /**
  * 뒤에 숨기: 가리는 것의 가운데(무대 마을 중심에서 잰 평면 m)와 상자 높이에서 눈으로 잰 반너비,
@@ -26,7 +30,10 @@ export interface BehindSpot {
   side: 1 | -1;
 }
 
-/** 높이 숨기: 꼭대기의 가운데(평면 m), 앉을 높이(땅에서 m), 가운데에서 출발 쪽으로 나앉는 거리(m) */
+/**
+ * 높이 숨기: 꼭대기(또는 매달릴 곳)의 가운데(평면 m), 상자 바닥 높이(땅에서 m), 가운데에서 출발 쪽으로 나앉는 거리(m),
+ * 굴러떨어질 때 앞으로 밀려나는 거리(m — 올라앉은 것 밖으로 떨어지게)
+ */
 export interface HighSpot {
   id: string;
   kind: "high";
@@ -34,40 +41,149 @@ export interface HighSpot {
   y: number;
   top: number;
   edge: number;
+  slide: number;
 }
 
 /** 숨는 자리 하나 */
 export type HideSpot = BehindSpot | HighSpot;
 
+/** 판에 부르는 생물 한 무리: 종·마릿수·자리(무대 마을 중심에서 잰 평면 m). 하늘을 도는 종이면 도는 반지름과 땅에서의 높이(m) */
+export interface GuestGroup {
+  species: string;
+  count: number;
+  x: number;
+  y: number;
+  /** 하늘을 도는 종만: 도는 반지름·높이 */
+  orbit: number | null;
+  alt: number | null;
+}
+
 /** 숨바꼭질 값 전체 */
 export interface HideTuning {
-  /** 화면 위 글: 가림막·찾음·꾀꼬리 단추·언박싱 단추·다시 하기 단추 */
-  copy: { curtain: string; found: string; kkoekkori: string; open: string; again: string };
-  /** 판 시작: 상자 줄이 플레이어 앞(m)·사이(m), 줄 서 있는 시간·가려진 시간(초) */
-  start: { lineAhead: number; lineGap: number; readySeconds: number; coveredSeconds: number };
+  /** 화면 위 글: 큰 글자(꼭꼭 숨어라·술래는 너·찾았다!·깔까?·우리가 이겼다!), 한 줄 안내(톡·칸을 눌러 써 봐), 말풍선(에취!·킁?·여기야!), 단추(못 찾겠다와 그 밑 작은 글, 한 판 더) */
+  copy: {
+    hide: string;
+    it: string;
+    found: string;
+    tap: string;
+    useItem: string;
+    sneeze: string;
+    sniff: string;
+    giveUp: string;
+    giveUpCost: string;
+    here: string;
+    open: string;
+    boxesWin: string;
+    again: string;
+  };
+  /** 화면 색: 찬 칸의 라임·눈으로 찾은 상자의 금색 테두리·글자와 테두리의 먹색 */
+  colors: { lime: string; gold: string; ink: string };
+  /** 무대: 자리표의 마을 차례(0 이 광장)와 숨는 자리를 두는 반경(m) */
+  stage: { hub: number; radius: number };
+  /** 한 판의 길이(초) — 이만큼 지나면 해가 지고 남은 상자가 이긴다. redFrom: 하늘이 눈에 띄게 붉어지기 시작하는 때(초) */
+  round: { seconds: number; redFrom: number };
+  /**
+   * 판 시작(꼭꼭 숨어라): 상자 줄이 플레이어 앞(m)·사이(m), 그리고 장면의 시각(초) —
+   * textAt 큰 글자와 손가락 틈, startleAt 상자들이 깜짝 놀라 우왕좌왕, scurryAt 흩어져 종종걸음, offscreenAt 먼 놈들이 화면 밖으로,
+   * closeAt 손가락 틈이 닫힘(이때 숨는 자리로 옮긴다), openAt 화면이 열림, goAt '술래는 너'와 함께 조작이 풀림.
+   * laterShare: 둘째 판부터 startleAt~offscreenAt 구간을 이 몫으로 줄인다.
+   * 첫 판 첫 상자(제일 못 숨은 놈)가 비어져 나오는 몫과 혼자 재채기하는 간격(초)
+   */
+  start: {
+    lineAhead: number;
+    lineGap: number;
+    textAt: number;
+    startleAt: number;
+    scurryAt: number;
+    offscreenAt: number;
+    closeAt: number;
+    openAt: number;
+    goAt: number;
+    laterShare: number;
+    firstShowShare: number;
+    firstSneezeEvery: number;
+  };
+  /** 화면: 큰 글자가 떠 있는 시간(초), '톡' 안내가 뜨는 거리(숨은 상자와 m) */
+  screen: { bigSeconds: number; tapHintReach: number };
   /** 칙: 닿는 거리(m)·같은 상자가 다시 재채기하기까지(초) */
   chik: { reach: number; sneezeCooldown: number };
-  /** 이만큼(m, 3차원) 닿으면 찾았다 */
-  find: { reach: number };
-  /** 못 찾을 때: 저절로 재채기(초마다)·꾀꼬리 단추(초) */
-  stuck: { autoSneezeEvery: number; kkoekkoriAfter: number };
-  /** 상자: 키(m)·뒤에 숨어 비어져 나오는 몫·숨쉬기·재채기·들킴·고개 내밀기 */
+  /** 이만큼(m, 3차원) 닿고 화면 안이면 찾았다. 찾는 순간 멈추는 시간, 눈을 가리고 버티는 시간, 포기하고 크게 폴짝하는 시간, 칸으로 날아가는 시간(초) */
+  find: {
+    reach: number;
+    pauseSeconds: number;
+    coverSeconds: number;
+    hopSeconds: number;
+    flySeconds: number;
+  };
+  /** 숨어 있는 동안: 내가 이 안(m)에 오면 숨을 참고, 이 안(m)을 지나쳐 멀어지면 '휴', 내밀다 화면 가운데 이 몫 안에 들면 눈이 마주친 것 */
+  nearby: { holdBreathReach: number; passReach: number; watchShare: number };
+  /** 높이 숨은 상자: 내 높이보다 이만큼(m) 넘게 위면 닿아서 못 찾고, 수평 이 거리(m) 안에서 칙을 맞히면 떨어진다 */
+  drop: { minAbove: number; reach: number };
+  /**
+   * 생물(아이템): 잡히는 수평 거리·높이 차(m), 일러바치기가 나는 시간(초)과 상자 앞에서 멈추는 거리(m), 깨우기가 뛰게 하는 시간(초)과 뛰는 높이(m),
+   * 풀려난 생물이 내 앞에서 한 바퀴 도는 시간(초), 깨우는 물결이 땅을 타고 퍼지는 빠르기(m/s)
+   */
+  item: {
+    reach: number;
+    band: number;
+    tattleSeconds: number;
+    tattleStop: number;
+    wakeSeconds: number;
+    wakeHop: number;
+    circleSeconds: number;
+    waveSpeed: number;
+  };
+  /** 판마다 무대에 부르는 생물 무리 */
+  guests: readonly GuestGroup[];
+  /**
+   * 전설의 생물(고래): 판마다 나올 확률, 나타나는 때(판 시작 뒤 초, from~to 사이), 판 위를 가로지르는 시간·태워 가는 시간(초),
+   * 떠 가는 높이(m)·닿는 수평 거리(m)·무대 가운데에서 나타나고 사라지는 거리(m)·가운데에서 비켜 지나는 거리(m)·타고 갈 때 곁의 상자가 움찔하는 거리(m)
+   */
+  legend: {
+    chance: number;
+    from: number;
+    to: number;
+    staySeconds: number;
+    rideSeconds: number;
+    lift: number;
+    reach: number;
+    span: number;
+    aside: number;
+    flinchReach: number;
+  };
+  /** 못 찾을 때: 참을성을 잃는 때·'못 찾겠다'가 뜨는 때(마지막으로 찾은 뒤 초), '여기야!' 빛기둥(초), 참을성을 잃으면 고개 내미는 간격에 곱하는 몫 */
+  stuck: {
+    restlessAfter: number;
+    giveUpAfter: number;
+    pillarSeconds: number;
+    restlessPeek: number;
+  };
+  /** 해가 진 뒤의 장면(초): 남은 상자들이 튀어나옴 · 내 앞으로 몰려와 둘러쌈 · 한 놈이 머리 위에 올라탐 · 단추가 뜸 */
+  lost: { popAt: number; gatherAt: number; climbAt: number; buttonsAt: number };
+  /** 몸짓: 종종걸음 한 걸음(초)과 뒤뚱거리는 각(도), 폴짝의 납작·늘어남(키 배수), 깜짝의 늘어남, 재채기로 젖히는 각·움찔·버둥의 각(도) */
+  moves: {
+    stepSeconds: number;
+    waddleDegrees: number;
+    hopSquash: number;
+    hopStretch: number;
+    startleStretch: number;
+    sneezeLeanDegrees: number;
+    flinchDegrees: number;
+    flailDegrees: number;
+  };
+  /** 상자: 키(m)·뒤에 숨어 비어져 나오는 몫·숨쉬기·재채기로 튀는 높이(m)·고개 내밀기 */
   box: {
     height: number;
     showShare: number;
     breathSeconds: number;
     breathSquash: number;
     sneezeHop: number;
-    sneezeSeconds: number;
-    leapHop: number;
-    leapSeconds: number;
     /** 고개 내미는 간격(초, 이 둘 사이 아무 때나) */
     peekEvery: readonly [number, number];
-    peekSeconds: number;
     peekReach: number;
   };
-  /** 보너스 상자: 다 찾고 떨어지기까지(초)·떨어지는 높이(m)·크기 배수 */
-  bonus: { waitSeconds: number; dropHeight: number; scale: number };
+  /** 보너스 상자: 다 찾고 떨어지기까지(초)·떨어지는 높이(m)·크기 배수·내 앞 거리(m) */
+  bonus: { waitSeconds: number; dropHeight: number; scale: number; ahead: number };
   /** 언박싱: 꽝·일어나는 일, 다섯 상자 중 꽝 수, 커지는 배수·시간(초) */
   unbox: {
     duds: readonly Content[];
@@ -80,8 +196,6 @@ export interface HideTuning {
   look: { holdSeconds: number };
   /** 잰 값: 끌기 직후 이 안(ms)의 칙을 '끌다 나간 칙'으로 센다 */
   measure: { dragTapMs: number };
-  /** 무대: 자리표의 마을 차례(0 이 광장) */
-  stage: { hub: number };
   spots: readonly HideSpot[];
   /** 시험 묶음(?hide=1·2·3…): 자리 id 넷씩 */
   rounds: readonly (readonly string[])[];
@@ -90,70 +204,173 @@ export interface HideTuning {
 /** 한 판의 상자 수(보너스 빼고) */
 export const ROUND_BOXES = 4;
 
+/** 해가 진 뒤 상자들이 몰려오는 데 드는 가장 짧은 시간(초 — lost.climbAt 은 gatherAt 보다 이만큼 넘게 늦어야 한다) */
+export const LOST_RUN_MIN = 0.5;
+
 /** 데이터 파일을 읽어 모양을 확인한다. 틀리면 어느 칸이 왜 틀렸는지 알리며 멈춘다 */
 export function readTuning(raw: unknown): HideTuning {
   const r = record(raw, "");
   const copy = record(r.copy, "copy"),
+    colors = record(r.colors, "colors"),
+    nearby = record(r.nearby, "nearby"),
+    lost = record(r.lost, "lost"),
+    moves = record(r.moves, "moves"),
+    stage = record(r.stage, "stage"),
+    round = record(r.round, "round"),
     start = record(r.start, "start"),
+    screen = record(r.screen, "screen"),
     chik = record(r.chik, "chik"),
     find = record(r.find, "find"),
+    drop = record(r.drop, "drop"),
+    item = record(r.item, "item"),
+    legend = record(r.legend, "legend"),
     stuck = record(r.stuck, "stuck"),
     box = record(r.box, "box"),
     bonus = record(r.bonus, "bonus"),
     unbox = record(r.unbox, "unbox"),
     look = record(r.look, "look"),
-    measure = record(r.measure, "measure"),
-    stage = record(r.stage, "stage");
+    measure = record(r.measure, "measure");
+  const radius = positive(stage.radius, "stage.radius");
   const spots = list(r.spots, "spots").map((s, i) => spotOf(s, `spots[${i}]`));
   const ids = new Set<string>();
   for (const s of spots) {
     if (ids.has(s.id)) fail(`spots: id "${s.id}" 가 두 번 나온다`);
     ids.add(s.id);
+    const far = Math.hypot(s.x, s.y);
+    if (far > radius) fail(`spots: "${s.id}" 가 무대 반경(stage.radius ${radius}m) 밖이다`);
   }
-  const rounds = list(r.rounds, "rounds").map((round, i) => {
+  const rounds = list(r.rounds, "rounds").map((picked, i) => {
     const path = `rounds[${i}]`;
-    const picked = list(round, path).map((id, j) => text(id, `${path}[${j}]`));
-    if (picked.length !== ROUND_BOXES) fail(`${path}: 자리 ${ROUND_BOXES}개여야 한다`);
-    for (const id of picked) if (!ids.has(id)) fail(`${path}: spots 에 없는 id "${id}"`);
-    return picked;
+    const chosen = list(picked, path).map((id, j) => text(id, `${path}[${j}]`));
+    if (chosen.length !== ROUND_BOXES) fail(`${path}: 자리 ${ROUND_BOXES}개여야 한다`);
+    for (const id of chosen) if (!ids.has(id)) fail(`${path}: spots 에 없는 id "${id}"`);
+    return chosen;
   });
   if (!rounds.length) fail("rounds: 묶음이 하나는 있어야 한다");
   const duds = contents(unbox.duds, "unbox.duds"),
     happenings = contents(unbox.happenings, "unbox.happenings");
+  if (!duds.length) fail("unbox.duds: '못 찾겠다'로 찾은 상자에 넣을 꽝이 하나는 있어야 한다");
   if (!happenings.length)
     fail("unbox.happenings: 보너스 상자에 넣을 일어나는 일이 하나는 있어야 한다");
   for (const c of duds)
     if (happenings.includes(c)) fail(`unbox: "${c}" 가 꽝과 일어나는 일에 같이 있다`);
   const dudCount = count(unbox.dudCount, "unbox.dudCount");
-  const dudLimit = Math.min(ROUND_BOXES, duds.length);
-  if (dudCount > dudLimit) fail(`unbox.dudCount: 0~${dudLimit} 이어야 한다`);
+  if (dudCount > ROUND_BOXES) fail(`unbox.dudCount: 0~${ROUND_BOXES} 이어야 한다`);
   const peek = list(box.peekEvery, "box.peekEvery").map((n, i) =>
     positive(n, `box.peekEvery[${i}]`),
   );
   if (peek.length !== 2 || peek[0] > peek[1])
     fail("box.peekEvery: [가장 짧게, 가장 길게] 두 수여야 한다");
+  const from = positive(legend.from, "legend.from"),
+    to = positive(legend.to, "legend.to"),
+    seconds = positive(round.seconds, "round.seconds"),
+    redFrom = positive(round.redFrom, "round.redFrom");
+  if (from > to) fail("legend: from 이 to 보다 늦다");
+  if (to > seconds) fail("legend.to: 한 판(round.seconds)보다 늦으면 나오지 못한다");
+  if (redFrom >= seconds) fail("round.redFrom: round.seconds 보다 일러야 한다");
+  const popAt = positive(lost.popAt, "lost.popAt"),
+    gatherAt = positive(lost.gatherAt, "lost.gatherAt"),
+    climbAt = positive(lost.climbAt, "lost.climbAt"),
+    buttonsAt = positive(lost.buttonsAt, "lost.buttonsAt");
+  if (popAt >= gatherAt) fail("lost.gatherAt: popAt 보다 늦어야 한다");
+  if (climbAt < gatherAt + LOST_RUN_MIN)
+    fail(`lost.climbAt: gatherAt 보다 ${LOST_RUN_MIN}초 넘게 늦어야 한다(몰려올 시간)`);
+  if (buttonsAt < climbAt) fail("lost.buttonsAt: climbAt 보다 이르다");
+  const guests = list(r.guests, "guests").map((g, i) => guestOf(g, `guests[${i}]`));
   return {
     copy: {
-      curtain: text(copy.curtain, "copy.curtain"),
+      hide: text(copy.hide, "copy.hide"),
+      it: text(copy.it, "copy.it"),
       found: text(copy.found, "copy.found"),
-      kkoekkori: text(copy.kkoekkori, "copy.kkoekkori"),
+      tap: text(copy.tap, "copy.tap"),
+      useItem: text(copy.useItem, "copy.useItem"),
+      sneeze: text(copy.sneeze, "copy.sneeze"),
+      sniff: text(copy.sniff, "copy.sniff"),
+      giveUp: text(copy.giveUp, "copy.giveUp"),
+      giveUpCost: text(copy.giveUpCost, "copy.giveUpCost"),
+      here: text(copy.here, "copy.here"),
       open: text(copy.open, "copy.open"),
+      boxesWin: text(copy.boxesWin, "copy.boxesWin"),
       again: text(copy.again, "copy.again"),
     },
+    colors: {
+      lime: text(colors.lime, "colors.lime"),
+      gold: text(colors.gold, "colors.gold"),
+      ink: text(colors.ink, "colors.ink"),
+    },
+    stage: { hub: count(stage.hub, "stage.hub"), radius },
+    round: { seconds, redFrom },
     start: {
       lineAhead: positive(start.lineAhead, "start.lineAhead"),
       lineGap: positive(start.lineGap, "start.lineGap"),
-      readySeconds: positive(start.readySeconds, "start.readySeconds"),
-      coveredSeconds: positive(start.coveredSeconds, "start.coveredSeconds"),
+      ...startTimes(start),
+      laterShare: share(start.laterShare, "start.laterShare"),
+      firstShowShare: share(start.firstShowShare, "start.firstShowShare"),
+      firstSneezeEvery: positive(start.firstSneezeEvery, "start.firstSneezeEvery"),
+    },
+    screen: {
+      bigSeconds: positive(screen.bigSeconds, "screen.bigSeconds"),
+      tapHintReach: positive(screen.tapHintReach, "screen.tapHintReach"),
     },
     chik: {
       reach: positive(chik.reach, "chik.reach"),
       sneezeCooldown: positive(chik.sneezeCooldown, "chik.sneezeCooldown"),
     },
-    find: { reach: positive(find.reach, "find.reach") },
+    find: {
+      reach: positive(find.reach, "find.reach"),
+      pauseSeconds: positive(find.pauseSeconds, "find.pauseSeconds"),
+      coverSeconds: positive(find.coverSeconds, "find.coverSeconds"),
+      hopSeconds: positive(find.hopSeconds, "find.hopSeconds"),
+      flySeconds: positive(find.flySeconds, "find.flySeconds"),
+    },
+    nearby: {
+      holdBreathReach: positive(nearby.holdBreathReach, "nearby.holdBreathReach"),
+      passReach: positive(nearby.passReach, "nearby.passReach"),
+      watchShare: share(nearby.watchShare, "nearby.watchShare"),
+    },
+    drop: {
+      minAbove: positive(drop.minAbove, "drop.minAbove"),
+      reach: positive(drop.reach, "drop.reach"),
+    },
+    item: {
+      reach: positive(item.reach, "item.reach"),
+      band: positive(item.band, "item.band"),
+      tattleSeconds: positive(item.tattleSeconds, "item.tattleSeconds"),
+      tattleStop: positive(item.tattleStop, "item.tattleStop"),
+      wakeSeconds: positive(item.wakeSeconds, "item.wakeSeconds"),
+      wakeHop: positive(item.wakeHop, "item.wakeHop"),
+      circleSeconds: positive(item.circleSeconds, "item.circleSeconds"),
+      waveSpeed: positive(item.waveSpeed, "item.waveSpeed"),
+    },
+    guests,
+    legend: {
+      chance: share(legend.chance, "legend.chance"),
+      from,
+      to,
+      staySeconds: positive(legend.staySeconds, "legend.staySeconds"),
+      rideSeconds: positive(legend.rideSeconds, "legend.rideSeconds"),
+      lift: positive(legend.lift, "legend.lift"),
+      reach: positive(legend.reach, "legend.reach"),
+      span: positive(legend.span, "legend.span"),
+      aside: finite(legend.aside, "legend.aside"),
+      flinchReach: positive(legend.flinchReach, "legend.flinchReach"),
+    },
     stuck: {
-      autoSneezeEvery: positive(stuck.autoSneezeEvery, "stuck.autoSneezeEvery"),
-      kkoekkoriAfter: positive(stuck.kkoekkoriAfter, "stuck.kkoekkoriAfter"),
+      restlessAfter: positive(stuck.restlessAfter, "stuck.restlessAfter"),
+      giveUpAfter: positive(stuck.giveUpAfter, "stuck.giveUpAfter"),
+      pillarSeconds: positive(stuck.pillarSeconds, "stuck.pillarSeconds"),
+      restlessPeek: positive(stuck.restlessPeek, "stuck.restlessPeek"),
+    },
+    lost: { popAt, gatherAt, climbAt, buttonsAt },
+    moves: {
+      stepSeconds: positive(moves.stepSeconds, "moves.stepSeconds"),
+      waddleDegrees: positive(moves.waddleDegrees, "moves.waddleDegrees"),
+      hopSquash: share(moves.hopSquash, "moves.hopSquash"),
+      hopStretch: positive(moves.hopStretch, "moves.hopStretch"),
+      startleStretch: positive(moves.startleStretch, "moves.startleStretch"),
+      sneezeLeanDegrees: positive(moves.sneezeLeanDegrees, "moves.sneezeLeanDegrees"),
+      flinchDegrees: positive(moves.flinchDegrees, "moves.flinchDegrees"),
+      flailDegrees: positive(moves.flailDegrees, "moves.flailDegrees"),
     },
     box: {
       height: positive(box.height, "box.height"),
@@ -161,17 +378,14 @@ export function readTuning(raw: unknown): HideTuning {
       breathSeconds: positive(box.breathSeconds, "box.breathSeconds"),
       breathSquash: share(box.breathSquash, "box.breathSquash"),
       sneezeHop: positive(box.sneezeHop, "box.sneezeHop"),
-      sneezeSeconds: positive(box.sneezeSeconds, "box.sneezeSeconds"),
-      leapHop: positive(box.leapHop, "box.leapHop"),
-      leapSeconds: positive(box.leapSeconds, "box.leapSeconds"),
       peekEvery: [peek[0], peek[1]],
-      peekSeconds: positive(box.peekSeconds, "box.peekSeconds"),
       peekReach: positive(box.peekReach, "box.peekReach"),
     },
     bonus: {
       waitSeconds: positive(bonus.waitSeconds, "bonus.waitSeconds"),
       dropHeight: positive(bonus.dropHeight, "bonus.dropHeight"),
       scale: positive(bonus.scale, "bonus.scale"),
+      ahead: positive(bonus.ahead, "bonus.ahead"),
     },
     unbox: {
       duds,
@@ -182,7 +396,6 @@ export function readTuning(raw: unknown): HideTuning {
     },
     look: { holdSeconds: positive(look.holdSeconds, "look.holdSeconds") },
     measure: { dragTapMs: positive(measure.dragTapMs, "measure.dragTapMs") },
-    stage: { hub: count(stage.hub, "stage.hub") },
     spots,
     rounds,
   };
@@ -257,9 +470,46 @@ function spotOf(v: unknown, path: string): HideSpot {
   }
   if (s.kind === "high") {
     const top = positive(s.top, `${path}.top`),
-      edge = finite(s.edge, `${path}.edge`);
-    if (edge < 0) fail(`${path}.edge: 0 이상이어야 한다`);
-    return { id, kind: "high", x, y, top, edge };
+      edge = finite(s.edge, `${path}.edge`),
+      slide = finite(s.slide, `${path}.slide`);
+    if (slide < 0) fail(`${path}.slide: 0 이상이어야 한다`);
+    return { id, kind: "high", x, y, top, edge, slide };
   }
   return fail(`${path}.kind: "behind"(뒤에 숨기) 또는 "high"(높이 숨기)여야 한다`);
+}
+
+// 판 시작 장면의 시각: 차례대로 늦어져야 한다
+function startTimes(start: Record<string, unknown>) {
+  const names = [
+    "textAt",
+    "startleAt",
+    "scurryAt",
+    "offscreenAt",
+    "closeAt",
+    "openAt",
+    "goAt",
+  ] as const;
+  const at = names.map((name) => positive(start[name], `start.${name}`));
+  for (let i = 1; i < at.length; i++)
+    if (at[i] < at[i - 1]) fail(`start.${names[i]}: ${names[i - 1]} 보다 이르다`);
+  const [textAt, startleAt, scurryAt, offscreenAt, closeAt, openAt, goAt] = at;
+  return { textAt, startleAt, scurryAt, offscreenAt, closeAt, openAt, goAt };
+}
+
+// 판에 부르는 생물 무리: 종은 생물 설정표에 있는 땅 위 무리(herd)나 하늘 무리(sky)여야 하고, 하늘 무리는 도는 반지름·높이를 적는다
+function guestOf(v: unknown, path: string): GuestGroup {
+  const g = record(v, path);
+  const species = text(g.species, `${path}.species`),
+    set = CREATURES[species];
+  if (g.note !== undefined) text(g.note, `${path}.note`);
+  if (!set || !(set.herd || set.sky))
+    fail(`${path}.species: "${species}" 는 땅 위 무리나 하늘 무리 생물이 아니다`);
+  const n = count(g.count, `${path}.count`);
+  if (n < 1) fail(`${path}.count: 1 이상이어야 한다`);
+  const x = finite(g.x, `${path}.x`),
+    y = finite(g.y, `${path}.y`);
+  if (!set.sky) return { species, count: n, x, y, orbit: null, alt: null };
+  const orbit = positive(g.orbit, `${path}.orbit`),
+    alt = positive(g.alt, `${path}.alt`);
+  return { species, count: n, x, y, orbit, alt };
 }

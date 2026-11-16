@@ -123,6 +123,14 @@ export class Pads implements Thing, Tappable, Echoing {
     }
   }
 
+  /** at 둘레 reach(m) 안의 방석이 꿀렁인다(숨바꼭질: 뒤에 숨은 상자가 재채기하거나 칙이 닿았을 때) */
+  shakeNear(at: THREE.Vector3, reach: number) {
+    for (const pd of this.list) {
+      if (pd.v.dot(at) < 0.99 || pd.v.angleTo(at) * S.R > reach + 4) continue;
+      pd.sq = 1;
+    }
+  }
+
   /** 울릴 시각이 된 방석이 꿀렁인다(종이 울리는 차례에 같이) */
   echo(time: number) {
     for (const pd of this.list)

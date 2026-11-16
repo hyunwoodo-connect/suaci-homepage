@@ -10,7 +10,9 @@ import type { HasHeights, Height } from "../world/tall";
 
 // 고래 등 — 고래는 한자리를 돌지 않는다. 출발 마을에서 떠나 행성을 한 바퀴 크게 돌고, 바퀴마다 방향을 90도씩 바꿔
 // 여섯 마을 하늘을 차례로 지난다. 높이는 길 아래 가장 높은 것 + 10m 를 미리 재 둔 표(빈 들판 위에서는 낮게 내려온다).
-// 내가 가까이(220m 안) 있으면 천천히 가서 따라잡을 수 있고, 등에 타면 빨리 간다. 아래에서 뛰어오르기만 하면 등으로 끌어 올린다
+// 내가 가까이(220m 안) 있으면 천천히 가서 따라잡을 수 있고, 등에 타면 빨리 간다. 아래에서 뛰어오르기만 하면 등으로 끌어 올린다.
+// 숨바꼭질에서는 전설의 손님 노릇도 한다(parade): 판 위를 낮게 가로지르는 동안은 닿기만 하면 태우고, 끌어도 내리지 않고,
+// 숨바꼭질이 정한 곳까지 태워 간다(carryTo). 다 하면 큰 바퀴로 돌아간다
 
 /** 한 바퀴의 길이(자리표 거리 — 행성 둘레)와 빠르기(자리표 거리/초) */
 const LAP = 1485.2,
@@ -93,11 +95,17 @@ export class Whale implements Thing, Holder {
   private armed = true;
   private hinted = false;
   private near = false;
-  /** 한 번 지나가기: 흐른 시간(초, 안 하면 -1)·출발 자리·도는 축·끝난 자리 */
+  /** 한 번 지나가기: 흐른 시간(초, 안 하면 -1)·출발 자리·도는 축·끝난 자리, 그 길의 길이(m)·빠르기(m/s)·땅에서의 높이(m) */
   private visitT = -1;
   private readonly visitFrom = new THREE.Vector3();
   private readonly visitAxis = new THREE.Vector3();
   private readonly visitEnd = new THREE.Vector3();
+  private visitTotal = VISIT_LEAD + VISIT_TAIL;
+  private visitSpeed = VISIT_SPEED;
+  private visitLift = VISIT_LIFT;
+  /** 전설의 손님 노릇 중(숨바꼭질): 닿으면(수평 이 거리 안) 바로 태우고, 끌어도 내리지 않는다 */
+  private parading = false;
+  private paradeReach = 0;
   /** 한 번이라도 움직였나(처음 프레임에는 고래 자리를 아직 모르는 것으로 쳐서 제 빠르기로 떠난다 — 시제품과 같은 첫 빠르기) */
   private moved = false;
 
@@ -179,7 +187,57 @@ export class Whale implements Thing, Holder {
     this.visitAxis.crossVectors(over, dir).normalize();
     const back = -VISIT_LEAD / S.R;
     this.visitFrom.copy(over).normalize().applyAxisAngle(this.visitAxis, back);
+    this.visitTotal = VISIT_LEAD + VISIT_TAIL;
+    this.visitSpeed = VISIT_SPEED;
+    this.visitLift = VISIT_LIFT;
     this.visitT = 0;
+  }
+
+  /**
+   * 전설의 손님으로 나선다(숨바꼭질): from 에서 to 까지(단위 벡터) seconds 동안 땅에서 lift(m) 높이로 지나간다.
+   * 그동안은 수평 reach(m) 안에 오기만 하면 태우고, 끌어도 내리지 않는다 — 내리는 것은 endParade
+   */
+  parade(from: THREE.Vector3, to: THREE.Vector3, seconds: number, lift: number, reach: number) {
+    this.parading = true;
+    this.paradeReach = reach;
+    this.visitLift = lift;
+    this.pathTo(from, to, seconds);
+  }
+
+  /** 태운 채 지금 자리에서 to(단위 벡터)까지 seconds 동안 간다(전설의 손님이 숨은 상자 앞으로 데려다준다) */
+  carryTo(to: THREE.Vector3, seconds: number) {
+    this.pathTo(this.v, to, seconds);
+  }
+
+  /** 전설의 손님 노릇을 마친다: 태웠으면 살짝 띄워 내려 주고, 큰 바퀴로 돌아간다 */
+  endParade() {
+    if (!this.parading) return;
+    this.parading = false;
+    if (this.on) {
+      this.on = false;
+      this.armed = false;
+      this.cool = 4;
+      this.s.player.release(this, { vy: 1.5, boost: 0.4 });
+    }
+    // 가던 길을 여기서 끝낸다 — 다음 프레임부터 큰 바퀴 자리로 돌아간다
+    if (this.visitT >= 0) this.visitTotal = this.visitT * this.visitSpeed;
+  }
+
+  /** 지금 나를 등에 태우고 있나 */
+  get isRiding(): boolean {
+    return this.on;
+  }
+
+  /** 정해 준 길(지나가기·태워 가기)의 남은 거리(m) — 다 갔으면 0 */
+  get pathLeft(): number {
+    if (this.visitT < 0) return 0;
+    const left = this.visitTotal - this.visitT * this.visitSpeed;
+    return Math.max(0, left);
+  }
+
+  /** 몸에 붙인다(전설의 손님일 때의 빛) */
+  attach(o: THREE.Object3D) {
+    this.g.add(o);
   }
 
   /** 이번 프레임에는 나를 태우지 않는다(언박싱처럼 내가 멈춰 있는 동안) */
@@ -195,19 +253,19 @@ export class Whale implements Thing, Holder {
     const d = player.p.angleTo(this.v) * S.R;
     if (!this.armed && !this.on && (player.air < REARM_LANDED || d > REARM_AWAY)) this.armed = true;
     // 다른 놀이기구에 실려 가는 중에도 올라탈 수 있다(시제품). 회오리에 실려 있을 때만은 아니다
+    const inReach = this.parading
+      ? d < this.paradeReach
+      : this.armed && this.cool <= 0 && (player.air > 0.2 || d < PICK_GROUND) && d < PICK_REACH;
     if (
       !this.on &&
-      this.armed &&
-      this.cool <= 0 &&
+      inReach &&
       !player.isHeldBy(this.whirls) &&
-      (player.air > 0.2 || d < PICK_GROUND) &&
-      d < PICK_REACH &&
       player.alt < this.WH + PICK_BELOW &&
       player.grab(this)
     ) {
       this.on = true;
       this.t = 0;
-      hud.say("고래 등 — 끌면 내립니다");
+      if (!this.parading) hud.say("고래 등 — 끌면 내립니다");
     }
     const body = player.bodyFor(this);
     if (this.on && body) {
@@ -222,7 +280,8 @@ export class Whale implements Thing, Holder {
       const rideAir = this.WH + this.rideH + this.wbob - player.floor - S.hover;
       const targetAir = Math.max(0.01, rideAir);
       body.air += (targetAir - body.air) * k;
-      if ((this.t > 1.2 && player.m0 > 0.6) || this.t > RIDE_MAX) {
+      const wantsOff = !this.parading && this.t > 1.2 && player.m0 > 0.6;
+      if (wantsOff || this.t > RIDE_MAX) {
         this.on = false;
         this.armed = false;
         this.cool = 4;
@@ -286,8 +345,8 @@ export class Whale implements Thing, Holder {
   // 한 번 지나가기: 큰 바퀴 자리(v·ahead) 대신 지나가는 길 위에 놓고 그 높이를 돌려준다. 다 지나면 큰 바퀴 자리로 천천히 섞어 돌아간다
   private visit(dt: number, loopTop: number): number {
     this.visitT += dt;
-    const along = this.visitT * VISIT_SPEED,
-      total = VISIT_LEAD + VISIT_TAIL;
+    const along = this.visitT * this.visitSpeed,
+      total = this.visitTotal;
     if (along <= total) {
       const arc = along / S.R,
         nextArc = (along + 3) / S.R;
@@ -295,9 +354,9 @@ export class Whale implements Thing, Holder {
       ahead.copy(this.visitFrom).applyAxisAngle(this.visitAxis, nextArc);
       this.visitEnd.copy(this.v);
       const ground = this.s.terrain.groundAt(this.v);
-      return ground + VISIT_LIFT;
+      return ground + this.visitLift;
     }
-    const back = (along - total) / VISIT_SPEED / VISIT_BACK;
+    const back = (along - total) / this.visitSpeed / VISIT_BACK;
     if (back >= 1) {
       this.visitT = -1;
       return loopTop;
@@ -312,6 +371,19 @@ export class Whale implements Thing, Holder {
     stepQ.identity().slerp(backQ, kAhead);
     ahead.copy(this.visitEnd).applyQuaternion(stepQ);
     return loopTop;
+  }
+
+  // from 에서 to 까지(단위 벡터) 행성 겉을 따라 seconds 동안 가는 길을 잡는다
+  private pathTo(from: THREE.Vector3, to: THREE.Vector3, seconds: number) {
+    this.visitFrom.copy(from).normalize();
+    this.visitAxis.crossVectors(this.visitFrom, to);
+    if (this.visitAxis.lengthSq() < 1e-12) this.visitAxis.crossVectors(this.visitFrom, this.f);
+    this.visitAxis.normalize();
+    const length = this.visitFrom.angleTo(to) * S.R,
+      total = Math.max(1, length);
+    this.visitTotal = total;
+    this.visitSpeed = total / seconds;
+    this.visitT = 0;
   }
 
   // 시계 tt 의 높이 표 값(표가 없으면 70m). 180·270 도 바퀴는 같은 길을 거꾸로 간다

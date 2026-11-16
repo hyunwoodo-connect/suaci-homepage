@@ -85,6 +85,12 @@ export const CATALOG = {
     "audio/sfx",
     "snd_up snd_boing snd_quad snd_swim snd_wing snd_jelly snd_legend snd_rocket snd_cannon snd_rail snd_whale snd_splash snd_ring snd_stamp snd_pick snd_palin snd_open snd_blank snd_win",
   ),
+  // 숨바꼭질 소리(v6 부터): 기획이 넘긴 mp3(teum-handoff/slice-01b/sounds)의 앞뒤 무음을 자르고 음량을 맞춘 것 — raw/snd_box_<이름>.mp3.
+  // 두 벌(a·b) 가운데 원본이 사실상 무음인 것(재채기 b·발소리 b·떨어짐 a·휴 a)과 하나만 고르는 것의 나머지(전설 b·다 찾음 b)는 싣지 않았다
+  ...sounds(
+    "audio/sfx",
+    "snd_box_sneeze_a snd_box_steps_a snd_box_found_a snd_box_found_b snd_box_fall_b snd_box_thud_small snd_box_thud_big snd_box_giggle_a snd_box_giggle_b snd_box_phew_b snd_box_legend snd_box_allfound",
+  ),
 };
 
 /**

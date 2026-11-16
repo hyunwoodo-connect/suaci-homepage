@@ -23,7 +23,9 @@ import { away, face, go } from "./moves";
 // 호수의 헤엄치는 것(물고기·일각고래·물개), 그리고 자리를 옮기지 않는 전설의 손님(라임 사슴·날개 달린 왕관).
 // 종의 생김새·크기·걸음새·버릇은 설정 표(assets/settings 의 CREATURES) 한곳에, 어디에 몇 무리인지는 지도(creatures)에 있고,
 // 여기는 갈래(땅·하늘·해파리·호수)마다의 공통 상태 기계와 놓는 규칙만 둔다. 종마다 다른 것은 버릇(habits)에게 묻는다.
-// 그리기는 종마다 한 묶음(ModelBatch): 가까이 보이는 것만 매 프레임 채워 그린다
+// 그리기는 종마다 한 묶음(ModelBatch): 가까이 보이는 것만 매 프레임 채워 그린다.
+// 숨바꼭질은 생물을 아이템으로 쓴다: 판마다 무대에 손님 무리를 불러 앉히고(invite·seat), 닿은 생물을 잡아(capture) 칸에 넣었다가
+// 풀어 준다(release) — 하늘을 도는 것은 일러바치러 날아간다(sendTo). 잡혀 있는 동안은 보이지 않고 움직이지 않는다
 
 /** 내가 멀어지면 내 앞쪽으로 옮겨 가는 무리 */
 interface RoamGroup {
@@ -44,8 +46,6 @@ export interface CreatureLinks {
   footsteps: { readonly length: number; at(i: number): Footstep };
   /** 따라오는 꼬마 라임 수(손님은 그 뒤에 선다) */
   babyLimes: { joined: number };
-  /** 줄에 선 숨바꼭질 상자 수(손님은 그 뒤에 선다) */
-  boxes: { readonly joined: number };
   lakes: { list: readonly { v: THREE.Vector3; r: number }[] };
   /** 전설을 만난 자리에 도장 */
   signature: { stampAt(v: THREE.Vector3): void };
@@ -138,7 +138,7 @@ export class Creatures implements Thing {
   /** 따라오지 않는 생물 하나라도 14m 안에 있나(무리는 무리 중심으로 본다) — 지루함 감독이 '새로 마주친 순간'을 센다 */
   isAnyNear(p: Readonly<THREE.Vector3>): boolean {
     for (const c of this.list) {
-      if (c.st === "follow" || c.gone) continue;
+      if (c.st === "follow" || c.st === "held" || c.gone) continue;
       const at = c.hv || c.v;
       if (at.dot(p) > 0.9996 && p.angleTo(at) * S.R < 14) return true;
     }
@@ -177,6 +177,11 @@ export class Creatures implements Thing {
     const altA = player.P.length() - S.R;
     for (const i of this.active) {
       const c = this.list[i];
+      if (c.st === "held") {
+        // 잡혀 칸에 든 생물: 작아지며 사라진 채로 쉰다
+        this.put(c, dt);
+        continue;
+      }
       if (c.v.dot(p) < REST_COS && c.st !== "follow" && c.st !== "fly") {
         c.visible = false;
         continue;
@@ -187,6 +192,7 @@ export class Creatures implements Thing {
       pose.amt = 0;
       pose.head = 0;
       if (c.st === "follow") this.follow(c, pose);
+      else if (c.st === "tattle") this.tattle(c, pose);
       else if (c.role === "herd") this.herd(c, dP, dA, calm, rush, pose);
       else if (c.role === "flock") this.flock(c, dP, dA, pose);
       else if (c.role === "fish") this.fish(c, dP, calm, rush, pose);
@@ -198,6 +204,139 @@ export class Creatures implements Thing {
       this.put(c, dt);
     }
     for (const b of this.batches) b.end();
+  }
+
+  /** 판에 부를 손님 무리를 만든다(숨바꼭질 — 자리는 seat 이 정한다). 모델이 없는 종이면 빈 목록 */
+  invite(species: string, count: number): Creature[] {
+    const set = CREATURES[species],
+      here = this.s.occ.hubs[0],
+      out: Creature[] = [];
+    const dir = this.list.length % 2 ? 1 : -1;
+    for (let j = 0; j < count; j++) {
+      const o: Partial<Creature> = set?.sky
+        ? { ctr: here, rad: 10, dir, alt: 3, ang: -dir * j * 14, slot: j, st: "fly" }
+        : { gait: set?.herd?.gait ?? "walk", st: "graze", hv: here };
+      const role = set?.sky ? "flock" : "herd";
+      const c = this.crit(species, role, here, o);
+      if (c) out.push(c);
+    }
+    if (this.activeMark.length < this.list.length) {
+      const grown = new Uint8Array(this.list.length);
+      grown.set(this.activeMark);
+      this.activeMark = grown;
+    }
+    return out;
+  }
+
+  /**
+   * 손님 무리를 그 자리(가운데 at)에 새로 앉힌다: 땅 위 무리는 둘러서 풀을 뜯고, 하늘 무리는 orbit(m) 반지름·땅에서 alt(m) 높이로 돈다.
+   * 잡혀 있던 것도 풀려나 제자리로 온다. 나를 따라오는 중인 손님은 그대로 따라온다(줄에서 빼지 않는다)
+   */
+  seat(group: readonly Creature[], at: THREE.Vector3, orbit: number | null, alt: number | null) {
+    const ctr = at.clone().normalize(),
+      ground = this.s.terrain.groundAt(ctr);
+    group.forEach((c, j) => {
+      if (c.st === "follow") return;
+      c.want = 1;
+      c.met = false;
+      c.vt = 0;
+      c.vc = 0;
+      c.hop = 0;
+      c.hopV = 0;
+      c.pitch = 0;
+      c.sink = 0;
+      if (c.role === "flock") {
+        c.ctr = ctr;
+        c.rad = orbit ?? c.rad;
+        c.alt = alt ?? c.alt;
+        c.g0 = ground;
+        offsetInto(c.v, ctr, c.rad, c.ang);
+        c.a = ground + c.alt;
+        c.st = "fly";
+        return;
+      }
+      const bearing = (j * 360) / group.length + 20;
+      c.hv = ctr;
+      offsetInto(c.home, ctr, 2.8, bearing);
+      c.v.copy(c.home);
+      c.a = this.s.terrain.groundAt(c.v);
+      c.st = "graze";
+      c.t = c.rng.range(1, 6);
+      c.still = 0;
+      c.led = false;
+      c.bowed = false;
+    });
+    this.lastTime = -1e9;
+  }
+
+  /**
+   * 지금 나와 닿은 잡을 수 있는 생물 하나(없으면 null): 땅 위 무리·하늘 무리 가운데 수평 reach(m)·높이 차 band(m) 안에서 가장 가까운 것.
+   * 전설의 손님·따라오는 손님·잡혀 있는 것·skip 에 든 것(이 판에 이미 쓴 것)은 뺀다
+   */
+  touching(reach: number, band: number, skip: ReadonlySet<Creature>): Creature | null {
+    const pl = this.s.player,
+      p = pl.p,
+      altA = pl.P.length() - S.R;
+    let best: Creature | null = null,
+      bestD = reach;
+    for (const i of this.active) {
+      const c = this.list[i];
+      if (c.legend || c.gone || c.st === "follow" || c.st === "held" || c.st === "tattle") continue;
+      if ((c.role !== "herd" && c.role !== "flock") || skip.has(c) || c.vis < 0.5) continue;
+      const d = c.v.angleTo(p) * S.R,
+        gap = c.a + c.batch.hh - altA;
+      if (d >= bestD || Math.abs(gap) > band) continue;
+      bestD = d;
+      best = c;
+    }
+    return best;
+  }
+
+  /** 잡았다: 인사를 한 번 하고(반짝·소리) 작아지며 사라진다 — 숨바꼭질의 아이템 칸으로 들어간다 */
+  capture(c: Creature) {
+    const first = !this.met.has(c.k),
+      kind = c.k;
+    this.met.add(c.k);
+    c.met = true;
+    this.s.events.emit("creatureMet", { kind, first, legend: false });
+    this.s.fx.burst(c.pos, 12, 8);
+    c.st = "held";
+    c.want = 0;
+  }
+
+  /**
+   * 풀어 준다: at 자리(땅에서 높이 above m)에 다시 나타나 제 갈 길을 간다(땅 위 무리는 집으로 걸어가고, 하늘 무리는 제 궤도로 돌아간다).
+   * 나를 찾아와 도는 버릇이 있는 하늘 무리는 떠나기 전에 내 둘레를 circle 초 돈다
+   */
+  release(c: Creature, at: Readonly<THREE.Vector3>, above: number, circle: number) {
+    c.v.copy(at).normalize();
+    const ground = this.s.terrain.groundAt(c.v);
+    c.a = c.role === "flock" ? ground + above : ground;
+    c.want = 1;
+    c.vt = c.role === "flock" ? circle : 0;
+    c.vc = 28;
+    c.still = 0;
+    c.st = c.role === "flock" ? "fly" : "home";
+    this.lastTime = -1e9;
+  }
+
+  /**
+   * 일러바치러 간다(하늘 무리): goal(단위 벡터) 쪽으로 seconds 동안 날아가 거기서 멈춘 뒤 제 궤도로 돌아간다.
+   * 날아가는 동안은 땅에서 above(m) 높이를 지킨다. 지금 날아가는 중인지는 isTattling 이 알려 준다
+   */
+  sendTo(c: Creature, goal: THREE.Vector3, seconds: number, above: number) {
+    const dist = c.v.angleTo(goal) * S.R;
+    c.goal = goal.clone().normalize();
+    c.rs = dist / seconds;
+    c.t = seconds;
+    c.base = above;
+    c.st = "tattle";
+    this.lastTime = -1e9;
+  }
+
+  /** 일러바치러 날아가는 중인가 */
+  isTattling(c: Creature): boolean {
+    return c.st === "tattle";
   }
 
   /** 치운다(그리는 묶음은 모델 창구가 치운다) */
@@ -212,8 +351,8 @@ export class Creatures implements Thing {
     const dt = this.ctx.dt,
       steps = this.links.footsteps;
     const lastHist = steps.length - 1;
-    // 줄 차례(꼬마 라임 → 찾은 상자 → 손님)는 발자취가 정한다
-    const trailIndex = lineSteps(this.links.babyLimes.joined, this.links.boxes.joined, c.order);
+    // 줄 차례(꼬마 라임 → 손님)는 발자취가 정한다
+    const trailIndex = lineSteps(this.links.babyLimes.joined, c.order);
     const histIndex = Math.min(lastHist, trailIndex);
     const hg = histIndex >= 0 ? steps.at(histIndex) : undefined;
     if (hg) {
@@ -255,6 +394,21 @@ export class Creatures implements Thing {
         c.hop = 0.01;
       }
     }
+  }
+
+  // 일러바치러 가는 하늘 손님: 정한 빠르기로 곧장 날아가고, 다 가면 제 궤도로 돌아간다
+  private tattle(c: Creature, pose: Pose) {
+    const dt = this.ctx.dt;
+    const left = go(c, c.goal!, c.rs, dt, 2.6);
+    c.t -= dt;
+    const ground = this.s.terrain.groundAt(c.v),
+      wantA = ground + c.base,
+      altEase = ease(4, dt);
+    c.a += (wantA - c.a) * altEase;
+    c.ph += dt * 15;
+    c.roll = 0;
+    pose.amt = 1;
+    if (c.t <= 0 || left < 0.5) c.st = "fly";
   }
 
   // 땅 위 무리: 풀 뜯기·쳐다보기·다가오기·기대기·놀라 달아나기·돌아보기·집으로. 종마다의 버릇이 그 앞뒤에 끼어든다

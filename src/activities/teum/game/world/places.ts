@@ -56,6 +56,9 @@ export class Places implements Thing, Tappable {
   readonly spots: Thing;
   private readonly list: Place[];
   private readonly PLZ: PlaceReaction[];
+  /** 흔들리는 정도(장소마다 — 숨바꼭질이 흔든다)와 반응할 때 라임빛으로 물드나 */
+  private readonly shaking = [0, 0, 0];
+  private isLimeGlowOn = true;
   private readonly lamp: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>;
   private readonly beam: THREE.Mesh<THREE.CylinderGeometry, THREE.MeshBasicMaterial>;
   private readonly spotBalls: SpotBall[] = [];
@@ -216,6 +219,19 @@ export class Places implements Thing, Tappable {
     for (let i = 0; i < 3; i++) if (n.angleTo(this.PV[i]) * S.R < 13) this.react(i);
   }
 
+  /** at 둘레 reach(m) 안의 장소(소원 나무·분수·뽑기 기계)가 흔들린다(숨바꼭질: 뒤에 숨은 상자가 재채기할 때) — 불은 켜지 않고 흔들리기만 한다 */
+  shakeNear(at: THREE.Vector3, reach: number) {
+    for (let i = 0; i < 3; i++) {
+      if (at.angleTo(this.PV[i]) * S.R > reach + 3) continue;
+      this.shaking[i] = 1;
+    }
+  }
+
+  /** 숨바꼭질 판 동안은 장소가 반응해도 라임빛으로 물들지 않는다(판 중에는 라임색이 상자의 것) — 흔들림과 빛 방울은 그대로 */
+  setLimeGlow(on: boolean) {
+    this.isLimeGlowOn = on;
+  }
+
   /** 장소 셋: 닿으면 반응하고, 분수는 물기둥이 위로 밀어 올린다 */
   update(f: Frame) {
     const { player, fx, terrain } = this.s,
@@ -233,11 +249,15 @@ export class Places implements Thing, Tappable {
       if (z.cool <= 0 && player.air < 9 && dz < z.r) this.react(i);
       const faded = z.lit - dt * 0.45;
       z.lit = Math.max(0, faded);
+      const nudged = this.shaking[i] - dt * 1.2;
+      this.shaking[i] = Math.max(0, nudged);
+      const glow = this.isLimeGlowOn ? z.lit : 0,
+        sway = Math.max(z.lit, this.shaking[i]);
       const md = items[i].model;
       if (md) {
         const shakePhase = f.time * 11;
-        md.rotation.z = Math.sin(shakePhase) * 0.07 * z.lit;
-        md.userData.uLime.value = z.lit * 0.3;
+        md.rotation.z = Math.sin(shakePhase) * 0.07 * sway;
+        md.userData.uLime.value = glow * 0.3;
       }
       if (i === 1 && !player.held && dz < 8.5 && player.air < 9) {
         // 분수에 다가가면 물기둥이 밀어 올려 분수 위로 넘어간다(모델 속으로 들어가지 않게)
@@ -250,10 +270,10 @@ export class Places implements Thing, Tappable {
           fx.burst(gp, 2, 7);
         }
       }
-      if (z.lit > 0) {
+      if (glow > 0) {
         const placeR = S.R + terrain.featGround(PV[i]) + z.top * 0.7;
         gp.copy(PV[i]).multiplyScalar(placeR);
-        const alpha = z.lit * 0.8;
+        const alpha = glow * 0.8;
         fx.glow(gp, 24, alpha);
       }
     }
