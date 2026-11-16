@@ -5,6 +5,7 @@ import type { Services } from "../services";
 import { clamp } from "../world/sphere";
 import type { PartFit, PartSlot } from "./parts";
 import { AVATAR_BODY, PARTS } from "./parts";
+import { unbindSkirtFromArms } from "./skirtWeights";
 
 // 뼈대가 있는 아바타: 몸짓은 뼈를 코드로 직접 돌려서 만든다. 이 아이는 걷지 않는다. 늘 떠 있다:
 // 멈추면 물속처럼 둥실, 나아가면 몸을 눕혀 팔을 날개처럼 펴고, 솟으면 만세, 떨어지면 허우적
@@ -76,6 +77,8 @@ export function setupRig(s: Services, slots: RigSlots, onReady: (rig: RigHandle)
       if (c instanceof THREE.Bone) B[c.name] = c;
       if (c instanceof THREE.Mesh) c.frustumCulled = false;
     });
+    // 자동 뼈대가 치마 자락 일부를 팔 뼈에 묶어 둬서 팔을 내리면 치마가 한쪽만 들린다 — 받자마자 떼어 낸다
+    unbindSkirtFromArms(av);
     av.updateMatrixWorld(true);
     // 머리 크기: 머리뼈보다 위에 있는 점들만 잰다(자동 뼈대가 손끝을 머리에 묶어 둔 곳이 있어서 뼈 이름으로는 못 잰다). 세계에 놓기 전, 모델 기준일 때 재야 한다
     const hb = new THREE.Box3(),
