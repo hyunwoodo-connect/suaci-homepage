@@ -23,8 +23,8 @@ const TURN_FROM = 0.94,
 /** 높이 표: 바퀴마다 나눈 칸 수, 길 아래를 보는 폭(코사인), 가장 낮게·꼭대기 위로 띄우는 높이·가장 높게 */
 const PROFILE_N = 240,
   PROFILE_COS = 0.9985,
-  PROFILE_FLOOR = 24,
-  PROFILE_CLEAR = 10,
+  PROFILE_FLOOR = 44,
+  PROFILE_CLEAR = 16,
   PROFILE_CAP = 112;
 /** 표를 고르는 폭: 높은 것 곁(±3칸)을 같이 넘고, ±4칸을 고르게 펴서 오르내림이 완만하다 */
 const DILATE = 3,
@@ -39,6 +39,9 @@ const PICK_REACH = 46,
   PICK_BELOW = 21;
 /** 등에 탄 채로 가장 오래(초) */
 const RIDE_MAX = 90;
+/** 내린 뒤 다시 태우려면 땅에 내려앉거나 이만큼(m) 멀어져야 한다 — 고래는 내 곁에서 느려져서, 떨어지는 동안 다시 끌려 올라갔다 */
+const REARM_AWAY = 90,
+  REARM_LANDED = 0.3;
 /** 고래가 지나간다는 안내(220m 안으로 오면 한 번, 320m 밖으로 멀어지면 다시) · 소리(240m) */
 const HINT_IN = 220,
   HINT_OUT = 320,
@@ -77,6 +80,8 @@ export class Whale implements Thing, Holder {
   private on = false;
   private t = 0;
   private cool = 0;
+  /** 태울 수 있나(내린 뒤에는 땅에 닿거나 멀어질 때까지 아니다) */
+  private armed = true;
   private hinted = false;
   private near = false;
   /** 한 번이라도 움직였나(처음 프레임에는 고래 자리를 아직 모르는 것으로 쳐서 제 빠르기로 떠난다 — 시제품과 같은 첫 빠르기) */
@@ -96,7 +101,7 @@ export class Whale implements Thing, Holder {
   }
 
   /**
-   * 높이 표를 만든다(나무·꽃·조형물·랜드마크를 다 놓은 뒤): 바퀴마다 240 칸, 칸마다 길 아래(코사인 0.9985 안) 가장 높은 것 + 10m.
+   * 높이 표를 만든다(나무·꽃·조형물·랜드마크를 다 놓은 뒤): 바퀴마다 240 칸, 칸마다 길 아래(코사인 0.9985 안) 가장 높은 것(적어도 44m) + 16m.
    * 높은 것 곁도 같이 넘게 넓히고(±3칸), 고르게 편다(±4칸). 112m 를 넘지 않는다
    */
   choosePath(sources: readonly HasHeights[]) {
@@ -157,9 +162,11 @@ export class Whale implements Thing, Holder {
       dt = f.dt;
     if (this.cool > 0) this.cool -= dt;
     const d = player.p.angleTo(this.v) * S.R;
+    if (!this.armed && !this.on && (player.air < REARM_LANDED || d > REARM_AWAY)) this.armed = true;
     // 다른 놀이기구에 실려 가는 중에도 올라탈 수 있다(시제품). 회오리에 실려 있을 때만은 아니다
     if (
       !this.on &&
+      this.armed &&
       this.cool <= 0 &&
       !player.isHeldBy(this.whirls) &&
       (player.air > 0.2 || d < PICK_GROUND) &&
@@ -186,6 +193,7 @@ export class Whale implements Thing, Holder {
       body.air += (targetAir - body.air) * k;
       if ((this.t > 1.2 && player.m0 > 0.6) || this.t > RIDE_MAX) {
         this.on = false;
+        this.armed = false;
         this.cool = 4;
         player.release(this, { vy: 4.5, boost: 0.9 });
       }
