@@ -505,7 +505,10 @@ export class Game {
         .then((asset) => {
           if (asset.kind === "model") models.deliver(k, asset.scene);
         })
-        .catch((err) => console.error("teum asset", k, err));
+        .catch((err) => {
+          console.error("teum asset", k, err);
+          models.failed(k);
+        });
     });
     this.wardrobe.useLoader(loader);
   }

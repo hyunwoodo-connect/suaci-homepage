@@ -227,6 +227,12 @@ export class Closet {
       b.setAttribute("aria-pressed", pressed);
     }
     const tab = this.tab;
+    // 칸을 새로 그리면 누르던 단추가 사라진다 — 같은 값의 새 단추로 초점을 옮긴다(키보드·화면 읽기)
+    const focused = document.activeElement,
+      refocus =
+        focused instanceof HTMLElement && this.grid.contains(focused)
+          ? focused.dataset.value
+          : undefined;
     this.grid.replaceChildren(
       ...optionsFor(tab).map((value) => {
         const b = document.createElement("button");
@@ -250,10 +256,14 @@ export class Closet {
           pressed = String(isOn);
         b.setAttribute("aria-label", label);
         b.setAttribute("aria-pressed", pressed);
+        b.dataset.value = value;
         b.addEventListener("click", () => this.on.onPick(tab, value));
         return b;
       }),
     );
+    if (refocus === undefined) return;
+    for (const b of this.grid.querySelectorAll("button"))
+      if (b.dataset.value === refocus) b.focus();
   }
 
   // 칸의 그림: 소품은 옷장 칸 그림, 무늬는 무늬 그림, 색은 그 색, 기본 윗옷은 원래 스웨터의 분홍·라임
@@ -343,6 +353,7 @@ function pill(text: string): HTMLButtonElement {
   Object.assign(b.style, {
     flex: "0 0 auto",
     minHeight: "44px",
+    minWidth: "44px",
     fontSize: "13px",
     border: "0",
     borderRadius: "999px",

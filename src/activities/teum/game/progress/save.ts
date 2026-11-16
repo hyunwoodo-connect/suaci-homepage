@@ -2,7 +2,7 @@ import type { AvatarLook } from "../avatar/outfit";
 import { readLook } from "../avatar/outfit";
 
 // 한 사람의 '틈' 기록(구조만 — 수집·상자·부탁·도장의 화면과 보상은 아직 정하지 않았다).
-// 모양은 시제품 v78 스케치(CHANGES-v65-v78 3장)와 같고, v82 에서 아바타 차림(look)과 꾸미기 씬을 지났는지(dressed)가 늘었다.
+// 모양은 시제품 스케치(CHANGES-v65-v78 3장)와 같고, 아바타 차림(look)과 꾸미기 씬을 지났는지(dressed)도 둔다(CHANGES-v79-v82 4장).
 // 판(v)이 있어 모양이 바뀌면 옮겨 읽는다(칸을 더하기만 한 것은 판을 올리지 않는다 — 없던 칸은 빈 값으로 읽는다).
 // 저장하는 곳(store)과 뽑기·판정(judge)은 따로 둔다 — 지금은 이 기기, 실물 보상이 걸리면 서버로 바꾼다
 

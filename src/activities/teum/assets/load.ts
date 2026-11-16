@@ -52,6 +52,8 @@ export function createAssetLoader(manifest: Manifest): AssetLoader {
         })
       : images.loadAsync(url).then((texture): LoadedAsset => ({ kind: "texture", texture }));
     cache.set(key, job);
+    // 실패한 것은 두지 않는다 — 다음에 부탁하면 다시 받는다(폰 회선에서 한 번 끊긴 것이 그 판 내내 막히지 않게)
+    job.catch(() => cache.delete(key));
     return job;
   };
 

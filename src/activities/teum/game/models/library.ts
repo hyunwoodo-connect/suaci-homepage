@@ -91,6 +91,11 @@ export class ModelLibrary {
     for (const k of this.asked) if (!this.arrived.has(k)) fn(k);
   }
 
+  /** 받아 오지 못했다 — 다음에 필요해지면 다시 부탁한다 */
+  failed(k: string) {
+    this.asked.delete(k);
+  }
+
   /** 이 모델이 지금 필요하다: 아직 안 왔으면 받아 달라고 한 번 부탁한다 */
   need(k: string) {
     if (!this.has(k) || this.arrived.has(k) || this.asked.has(k)) return;

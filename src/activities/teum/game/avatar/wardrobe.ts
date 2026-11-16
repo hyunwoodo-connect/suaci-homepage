@@ -35,7 +35,8 @@ export class Wardrobe {
   /** 칸마다 지금 끼운 부품 키(같은 것을 다시 끼우지 않게) */
   private readonly wearing: Partial<Record<PartSlot, string>> = {};
   private loader: AssetLoader | null = null;
-  private readonly prints = new Map<string, THREE.Texture>();
+  /** 무늬 그림 받기(이름마다 한 번 — 실패하면 빼서 다음에 다시) */
+  private readonly prints = new Map<string, Promise<THREE.Texture>>();
 
   constructor(
     private readonly outfit: OutfitUniforms,
@@ -70,13 +71,15 @@ export class Wardrobe {
     return lookAssetKeys(this.look);
   }
 
-  /** 한 탭의 것을 고른다(되돌리기에 남고 기록에 둔다) */
-  pick(tab: LookTab, value: string) {
+  /** 한 탭의 것을 고른다(되돌리기에 남고 기록에 둔다). 이미 입은 것이면 false */
+  pick(tab: LookTab, value: string): boolean {
+    if (this.look[tab] === value) return false;
     this.snap();
     this.look[tab] = value;
     this.keep();
     if (isPartTab(tab)) this.wearSlot(tab);
     else this.applyClothes();
+    return true;
   }
 
   /** 아무 차림이나 */
@@ -162,26 +165,25 @@ export class Wardrobe {
 
   // 무늬 그림: 받은 것은 두고 쓴다. 몸에 감기게 거울처럼 되풀이한다
   private withPrint(name: string, apply: (texture: THREE.Texture) => void) {
-    const known = this.prints.get(name);
-    if (known) {
-      apply(known);
-      return;
-    }
     const loader = this.loader;
     if (!loader) return;
-    const key = printKey(name);
-    loader
-      .fetch(key)
-      .then((asset) => {
-        if (asset.kind !== "texture") return;
+    let job = this.prints.get(name);
+    if (!job) {
+      const key = printKey(name);
+      job = loader.fetch(key).then((asset) => {
+        if (asset.kind !== "texture") throw new Error(`${key} 는 그림이 아니다`);
         const t = asset.texture;
         t.colorSpace = THREE.SRGBColorSpace;
         t.wrapS = t.wrapT = THREE.MirroredRepeatWrapping;
         t.needsUpdate = true;
-        this.prints.set(name, t);
-        apply(t);
-      })
-      .catch((err) => console.error("teum print", name, err));
+        return t;
+      });
+      this.prints.set(name, job);
+    }
+    job.then(apply).catch((err) => {
+      console.error("teum print", name, err);
+      this.prints.delete(name);
+    });
   }
 
   private snap() {

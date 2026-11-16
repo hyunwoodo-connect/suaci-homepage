@@ -46,6 +46,8 @@ export class Studio implements Thing {
   private readonly floor: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
   private readonly closet: Closet;
   private hold: THREE.Group | null = null;
+  /** 처음 온 사람에게 열 차례(첫 화면을 받고 그리기 시작하면 연다) */
+  private greetWaiting = false;
 
   /** urlOf: 에셋 키 → 받을 주소(옷장 칸 그림) */
   constructor(
@@ -91,17 +93,17 @@ export class Studio implements Thing {
     });
   }
 
-  /** 열려 있나 */
-  get isOpen(): boolean {
-    return this.open;
-  }
-
-  /** 꾸미기 씬을 지난 적 없는 사람에게 세상보다 먼저 연다(skip: 개발용 ?quick) */
+  /**
+   * 꾸미기 씬을 지난 적 없는 사람에게 세상보다 먼저 연다(skip: 개발용 ?quick). 몸은 첫 화면을 받는 도중에 오지만, 여는 것은
+   * 그리기 시작한 첫 프레임에 — 열 때 옷장 부품·무늬를 미리 받는데 그것이 첫 화면 받기와 회선을 다투지 않게
+   */
   greetNewcomer(skip: boolean) {
     if (skip) return;
     void this.wardrobe.ready.then(() => {
       if (this.wardrobe.hasDressed) return;
-      this.avatar.whenRig(() => this.show(true));
+      this.avatar.whenRig(() => {
+        this.greetWaiting = true;
+      });
     });
   }
 
@@ -137,6 +139,10 @@ export class Studio implements Thing {
 
   /** 열려 있으면 카메라를 아바타 둘레에 두고 배경을 칠한다 */
   update(f: Frame) {
+    if (this.greetWaiting) {
+      this.greetWaiting = false;
+      this.show(true);
+    }
     if (!this.open) return;
     const { player, scene, camera } = this.s;
     // 끼운 부품은 나중에 붙으므로 매 프레임 층을 올린다(몸·부품 수십 개라 가볍다)
@@ -180,7 +186,7 @@ export class Studio implements Thing {
   /* ─── 내부 ─────────────────────────── */
 
   private pick(tab: LookTab, value: string) {
-    this.wardrobe.pick(tab, value);
+    if (!this.wardrobe.pick(tab, value)) return;
     this.spin = PICK_SPIN;
     this.followLook();
     this.s.events.emit("outfitPicked", { random: false });
