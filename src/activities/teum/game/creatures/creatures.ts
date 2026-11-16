@@ -10,6 +10,7 @@ import type { ModelBatch } from "../models/batch";
 import type { Holder } from "../player/player";
 import type { Services } from "../services";
 import { S } from "../settings";
+import { lineSteps } from "../scenery/footsteps";
 import { fr } from "../world/hash";
 import { from, offset, offsetInto } from "../world/sphere";
 import type { Creature, CreatureRole, Pose, Sense } from "./creature";
@@ -43,6 +44,8 @@ export interface CreatureLinks {
   footsteps: { readonly length: number; at(i: number): Footstep };
   /** 따라오는 꼬마 라임 수(손님은 그 뒤에 선다) */
   babyLimes: { joined: number };
+  /** 줄에 선 숨바꼭질 상자 수(손님은 그 뒤에 선다) */
+  boxes: { readonly joined: number };
   lakes: { list: readonly { v: THREE.Vector3; r: number }[] };
   /** 전설을 만난 자리에 도장 */
   signature: { stampAt(v: THREE.Vector3): void };
@@ -67,14 +70,6 @@ const REST_COS = 0.8,
   /** 이만큼 움직이거나 이 시간이 지나면 다시 고른다(생물은 초속 14m 를 넘지 않는다) */
   REBUILD_MOVE = 30,
   REBUILD_TIME = 1;
-
-/**
- * 따라오는 손님 줄: 내 발자취(한 걸음 0.3m) 위에 한 줄로 선다. 아기 라임(여섯 걸음 간격)이 있으면 그 뒤부터.
- * 첫 손님은 FOLLOW_FIRST 걸음 뒤, 그다음은 FOLLOW_GAP 걸음마다 — 손님끼리 거의 닿을 만큼 붙여, 셋까지는 한 화면에 든다
- */
-const FOLLOW_FIRST = 7,
-  FOLLOW_GAP = 7,
-  BABY_GAP = 6;
 
 const fAim = new THREE.Vector3(),
   cf = new THREE.Vector3(),
@@ -203,8 +198,6 @@ export class Creatures implements Thing {
       this.put(c, dt);
     }
     for (const b of this.batches) b.end();
-    // 데리고 다니는 손님 수만큼 카메라가 높아지고 멀어진다(다 같이 화면에 들어오게)
-    this.s.camera.setCompany(this.followers.length);
   }
 
   /** 치운다(그리는 묶음은 모델 창구가 치운다) */
@@ -219,8 +212,8 @@ export class Creatures implements Thing {
     const dt = this.ctx.dt,
       steps = this.links.footsteps;
     const lastHist = steps.length - 1;
-    const babies = BABY_GAP * this.links.babyLimes.joined,
-      trailIndex = babies + FOLLOW_FIRST + FOLLOW_GAP * c.order;
+    // 줄 차례(꼬마 라임 → 찾은 상자 → 손님)는 발자취가 정한다
+    const trailIndex = lineSteps(this.links.babyLimes.joined, this.links.boxes.joined, c.order);
     const histIndex = Math.min(lastHist, trailIndex);
     const hg = histIndex >= 0 ? steps.at(histIndex) : undefined;
     if (hg) {

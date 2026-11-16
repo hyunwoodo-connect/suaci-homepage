@@ -18,6 +18,7 @@ import { GameEvents } from "./events";
 import { Fx } from "./fx/fx";
 import { Petals } from "./fx/petals";
 import { Ripples } from "./fx/ripples";
+import { HideSeek } from "./hideseek/hideseek";
 import { Hud } from "./hud";
 import { Landmarks } from "./landmarks/landmarks";
 import { Mats } from "./look";
@@ -158,6 +159,8 @@ export class Game {
   /** 꾸미기 씬: 세상을 가리고 아바타만 세워 옷장에서 고른다 */
   readonly studio: Studio;
   readonly signature: Signature;
+  /** 숨바꼭질(조각 01 시험판 — 메인 퀘스트) */
+  readonly hideSeek: HideSeek;
   readonly bubbleTrail: BubbleTrail;
   readonly director: Director;
   readonly creatures: Creatures;
@@ -328,9 +331,32 @@ export class Game {
     this.landmarks = new Landmarks(s, this.sculptures.landmarks, this.progress);
     this.signature = new Signature(s, lawn, this.sites, this.rockets);
     this.bubbleTrail = new BubbleTrail(s);
+    const avatar = this.avatar,
+      whale = this.whale;
+    this.hideSeek = new HideSeek(
+      s,
+      {
+        footsteps: this.footsteps,
+        babyLimes: this.babyLimes,
+        input: this.input,
+        studio: this.studio,
+        unbox: {
+          // 커지면 카메라도 그만큼 물러난다(4배 몸이 다 들게)
+          grow: (k) => {
+            avatar.grow(k);
+            const zoom = 1 + (k - 1) * 0.5;
+            s.camera.setZoom(zoom);
+          },
+          callWhale: (over, dir) => whale.flyBy(over, dir),
+          keepWhaleOff: () => whale.keepOff(),
+        },
+      },
+      hudParent,
+    );
     this.creatures = new Creatures(s, {
       footsteps: this.footsteps,
       babyLimes: this.babyLimes,
+      boxes: this.hideSeek,
       lakes: this.lakes,
       signature: this.signature,
       whale: this.whale,
@@ -403,6 +429,8 @@ export class Game {
       this.bubbleTrail,
       this.director,
       this.creatures,
+      // 데리고 다니는 손님·찾은 상자 수만큼 카메라가 높아지고 멀어진다(다 같이 화면에 들어오게)
+      () => camera.setCompany(this.creatures.followers.length + this.hideSeek.joined),
       this.regionLook,
       places,
       this.clouds,
@@ -410,6 +438,8 @@ export class Game {
       hud,
       camera,
       this.studio,
+      // 숨바꼭질은 따라가는 카메라 뒤에 — 둘러보기·언박싱이 카메라를 잠깐 빌린다
+      this.hideSeek,
       this.landmarks,
       places.spots,
       ripples,
@@ -421,6 +451,7 @@ export class Game {
       this.stars.models,
     ];
     this.tapOrder = [
+      this.hideSeek,
       this.wings,
       this.rails,
       this.swings,
@@ -536,8 +567,12 @@ export class Game {
 
   /* ─── 내부 ─────────────────────────── */
 
-  // 칙: 화면 좌표를 땅에 쏘아 맞은 자리를 정하고, 정해 둔 차례로 알린다
+  // 칙: 화면 좌표를 땅에 쏘아 맞은 자리를 정하고, 정해 둔 차례로 알린다. 언박싱 중에는 숨바꼭질만 받는다(상자를 여는 누름)
   private tap(x: number, y: number) {
+    if (this.hideSeek.takesTaps) {
+      this.hideSeek.onTap();
+      return;
+    }
     const ndcX = (x / innerWidth) * 2 - 1,
       ndcY = -(y / innerHeight) * 2 + 1;
     this.ndc.set(ndcX, ndcY);

@@ -1,3 +1,4 @@
+import type { Content } from "./hideseek/unbox";
 import type { BoxSource, Prize, QuestType } from "./progress/save";
 
 // 게임에서 일어나는 일을 알리는 작은 알림판. 놀이기구·생물·만남이 알리기만 하고, 소리(sound/)가 듣는다.
@@ -71,6 +72,23 @@ export interface GameEventMap {
   dayChanged: { day: number; festival: number };
   /** 옷장에서 하나 골랐다(random: 아무거나 단추) */
   outfitPicked: { random: boolean };
+  // ---- 숨바꼭질(조각 01 시험판) ----
+  /** 꼭꼭 숨어라: 가림막이 내려오고 상자들이 후다닥 흩어진다 */
+  hideStarted: Record<string, never>;
+  /** 칙 안개가 퍼졌다(sneezed: 그 칙에 재채기한 상자 수) */
+  hideChik: { sneezed: number };
+  /** 숨은 상자가 재채기했다(auto: 60초 동안 못 찾아 저절로) */
+  hideBoxSneezed: { auto: boolean };
+  /** 상자를 찾았다(count: 찾은 수, how: 닿아서·꾀꼬리) */
+  hideBoxFound: { count: number; how: "touch" | "kkoekkori" };
+  /** 보너스 상자가 하늘에서 떨어져 내려앉았다 */
+  hideBonusLanded: Record<string, never>;
+  /** 언박싱: 상자가 들썩했다 */
+  hideBoxShaken: Record<string, never>;
+  /** 언박싱: 상자가 열렸다(content: 내용물) */
+  hideBoxOpened: { content: Content };
+  /** 언박싱: 상자 속 상자가 열렸다(empty: 셋째 — 비었다) */
+  hideNestedPopped: { empty: boolean };
   // ---- 수집·상자·부탁·도장·이동(구조만 — 아직 알리는 곳이 없다. 기획이 정하면 그 흐름이 알린다) ----
   /** 처음 친해진 종이 보관함에 남았다 */
   collected: { kind: string };

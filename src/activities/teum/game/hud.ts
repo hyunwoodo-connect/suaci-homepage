@@ -28,6 +28,8 @@ export class Hud {
   /** 소리 끄기 단추(낼 소리가 있을 때만) */
   private mute: HTMLButtonElement | null = null;
   private readonly parent: HTMLElement;
+  /** 숨바꼭질 판 동안 안내 줄·말풍선을 숨긴다 */
+  private quiet = false;
 
   /** 캔버스 위(같은 부모)에 안내 글자와 끌기 동그라미를 만든다 */
   constructor(parent: HTMLElement) {
@@ -185,7 +187,7 @@ export class Hud {
    * 배경 음악이 도는 동안 끌 수 있어야 한다
    */
   setStudio(on: boolean) {
-    const display = on ? "none" : "";
+    const display = on || this.quiet ? "none" : "";
     for (const el of [this.hint, this.talk]) el.style.display = display;
     const mute = this.mute;
     if (!mute) return;
@@ -196,6 +198,13 @@ export class Hud {
         : "calc(8px + env(safe-area-inset-right))",
       zIndex: on ? "4" : "",
     });
+  }
+
+  /** 숨바꼭질 판 동안은 안내 줄·말풍선을 숨긴다(글 설명 없이 한다) */
+  setQuiet(on: boolean) {
+    this.quiet = on;
+    const display = on ? "none" : "";
+    for (const el of [this.hint, this.talk]) el.style.display = display;
   }
 
   /** 지금 말풍선의 글(시험 창구가 읽는다) */

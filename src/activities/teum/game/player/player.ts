@@ -53,6 +53,10 @@ export interface Release {
   hop?: boolean;
 }
 
+/** 출발 자리: 마을 중심에서 이만큼(m)·이 방위(°) 떨어져 중심을 보고 선다(숨바꼭질의 숨는 자리도 이 자리에서 잰다) */
+export const HOME_DIST = 20,
+  HOME_BEAR = 200;
+
 /** 이만큼 빠르게 솟으면 '솟구쳤다' · 이만큼 높이 떠 있다가 땅에 닿으면 '내려앉았다' */
 const ROSE_VY = 6,
   LANDED_FROM = 1.2;
@@ -248,7 +252,7 @@ export class Player {
   // ---- 프레임 ----
   /** 출발점으로: 그 마을 중심(center, 없으면 광장) 곁에서 중심을 보고 선다 */
   goHome(center: THREE.Vector3 = START) {
-    const home = offset(center, 20, 200);
+    const home = offset(center, HOME_DIST, HOME_BEAR);
     this._p.copy(home);
     this._h.copy(center).sub(this._p);
     const hRadial = this._h.dot(this._p);
@@ -566,7 +570,7 @@ export class Player {
     return this.hanger;
   }
 
-  /** 시험·개발용: 그 자리에 놓는다(높이 air, 보는 쪽 dir) */
+  /** 그 자리에 놓는다(높이 air, 보는 쪽 dir) — 시험·개발 창구와 숨바꼭질 언박싱(광장으로 옮길 때)이 쓴다 */
   teleport(v: THREE.Vector3, dir: THREE.Vector3 | null, air: number) {
     this._p.copy(v).normalize();
     if (dir) this._h.copy(dir);

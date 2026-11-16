@@ -76,6 +76,8 @@ export const CATALOG = {
     512,
     "cannon bell bumper balloon hotairballoon star whale lime lime_half r_funnel r_bud w_butterfly",
   ),
+  // 숨바꼭질의 숨는 애(라임 상자, 원본 약 2만 폴리곤). 언박싱에서 가까이 보므로 1024 텍스처
+  ...group("hideseek", 8000, 1024, "limebox"),
   // suaci 프로모션 오브젝트(로고·제품 등)는 'brand' 분류로 넣는다. 예: ...group("brand", 5000, 1024, "logo_sign bottle"),
   // 소리(v3 부터): 원본은 raw/snd_<이름>.mp3(시제품 v78 assets16.js 에서 푼 것). 되풀이하는 것은 'audio/bgm', 한 번씩 나는 것은 'audio/sfx'
   ...sounds("audio/bgm", "snd_bgm snd_wind"),

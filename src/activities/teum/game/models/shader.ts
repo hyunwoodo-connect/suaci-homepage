@@ -31,9 +31,9 @@ export interface ModelLookOptions {
   batch: boolean;
 }
 
-/** 지역 색을 돌리지 않는 모델: 나(몸·입는 부품)와 고래 */
+/** 지역 색을 돌리지 않는 모델: 나(몸·입는 부품)·고래·숨바꼭질 라임 상자(어느 마을에서도 라임과 흰 리본) */
 const PART_KEYS = Object.keys(PARTS);
-const REGION_FREE = new Set([AVATAR_BODY, ...PART_KEYS, "whale"]);
+const REGION_FREE = new Set([AVATAR_BODY, ...PART_KEYS, "whale", "limebox"]);
 
 /** 같은 묶음 셰이더(인스턴스 속성)를 쓰는지 */
 const BATCH_DEFINE = "TEUM_BATCH";

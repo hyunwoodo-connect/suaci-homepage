@@ -40,6 +40,9 @@ export class Avatar implements Thing {
   private rig: RigHandle | null = null;
   private readonly rigWaiting: ((rig: RigHandle) => void)[] = [];
   private readonly poseIn: PoseInput = { dt: 0, tot: 0, vy: 0, air: 0, fx: 0, time: 0 };
+  /** 몸 크기 배수(언박싱의 '4배로 커진다') — 바라는 값과 지금 값 */
+  private growWant = 1;
+  private growth = 1;
 
   /** 내 도형 몸·고양이·그림자를 만든다(등의 날개도 같이 단다) */
   constructor(
@@ -99,6 +102,11 @@ export class Avatar implements Thing {
     else this.rigWaiting.push(cb);
   }
 
+  /** 몸을 k 배로(1 이 그대로). 천천히 커지고 줄어든다 */
+  grow(k: number) {
+    this.growWant = k;
+  }
+
   /** 나를 이번 프레임 자리에 놓는다: 둥실(자리는 Player.place), 앞을 보고, 빠를수록 눕고, 대포·구멍에선 작아진다. 그림자도 */
   update(f: Frame) {
     const pl = this.s.player,
@@ -127,9 +135,13 @@ export class Avatar implements Thing {
     }
     const catPhase = f.time * 2.3 + 1;
     this.catPrim.position.y = 0.55 + Math.sin(catPhase) * 0.07;
-    const targetScale = pl.bodyScale,
+    this.growth += (this.growWant - this.growth) * ease(2.5, dt);
+    const targetScale = pl.bodyScale * this.growth,
       scale = me.scale.x + (targetScale - me.scale.x) * ease(18, dt);
     me.scale.setScalar(scale);
+    // 커지면 발이 땅 밑으로 가지 않게 그만큼 올린다(몸 키 1.5m 의 반)
+    const growLift = (this.growth - 1) * 0.75;
+    if (growLift > 0.001) me.position.addScaledVector(p, growLift);
     // 그림자는 땅에 붙어 높이 뜰수록 넓고 옅어진다
     const sh = this.shadow;
     const groundRadius = S.R + pl.gNow + 0.06;

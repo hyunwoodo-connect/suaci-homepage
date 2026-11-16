@@ -68,6 +68,9 @@ export interface ClosetHandlers {
 /** 옷장 화면 */
 export class Closet {
   private readonly wearButton: HTMLButtonElement;
+  /** 꾸미기 씬이 열려 있나 · 옷장 단추를 밖에서 숨겼나 */
+  private isShown = false;
+  private wearHidden = false;
   private readonly stage: HTMLDivElement;
   private readonly tip: HTMLDivElement;
   private readonly sheet: HTMLDivElement;
@@ -191,12 +194,19 @@ export class Closet {
 
   /** 꾸미기 씬을 열고 닫는다(열면 옷장 단추는 숨는다) */
   show(on: boolean, look: Readonly<AvatarLook>) {
-    this.wearButton.style.display = on ? "none" : "";
+    this.isShown = on;
+    this.wearButton.style.display = on || this.wearHidden ? "none" : "";
     this.stage.style.display = on ? "block" : "none";
     this.sheet.style.transform = on ? "none" : "translateY(105%)";
     if (!on) return;
     this.tip.style.opacity = "1";
     this.draw(look);
+  }
+
+  /** 옷장 단추를 숨긴다(숨바꼭질의 꼭꼭 숨어라·언박싱 동안 — 눌러서 판이 꼬이지 않게) */
+  setWearHidden(hidden: boolean) {
+    this.wearHidden = hidden;
+    this.wearButton.style.display = hidden || this.isShown ? "none" : "";
   }
 
   /** 지금 차림으로 칸을 다시 그린다 */

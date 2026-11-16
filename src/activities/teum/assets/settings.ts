@@ -1,4 +1,5 @@
 import type { GameEventMap, GameEventName, RideName } from "../game/events";
+import type { Content } from "../game/hideseek/unbox";
 
 // 에셋 종류마다의 설정. 시제품 곳곳에 있던 표(KIND·BAKE·SP·색조 tint·줄무늬 pat·조형물 목록)를 한곳에 모았다.
 // 생물·조형물을 늘릴 때: 파일을 raw/ 에 넣고 → tools/catalog.mjs 에 한 줄 → 여기 표에 한 줄.
@@ -273,6 +274,14 @@ const GRAB_SOUND: Readonly<Partial<Record<RideName, SoundCue>>> = {
   sling: { key: "snd_up", volume: 0.5, rate: 1.3 },
 };
 
+/** 언박싱 내용물이 펼쳐질 때 여는 소리 뒤에 나는 소리(상자 속 상자는 저마다 열릴 때 따로) */
+const HIDE_CONTENT_SOUND: Readonly<Partial<Record<Content, SoundCue>>> = {
+  lime: { key: "snd_boing", volume: 0.5, rate: 1.6, delay: 0.25, gap: 0.01 },
+  bubbles: { key: "snd_ring", volume: 0.45, rate: 1.7, delay: 0.2, gap: 0.01 },
+  giant: { key: "snd_up", volume: 0.55, rate: 0.7, delay: 0.2, gap: 0.01 },
+  whale: { key: "snd_whale", volume: 0.6, delay: 0.3, gap: 0.01 },
+};
+
 /** 생물 인사: 몸 휘는 방식(motion)마다 소리, 두 발(5)은 통통 튀는 소리. 종마다 음높이가 조금씩 다르다 */
 const GREET_SOUND: Readonly<Record<number, string>> = {
   1: "snd_quad",
@@ -326,6 +335,30 @@ export const SOUND_EFFECTS: SoundTable = {
         : { key: "snd_ring", volume: 0.5, delay: 0.35, gap: 0.01 },
   ],
   questDone: { key: "snd_win", volume: 0.7 },
+  // ---- 숨바꼭질(조각 01) — 전용 소리가 없어 있는 효과음을 빌려 쓴다 ----
+  hideStarted: [0, 0.12, 0.24, 0.4, 0.55, 0.72].map((delay, i) => ({
+    key: "snd_quad",
+    volume: 0.45,
+    rate: 1.7 + (i % 3) * 0.2,
+    delay,
+    gap: 0.01,
+  })),
+  hideChik: ({ sneezed }) =>
+    sneezed ? null : { key: "snd_ring", volume: 0.16, rate: 0.55, gap: 0.2 },
+  hideBoxSneezed: { key: "snd_boing", volume: 0.6, rate: 2.1, gap: 0.08 },
+  hideBoxFound: [
+    { key: "snd_pick", volume: 0.75, rate: 1.15 },
+    { key: "snd_ring", volume: 0.45, rate: 1.3, delay: 0.08, gap: 0.01 },
+  ],
+  hideBonusLanded: { key: "snd_legend", volume: 0.55 },
+  hideBoxShaken: { key: "snd_boing", volume: 0.4, rate: 0.8 },
+  hideBoxOpened: ({ content }) => {
+    const open = { key: "snd_open", volume: 0.6 };
+    const then = HIDE_CONTENT_SOUND[content];
+    return then ? [open, then] : open;
+  },
+  hideNestedPopped: ({ empty }) =>
+    empty ? { key: "snd_blank", volume: 0.5 } : { key: "snd_open", volume: 0.45, rate: 1.4 },
   travelled: { key: "snd_rocket", volume: 0.6 },
 };
 

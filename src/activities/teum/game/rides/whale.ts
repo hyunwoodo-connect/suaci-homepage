@@ -47,6 +47,15 @@ const HINT_IN = 220,
   HINT_OUT = 320,
   NEAR_SOUND = 240;
 
+/** 한 번 지나가기(언박싱의 고래): 내 앞 이만큼(m)에서 와서 내 위를 지나 이만큼 더 가고, 땅에서 이 높이(m)로 이 빠르기(m/s), 큰 바퀴로 돌아가는 시간(초) */
+const VISIT_LEAD = 160,
+  VISIT_TAIL = 160,
+  VISIT_LIFT = 24,
+  VISIT_SPEED = 7,
+  VISIT_BACK = 6;
+
+const backQ = new THREE.Quaternion(),
+  stepQ = new THREE.Quaternion();
 const bx = new THREE.Vector3(),
   m4 = new THREE.Matrix4(),
   ahead = new THREE.Vector3(),
@@ -84,6 +93,11 @@ export class Whale implements Thing, Holder {
   private armed = true;
   private hinted = false;
   private near = false;
+  /** 한 번 지나가기: 흐른 시간(초, 안 하면 -1)·출발 자리·도는 축·끝난 자리 */
+  private visitT = -1;
+  private readonly visitFrom = new THREE.Vector3();
+  private readonly visitAxis = new THREE.Vector3();
+  private readonly visitEnd = new THREE.Vector3();
   /** 한 번이라도 움직였나(처음 프레임에는 고래 자리를 아직 모르는 것으로 쳐서 제 빠르기로 떠난다 — 시제품과 같은 첫 빠르기) */
   private moved = false;
 
@@ -154,6 +168,23 @@ export class Whale implements Thing, Holder {
       this.rideH = backH;
     });
     models.swapWhenReady("whale", [this.prim]);
+  }
+
+  /**
+   * 한 번 지나가기: 내 앞쪽 하늘에서 와서 over 위를 dir 쪽으로 천천히(땅에서 24m) 지나간다 — 아래에 서 있거나 뛰어오르면 올라탈 수 있다.
+   * 다 지나가면 큰 바퀴로 돌아간다. 이미 지나가는 중이면 그대로 간다(처음으로 되돌아가 보이지 않게)
+   */
+  flyBy(over: THREE.Vector3, dir: THREE.Vector3) {
+    if (this.visitT >= 0) return;
+    this.visitAxis.crossVectors(over, dir).normalize();
+    const back = -VISIT_LEAD / S.R;
+    this.visitFrom.copy(over).normalize().applyAxisAngle(this.visitAxis, back);
+    this.visitT = 0;
+  }
+
+  /** 이번 프레임에는 나를 태우지 않는다(언박싱처럼 내가 멈춰 있는 동안) */
+  keepOff() {
+    this.cool = Math.max(this.cool, 0.2);
   }
 
   /** 아래에서 뛰어오르면 등으로 끌어 올리고, 끌면 내린다. 가까이 오면 한 번 알려 준다 */
@@ -236,11 +267,12 @@ export class Whale implements Thing, Holder {
     const bobPhase = f.time * 0.6;
     this.wbob = Math.sin(bobPhase) * 1.2;
     const lookAhead = this.clock + 3;
-    const top = this.topAt(lookAhead);
-    this.WH += (top - this.WH) * heightEase;
+    let top = this.topAt(lookAhead);
     pointAt(this.clock, this.v);
     const aheadT = this.clock + 0.4;
     pointAt(aheadT, ahead);
+    if (this.visitT >= 0) top = this.visit(dt, top);
+    this.WH += (top - this.WH) * (this.visitT >= 0 ? perFrame(0.05, dt) : heightEase);
     this.f.copy(ahead).sub(this.v);
     const fUp = this.f.dot(this.v);
     this.f.addScaledVector(this.v, -fUp).normalize();
@@ -249,6 +281,37 @@ export class Whale implements Thing, Holder {
     bx.crossVectors(this.v, this.f).normalize().negate();
     m4.makeBasis(this.f, this.v, bx);
     this.g.quaternion.setFromRotationMatrix(m4);
+  }
+
+  // 한 번 지나가기: 큰 바퀴 자리(v·ahead) 대신 지나가는 길 위에 놓고 그 높이를 돌려준다. 다 지나면 큰 바퀴 자리로 천천히 섞어 돌아간다
+  private visit(dt: number, loopTop: number): number {
+    this.visitT += dt;
+    const along = this.visitT * VISIT_SPEED,
+      total = VISIT_LEAD + VISIT_TAIL;
+    if (along <= total) {
+      const arc = along / S.R,
+        nextArc = (along + 3) / S.R;
+      this.v.copy(this.visitFrom).applyAxisAngle(this.visitAxis, arc);
+      ahead.copy(this.visitFrom).applyAxisAngle(this.visitAxis, nextArc);
+      this.visitEnd.copy(this.v);
+      const ground = this.s.terrain.groundAt(this.v);
+      return ground + VISIT_LIFT;
+    }
+    const back = (along - total) / VISIT_SPEED / VISIT_BACK;
+    if (back >= 1) {
+      this.visitT = -1;
+      return loopTop;
+    }
+    // 끝난 자리에서 큰 바퀴 자리까지 행성 겉을 따라 돈다 — 그냥 섞으면 행성 속을 지나고, 맞은편이면 0 벡터가 된다
+    const k = back * back * (3 - 2 * back),
+      nudged = k + 0.02,
+      kAhead = Math.min(1, nudged);
+    backQ.setFromUnitVectors(this.visitEnd, this.v);
+    stepQ.identity().slerp(backQ, k);
+    this.v.copy(this.visitEnd).applyQuaternion(stepQ);
+    stepQ.identity().slerp(backQ, kAhead);
+    ahead.copy(this.visitEnd).applyQuaternion(stepQ);
+    return loopTop;
   }
 
   // 시계 tt 의 높이 표 값(표가 없으면 70m). 180·270 도 바퀴는 같은 길을 거꾸로 간다

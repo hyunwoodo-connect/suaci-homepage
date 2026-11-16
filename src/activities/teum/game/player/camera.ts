@@ -33,6 +33,9 @@ export class CameraRig {
   /** 데리고 다니는 손님 수(셋까지)만큼 높이·멀리(0..1, 천천히 따라간다) */
   private company = 0;
   private companyWant = 0;
+  /** 몸이 커진 만큼 높이·거리를 늘린다(1 이 그대로, 천천히 따라간다) */
+  private zoom = 1;
+  private zoomWant = 1;
   /** 회오리·깔때기에 들어올 때의 보는 쪽(안에서 화면이 같이 돌지 않게) */
   private readonly h0 = new THREE.Vector3();
 
@@ -64,6 +67,10 @@ export class CameraRig {
       share = COMPANY_FIRST + (1 - COMPANY_FIRST) * more;
     this.companyWant = Math.min(1, share);
   }
+  /** 몸이 커졌다(k 배) — 기본 높이·거리를 늘려 몸이 다 들게 한다 */
+  setZoom(k: number) {
+    this.zoomWant = k;
+  }
   /** 지금 보는 쪽을 붙잡아 둔다(회오리·깔때기에 들어서는 순간) */
   lockHeading(h: THREE.Vector3) {
     this.h0.copy(h);
@@ -82,6 +89,9 @@ export class CameraRig {
     const companyEase = Math.min(1, companyStep);
     this.company += (this.companyWant - this.company) * companyEase;
     const folK = this.company;
+    const zoomEase = Math.min(1, companyStep);
+    this.zoom += (this.zoomWant - this.zoom) * zoomEase;
+    const zoom = this.zoom;
     cdir.copy(pl.h);
     if (wB > 0.01) {
       // 회오리 안에서는 화면이 같이 돌지 않게, 들어올 때의 방향을 유지한다
@@ -97,9 +107,9 @@ export class CameraRig {
     const sp = clamp(pl.tot, 0, 2.2);
     // 빠를수록·높이 뜰수록·회오리(wB)·놀이기구(rB)에 탈수록 위로 올라가고 뒤로 물러난다
     // 손님을 데리고 다니면 높이 올라 내려다본다 — 내 발자취 위에 한 줄로 선 손님들이 나를 가리지 않고 내 아래쪽 화면에 든다
-    const rise = S.camH + 24 * over + pl.air * 0.22 + 5 * wB + 4 * rB + COMPANY_RISE * folK;
+    const rise = S.camH * zoom + 24 * over + pl.air * 0.22 + 5 * wB + 4 * rB + COMPANY_RISE * folK;
     const back =
-      -S.camD * (1 + 0.22 * sp) -
+      -S.camD * zoom * (1 + 0.22 * sp) -
       20 * over -
       pl.air * 0.35 -
       9 * wB -
@@ -115,7 +125,7 @@ export class CameraRig {
     const minR = S.R + this.terrain.groundAt(cn) + 1.2;
     if (camera.position.length() < minR) camera.position.setLength(minR);
     camera.up.copy(p);
-    const lookRise = 0.8 - 6 * over - COMPANY_LOOK_DOWN * folK;
+    const lookRise = 0.8 + (zoom - 1) * 1.2 - 6 * over - COMPANY_LOOK_DOWN * folK;
     const lookAhead = 5 + 45 * over;
     look.copy(P).addScaledVector(p, lookRise).addScaledVector(cdir, lookAhead);
     camera.lookAt(look);

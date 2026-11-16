@@ -28,6 +28,8 @@ export class Input {
   private held = false;
   /** 끌기 동그라미를 숨긴다 */
   private readonly hideStick: () => void;
+  /** 마지막으로 끌기가 끝난 시각(performance.now, ms) */
+  private dragEndAt = -1e9;
 
   /** onTap: 짧게 톡 친 화면 좌표 */
   constructor(canvas: HTMLCanvasElement, hud: Hud, onTap: (x: number, y: number) => void) {
@@ -72,8 +74,10 @@ export class Input {
     };
     const onUp = (e: PointerEvent) => {
       if (e.pointerId !== this.id) return;
-      const held = performance.now() - this.t0;
+      const now = performance.now(),
+        held = now - this.t0;
       if (!this.drag && held < TAP_MS) onTap(e.clientX, e.clientY);
+      if (this.drag) this.dragEndAt = now;
       this.id = null;
       this.drag = false;
       this.dm = 0;
@@ -115,6 +119,20 @@ export class Input {
     this.dm = 0;
     this.keys.clear();
     this.hideStick();
+  }
+
+  /** 마지막 끌기가 끝나고 지난 시간(ms) — 끌다가 칙이 나간 것을 센다 */
+  msSinceDragEnd(): number {
+    const now = performance.now();
+    return now - this.dragEndAt;
+  }
+
+  /** 끌지 않고 손가락을 대고 있는 시간(초, 떼었거나 끌고 있으면 0) — 멈춰서 둘러보기가 본다 */
+  pressSeconds(): number {
+    if (this.id === null || this.drag || this.held) return 0;
+    const now = performance.now(),
+      held = now - this.t0;
+    return held / 1000;
   }
 
   /** 이번 프레임의 끌기(방향키가 눌려 있으면 방향키). 막은 동안은 가만히 */
