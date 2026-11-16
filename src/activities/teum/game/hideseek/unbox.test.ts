@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { Random } from "../core/random";
-import { dealContents, DUDS, HAPPENINGS } from "./unbox";
+import { HIDE } from "./tuning";
+import { dealContents } from "./unbox";
+
+const { duds: DUDS, happenings: HAPPENINGS } = HIDE.unbox;
 
 describe("dealContents", () => {
   it("어느 씨앗이든 → 다섯 개, 꽝은 많아야 둘, 마지막(보너스)은 꽝이 아니다", () => {

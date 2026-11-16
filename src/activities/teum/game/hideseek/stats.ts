@@ -1,4 +1,5 @@
-import type { HideKind } from "./spots";
+import type { HideKind } from "./tuning";
+import { HIDE } from "./tuning";
 
 // 숨바꼭질 한 판에서 재는 것(조각 01 의 질문 '찾는 맛이 있나'에 답할 숫자). 판이 끝나면 이 기기에 남기고, ?debug 면 끝 화면에 보인다.
 // 시각은 판 시작(꼭꼭 숨어라)부터 잰 초. 기록 한 줄에 UTC·한국 시간과 판의 조건(묶음·둘러보기·화면)을 같이 둔다
@@ -9,8 +10,8 @@ export const HIDE_LOG_KEY = "suaci.teum.hideseek";
 const KEEP = 30;
 /** 한국 시간(UTC+9, ms) */
 const KST_MS = 9 * 3600e3;
-/** 끌기가 끝나고 이 안(ms)에 칙이 나가면 '끌려다가 나간 칙'으로 센다 */
-export const DRAG_TAP_MS = 200;
+/** 끌기가 끝나고 이 안(ms)에 칙이 나가면 '끌려다가 나간 칙'으로 센다(hideseek.data.json 의 measure.dragTapMs) */
+export const DRAG_TAP_MS = HIDE.measure.dragTapMs;
 
 /** 상자 하나를 찾은 기록 */
 export interface FoundRecord {

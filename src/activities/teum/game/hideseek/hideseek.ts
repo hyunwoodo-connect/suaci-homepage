@@ -10,9 +10,10 @@ import { HideFx } from "./effects";
 import { LimeBox } from "./limebox";
 import { CURTAIN_MOVE, HideOverlay } from "./overlay";
 import { hideSet, isLookAround, isStatsShown } from "./params";
-import type { HideSpot } from "./spots";
 import { placeOf, roundSpots, sphereAt, STAGE_HUB } from "./spots";
 import { RoundLog } from "./stats";
+import type { HideSpot } from "./tuning";
+import { HIDE } from "./tuning";
 import type { UnboxLinks } from "./unbox";
 import { dealContents, Unboxing } from "./unbox";
 
@@ -48,34 +49,14 @@ export interface HideSeekLinks {
   unbox: UnboxLinks;
 }
 
-/** 판 시작: 상자 넷이 줄 서 있는 시간(초) · 가려진 시간(초) */
-const READY_TIME = 1.4,
-  COVERED_TIME = 3;
-/** 줄 선 상자: 플레이어 앞(m)·사이(m). 기획은 3m — 폰 세로 화면에서는 가운데 둘이 아바타 머리에 가려서 8m 로(머리 위로 보인다) */
-const LINEUP_AHEAD = 8,
-  LINEUP_GAP = 1.5;
-/** 칙이 닿는 거리(m) · 같은 상자가 다시 재채기하기까지(초) */
-const CHIK_REACH = 40,
-  SNEEZE_COOL = 3;
-/** 이만큼(m, 3차원) 닿으면 찾았다 */
-const FIND_REACH = 6;
-/** 못 찾을 때: 저절로 재채기(초마다) · 꾀꼬리 단추(초) */
-const AUTO_SNEEZE = 60,
-  KKOEKKORI_AFTER = 120;
+// 판의 거리·시간(칙이 닿는 거리, 찾는 거리, 저절로 재채기, 꾀꼬리, 보너스 상자, 둘러보기 누르는 시간 …)은 hideseek.data.json(HIDE)
 /** 언박싱으로 넘어갈 때 가림막이 덮고 있는 시간(초) */
 const WIPE_HOLD = 0.25;
-/** 들켜 뛰는 시간(초) 뒤에 줄에 선다 */
-const LEAP_TIME = 0.5;
 /** 줄 서러 오는 빠르기: 거리의 몇 배(m/s)와 가장 빠르게 */
 const CHASE_K = 4,
   CHASE_MAX = 14;
-/** 다 찾은 뒤 보너스 상자가 떨어지기까지(초)·떨어지는 높이(m)·크기 */
-const BONUS_WAIT = 1,
-  BONUS_DROP = 32,
-  BONUS_SCALE = 1.4;
-/** 멈춰서 둘러보기: 누르고 있을 시간(초)·도는 빠르기(rad/s — 10초에 한 바퀴)·카메라 */
-const LOOK_HOLD = 0.5,
-  LOOK_TURN = 0.63,
+/** 멈춰서 둘러보기 카메라: 도는 빠르기(rad/s — 10초에 한 바퀴)·뒤로(m)·위로(m) */
+const LOOK_TURN = 0.63,
   LOOK_BACK = 9,
   LOOK_RISE = 4.2;
 
@@ -104,7 +85,7 @@ export class HideSeek implements Thing, Tappable {
   private readonly look: boolean;
   private readonly rand: () => number;
   private sinceFind = 0;
-  private nextAuto = AUTO_SNEEZE;
+  private nextAuto = HIDE.stuck.autoSneezeEvery;
   private kkoekkoriShown = false;
   private time = 0;
   private lookK = 0;
@@ -134,7 +115,7 @@ export class HideSeek implements Thing, Tappable {
       };
       this.seekers.push(seeker);
     }
-    this.bonus = new LimeBox(s.models, s.scene, BONUS_SCALE, true, this.rand);
+    this.bonus = new LimeBox(s.models, s.scene, HIDE.bonus.scale, true, this.rand);
     this.bonus.visible = false;
     this.unboxing = new Unboxing(s, links.unbox, this.fx, this.rand);
   }
@@ -158,12 +139,12 @@ export class HideSeek implements Thing, Tappable {
     if (this.phase !== "seek" || this.links.studio.isOpen) return;
     const { player, terrain, events } = this.s;
     const ground = terrain.groundAt(player.p as THREE.Vector3);
-    this.fx.sonar(player.p as THREE.Vector3, ground, CHIK_REACH);
+    this.fx.sonar(player.p as THREE.Vector3, ground, HIDE.chik.reach);
     let sneezed = 0;
     for (const k of this.seekers) {
       if (k.state !== "hidden") continue;
       const d = k.box.center(at).distanceTo(player.P);
-      if (d > CHIK_REACH || this.time - k.sneezedAt < SNEEZE_COOL) continue;
+      if (d > HIDE.chik.reach || this.time - k.sneezedAt < HIDE.chik.sneezeCooldown) continue;
       this.sneeze(k, false);
       sneezed++;
     }
@@ -208,7 +189,7 @@ export class HideSeek implements Thing, Tappable {
         this.begin();
         break;
       case "ready":
-        if (this.phaseT >= READY_TIME) this.cover();
+        if (this.phaseT >= HIDE.start.readySeconds) this.cover();
         break;
       case "curtain":
         this.whileCovered();
@@ -256,8 +237,8 @@ export class HideSeek implements Thing, Tappable {
       k.spot = spots[i];
       k.state = "hidden";
       k.sneezedAt = -1e9;
-      const across = (i - 1.5) * LINEUP_GAP;
-      const aheadArc = LINEUP_AHEAD / S.R,
+      const across = (i - 1.5) * HIDE.start.lineGap;
+      const aheadArc = HIDE.start.lineAhead / S.R,
         acrossArc = across / S.R;
       ahead.copy(p).addScaledVector(h, aheadArc).addScaledVector(rightV, acrossArc).normalize();
       const ground = this.s.terrain.groundAt(ahead);
@@ -268,7 +249,7 @@ export class HideSeek implements Thing, Tappable {
       now = Date.now();
     this.log.begin(this.set, this.look, screen, now, this.time);
     this.sinceFind = 0;
-    this.nextAuto = AUTO_SNEEZE;
+    this.nextAuto = HIDE.stuck.autoSneezeEvery;
     this.kkoekkoriShown = false;
     this.goTo("ready");
   }
@@ -283,7 +264,7 @@ export class HideSeek implements Thing, Tappable {
   private whileCovered() {
     const t = this.phaseT;
     if (t >= CURTAIN_MOVE && !this.placed) this.hideAll();
-    if (t < CURTAIN_MOVE + COVERED_TIME) return;
+    if (t < CURTAIN_MOVE + HIDE.start.coveredSeconds) return;
     this.overlay.setCurtain(false);
     this.overlay.setSlots(4, 0);
     this.links.input.hold(false);
@@ -323,7 +304,7 @@ export class HideSeek implements Thing, Tappable {
     for (const k of this.seekers) {
       if (k.state !== "hidden") continue;
       const d = k.box.center(at).distanceTo(player.P);
-      if (d <= FIND_REACH) this.find(k, "touch");
+      if (d <= HIDE.find.reach) this.find(k, "touch");
     }
     if (this.seekers.every((k) => k.state !== "hidden")) {
       this.overlay.showKkoekkori(false);
@@ -332,14 +313,14 @@ export class HideSeek implements Thing, Tappable {
     }
     this.sinceFind += dt;
     if (this.sinceFind >= this.nextAuto) {
-      this.nextAuto += AUTO_SNEEZE;
+      this.nextAuto += HIDE.stuck.autoSneezeEvery;
       const near = this.nearestHidden();
       if (near) {
         this.sneeze(near, true);
         this.log.autoSneeze();
       }
     }
-    if (!this.kkoekkoriShown && this.sinceFind >= KKOEKKORI_AFTER) {
+    if (!this.kkoekkoriShown && this.sinceFind >= HIDE.stuck.kkoekkoriAfter) {
       this.kkoekkoriShown = true;
       this.overlay.showKkoekkori(true, () => this.callOut());
     }
@@ -359,7 +340,7 @@ export class HideSeek implements Thing, Tappable {
     this.log.found(k.spot.id, k.spot.kind, this.time, how);
     this.s.events.emit("hideBoxFound", { count, how });
     this.sinceFind = 0;
-    this.nextAuto = AUTO_SNEEZE;
+    this.nextAuto = HIDE.stuck.autoSneezeEvery;
     this.kkoekkoriShown = false;
     this.overlay.showKkoekkori(false);
   }
@@ -421,13 +402,13 @@ export class HideSeek implements Thing, Tappable {
   private dropBonus() {
     const b = this.bonus;
     if (!b.visible) {
-      if (this.phaseT < BONUS_WAIT) return;
+      if (this.phaseT < HIDE.bonus.waitSeconds) return;
       const end = this.trailPoint(this.line.length);
       const v = end ? end.p : this.s.player.p;
       const ground = this.s.terrain.groundAt(v as THREE.Vector3);
       const face = tmp.copy(this.s.player.h).negate();
       b.put(v as THREE.Vector3, ground, face);
-      b.dropFrom(BONUS_DROP);
+      b.dropFrom(HIDE.bonus.dropHeight);
       return;
     }
     if (b.isDropping) return;
@@ -436,7 +417,7 @@ export class HideSeek implements Thing, Tappable {
     this.s.events.emit("hideBonusLanded", {});
     this.line.push(b);
     this.goTo("prompt");
-    this.overlay.showBig("깔까?", () => this.startUnbox());
+    this.overlay.showBig(HIDE.copy.open, () => this.startUnbox());
   }
 
   // 깔까?: 다른 표시를 다 숨기고, 가림막이 잠깐 덮는 동안 광장 출발 자리로 옮겨 상자 다섯을 앞에 세운다 —
@@ -479,7 +460,7 @@ export class HideSeek implements Thing, Tappable {
     this.line.length = 0;
     this.log.finish(this.time);
     this.goTo("end");
-    this.overlay.showBig("한 판 더", () => this.again());
+    this.overlay.showBig(HIDE.copy.again, () => this.again());
     this.showStats();
   }
 
@@ -516,7 +497,7 @@ export class HideSeek implements Thing, Tappable {
     for (const k of this.seekers) {
       if (k.state !== "leaping") continue;
       k.leapT += dt;
-      if (k.leapT >= LEAP_TIME) {
+      if (k.leapT >= HIDE.box.leapSeconds) {
         k.state = "line";
         this.line.push(k.box);
       }
@@ -563,7 +544,7 @@ export class HideSeek implements Thing, Tappable {
     const { player, camera } = this.s;
     const canLook = this.phase === "seek" || this.phase === "prompt" || this.phase === "end";
     const held = this.links.input.pressSeconds();
-    const looking = canLook && held >= LOOK_HOLD;
+    const looking = canLook && held >= HIDE.look.holdSeconds;
     if (looking) {
       player.slowDown(6);
       this.lookAngle += LOOK_TURN * dt;

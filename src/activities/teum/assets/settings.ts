@@ -1,5 +1,5 @@
 import type { GameEventMap, GameEventName, RideName } from "../game/events";
-import type { Content } from "../game/hideseek/unbox";
+import type { Content } from "../game/hideseek/tuning";
 
 // 에셋 종류마다의 설정. 시제품 곳곳에 있던 표(KIND·BAKE·SP·색조 tint·줄무늬 pat·조형물 목록)를 한곳에 모았다.
 // 생물·조형물을 늘릴 때: 파일을 raw/ 에 넣고 → tools/catalog.mjs 에 한 줄 → 여기 표에 한 줄.

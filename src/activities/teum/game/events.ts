@@ -1,4 +1,4 @@
-import type { Content } from "./hideseek/unbox";
+import type { Content } from "./hideseek/tuning";
 import type { BoxSource, Prize, QuestType } from "./progress/save";
 
 // 게임에서 일어나는 일을 알리는 작은 알림판. 놀이기구·생물·만남이 알리기만 하고, 소리(sound/)가 듣는다.

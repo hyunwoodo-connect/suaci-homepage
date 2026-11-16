@@ -6,19 +6,15 @@ import type { Services } from "../services";
 import { S } from "../settings";
 import type { HideFx } from "./effects";
 import { LimeBox } from "./limebox";
+import type { Content } from "./tuning";
+import { HIDE, ROUND_BOXES } from "./tuning";
 
 // 언박싱(최소한만): 찾은 상자 넷과 보너스 상자가 아바타 앞에 한 줄로 서고, 카메라가 앞으로 돌아 그 줄과 아바타를 비춘다.
 // 화면을 누르면 지금 상자(왼쪽부터 차례로)가 한 번에 들썩, 두 번에 열린다. 내용물 다섯 가지:
 //   꽝 — 상자 속 상자 속 상자(셋째는 비었다) · 라임 한 알이 굴러 나와 통통 튀며 도망간다 · 비눗방울만 한가득
 //   일어나는 일 — 60초 동안 아바타가 4배로 커진다 · 고래가 내 쪽으로 와서 천천히 지나간다(올라탈 수 있게)
-// 다 열면 카메라가 돌아오고 손을 놓아 준다(커진 몸·고래는 그 뒤로도 이어진다)
-
-/** 내용물 */
-export type Content = "nested" | "lime" | "bubbles" | "giant" | "whale";
-/** 꽝 */
-export const DUDS: readonly Content[] = ["nested", "lime", "bubbles"];
-/** 일어나는 일 */
-export const HAPPENINGS: readonly Content[] = ["giant", "whale"];
+// 다 열면 카메라가 돌아오고 손을 놓아 준다(커진 몸·고래는 그 뒤로도 이어진다).
+// 무엇이 꽝이고 무엇이 일어나는 일인지, 꽝이 몇 개인지, 커지는 배수·시간은 hideseek.data.json 의 unbox
 
 /** 상자 사이(m)·아바타 앞으로 줄 선 거리(m) */
 const ROW_GAP = 1.05,
@@ -40,8 +36,8 @@ const BUBBLE_N = 44,
   BUBBLE_SPREAD = 1.4,
   BUBBLE_LIFE = 5;
 /** 커지는 배수·시간(초) */
-const GIANT_SIZE = 4,
-  GIANT_TIME = 60;
+const GIANT_SIZE = HIDE.unbox.giantSize,
+  GIANT_TIME = HIDE.unbox.giantSeconds;
 
 /** 언박싱이 쓰는 것 */
 export interface UnboxLinks {
@@ -82,16 +78,23 @@ const right = new THREE.Vector3(),
   tmp = new THREE.Vector3();
 
 /**
- * 상자 다섯의 내용물: 꽝은 둘(셋 가운데 아무 둘), 나머지 셋은 일어나는 일(두 가지뿐이라 하나는 겹친다).
- * 마지막(보너스 상자)은 꽝이 아니다. 앞의 넷은 섞는다
+ * 상자 다섯(찾은 넷 + 보너스)의 내용물: 꽝은 dudCount 개(꽝 가운데 아무것이나 겹치지 않게), 나머지는 일어나는 일.
+ * 일어나는 일이 모자라면 아무것이나 겹쳐 채운다(지금 값이면 셋 중 하나가 겹친다). 마지막(보너스 상자)은 꽝이 아니다. 앞의 넷은 섞는다
  */
 export function dealContents(rand: () => number): Content[] {
-  const duds = shuffle([...DUDS], rand).slice(0, 2);
-  const extraRoll = rand();
-  const extra = HAPPENINGS[extraRoll < 0.5 ? 0 : 1];
-  const pool = shuffle([...HAPPENINGS, extra], rand);
+  const { duds, happenings, dudCount } = HIDE.unbox;
+  const picked = shuffle([...duds], rand).slice(0, dudCount);
+  const need = ROUND_BOXES + 1 - dudCount;
+  const pool = [...happenings];
+  while (pool.length < need) {
+    const roll = rand() * happenings.length;
+    const extra = happenings[Math.floor(roll)];
+    pool.push(extra);
+  }
+  shuffle(pool, rand);
+  pool.length = need;
   const bonus = pool.pop()!;
-  const front = shuffle([...duds, ...pool], rand);
+  const front = shuffle([...picked, ...pool], rand);
   return [...front, bonus];
 }
 

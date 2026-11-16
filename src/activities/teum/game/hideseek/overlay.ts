@@ -1,6 +1,7 @@
 import { HUD_FONT } from "../hud";
+import { HIDE } from "./tuning";
 
-// 숨바꼭질 화면 위 표시(글 설명은 없다): 꼭꼭 숨어라 가림막 · 위 가운데 빈 칸 넷 · 찾았다! · 화면 밖 재채기 쪽 가장자리 라임빛 ·
+// 숨바꼭질 화면 위 표시(글 설명은 없다 — 단추·가림막의 글은 hideseek.data.json 의 copy): 꼭꼭 숨어라 가림막 · 위 가운데 빈 칸 넷 · 찾았다! · 화면 밖 재채기 쪽 가장자리 라임빛 ·
 // 꾀꼬리(왼쪽 아래, 옷장 단추 위) · 깔까?·한 판 더(아래 가운데 큰 라임 단추) · ?debug 의 잰 값.
 // 누르는 칸은 44px 넘게, 라임 위 글자는 먹색
 
@@ -51,7 +52,7 @@ export class HideOverlay {
       letterSpacing: "-0.02em",
       pointerEvents: "none",
     });
-    this.curtain.textContent = "꼭꼭 숨어라";
+    this.curtain.textContent = HIDE.copy.curtain;
     this.slots = document.createElement("div");
     Object.assign(this.slots.style, {
       position: "fixed",
@@ -64,7 +65,7 @@ export class HideOverlay {
       pointerEvents: "none",
     });
     this.toast = document.createElement("div");
-    this.toast.textContent = "찾았다!";
+    this.toast.textContent = HIDE.copy.found;
     Object.assign(this.toast.style, {
       position: "fixed",
       left: "0",
@@ -91,7 +92,7 @@ export class HideOverlay {
       pointerEvents: "none",
       zIndex: "2",
     });
-    this.kkoekkori = pillButton("꾀꼬리", false);
+    this.kkoekkori = pillButton(HIDE.copy.kkoekkori, false);
     Object.assign(this.kkoekkori.style, {
       left: "calc(14px + env(safe-area-inset-left))",
       bottom: "calc(72px + env(safe-area-inset-bottom))",
@@ -127,7 +128,7 @@ export class HideOverlay {
   }
 
   /** 가림막을 내리거나 걷는다(text: 가림막 위 한 줄 — 언박싱으로 넘어갈 때는 비운다) */
-  setCurtain(down: boolean, text = "꼭꼭 숨어라") {
+  setCurtain(down: boolean, text = HIDE.copy.curtain) {
     if (down) this.curtain.textContent = text;
     this.curtain.style.transform = down ? "translateY(0)" : "translateY(-102%)";
   }

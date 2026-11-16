@@ -2,32 +2,34 @@ import * as THREE from "three";
 
 import type { ModelLibrary } from "../models/library";
 import { S } from "../settings";
+import { HIDE } from "./tuning";
 
-// 숨는 애(라임 상자) 하나. 뼈대가 없어 움직임은 모두 여기서 몸 전체를 옮기고 늘이고 돌려서 낸다:
+// 숨는 애(라임 상자) 하나. 키·숨쉬기·재채기·들킴·고개 내밀기의 값은 hideseek.data.json 의 box. 뼈대가 없어 움직임은 모두 여기서 몸 전체를 옮기고 늘이고 돌려서 낸다:
 // 숨 쉬기(3% 찌그러졌다 펴짐) · 재채기(0.3m 폴짝, 0.25초) · 들킴(0.6m 뛰며 한 바퀴, 0.5초) · 고개 내밀기(옆으로 0.4m, 0.8초) ·
 // 들썩(언박싱 첫 번) · 터지기(두 번째 — 작아지며 사라진다) · 떨어지기(보너스 상자가 하늘에서) · 걷기(통통 뛰며 줄을 따라온다)
 
-/** 상자 키(아바타 키 1.5m 의 0.7배) */
-export const BOX_HEIGHT = 1.05;
+/** 상자 키(m — 기획: 아바타 키 1.5m 의 0.7배) */
+export const BOX_HEIGHT = HIDE.box.height;
 /** 상자 모델 키 */
 export const LIMEBOX = "limebox";
 
+const { box } = HIDE;
 /** 숨쉬기 한 번(초)·찌그러지는 몫 */
-const BREATH_PERIOD = 2.2,
-  BREATH_SQUASH = 0.03;
-/** 재채기·들킴·들썩·터지기(초)와 높이(m) */
-const SNEEZE_TIME = 0.25,
-  SNEEZE_HOP = 0.3,
-  LEAP_TIME = 0.5,
-  LEAP_HOP = 0.6,
+const BREATH_PERIOD = box.breathSeconds,
+  BREATH_SQUASH = box.breathSquash;
+/** 재채기·들킴(초와 높이 m — 데이터), 언박싱의 들썩·터지기 */
+const SNEEZE_TIME = box.sneezeSeconds,
+  SNEEZE_HOP = box.sneezeHop,
+  LEAP_TIME = box.leapSeconds,
+  LEAP_HOP = box.leapHop,
   JIGGLE_TIME = 0.4,
   JIGGLE_HOP = 0.14,
   POP_TIME = 0.28;
-/** 고개 내밀기: 4~7초마다 0.8초 동안 옆으로 0.4m */
-const PEEK_MIN = 4,
-  PEEK_SPAN = 3,
-  PEEK_TIME = 0.8,
-  PEEK_REACH = 0.4;
+/** 고개 내밀기: peekEvery 사이 아무 때나 peekSeconds 동안 옆으로 peekReach(m) */
+const PEEK_MIN = box.peekEvery[0],
+  PEEK_SPAN = box.peekEvery[1] - box.peekEvery[0],
+  PEEK_TIME = box.peekSeconds,
+  PEEK_REACH = box.peekReach;
 /** 떨어질 때 중력(m/s²)과 한 번 튀는 몫 */
 const DROP_GRAVITY = 22,
   DROP_BOUNCE = 0.28;
