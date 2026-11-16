@@ -253,8 +253,9 @@ export class Whale implements Thing, Holder {
     const d = player.p.angleTo(this.v) * S.R;
     if (!this.armed && !this.on && (player.air < REARM_LANDED || d > REARM_AWAY)) this.armed = true;
     // 다른 놀이기구에 실려 가는 중에도 올라탈 수 있다(시제품). 회오리에 실려 있을 때만은 아니다
+    // 전설의 손님일 때는 닿기만 하면 태우되, 다른 것(길잡이 생물)이 나를 데려가는 중이면 기다린다
     const inReach = this.parading
-      ? d < this.paradeReach
+      ? d < this.paradeReach && !player.isHeld
       : this.armed && this.cool <= 0 && (player.air > 0.2 || d < PICK_GROUND) && d < PICK_REACH;
     if (
       !this.on &&

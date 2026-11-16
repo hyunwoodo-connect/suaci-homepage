@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { LogStore } from "./stats";
-import { readList, RoundLog } from "./stats";
+import { readList, RoundLog, winShare } from "./stats";
 
 function memoryStore(initial: string | null = null): LogStore & { text: string | null } {
   const store = {
@@ -28,37 +28,56 @@ describe("RoundLog", () => {
     expect(readList(store)[0]).toMatchObject({ chiks: 3, sneezeChiks: 1, dragChiks: 1 });
   });
 
-  it("찾기 → 가림이 걷힌 때부터 초를 재고, 첫 상자 시간과 눈으로 찾은 수를 남긴다", () => {
+  it("찾기 → 가림이 걷힌 때부터 초를 재고, 첫 상자 시간과 찾은 길을 남긴다", () => {
     const store = memoryStore();
     const log = new RoundLog(store);
     log.begin(2, true, "390x844", NOW, 10);
     log.seekStarted(15);
-    log.found({ spot: "wishtree", kind: "behind", how: "touch", eyes: true, gaveUp: false }, 27.34);
-    log.found({ spot: "pad-n-top", kind: "high", how: "drop", eyes: false, gaveUp: true }, 80);
+    log.found({ spot: "wishtree", kind: "behind", how: "touch" }, 27.34);
+    log.found({ spot: "pad-n-top", kind: "high", how: "drop" }, 80);
     log.finish(90);
     const [saved] = readList(store);
     expect(saved.firstFound).toBe(12.3);
     expect(saved.found.map((f) => f.seconds)).toEqual([12.3, 65]);
-    expect(saved.eyesFound).toBe(1);
-    expect(saved.found[1]).toMatchObject({ how: "drop", gaveUp: true });
+    expect(saved.found[1]).toMatchObject({ how: "drop" });
+    expect(saved.foundAll).toBeNull();
   });
 
-  it("아이템·전설·못 찾겠다·끝난 까닭 → 종류별 횟수와 함께 남긴다", () => {
+  it("넷을 다 찾으면 → 넷째를 찾은 때가 '넷 다' 시간으로 남는다", () => {
     const store = memoryStore();
     const log = new RoundLog(store);
     log.begin(1, false, "390x844", NOW, 0);
-    log.itemUsed("tattle");
-    log.itemUsed("wake");
-    log.itemUsed("wake");
+    log.seekStarted(4);
+    for (const t of [10, 40, 70, 124])
+      log.found({ spot: "wishtree", kind: "behind", how: "touch" }, t);
+    log.ended("all");
+    expect(readList(store)[0]).toMatchObject({ foundAll: 120, endedBy: "all" });
+  });
+
+  it("생물·전설·끝난 까닭 → 데려다준 횟수와 그중 찾아온 횟수를 따로 남긴다", () => {
+    const store = memoryStore();
+    const log = new RoundLog(store);
+    log.begin(1, false, "390x844", NOW, 0);
+    log.guided(false);
+    log.guided(true);
+    log.guided(true);
     log.legendAppeared();
-    log.gaveUp();
     log.ended("sunset");
     const [saved] = readList(store);
-    expect(saved.items).toEqual({ tattle: 1, wake: 2 });
+    expect(saved).toMatchObject({ guided: 3, rescued: 2 });
     expect(saved.legend).toEqual({ appeared: true, ridden: false });
-    expect(saved.giveUps).toBe(1);
     expect(saved.endedBy).toBe("sunset");
     expect(saved.total).toBeNull();
+  });
+
+  it("이 기기 첫 판 → 남은 기록이 없을 때만 첫 판으로 적는다", () => {
+    const store = memoryStore();
+    const log = new RoundLog(store);
+    log.begin(1, false, "390x844", NOW, 0);
+    log.finish(60);
+    log.begin(2, false, "390x844", NOW + 90e3, 90);
+    log.finish(150);
+    expect(readList(store).map((r) => r.firstOnDevice)).toEqual([true, false]);
   });
 
   it("다 열면 → 판 전체 시간과 UTC·한국 시간을 담아 기기에 남긴다", () => {
@@ -96,8 +115,39 @@ describe("RoundLog", () => {
     expect(list[29].total).toBe(5);
   });
 
+  it("끝 화면 줄 → 이 기기에서 3분 안에 넷을 다 찾은 판 수가 보인다", () => {
+    const store = memoryStore();
+    const log = new RoundLog(store);
+    log.begin(1, false, "390x844", NOW, 0);
+    log.ended("all");
+    log.begin(2, false, "390x844", NOW + 200e3, 200);
+    log.ended("sunset");
+    expect(log.lines()).toContain("이 기기 2판(지금 규칙) 중 3분 안에 넷 다 찾은 판 1");
+  });
+
   it("기록 칸이 깨졌으면 → 빈 목록으로 읽는다", () => {
     expect(readList(memoryStore("{not json"))).toEqual([]);
     expect(readList(memoryStore('{"a":1}'))).toEqual([]);
+  });
+});
+
+describe("winShare", () => {
+  it("규칙이 다른 예전 판 → 세지 않는다", () => {
+    const old = [{ startedAtUtc: "old", endedBy: "all" }];
+    const store = memoryStore(JSON.stringify(old));
+    const log = new RoundLog(store);
+    log.begin(1, false, "390x844", NOW, 0);
+    log.ended("sunset");
+    expect(winShare(readList(store))).toEqual({ played: 1, won: 0 });
+  });
+
+  it("끝나지 않은 판 → 세지 않는다", () => {
+    const store = memoryStore();
+    const log = new RoundLog(store);
+    log.begin(1, false, "390x844", NOW, 0);
+    log.ended("all");
+    log.begin(1, false, "390x844", NOW + 1e3, 1);
+    log.finish(2);
+    expect(winShare(readList(store))).toEqual({ played: 1, won: 1 });
   });
 });

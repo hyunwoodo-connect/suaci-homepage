@@ -113,4 +113,54 @@ describe("숨바꼭질 값 파일(hideseek.data.json)", () => {
     });
     expect(() => readTuning(bad)).toThrow("spots[0].side");
   });
+
+  it("생물이 데려다주는 시간·고양이가 냄새 맡는 거리가 차례대로가 아니면 → 멈춘다", () => {
+    const slow = edited((c) => {
+      (c.guide as Record<string, unknown>).minSeconds = 6;
+    });
+    expect(() => readTuning(slow)).toThrow("guide: minSeconds 가 maxSeconds 보다 길다");
+    const mixed = edited((c) => {
+      (c.cat as Record<string, unknown>).near = 30;
+    });
+    expect(() => readTuning(mixed)).toThrow("cat: near ≤ mid ≤ far");
+  });
+
+  it("한 줄로 서는 무리(row)가 참·거짓이 아니거나 하늘 무리면 → 멈춘다", () => {
+    const bad = edited((c) => {
+      const guests = c.guests as Record<string, unknown>[];
+      guests[0] = { ...guests[0], row: "yes" };
+    });
+    expect(() => readTuning(bad)).toThrow("guests[0].row");
+    const sky = edited((c) => {
+      const guests = c.guests as Record<string, unknown>[];
+      guests[0] = { species: "c_wletter", count: 2, x: 40, y: -8, orbit: 6, alt: 3, row: true };
+    });
+    expect(() => readTuning(sky)).toThrow("guests[0].row: 하늘 무리는 줄 서지 않는다");
+  });
+
+  it("생물이 내려놓는 거리가 찾는 거리 안이면 → 멈춘다(데려다준 것이 찾은 것이 되면 안 된다)", () => {
+    const bad = edited((c) => {
+      (c.guide as Record<string, unknown>).stop = 4;
+    });
+    expect(() => readTuning(bad)).toThrow("guide.stop: find.reach 보다 커야 한다");
+  });
+
+  it("줄 선 상자의 배수가 1 을 넘거나 고양이 고개 폭이 0~90 도 밖이면 → 멈춘다", () => {
+    const big = edited((c) => {
+      (c.line as Record<string, unknown>).scale = 1.2;
+    });
+    expect(() => readTuning(big)).toThrow("line.scale: 1 이하여야 한다");
+    const wide = edited((c) => {
+      (c.cat as Record<string, unknown>).wobble = 120;
+    });
+    expect(() => readTuning(wide)).toThrow("cat.wobble: 0~90 도여야 한다");
+  });
+
+  it("이 조각의 값 → 칙 35m, 상자 키 2.5m, 구조는 40초 뒤 한 판에 두 번까지", () => {
+    expect(HIDE.chik.reach).toBe(35);
+    expect(HIDE.box.height).toBe(2.5);
+    expect(HIDE.stuck).toMatchObject({ rescueAfter: 40, rescueMax: 2 });
+    expect(HIDE.guide).toMatchObject({ stop: 8, minSeconds: 3, maxSeconds: 5 });
+    expect(HIDE.line).toMatchObject({ gap: 1.1, first: 1.4 });
+  });
 });

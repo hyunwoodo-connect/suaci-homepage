@@ -1,21 +1,24 @@
 import * as THREE from "three";
 
 import { HUD_FONT } from "../hud";
-import type { ItemKind } from "./tuning";
 import { HIDE } from "./tuning";
 
-// 숨바꼭질 화면 위 표시. 자리와 크기는 화면 시안(폰 390×844 기준 px)대로, 글은 hideseek.data.json 의 copy, 색은 colors:
-//   위 가운데(위에서 56) — 상자 칸 넷(40×40, 간격 10). 빈 칸은 어두운 반투명에 점선, 찬 칸은 라임에 먹색 테두리, 눈으로만 찾은 상자는 금색 테두리
-//   칸 밑(위에서 108) — 한 줄 안내(톡 · 칸을 눌러 써 봐). 한 번에 하나
+// 숨바꼭질 화면 위 표시. 자리와 크기는 화면 시안(폰 390×844 기준 px)대로, 글은 hideseek.data.json 의 copy, 색은 colors.
+// 판이 도는 동안 누를 단추는 하나도 없다:
+//   위 가운데(위에서 56) — 상자 칸 넷(40×40, 간격 10). 빈 칸은 어두운 반투명에 점선, 찬 칸은 라임에 먹색 테두리(찰 때 출렁인다)
+//   칸 밑(위에서 108) — 한 줄 안내(톡 · 고양이가 냄새를 맡았어). 한 번에 하나
 //   한가운데 조금 위(위에서 232) — 큰 글자(라임 바탕·먹색 글자와 테두리, 3도 기울임): 꼭꼭 숨어라 · 술래는 너 · 찾았다! · 깔까? · 우리가 이겼다!
-//   아래 양쪽 — 왼쪽 아이템 칸(지름 64, 비면 점선 윤곽), 오른쪽 '못 찾겠다'(높이 52, 조건이 될 때만, 밑에 작게 값)
-//   아래 가운데 — 판이 끝난 뒤의 '한 판 더'(해가 졌는데 찾은 것이 있으면 '깔까?'도)
-// 그 밖에 세계에 붙는 말풍선(에취! · 킁? · 여기야!), 눈을 가린 손가락 틈(판 시작·언박싱으로 넘어갈 때), 전설의 생물 표시, ?debug 의 잰 값.
-// 누르는 칸은 44px 넘게, 라임 위 글자는 먹색
+//   아래 가운데 — 판이 끝난 뒤의 '한 판 더'(가장 큰 단추. 해가 졌는데 찾은 것이 있으면 작은 '깔까?'도)
+// 그 밖에 세계에 붙는 말풍선(에취! · 상자 봤어! 따라와! · 저기!)과 고양이 머리 위 냄새 표시, 눈꺼풀(판 시작·언박싱으로 넘어갈 때 잠깐 감긴다),
+// 전설의 생물 표시, ?debug 의 잰 값과 빌드 표시. 누르는 칸은 44px 넘게, 라임 위 글자는 먹색
 
-const { lime: LIME, gold: GOLD, ink: INK } = HIDE.colors;
-/** 손가락 틈이 닫히고 열리는 시간(초) */
-export const HANDS_MOVE = 0.3;
+const { lime: LIME, ink: INK } = HIDE.colors;
+/** 눈꺼풀이 감기고 뜨는 시간(초) */
+export const LIDS_MOVE = 0.3;
+/** 말풍선이 화면 가장자리에 붙을 때 넘지 않는 범위(화면 좌표 -1..1): 좌우·아래·위(위는 상자 칸을 가리지 않게 낮춘다) */
+const EDGE_X = 0.74,
+  EDGE_DOWN = 0.66,
+  EDGE_UP = 0.56;
 /** 상자 칸 한 변·사이·그 안 상자 그림 한 변(px) */
 const CELL = 40,
   GAP = 10,
@@ -24,25 +27,14 @@ const CELL = 40,
 const SLOTS_TOP = 56,
   HINT_TOP = 108,
   BIG_TOP = 232;
-/** 동시에 뜨는 말풍선 수 · 손가락 수(한 손) */
-const BUBBLES = 4,
-  FINGERS = 4;
+/** 동시에 뜨는 말풍선 수 */
+const BUBBLES = 4;
 
 // 칸에 들어가는 상자 그림(먹색 선 — 리본과 귀)
 const BOX_ICON = `<svg width="${ICON}" height="${ICON}" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="9.5" width="16" height="10.5" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 9.5v10.5M4 13.5h16M12 9.5c-2-4.5-6.5-4.5-6.5-1.5S10 9.5 12 9.5c2 0 6.5 1.5 6.5-1.5S14 5 12 9.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`;
 // 전설의 생물이 판 위에 있다는 작은 표시(고래)
 const WHALE_ICON =
   '<svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 13c0-4 3.500-6.500 8-6.500 5 0 7.500 3 9 3.500 1 .300 2-.500 2-2 .800 2.500 0 5-2 6-1.500 3-4.500 4.500-8.500 4.500-5 0-8.500-2-8.500-5.500z" fill="#fff" stroke="#141414" stroke-width="1.600" stroke-linejoin="round"/><circle cx="7.200" cy="12" r="1" fill="#141414"/></svg>';
-// 아이템 칸의 생물 그림: 일러바치기(날개 달린 편지) · 깨우기(컵케이크)
-const ITEM_ICON: Readonly<Record<ItemKind, string>> = {
-  tattle:
-    '<svg width="44" height="44" viewBox="0 0 32 32" aria-hidden="true"><g fill="#fff" stroke="#141414" stroke-width="1.6" stroke-linejoin="round"><path d="M10 15c-3.500-5.500-9-3.500-8 .8.600 2.700 4.200 3.700 8 2.200z"/><path d="M22 15c3.500-5.500 9-3.500 8 .8-.600 2.700-4.200 3.700-8 2.200z"/><rect x="8.500" y="11" width="15" height="12" rx="2.500"/></g><path d="M9.200 12.500l6.800 5.200 6.800-5.200" fill="none" stroke="#141414" stroke-width="1.6" stroke-linejoin="round"/><circle cx="13" cy="20" r="1.100" fill="#141414"/><circle cx="19" cy="20" r="1.100" fill="#141414"/></svg>',
-  wake: '<svg width="44" height="44" viewBox="0 0 32 32" aria-hidden="true"><g stroke="#141414" stroke-width="1.6" stroke-linejoin="round"><path d="M7.500 15.500c-2.200-6 3.500-10 8.500-10s10.700 4 8.500 10z" fill="#fff"/><circle cx="16" cy="5" r="2" fill="#a9ff39"/><path d="M8.500 15.500h15l-2 11.500h-11z" fill="#fff"/></g><circle cx="13.200" cy="20" r="1.100" fill="#141414"/><circle cx="18.800" cy="20" r="1.100" fill="#141414"/><path d="M14.200 22.800c1.100.900 2.500.900 3.600 0" fill="none" stroke="#141414" stroke-width="1.400" stroke-linecap="round"/></svg>',
-};
-
-/** 손가락 틈: 열림 · 틈으로 봄(가운데 60%가 보인다) · 닫힘(암전) */
-export type Hands = "open" | "peeking" | "closed";
-
 /** 말풍선 하나: 세계의 어느 자리에 붙는지(프레임마다 묻는다)와 남은 시간 */
 interface Bubble {
   el: HTMLDivElement;
@@ -54,57 +46,43 @@ const at = new THREE.Vector3();
 
 /** 숨바꼭질 표시 */
 export class HideOverlay {
-  private readonly hands: HTMLDivElement;
-  private readonly fingers: HTMLDivElement[] = [];
+  private readonly lids: HTMLDivElement[] = [];
   private readonly slots: HTMLDivElement;
   private readonly cells: HTMLDivElement[] = [];
   private readonly mark: HTMLDivElement;
   private readonly hint: HTMLDivElement;
   private readonly big: HTMLDivElement;
-  private readonly item: HTMLButtonElement;
-  private readonly giveUp: HTMLDivElement;
   private readonly ending: HTMLDivElement;
   private readonly open: HTMLButtonElement;
   private readonly again: HTMLButtonElement;
   private readonly stats: HTMLDivElement;
+  private readonly stamp: HTMLDivElement;
+  private readonly catMark: HTMLDivElement;
+  private catWhere: ((out: THREE.Vector3) => void) | null = null;
   private readonly bubbles: Bubble[] = [];
-  private readonly flying = new Set<HTMLElement>();
   private onOpen: () => void = () => {};
   private onAgain: () => void = () => {};
-  private onItem: () => void = () => {};
-  private onGiveUp: () => void = () => {};
   private endingAway = false;
   private bigLeft = 0;
 
   constructor(private readonly parent: HTMLElement) {
-    this.hands = document.createElement("div");
-    Object.assign(this.hands.style, {
-      position: "fixed",
-      inset: "0",
-      zIndex: "6",
-      pointerEvents: "none",
-      background: "rgba(20,20,20,0)",
-      transition: `background ${HANDS_MOVE}s ease-in`,
-    });
-    // 손가락: 양쪽 가장자리에서 가운데로 뻗는 둥근 막대 넷씩. 사이사이 틈으로 세상이 보인다
-    for (let i = 0; i < FINGERS * 2; i++) {
-      const isLeft = i < FINGERS,
-        row = i % FINGERS;
-      const finger = document.createElement("div");
-      Object.assign(finger.style, {
-        position: "absolute",
-        top: `${row * 25 + 1.5}%`,
-        height: "22%",
-        width: "0%",
+    // 눈꺼풀: 화면 위아래에서 어두운 띠가 내려오고 올라와 맞닿는다(맞닿는 가장자리는 둥글다)
+    for (const isUpper of [true, false]) {
+      const lid = document.createElement("div");
+      Object.assign(lid.style, {
+        position: "fixed",
+        left: "-10%",
+        width: "120%",
+        height: "0%",
         background: INK,
-        opacity: "0.9",
-        borderRadius: isLeft ? "0 999px 999px 0" : "999px 0 0 999px",
-        transition: `width ${HANDS_MOVE}s cubic-bezier(.4,0,.2,1)`,
+        zIndex: "6",
+        pointerEvents: "none",
+        borderRadius: isUpper ? "0 0 50% 50% / 0 0 22% 22%" : "50% 50% 0 0 / 22% 22% 0 0",
+        transition: `height ${LIDS_MOVE}s cubic-bezier(.4,0,.2,1)`,
       });
-      if (isLeft) finger.style.left = "0";
-      else finger.style.right = "0";
-      this.fingers.push(finger);
-      this.hands.append(finger);
+      if (isUpper) lid.style.top = "0";
+      else lid.style.bottom = "0";
+      this.lids.push(lid);
     }
     this.slots = document.createElement("div");
     Object.assign(this.slots.style, {
@@ -181,49 +159,6 @@ export class HideOverlay {
       pointerEvents: "none",
       zIndex: "4",
     });
-    this.item = document.createElement("button");
-    this.item.type = "button";
-    Object.assign(this.item.style, {
-      position: "fixed",
-      left: "calc(20px + env(safe-area-inset-left))",
-      bottom: "calc(44px + env(safe-area-inset-bottom))",
-      width: "64px",
-      height: "64px",
-      padding: "0",
-      borderRadius: "50%",
-      boxSizing: "border-box",
-      display: "none",
-      alignItems: "center",
-      justifyContent: "center",
-      touchAction: "manipulation",
-      zIndex: "4",
-    });
-    this.item.addEventListener("click", () => this.onItem());
-    this.giveUp = document.createElement("div");
-    Object.assign(this.giveUp.style, {
-      position: "fixed",
-      right: "calc(20px + env(safe-area-inset-right))",
-      bottom: "calc(14px + env(safe-area-inset-bottom))",
-      display: "none",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: "5px",
-      zIndex: "4",
-    });
-    const giveUpButton = pill(HIDE.copy.giveUp, 52, false);
-    giveUpButton.addEventListener("click", () => this.onGiveUp());
-    const cost = document.createElement("div");
-    cost.textContent = HIDE.copy.giveUpCost;
-    Object.assign(cost.style, {
-      height: "17px",
-      fontFamily: HUD_FONT,
-      fontSize: "12px",
-      fontWeight: "600",
-      color: "#fff",
-      textShadow: "0 1px 4px rgba(0,0,0,.6)",
-      pointerEvents: "none",
-    });
-    this.giveUp.append(giveUpButton, cost);
     this.ending = document.createElement("div");
     Object.assign(this.ending.style, {
       position: "fixed",
@@ -232,11 +167,12 @@ export class HideOverlay {
       transform: "translateX(-50%)",
       display: "none",
       gap: "10px",
+      alignItems: "center",
       zIndex: "4",
     });
-    this.open = pill(HIDE.copy.open, 56, false);
+    this.open = pill(HIDE.copy.open, 52, false);
     this.open.addEventListener("click", () => this.onOpen());
-    this.again = pill(HIDE.copy.again, 56, true);
+    this.again = pill(HIDE.copy.again, 64, true);
     this.again.addEventListener("click", () => this.onAgain());
     this.ending.append(this.open, this.again);
     this.stats = document.createElement("div");
@@ -257,27 +193,41 @@ export class HideOverlay {
       zIndex: "4",
       pointerEvents: "none",
     });
+    this.stamp = document.createElement("div");
+    Object.assign(this.stamp.style, {
+      position: "fixed",
+      left: "calc(8px + env(safe-area-inset-left))",
+      bottom: "calc(6px + env(safe-area-inset-bottom))",
+      fontFamily: HUD_FONT,
+      fontSize: "11px",
+      color: "#fff",
+      textShadow: "0 1px 3px rgba(0,0,0,.7)",
+      display: "none",
+      zIndex: "4",
+      pointerEvents: "none",
+    });
+    this.catMark = bubbleElement();
+    Object.assign(this.catMark.style, {
+      transform: "translate(-50%, -100%)",
+      padding: "1px 7px",
+      fontSize: "14px",
+      marginTop: "-4px",
+    });
+    (this.catMark.lastChild as HTMLElement).style.display = "none";
     for (let i = 0; i < BUBBLES; i++) {
       const el = bubbleElement();
       const bubble: Bubble = { el, where: null, left: 0 };
       this.bubbles.push(bubble);
       parent.append(el);
     }
-    parent.append(this.slots, this.hint, this.big, this.item, this.giveUp, this.ending);
-    parent.append(this.stats, this.hands);
+    parent.append(this.slots, this.hint, this.big, this.ending, this.catMark);
+    parent.append(this.stats, this.stamp, ...this.lids);
     this.resetSlots();
-    this.setItem(null);
   }
 
-  /** 눈을 가린 손가락 틈: 열림 · 틈으로 봄(양쪽 가장자리 20%씩 가리고 가운데는 보인다) · 닫힘(암전) */
-  setHands(hands: Hands) {
-    const reach = hands === "open" ? 0 : hands === "peeking" ? 20 : 56;
-    this.fingers.forEach((finger, i) => {
-      // 손가락마다 길이가 조금씩 다르다
-      const extra = hands === "peeking" ? (i % FINGERS) % 2 : 0;
-      finger.style.width = `${reach + extra * 3}%`;
-    });
-    this.hands.style.background = hands === "closed" ? "rgba(20,20,20,1)" : "rgba(20,20,20,0)";
+  /** 눈꺼풀을 감거나 뜬다(감는 데 LIDS_MOVE 초) */
+  setLids(closed: boolean) {
+    for (const lid of this.lids) lid.style.height = closed ? "56%" : "0%";
   }
 
   /** 위 가운데 상자 칸 넷을 보이거나 숨긴다 */
@@ -287,8 +237,6 @@ export class HideOverlay {
 
   /** 칸을 모두 비운다(판 시작) */
   resetSlots() {
-    for (const el of this.flying) el.remove();
-    this.flying.clear();
     for (const cell of this.cells) {
       cell.replaceChildren();
       cell.style.border = "2px dashed rgba(255,255,255,.75)";
@@ -298,53 +246,15 @@ export class HideOverlay {
     this.slots.setAttribute("aria-label", "찾은 상자 없음");
   }
 
-  /**
-   * i 번째 칸을 채운다. from(화면 좌표)이 있으면 상자 그림이 거기서 칸으로 포물선을 그리며 seconds 동안 날아와(꼬리에 라임 반짝이) 착 들어가고 칸이 출렁인다.
-   * eyes: 눈으로만 찾은 상자 — 금색 테두리가 반짝 돌아간다
-   */
-  fillSlot(i: number, eyes: boolean, from: { x: number; y: number } | null, seconds: number) {
+  /** i 번째 칸을 채운다(찾은 상자를 센다 — 찰 때 출렁인다) */
+  fillSlot(i: number) {
     const cell = this.cells[i];
     if (!cell) return;
-    const fill = () => {
-      cell.style.border = `3px solid ${eyes ? GOLD : INK}`;
-      cell.style.background = LIME;
-      cell.innerHTML = BOX_ICON;
-      pop(cell, 1.25);
-      if (eyes) glint(cell);
-    };
+    cell.style.border = `3px solid ${INK}`;
+    cell.style.background = LIME;
+    cell.innerHTML = BOX_ICON;
+    pop(cell, 1.3);
     this.slots.setAttribute("aria-label", `상자 ${i + 1}개 찾음`);
-    if (!from || typeof cell.animate !== "function") {
-      fill();
-      return;
-    }
-    const to = cell.getBoundingClientRect();
-    const dx = from.x - to.left - CELL / 2,
-      dy = from.y - to.top - CELL / 2,
-      ms = seconds * 1000;
-    // 포물선: 가로는 고르게, 세로는 먼저 솟았다가 칸으로
-    const midX = dx * 0.5,
-      low = Math.min(dy, 0),
-      midY = low - 70;
-    const path = [
-      { transform: `translate(${dx}px, ${dy}px) scale(1.6) rotate(-20deg)`, offset: 0 },
-      { transform: `translate(${midX}px, ${midY}px) scale(1.25) rotate(160deg)`, offset: 0.55 },
-      { transform: "translate(0, 0) scale(1) rotate(360deg)", offset: 1 },
-    ];
-    for (let k = 0; k < 4; k++) {
-      const size = 10 + k * 2,
-        delay = 40 + k * 45;
-      const spark = this.ghost(to, size, "50%");
-      spark.style.opacity = "0.85";
-      const trail = spark.animate(path, { duration: ms, delay, fill: "backwards" });
-      trail.onfinish = () => this.land(spark);
-    }
-    const ghost = this.ghost(to, CELL, "10px");
-    ghost.innerHTML = BOX_ICON;
-    ghost.style.border = `3px solid ${INK}`;
-    const flight = ghost.animate(path, { duration: ms, easing: "ease-in" });
-    flight.onfinish = () => {
-      if (this.land(ghost)) fill();
-    };
   }
 
   /** 칸 넷이 동시에 번쩍인다(넷째 칸이 찼다) */
@@ -404,51 +314,17 @@ export class HideOverlay {
     this.ending.style.visibility = away ? "hidden" : "visible";
   }
 
-  /** 왼쪽 아래 아이템 칸을 보이거나 숨긴다 */
-  showItemSlot(on: boolean) {
-    this.item.style.display = on ? "flex" : "none";
+  /** 고양이 머리 위 냄새 표시(… · ! · !!). text 가 null 이면 숨긴다. where 가 프레임마다 붙을 세계 자리를 채운다 */
+  setCatMark(text: string | null, where: (out: THREE.Vector3) => void) {
+    this.catWhere = text ? where : null;
+    if (text) this.catMark.firstChild!.textContent = text;
+    else this.catMark.style.display = "none";
   }
 
-  /**
-   * 아이템 칸에 든 것(null 이면 비어 점선 윤곽). 누르면 onPress.
-   * from(화면 좌표)이 있으면 그 생물 그림이 거기서 칸으로 빨려 들어오고 칸이 출렁인다
-   */
-  setItem(
-    kind: ItemKind | null,
-    onPress: () => void = () => {},
-    from: { x: number; y: number } | null = null,
-  ) {
-    this.onItem = onPress;
-    const b = this.item;
-    b.innerHTML = kind ? ITEM_ICON[kind] : "";
-    b.style.background = kind ? "#fff" : "rgba(20,20,20,.18)";
-    b.style.border = kind ? `3px solid ${INK}` : "2px dashed rgba(255,255,255,.75)";
-    b.style.boxShadow = kind ? "0 4px 0 rgba(20,20,20,.25)" : "none";
-    b.style.cursor = kind ? "pointer" : "default";
-    b.style.pointerEvents = kind ? "auto" : "none";
-    const use = kind === "tattle" ? "일러바치기 쓰기" : "깨우기 쓰기",
-      label = kind ? use : "아이템 칸(비었음)";
-    b.setAttribute("aria-label", label);
-    if (!kind) return;
-    pop(b, 1.25);
-    const icon = b.firstElementChild as HTMLElement | null;
-    if (!from || !icon || typeof icon.animate !== "function") return;
-    const to = b.getBoundingClientRect();
-    const dx = from.x - to.left - to.width / 2,
-      dy = from.y - to.top - to.height / 2;
-    icon.animate(
-      [
-        { transform: `translate(${dx}px, ${dy}px) scale(1.8)`, opacity: 0.6 },
-        { transform: "translate(0, 0) scale(1)", opacity: 1 },
-      ],
-      { duration: 500, easing: "cubic-bezier(.5,-0.4,.3,1)" },
-    );
-  }
-
-  /** 오른쪽 아래 '못 찾겠다'(누르면 onPress) */
-  showGiveUp(on: boolean, onPress: () => void = () => {}) {
-    this.onGiveUp = onPress;
-    this.giveUp.style.display = on ? "flex" : "none";
+  /** ?debug 의 빌드 표시(커밋 앞 7자와 빌드 시각) — 왼쪽 아래 구석에 작게 */
+  showStamp(text: string) {
+    this.stamp.textContent = text;
+    this.stamp.style.display = "block";
   }
 
   /** 말풍선을 seconds 초 띄운다(통 튀어나온다). where 가 프레임마다 그 말풍선이 붙을 세계 자리를 채운다 */
@@ -460,7 +336,7 @@ export class HideOverlay {
     pop(free.el, 1.2);
   }
 
-  /** 화면이 살짝 흔들린다(큰 생물의 울음·금색 상자가 쿵) */
+  /** 화면이 살짝 흔들린다(금색 상자가 쿵) */
   shake() {
     const canvas = this.parent.querySelector("canvas");
     if (!canvas || typeof canvas.animate !== "function") return;
@@ -489,15 +365,12 @@ export class HideOverlay {
       if (b.left <= 0 || !b.where) continue;
       b.left -= dt;
       b.where(at);
-      at.project(camera);
-      const shown = b.left > 0 && at.z < 1 && Math.abs(at.x) < 1.1 && Math.abs(at.y) < 1.1;
-      b.el.style.display = shown ? "block" : "none";
-      if (!shown) continue;
-      const x = (at.x + 1) * 0.5 * innerWidth,
-        y = (1 - at.y) * 0.5 * innerHeight;
-      b.el.style.left = `${x}px`;
-      b.el.style.top = `${y}px`;
+      const isLive = b.left > 0;
+      pin(b.el, at, camera, isLive, true);
     }
+    if (!this.catWhere) return;
+    this.catWhere(at);
+    pin(this.catMark, at, camera, true, false);
   }
 
   /** 잰 값(줄들, null 이면 숨긴다) */
@@ -508,43 +381,9 @@ export class HideOverlay {
   }
 
   dispose() {
-    for (const el of this.flying) el.remove();
     for (const b of this.bubbles) b.el.remove();
-    const own = [this.hands, this.slots, this.hint, this.big, this.item, this.giveUp, this.ending];
-    for (const el of own) el.remove();
-    this.stats.remove();
-  }
-
-  // 칸으로 날아가는 그림 하나(칸 자리에 두고 움직임으로 옮긴다)
-  private ghost(to: DOMRect, size: number, radius: string): HTMLDivElement {
-    const el = document.createElement("div");
-    const inset = (CELL - size) / 2;
-    Object.assign(el.style, {
-      position: "fixed",
-      left: `${to.left + inset}px`,
-      top: `${to.top + inset}px`,
-      width: `${size}px`,
-      height: `${size}px`,
-      borderRadius: radius,
-      background: LIME,
-      color: INK,
-      boxSizing: "border-box",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: "5",
-      pointerEvents: "none",
-    });
-    this.parent.append(el);
-    this.flying.add(el);
-    return el;
-  }
-
-  // 다 날아온 그림을 치운다. 이미 치워졌으면(새 판) false
-  private land(el: HTMLElement): boolean {
-    if (!this.flying.delete(el)) return false;
-    el.remove();
-    return true;
+    const own = [this.slots, this.hint, this.big, this.ending, this.catMark, this.stats];
+    for (const el of [...own, this.stamp, ...this.lids]) el.remove();
   }
 }
 
@@ -557,13 +396,13 @@ function pill(text: string, height: number, isLime: boolean): HTMLButtonElement 
   b.textContent = text;
   Object.assign(b.style, {
     height: `${height}px`,
-    padding: isLime ? "0 34px" : "0 20px",
+    padding: isLime ? "0 40px" : "0 20px",
     borderRadius: "999px",
     border: `3px solid ${INK}`,
     background: isLime ? LIME : "#fff",
     color: INK,
     fontFamily: HUD_FONT,
-    fontSize: isLime ? "20px" : "17px",
+    fontSize: isLime ? "23px" : "17px",
     fontWeight: "800",
     boxShadow: "0 4px 0 rgba(20,20,20,.25)",
     cursor: "pointer",
@@ -610,18 +449,45 @@ function bubbleElement(): HTMLDivElement {
   return el;
 }
 
-// 눈으로만 찾은 상자: 금색 테두리가 반짝 돌아간다(빛이 테두리를 한 바퀴 돈다)
-function glint(cell: HTMLElement) {
-  if (typeof cell.animate !== "function") return;
-  cell.animate(
-    [
-      { boxShadow: `0 0 0 0 ${GOLD}, 0 0 0 0 #fff` },
-      { boxShadow: `0 0 0 5px ${GOLD}, 0 0 14px 6px #fff` },
-      { boxShadow: `0 0 0 0 ${GOLD}, 0 0 0 0 #fff` },
-    ],
-    { duration: 700, iterations: 2 },
-  );
-  cell.style.boxShadow = `0 0 0 1.5px ${GOLD}`;
+// 세계 자리(at)에 붙는 것을 화면에 놓는다. isLive 가 아니면 숨긴다. 카메라 뒤·화면 밖이면 숨기되,
+// atEdge 면 그쪽 화면 가장자리에 붙여 둔다(화면 밖 상자의 재채기가 어느 쪽에서 났는지 보이게)
+function pin(
+  el: HTMLElement,
+  at: THREE.Vector3,
+  camera: THREE.Camera,
+  isLive: boolean,
+  atEdge: boolean,
+) {
+  at.project(camera);
+  const isBehind = at.z >= 1,
+    isInside = !isBehind && Math.abs(at.x) < 1.1 && Math.abs(at.y) < 1.1,
+    shown = isLive && (isInside || atEdge);
+  el.style.display = shown ? "block" : "none";
+  if (!shown) return;
+  let nx = at.x,
+    ny = at.y;
+  if (!isInside) {
+    // 카메라 뒤의 것은 좌우·위아래가 뒤집혀 나온다 — 되돌리고, 바로 뒤면 화면 아래쪽으로 보낸다. 그 방향으로 가장자리까지 민다
+    const flip = isBehind ? -1 : 1,
+      down = isBehind ? 1 : 0,
+      fx = at.x * flip,
+      fy = at.y * flip - down,
+      ax = Math.abs(fx),
+      ay = Math.abs(fy),
+      far = Math.max(ax, ay, 1e-6);
+    nx = fx / far;
+    ny = fy / far;
+  }
+  if (atEdge) {
+    nx = Math.max(-EDGE_X, nx);
+    nx = Math.min(EDGE_X, nx);
+    ny = Math.max(-EDGE_DOWN, ny);
+    ny = Math.min(EDGE_UP, ny);
+  }
+  const x = (nx + 1) * 0.5 * innerWidth,
+    y = (1 - ny) * 0.5 * innerHeight;
+  el.style.left = `${x}px`;
+  el.style.top = `${y}px`;
 }
 
 // 통 튀어나오는 느낌(칸이 찰 때·말풍선이 뜰 때): 제 자리 변환은 그대로 두고 크기만

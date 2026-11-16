@@ -14,8 +14,7 @@ import { HIDE } from "./tuning";
 //   꽝 — 상자 속 상자 속 상자(셋째는 비었다) · 라임 한 알이 굴러 나와 통통 튀며 도망간다 · 비눗방울만 한가득
 //   일어나는 일 — 60초 동안 아바타가 4배로 커진다 · 고래가 내 쪽으로 와서 천천히 지나간다(올라탈 수 있게)
 // 다 열면 카메라가 돌아오고 손을 놓아 준다(커진 몸·고래는 그 뒤로도 이어진다).
-// 무엇이 꽝이고 무엇이 일어나는 일인지, 꽝이 몇 개까지인지, 커지는 배수·시간은 hideseek.data.json 의 unbox.
-// 어느 상자가 꽝인지는 어떻게 찾았느냐가 정한다(dealContents)
+// 무엇이 꽝이고 무엇이 일어나는 일인지, 꽝이 몇 개까지인지, 커지는 배수·시간은 hideseek.data.json 의 unbox
 
 /** 상자 사이(m)·아바타 앞으로 줄 선 거리(m) */
 const ROW_GAP = 1.05,
@@ -78,37 +77,29 @@ const right = new THREE.Vector3(),
   rollAxis = new THREE.Vector3(),
   tmp = new THREE.Vector3();
 
-/** 찾은 상자가 언박싱에서 받는 대접: eyes 눈으로만 찾았다(꽝이 없다) · gaveUp '못 찾겠다'로 찾았다(꽝 확정) · helped 그 밖(칙·아이템·전설의 도움) */
-export type BoxFavor = "eyes" | "helped" | "gaveUp";
-
 /**
- * 찾은 상자들(찾은 차례)과 보너스 상자(hasBonus — 넷을 다 찾았을 때만, 맨 끝)의 내용물.
- * '못 찾겠다'로 찾은 상자는 꽝 확정, 눈으로만 찾은 상자와 보너스 상자는 꽝이 아니다.
- * 도움받아 찾은 상자는 꽝이 한 판에 dudCount 개를 넘지 않는 만큼만 아무거나 꽝이 된다('못 찾겠다' 꽝이 이미 그만큼이면 더 없다).
- * 꽝·일어나는 일은 저마다 섞어 차례로 돌려 쓴다(가짓수보다 상자가 많으면 겹친다)
+ * 찾은 상자 found 개(찾은 차례)와 보너스 상자(hasBonus — 3분 안에 넷을 다 찾았을 때만, 맨 끝)의 내용물.
+ * 꽝은 한 판에 dudCount 개까지, 그리고 찾은 상자의 절반까지만(한둘만 찾고 진 판이 꽝만 까지 않게). 나머지와 보너스 상자는 일어나는 일.
+ * 꽝·일어나는 일은 저마다 섞어 차례로 돌려 쓰고(가짓수보다 상자가 많으면 겹친다), 찾은 상자끼리는 섞는다
  */
-export function dealContents(
-  favors: readonly BoxFavor[],
-  hasBonus: boolean,
-  rand: () => number,
-): Content[] {
+export function dealContents(found: number, hasBonus: boolean, rand: () => number): Content[] {
   const { duds, happenings, dudCount } = HIDE.unbox;
   const dudPool = shuffle([...duds], rand),
-    happyPool = shuffle([...happenings], rand);
-  const sure = favors.filter((f) => f === "gaveUp").length,
-    spare = dudCount - sure,
-    budget = Math.max(0, spare);
-  // 도움받은 상자 가운데 꽝이 될 것을 고른다
-  const helped = favors.flatMap((f, i) => (f === "helped" ? [i] : []));
-  const picked = shuffle(helped, rand).slice(0, budget);
-  const unlucky = new Set(picked);
-  let dudAt = 0,
-    happyAt = 0;
-  const nextDud = () => dudPool[dudAt++ % dudPool.length],
-    nextHappy = () => happyPool[happyAt++ % happyPool.length];
-  const out = favors.map((f, i) => (f === "gaveUp" || unlucky.has(i) ? nextDud() : nextHappy()));
+    happyPool = shuffle([...happenings], rand),
+    halfFound = found / 2,
+    half = Math.floor(halfFound),
+    dudN = Math.min(dudCount, half);
+  const out: Content[] = [];
+  for (let i = 0; i < found; i++) {
+    const isDud = i < dudN,
+      pool = isDud ? dudPool : happyPool,
+      at = isDud ? i : i - dudN,
+      content = pool[at % pool.length];
+    out.push(content);
+  }
+  shuffle(out, rand);
   if (!hasBonus) return out;
-  const bonus = nextHappy();
+  const bonus = happyPool[(found - dudN) % happyPool.length];
   return [...out, bonus];
 }
 
@@ -144,6 +135,8 @@ export class Unboxing {
     const { models, scene } = s;
     this.minis = NESTED_SCALES.map((k) => {
       const box = new LimeBox(models, scene, k, false, rand);
+      // 겉 상자가 줄 설 때의 크기로 서 있으니 속 상자도 같은 배수로 줄인다(속 상자가 더 크면 안 된다)
+      box.setSize(HIDE.line.scale, true);
       box.visible = false;
       return box;
     });

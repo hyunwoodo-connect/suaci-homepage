@@ -1,23 +1,20 @@
 {
-  "_about": "숨바꼭질 값. 기획이 코드 없이 직접 고친다 — 칸마다 뜻·단위·고치는 법은 teum-handoff/slice-01b/RESULT.md. 고친 뒤 pnpm test 가 모양과 규칙(자리는 무대 반경 안, 한 판 넷은 서로 떨어져 있기, 시작 둘레 생물 수 등)을 확인한다",
+  "_about": "숨바꼭질 값. 기획이 코드 없이 직접 고친다 — 칸마다 뜻·단위·고치는 법은 teum-handoff/slice-01c/RESULT.md. 고친 뒤 pnpm test 가 모양과 규칙(자리는 무대 반경 안, 한 판 넷은 서로 떨어져 있기, 판에 부르는 생물 수 등)을 확인한다",
   "copy": {
     "hide": "꼭꼭 숨어라",
     "it": "술래는 너",
     "found": "찾았다!",
     "tap": "톡",
-    "useItem": "칸을 눌러 써 봐",
+    "catSniff": "고양이가 냄새를 맡았어",
     "sneeze": "에취!",
-    "sniff": "킁?",
-    "giveUp": "못 찾겠다",
-    "giveUpCost": "꽝이 나와",
-    "here": "여기야!",
+    "follow": "상자 봤어! 따라와!",
+    "there": "저기!",
     "open": "깔까?",
     "boxesWin": "우리가 이겼다!",
     "again": "한 판 더"
   },
   "colors": {
     "lime": "#A9FF39",
-    "gold": "#FFD23F",
     "ink": "#141414"
   },
   "stage": {
@@ -30,7 +27,7 @@
   },
   "start": {
     "lineAhead": 8,
-    "lineGap": 1.5,
+    "lineGap": 2.2,
     "textAt": 0.6,
     "startleAt": 0.9,
     "scurryAt": 1.3,
@@ -47,15 +44,14 @@
     "tapHintReach": 15
   },
   "chik": {
-    "reach": 20,
+    "reach": 35,
     "sneezeCooldown": 3
   },
   "find": {
     "reach": 4,
     "pauseSeconds": 0.3,
     "coverSeconds": 0.3,
-    "hopSeconds": 0.3,
-    "flySeconds": 0.4
+    "hopSeconds": 0.3
   },
   "nearby": {
     "holdBreathReach": 15,
@@ -66,48 +62,89 @@
     "minAbove": 2,
     "reach": 12
   },
-  "item": {
+  "guide": {
     "reach": 2.6,
     "band": 6,
-    "tattleSeconds": 4,
-    "tattleStop": 10,
-    "wakeSeconds": 3,
-    "wakeHop": 4,
-    "circleSeconds": 0.5,
-    "waveSpeed": 45
+    "stop": 8,
+    "minSeconds": 3,
+    "maxSeconds": 5,
+    "speed": 12,
+    "lead": 2.5,
+    "lift": 4,
+    "comeSpeed": 20
+  },
+  "cat": {
+    "far": 50,
+    "mid": 25,
+    "near": 10,
+    "wobble": 20
+  },
+  "line": {
+    "gap": 1.1,
+    "first": 1.4,
+    "scale": 0.6
   },
   "guests": [
     {
-      "note": "시작 앞 오른쪽 — 날개 편지 셋(일러바치기)",
-      "species": "c_wletter",
+      "note": "시작 앞 오른쪽 — 카드 병정 셋이 줄지어",
+      "species": "card",
       "count": 3,
-      "x": -4,
-      "y": -26,
-      "orbit": 5,
-      "alt": 3
+      "x": -12,
+      "y": -22,
+      "row": true
     },
     {
-      "note": "시작 왼쪽 — 컵케이크 둘(깨우기)",
-      "species": "c_cupcake",
-      "count": 2,
-      "x": -30,
+      "note": "시작 앞 왼쪽 — 찻주전자",
+      "species": "teapot",
+      "count": 1,
+      "x": -14,
       "y": 8
     },
     {
-      "note": "광장 건너편 — 날개 편지 셋",
+      "note": "시작 앞 오른쪽 — 토끼",
+      "species": "brabbit",
+      "count": 1,
+      "x": -2,
+      "y": -17
+    },
+    {
+      "note": "광장 오른쪽 — 버섯 둘",
+      "species": "mushroom",
+      "count": 2,
+      "x": 22,
+      "y": -22
+    },
+    {
+      "note": "광장 건너편 — 회중시계",
+      "species": "c_watch",
+      "count": 1,
+      "x": 20,
+      "y": 26
+    },
+    {
+      "note": "광장 왼쪽 — 주사위",
+      "species": "c_dice",
+      "count": 1,
+      "x": -38,
+      "y": 20
+    },
+    {
+      "note": "광장 건너 오른쪽 하늘 — 날개 편지 둘",
       "species": "c_wletter",
-      "count": 3,
-      "x": 30,
-      "y": 25,
-      "orbit": 10,
+      "count": 2,
+      "x": 40,
+      "y": -8,
+      "orbit": 6,
       "alt": 3
     },
     {
-      "note": "광장 오른쪽 — 컵케이크 둘",
-      "species": "c_cupcake",
-      "count": 2,
-      "x": 10,
-      "y": -40
+      "note": "광장 왼쪽 하늘 — 날개 하트",
+      "species": "c_wheart",
+      "count": 1,
+      "x": -8,
+      "y": 38,
+      "orbit": 5,
+      "alt": 3
     }
   ],
   "legend": {
@@ -124,8 +161,8 @@
   },
   "stuck": {
     "restlessAfter": 30,
-    "giveUpAfter": 45,
-    "pillarSeconds": 5,
+    "rescueAfter": 40,
+    "rescueMax": 2,
     "restlessPeek": 0.4
   },
   "lost": {
@@ -145,7 +182,7 @@
     "flailDegrees": 25
   },
   "box": {
-    "height": 1.65,
+    "height": 2.5,
     "showShare": 0.4,
     "breathSeconds": 2.2,
     "breathSquash": 0.03,
@@ -188,7 +225,7 @@
       "kind": "high",
       "x": 0,
       "y": 0,
-      "top": 6.4,
+      "top": 4.6,
       "edge": 6.6,
       "slide": 0.6
     },

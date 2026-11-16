@@ -335,12 +335,11 @@ export const SOUND_EFFECTS: SoundTable = {
         : { key: "snd_ring", volume: 0.5, delay: 0.35, gap: 0.01 },
   ],
   questDone: { key: "snd_win", volume: 0.7 },
-  // ---- 숨바꼭질 — 기획이 넘긴 소리(snd_box_…). 소리가 없는 순간(칙 헛손질·킁?·아이템 쓰기·전설에 올라탐·여기야!·휘파람·언박싱)은 있던 효과음을 빌려 쓴다 ----
+  // ---- 숨바꼭질 — 기획이 넘긴 소리(snd_box_…). 소리가 없는 순간(칙 헛손질·생물이 데려다줌·전설에 올라탐·휘파람·언박싱)은 있던 효과음을 빌려 쓴다 ----
   hideStarted: { key: "snd_box_steps_a", volume: 0.7, rate: [0.95, 1.1] },
   hideChik: ({ sneezed }) =>
     sneezed ? null : { key: "snd_ring", volume: 0.16, rate: 0.55, gap: 0.2 },
   hideBoxSneezed: { key: "snd_box_sneeze_a", volume: 0.7, rate: [0.9, 1.15], gap: 0.08 },
-  hideSniffed: { key: "snd_quad", volume: 0.35, rate: 0.8, gap: 0.3 },
   // 높은 상자: 놓치는 순간 떨어지는 소리, 바닥에 꽂힐 때 쿵
   hideBoxDropped: [
     { key: "snd_box_fall_b", volume: 0.4, delay: 0.9, gap: 0.01 },
@@ -356,13 +355,10 @@ export const SOUND_EFFECTS: SoundTable = {
     { key: "snd_box_giggle_a", volume: 0.5, gap: 0.5 },
     { key: "snd_box_giggle_b", volume: 0.6, gap: 0.5 },
   ),
-  hideItemUsed: ({ kind }) =>
-    kind === "tattle"
-      ? { key: "snd_wing", volume: 0.55, rate: 1.2 }
-      : { key: "snd_quad", volume: 0.6, rate: 0.6 },
+  hideGuideStarted: { key: "snd_quad", volume: 0.6, rate: 1.3 },
+  hideGuideArrived: { key: "snd_pick", volume: 0.5, rate: 1.4 },
   hideLegendCame: { key: "snd_box_legend", volume: 0.7 },
   hideLegendBoarded: { key: "snd_legend", volume: 0.6 },
-  hideGaveUp: { key: "snd_boing", volume: 0.55, rate: 1.4 },
   hideBoxesWon: { key: "snd_box_steps_a", volume: 0.7, rate: 1.15 },
   hideAllFound: { key: "snd_box_allfound", volume: 0.7 },
   hideBonusFalling: { key: "snd_up", volume: 0.5, rate: 1.8 },

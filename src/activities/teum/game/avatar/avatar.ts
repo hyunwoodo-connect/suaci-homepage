@@ -2,6 +2,7 @@ import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
 import { ease } from "../core/frame";
+import { HIDE } from "../hideseek/tuning";
 import type { Hold } from "../models/library";
 import type { Services } from "../services";
 import { LIME, S } from "../settings";
@@ -17,6 +18,25 @@ import { setupRig } from "./rig";
 interface BackWings {
   mine: THREE.Group;
 }
+
+/** 고양이가 맡은 냄새: 0 멀다 · 1 킁킁 · 2 통통 · 3 폴짝폴짝 */
+export type CatScent = 0 | 1 | 2 | 3;
+
+/** 고양이 자리(내 몸 기준 옆·뒤, m) */
+const CAT_SIDE = -0.95,
+  CAT_BACK = -0.45;
+/** 고개가 상자 쪽에서 흔들리는 폭(rad — hideseek.data.json 의 cat.wobble 도) */
+const CAT_WOBBLE = (HIDE.cat.wobble * Math.PI) / 180;
+/**
+ * 냄새마다의 몸짓: 떠 있는 높이(m)·오르내리는 폭(m)·빠르기(rad/s)·통통 튀나(아니면 둥실)·앞서 나가는 거리(m)·
+ * 고개 숙임(rad, 음수가 축 늘어짐)·킁킁거리는 끄덕임(rad)
+ */
+const CAT_MOODS = [
+  { height: 0.4, bob: 0.03, rate: 1.4, hops: false, ahead: 0, nod: -0.3, sniff: 0 },
+  { height: 0.58, bob: 0.07, rate: 2.3, hops: false, ahead: 0, nod: 0.12, sniff: 0.1 },
+  { height: 0.48, bob: 0.3, rate: 8, hops: true, ahead: 0.7, nod: 0.18, sniff: 0 },
+  { height: 0.48, bob: 0.55, rate: 11, hops: true, ahead: 0.25, nod: 0, sniff: 0 },
+] as const;
 
 const bx = new THREE.Vector3(),
   m4 = new THREE.Matrix4(),
@@ -34,6 +54,15 @@ export class Avatar implements Thing {
   /** 고양이: 모델이 도형 고양이를 따라 둥실, 곁에 작은 라임 빛 */
   readonly cat: Thing;
   private catModel: Hold | null = null;
+  /** 고양이가 맡은 냄새(0 멀다 … 3 바로 곁)와 상자가 있는 쪽, 지금 몸짓(천천히 따라간다) */
+  private scent: CatScent = 0;
+  private readonly scentToward = new THREE.Vector3();
+  private catPhase = 1;
+  private catHeight = 0.55;
+  private catBob = 0.07;
+  private catAhead = 0;
+  private catYaw = 0;
+  private catNod = 0;
   private tilt = 0;
   private pose: PoseFn | null = null;
   /** 뼈대 있는 몸(오기 전에는 null) */
@@ -60,7 +89,7 @@ export class Avatar implements Thing {
     const catGeometry = new THREE.SphereGeometry(0.13, 14, 10),
       catMaterial = new THREE.MeshBasicMaterial({ color: LIME });
     this.catPrim = new THREE.Mesh(catGeometry, catMaterial);
-    this.catPrim.position.set(-0.95, 0.55, -0.45);
+    this.catPrim.position.set(CAT_SIDE, 0.55, CAT_BACK);
     this.tiltG.add(this.body, this.nose);
     this.me.add(this.tiltG, this.catPrim, wings.mine);
     s.scene.add(this.me);
@@ -102,6 +131,21 @@ export class Avatar implements Thing {
     else this.rigWaiting.push(cb);
   }
 
+  /**
+   * 고양이가 맡은 냄새(숨바꼭질): 0 멀다 — 축 늘어져 따라온다 · 1 킁킁 — 고개를 상자 쪽으로 · 2 통통 뛰며 반 걸음 앞서 나간다 · 3 제자리에서 폴짝폴짝.
+   * toward: 상자가 있는 쪽(행성 위 자리). 고개는 그쪽에서 조금씩 흔들린다(화살표가 아니라 '저쪽인 것 같아')
+   */
+  setCatScent(level: CatScent, toward: THREE.Vector3 | null) {
+    this.scent = toward ? level : 0;
+    if (toward) this.scentToward.copy(toward);
+  }
+
+  /** 고양이 머리 위의 세계 자리(냄새 표시가 붙는다) */
+  catHead(out: THREE.Vector3): THREE.Vector3 {
+    this.catPrim.getWorldPosition(out);
+    return out.addScaledVector(this.s.player.p, 0.5);
+  }
+
   /** 몸을 k 배로(1 이 그대로). 천천히 커지고 줄어든다 */
   grow(k: number) {
     this.growWant = k;
@@ -133,8 +177,7 @@ export class Avatar implements Thing {
       i.time = f.time;
       this.pose(i);
     }
-    const catPhase = f.time * 2.3 + 1;
-    this.catPrim.position.y = 0.55 + Math.sin(catPhase) * 0.07;
+    this.poseCat(f.time, dt);
     this.growth += (this.growWant - this.growth) * ease(2.5, dt);
     const targetScale = pl.bodyScale * this.growth,
       scale = me.scale.x + (targetScale - me.scale.x) * ease(18, dt);
@@ -160,6 +203,47 @@ export class Avatar implements Thing {
       m.geometry.dispose();
       m.material.dispose();
     }
+  }
+
+  // 고양이의 몸짓: 냄새가 짙을수록 높이 빨리 뛰고, 앞서 나가고, 고개를 상자 쪽으로 돌린다. 멀면 낮게 축 늘어진다.
+  // 고양이 모델에는 뼈대가 없어 귀·꼬리는 따로 못 움직인다 — 뛰는 빠르기·기울기·방향으로 대신한다
+  private poseCat(time: number, dt: number) {
+    const mood = CAT_MOODS[this.scent],
+      pl = this.s.player,
+      k = ease(5, dt);
+    this.catHeight += (mood.height - this.catHeight) * k;
+    this.catBob += (mood.bob - this.catBob) * k;
+    this.catAhead += (mood.ahead - this.catAhead) * k;
+    this.catNod += (mood.nod - this.catNod) * k;
+    this.catPhase += dt * mood.rate;
+    const wave = Math.sin(this.catPhase),
+      hop = mood.hops ? Math.abs(wave) : wave;
+    const y = this.catHeight + hop * this.catBob,
+      z = CAT_BACK + this.catAhead;
+    this.catPrim.position.set(CAT_SIDE, y, z);
+    // 상자 쪽(내 몸 기준 왼쪽·앞쪽으로 나눠 잰다)에서 ±wobble 만큼 천천히 흔들린다
+    let want = 0;
+    if (this.scent > 0) {
+      bx.crossVectors(pl.p, pl.h).normalize();
+      gp.copy(this.scentToward).sub(pl.p);
+      const side = gp.dot(bx),
+        front = gp.dot(pl.h),
+        swing = time * 0.9,
+        drift = Math.sin(swing) * CAT_WOBBLE;
+      want = Math.atan2(side, front) + drift;
+    }
+    // 가까운 쪽으로 돈다(한 바퀴 넘게 돌지 않게 -π~π 로 접는다)
+    const gap = want - this.catYaw,
+      gapY = Math.sin(gap),
+      gapX = Math.cos(gap),
+      turn = Math.atan2(gapY, gapX);
+    this.catYaw += turn * k;
+    const C = this.catModel;
+    if (!C) return;
+    const sniffPhase = time * 13,
+      sniff = Math.sin(sniffPhase) * mood.sniff;
+    C.rotation.y = -Math.PI / 2 + this.catYaw;
+    C.rotation.z = this.catNod + sniff;
   }
 
   // 고양이 모델이 라임 공 고양이를 따라 둥실, 곁의 작은 라임 빛

@@ -17,3 +17,20 @@ export function isLookAround(search: string = location.search): boolean {
 export function isStatsShown(search: string = location.search): boolean {
   return new URLSearchParams(search).has("debug");
 }
+
+/**
+ * 빌드 표시(?debug 화면 구석): 커밋 앞 7자와 빌드 시각(한국 시간) — 지금 어느 빌드를 보고 있는지 서로 알 수 있게.
+ * 값은 빌드할 때 next.config 가 넣는다(없으면 로컬 개발)
+ */
+export function buildStamp(
+  commit: string | undefined = process.env.NEXT_PUBLIC_BUILD_COMMIT,
+  builtAt: string | undefined = process.env.NEXT_PUBLIC_BUILD_TIME,
+): string {
+  const name = commit || "local";
+  if (!builtAt) return name;
+  const kstMs = Date.parse(builtAt) + 9 * 3600e3,
+    kst = new Date(kstMs).toISOString(),
+    day = kst.slice(5, 10),
+    clock = kst.slice(11, 16);
+  return `${name} · ${day} ${clock} KST`;
+}

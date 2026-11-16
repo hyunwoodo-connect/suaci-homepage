@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { GUEST_RING, GUEST_ROW_GAP } from "../creatures/creatures";
 import { BOX_HALF, HIDE_ROUNDS, HIDE_SPOTS, placeOf, roundSpots, startPoint } from "./spots";
 import { HIDE } from "./tuning";
 
@@ -77,19 +78,35 @@ describe("숨는 자리", () => {
 });
 
 describe("판의 생물", () => {
-  // 무리의 모든 생물이 그 안에 드는 거리: 가운데까지의 거리 + 도는 반지름(땅 위 무리는 둘러선 반지름 2.8m)
-  const reachFrom = (from: { x: number; y: number }) =>
-    HIDE.guests.map((g) => ({ count: g.count, far: dist(g, from) + (g.orbit ?? 2.8) }));
+  // 무리의 모든 생물이 그 안에 드는 반지름: 하늘 무리는 도는 반지름, 땅 위 무리는 둘러선 반지름이나 줄 길이의 절반
+  const spread = (g: { orbit: number | null; row: boolean; count: number }) =>
+    g.orbit ?? (g.row ? (GUEST_ROW_GAP * (g.count - 1)) / 2 : GUEST_RING);
+  const count = (list: { count: number }[]) => list.reduce((n, g) => n + g.count, 0);
 
-  it("판 시작 → 출발 자리 30m 안에 둘 넘게, 무대 반경 안에 다섯 넘게 있다", () => {
-    const near = reachFrom(startPoint()).filter((g) => g.far <= 30),
-      onStage = reachFrom({ x: 0, y: 0 }).filter((g) => g.far <= HIDE.stage.radius);
-    const count = (list: { count: number }[]) => list.reduce((n, g) => n + g.count, 0);
-    expect(count(near)).toBeGreaterThanOrEqual(2);
-    expect(count(onStage)).toBeGreaterThanOrEqual(5);
+  it("판 시작 → 무대 반경 안에 열둘 넘게, 여섯 종 넘게 있다", () => {
+    const onStage = HIDE.guests.filter(
+      (g) => dist(g, { x: 0, y: 0 }) + spread(g) <= HIDE.stage.radius,
+    );
+    expect(count(onStage)).toBeGreaterThanOrEqual(12);
+    expect(new Set(onStage.map((g) => g.species)).size).toBeGreaterThanOrEqual(6);
   });
 
-  it("하늘을 도는 무리 → 비행 높이 ±6m 안에서 돈다(잡을 수 있는 높이)", () => {
+  it("출발 자리 30m 안 → 땅 위 생물이 셋 넘게 있다(시작하자마자 길잡이가 보인다)", () => {
+    const start = startPoint();
+    const near = HIDE.guests.filter((g) => g.alt === null && dist(g, start) + spread(g) <= 30);
+    expect(count(near)).toBeGreaterThanOrEqual(3);
+  });
+
+  it("숨는 자리 10m 안 → 생물을 두지 않는다(가리는 것과 상자가 서는 자리 모두)", () => {
+    for (const g of HIDE.guests)
+      for (const spot of HIDE_SPOTS) {
+        const label = `${g.species}–${spot.id}`;
+        expect(dist(g, spot) - spread(g), label).toBeGreaterThanOrEqual(10);
+        expect(dist(g, placeOf(spot)) - spread(g), label).toBeGreaterThanOrEqual(10);
+      }
+  });
+
+  it("하늘을 도는 무리 → 비행 높이 ±6m 안에서 돈다(닿을 수 있는 높이)", () => {
     for (const g of HIDE.guests) if (g.alt !== null) expect(g.alt).toBeLessThanOrEqual(6);
   });
 });

@@ -57,6 +57,8 @@ export class Stars implements Thing, Tappable {
   readonly list: Star[] = [];
   /** 따라오는 별(따라붙은 차례) */
   readonly followers: Star[] = [];
+  /** 스치면 따라붙어도 되나 */
+  private canFollow = true;
   /** 별 모델이 별 도형을 따라 돌며 빛난다(프레임 끝에) */
   readonly models: Thing;
   private readonly rng: Random;
@@ -129,6 +131,12 @@ export class Stars implements Thing, Tappable {
     if (this.batch) models.swapWhenReady("star", [this.prims]);
   }
 
+  /** 따라붙어도 되나(숨바꼭질 판이 도는 동안은 끈다 — 따라오던 별은 터져서 제자리로 돌아간다) */
+  setFollowing(on: boolean) {
+    this.canFollow = on;
+    if (!on) this.onTap();
+  }
+
   /** 칙 하면 따라오던 별이 불꽃처럼 터진다 */
   onTap() {
     const followers = this.followers;
@@ -166,7 +174,7 @@ export class Stars implements Thing, Tappable {
         st.scale = Math.min(1, grownScale);
         const altGap = player.alt - (st.g + 1.7);
         const close = p.dot(st.v) > COS_TOUCH && p.angleTo(st.v) * S.R < 2.8;
-        if (!player.held && close && Math.abs(altGap) < 4.5) {
+        if (this.canFollow && !player.held && close && Math.abs(altGap) < 4.5) {
           st.st = 1;
           this.followers.push(st);
           hud.sayOnce("star", "별 — 뒤에 따라붙습니다. 칙 하면 터집니다");

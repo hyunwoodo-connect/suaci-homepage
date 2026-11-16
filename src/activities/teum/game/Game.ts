@@ -344,10 +344,11 @@ export class Game {
     });
     const avatar = this.avatar,
       whale = this.whale,
-      { trees, sculptures, pads } = this;
+      { trees, sculptures, pads, creatures, babyLimes, stars } = this;
     this.hideSeek = new HideSeek(
       s,
       {
+        footsteps: this.footsteps,
         input: this.input,
         studio: this.studio,
         unbox: {
@@ -360,9 +361,10 @@ export class Game {
           callWhale: (over, dir) => whale.flyBy(over, dir),
           keepWhaleOff: () => whale.keepOff(),
         },
-        creatures: this.creatures,
+        creatures,
         whale,
         sky: this.sky,
+        cat: avatar,
         // 재채기한 상자를 가리던 것·칙이 닿은 것이 흔들린다
         shake: (at, reach) => {
           trees.shakeNear(at, reach);
@@ -372,6 +374,12 @@ export class Game {
         },
         pause: (seconds) => this.pause(seconds),
         setPlaceGlow: (on) => places.setLimeGlow(on),
+        // 판이 도는 동안은 만난 손님·꼬마 라임·별이 따라붙지 않는다
+        setCompany: (on) => {
+          creatures.setFollowing(on);
+          babyLimes.setFollowing(on);
+          stars.setFollowing(on);
+        },
       },
       hudParent,
     );

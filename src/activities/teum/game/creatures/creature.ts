@@ -54,6 +54,10 @@ export interface Creature {
   hv: THREE.Vector3 | null;
   /** 전설이면 1 */
   legend: number;
+  /** 놀라 달아나지 않는다(숨바꼭질 판에 부른 손님) */
+  calm: boolean;
+  /** 줄지어 서 있다(숨바꼭질 판의 카드 병정 — 제자리를 지킨다) */
+  inRow: boolean;
   // ---- 하늘을 도는 셋 ----
   ctr: THREE.Vector3 | null;
   rad: number;

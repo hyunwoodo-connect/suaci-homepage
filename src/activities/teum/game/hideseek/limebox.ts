@@ -7,15 +7,13 @@ import { HIDE } from "./tuning";
 // 숨는 애(라임 상자) 하나. 뼈대가 없어 움직임은 모두 여기서 몸 전체를 옮기고 늘이고 기울여서 낸다 — 늘 찌그러졌다 펴지는 맛이 있게.
 // 리본 귀(모델 위쪽 30%)만은 셰이더로 따로 움직인다: 몸보다 반 박자 늦게 따라오는 스프링이고, 빳빳이 서거나 납작 접히거나 앞으로 접혀 눈을 덮는다.
 // 몸짓 사전(연출 지시서): 폴짝 · 종종걸음 · 깜짝 · 재채기 · 움찔 · 빼꼼 · 버둥 · 눈 가리기. 그 밖에 숨 참기·휴·하품·톡톡·한 바퀴·손 흔들기,
-// 굴러떨어지기(미끄러짐 → 매달려 버둥 → 뒤집혀 떨어짐 → 납작 → 벌떡), 칸으로 날아가기, 언박싱의 들썩·터지기, 하늘에서 떨어지기.
+// 굴러떨어지기(미끄러짐 → 매달려 버둥 → 뒤집혀 떨어짐 → 납작 → 벌떡), 줄 설 때 작아지기, 언박싱의 들썩·터지기, 하늘에서 떨어지기.
 // 몸짓의 시간·크기는 hideseek.data.json 의 box·moves
 
 /** 상자 키(m) */
 const BOX_HEIGHT = HIDE.box.height;
 /** 상자 모델 키 */
 export const LIMEBOX = "limebox";
-/** 칸으로 날아가며 사라지는 시간(초) */
-export const BOX_FLY_TIME = 0.3;
 
 const { box, moves } = HIDE;
 const RAD = Math.PI / 180;
@@ -183,8 +181,10 @@ export class LimeBox {
   private slid = 0;
   private slidFrom = 0;
   private fallFrom = 0;
-  private flyT = -1;
   private popT = -1;
+  /** 크기 배수: 바라는 값과 지금 값 */
+  private sizeWant = 1;
+  private sizeNow = 1;
 
   /** scale: 키 배수(보너스 1.4·안에서 나오는 작은 상자), gold: 리본을 금빛으로 */
   constructor(
@@ -215,7 +215,7 @@ export class LimeBox {
     this.g.visible = on;
   }
 
-  /** 이 자리(v 단위 벡터, 바닥 높이 a)에 face 쪽을 보고 선다. 하던 짓은 그친다 */
+  /** 이 자리(v 단위 벡터, 바닥 높이 a)에 face 쪽을 보고 선다. 하던 짓은 그친다(크기 배수는 그대로) */
   put(v: THREE.Vector3, a: number, face: THREE.Vector3) {
     this.v.copy(v).normalize();
     this.a = a;
@@ -225,7 +225,7 @@ export class LimeBox {
     this.dropping = false;
     this.act = null;
     this.scurry = 0;
-    this.peekT = this.flyT = this.popT = -1;
+    this.peekT = this.popT = -1;
     this.ducking = this.watched = this.restless = false;
     this.holding = this.covering = this.wobbling = false;
     this.holdK = this.coverK = this.wobbleK = 0;
@@ -350,7 +350,7 @@ export class LimeBox {
     this.wobbling = on;
   }
 
-  /** seconds 동안 height(m) 높이로 폴짝폴짝 뛴다(깨우기·여기야!·이겼다) */
+  /** seconds 동안 height(m) 높이로 폴짝폴짝 뛴다(해가 진 뒤 이긴 상자들) */
   hopFor(seconds: number, height: number) {
     this.hopLeft = seconds;
     this.hopsHigh = height;
@@ -378,10 +378,10 @@ export class LimeBox {
     return this.tumble !== null;
   }
 
-  /** 화면 위 칸으로 날아간다: 웅크렸다 솟으며 작아져 사라진다 */
-  flyAway() {
-    this.flyT = 0;
-    this.hopLeft = 0;
+  /** 크기 배수(1 이 그대로): 찾아서 내 뒤에 줄을 설 때 작아진다 — 천천히 바뀐다(isInstant 면 바로) */
+  setSize(k: number, isInstant = false) {
+    this.sizeWant = k;
+    if (isInstant) this.sizeNow = k;
   }
 
   /** 터진다(작아지며 사라진다) */
@@ -418,18 +418,10 @@ export class LimeBox {
     this.playLoops(dt, time, P);
     const fallen = this.playTumble(dt, P);
     this.fall(dt);
-    if (this.flyT >= 0) {
-      this.flyT += dt;
-      const u = this.flyT / BOX_FLY_TIME;
-      if (u >= 1) {
-        this.flyT = -1;
-        g.visible = false;
-        return;
-      }
-      P.squash *= 0.8 + 0.5 * u;
-      P.lift += u * u * 4;
-      P.size *= 1 - u * u;
-    }
+    const sizeStep = dt * 7,
+      sizing = Math.min(1, sizeStep);
+    this.sizeNow += (this.sizeWant - this.sizeNow) * sizing;
+    P.size *= this.sizeNow;
     if (this.popT >= 0) {
       this.popT += dt;
       const u = this.popT / POP_TIME;
@@ -439,12 +431,15 @@ export class LimeBox {
       }
       // 먼저 납작 눌렸다가 부풀며 사라진다
       P.squash = u < 0.4 ? 1 - 0.3 * (u / 0.4) : 0.7 + 0.6 * ((u - 0.4) / 0.6);
-      P.size = u < 0.4 ? 1 : 1 - (u - 0.4) / 0.6;
+      P.size *= u < 0.4 ? 1 : 1 - (u - 0.4) / 0.6;
     }
     const lean = this.peeking(dt, P);
     this.swayEars(dt, P);
-    const widen = 1 + (1 - P.squash) * 0.5;
-    this.hold.scale.set(widen, P.squash, widen);
+    // 모델 틀의 크기 배수(키를 box.height 에 맞춘 값) 위에 찌그러짐을 얹는다 — 배수를 덮어쓰면 키 설정이 화면에 나오지 않는다
+    const fit = this.hold.userData.k,
+      wide = (1 + (1 - P.squash) * 0.5) * fit,
+      tall = P.squash * fit;
+    this.hold.scale.set(wide, tall, wide);
     this.hold.position.y = this.hh * P.squash;
     g.scale.setScalar(P.size);
     // 놓기: 위가 v, 앞(모델 +x)이 f

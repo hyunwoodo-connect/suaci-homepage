@@ -1,13 +1,12 @@
 import * as THREE from "three";
 
 import { LIME, S } from "../settings";
-import { FWD, UP } from "../world/sphere";
+import { FWD } from "../world/sphere";
 
 // 숨바꼭질의 눈에 보이는 신호(소리를 꺼도 알 수 있게). 모두 미리 만들어 두고 돌려 쓴다:
-//   칙 안개 — 내 둘레로 칙이 닿는 거리까지 퍼지는 라임 고리(깨우는 물결·금색 상자가 쿵 할 때의 먼지 고리도 이 고리다)
+//   칙 안개 — 내 둘레로 칙이 닿는 거리까지 퍼지는 라임 고리(금색 상자가 쿵 할 때의 먼지 고리도 이 고리다)
 //   재채기 연기 — 상자 자리에서 터지는 라임 연기. 찾았을 때의 종이 꽃가루는 더 잘고 멀리 튄다
-//   빛기둥 — '못 찾겠다'를 눌렀을 때(가장 가까운 상자)·해가 진 뒤(남은 상자들)에 그 자리에서 하늘로 서는 라임 기둥
-//   라임 점 — 일러바치는 생물이 남기는 점선, 전설의 생물이 지나간 자리의 빛가루
+//   라임 점 — 달려가는 상자 발밑의 먼지, 칙 안개가 상자로 흘러가는 알갱이, 전설의 생물이 지나간 자리의 빛가루
 
 /** 칙 안개가 다 퍼지는 시간(초) */
 const SONAR_TIME = 0.9;
@@ -20,11 +19,6 @@ const PUFF_PER = 7,
 /** 종이 꽃가루 한 번의 조각 수·크기(m) */
 const CONFETTI_PER = 12,
   CONFETTI_SIZE = 0.7;
-/** 빛기둥: 수·높이(m)·굵기(m)·나타나고 사라지는 시간(초) */
-const PILLAR_N = 4,
-  PILLAR_HEIGHT = 90,
-  PILLAR_WIDTH = 1.6,
-  PILLAR_FADE = 0.5;
 /** 라임 점 수 */
 const DOT_N = 140;
 
@@ -35,13 +29,6 @@ interface Puff {
   t: number;
   size: number;
   on: boolean;
-}
-
-/** 빛기둥 하나 */
-interface Pillar {
-  m: THREE.Mesh<THREE.CylinderGeometry, THREE.MeshBasicMaterial>;
-  t: number;
-  life: number;
 }
 
 /** 라임 점 하나(제자리에 떠 있다가 옅어진다) */
@@ -55,7 +42,7 @@ interface Dot {
 const tmp = new THREE.Vector3(),
   side = new THREE.Vector3();
 
-/** 칙 안개·재채기 연기·빛기둥·라임 점 */
+/** 칙 안개·재채기 연기·라임 점 */
 export class HideFx {
   private readonly ring: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>;
   private readonly fog: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
@@ -63,8 +50,6 @@ export class HideFx {
   private sonarR = 20;
   private sonarFor = SONAR_TIME;
   private readonly puffs: Puff[] = [];
-  private readonly pillars: Pillar[] = [];
-  private readonly pillarGeo: THREE.CylinderGeometry;
   private readonly dots: Dot[] = [];
   private nextDot = 0;
   private readonly tex: THREE.CanvasTexture;
@@ -88,21 +73,6 @@ export class HideFx {
       const sp = this.sprite(scene);
       const puff: Puff = { sp, vel: new THREE.Vector3(), t: 0, size: 1, on: false };
       this.puffs.push(puff);
-    }
-    // 기둥: 밑이 원점에 오게(위로만 선다), 옆면만
-    this.pillarGeo = new THREE.CylinderGeometry(1, 1, 1, 20, 1, true);
-    this.pillarGeo.translate(0, 0.5, 0);
-    for (let i = 0; i < PILLAR_N; i++) {
-      const mat = flatLime();
-      mat.side = THREE.DoubleSide;
-      mat.depthTest = true;
-      this.mats.push(mat);
-      const m = new THREE.Mesh(this.pillarGeo, mat);
-      m.visible = false;
-      m.renderOrder = 4;
-      scene.add(m);
-      const pillar: Pillar = { m, t: 0, life: 0 };
-      this.pillars.push(pillar);
     }
     for (let i = 0; i < DOT_N; i++) {
       const sp = this.sprite(scene);
@@ -178,19 +148,6 @@ export class HideFx {
     }
   }
 
-  /** 빛기둥: 그 자리(v 단위 벡터, 바닥 높이 base)에서 하늘로 seconds 초 선다 */
-  pillar(v: THREE.Vector3, base: number, seconds: number) {
-    let pick = this.pillars[0];
-    for (const p of this.pillars) if (p.life - p.t < pick.life - pick.t) pick = p;
-    const radius = S.R + base;
-    pick.m.position.copy(v).multiplyScalar(radius);
-    pick.m.quaternion.setFromUnitVectors(UP, v);
-    pick.m.scale.set(PILLAR_WIDTH, PILLAR_HEIGHT, PILLAR_WIDTH);
-    pick.m.visible = true;
-    pick.t = 0;
-    pick.life = seconds;
-  }
-
   /** 라임 점 하나를 그 자리에 남긴다(size m, life 초 동안 옅어진다) */
   dot(at: THREE.Vector3, size: number, life: number) {
     const d = this.dots[this.nextDot];
@@ -204,17 +161,13 @@ export class HideFx {
 
   /** 켜 둔 것을 모두 끈다(새 판) */
   clear() {
-    for (const p of this.pillars) {
-      p.life = 0;
-      p.m.visible = false;
-    }
     for (const d of this.dots) {
       d.life = 0;
       d.sp.visible = false;
     }
   }
 
-  /** 고리는 퍼지며 옅어지고, 연기는 부풀며 사라지고, 기둥과 점은 제자리에서 옅어진다 */
+  /** 고리는 퍼지며 옅어지고, 연기는 부풀며 사라지고, 점은 제자리에서 옅어진다 */
   update(dt: number) {
     if (this.sonarT >= 0) {
       this.sonarT += dt;
@@ -248,22 +201,6 @@ export class HideFx {
       p.sp.scale.setScalar(scale);
       p.sp.material.opacity = 0.85 * (1 - u);
     }
-    for (const p of this.pillars) {
-      if (p.life <= 0) continue;
-      p.t += dt;
-      const left = p.life - p.t;
-      if (left <= 0) {
-        p.life = 0;
-        p.m.visible = false;
-        continue;
-      }
-      const fadeIn = p.t / PILLAR_FADE,
-        fadeOut = left / PILLAR_FADE,
-        k = Math.min(1, fadeIn, fadeOut),
-        beat = p.t * 7,
-        pulse = 0.85 + 0.15 * Math.sin(beat);
-      p.m.material.opacity = 0.42 * k * pulse;
-    }
     for (const d of this.dots) {
       if (d.life <= 0) continue;
       d.t += dt;
@@ -287,9 +224,7 @@ export class HideFx {
       m.geometry.dispose();
     }
     for (const p of this.puffs) p.sp.removeFromParent();
-    for (const p of this.pillars) p.m.removeFromParent();
     for (const d of this.dots) d.sp.removeFromParent();
-    this.pillarGeo.dispose();
     for (const m of this.mats) m.dispose();
     this.tex.dispose();
   }

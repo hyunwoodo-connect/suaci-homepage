@@ -30,6 +30,8 @@ export class BabyLimes implements Thing {
   readonly list: Baby[] = [];
   /** 따라오는 수(만난 손님은 이 뒤에 줄 선다) */
   joined = 0;
+  /** 따라와도 되나(숨바꼭질 판이 도는 동안은 아니다 — 따라오던 것은 제자리에서 기다린다) */
+  private canFollow = true;
   private readonly BL: Instancer | null;
 
   constructor(
@@ -89,7 +91,7 @@ export class BabyLimes implements Thing {
           height = b.g + hop,
           yaw = time * 1.2 + b.ph;
         BL.put(b.i, b.v, height, 1.4, yaw);
-        if (!held && player.air < 4 && p.angleTo(b.v) * S.R < 2.6) {
+        if (this.canFollow && !held && player.air < 4 && p.angleTo(b.v) * S.R < 2.6) {
           b.join = true;
           b.order = this.joined++;
           this.s.events.emit("babyJoined", { count: this.joined });
@@ -110,13 +112,13 @@ export class BabyLimes implements Thing {
             }
         }
       } else {
-        // 줄 선 순서만큼 뒤의 발자취를 따라간다
+        // 줄 선 순서만큼 뒤의 발자취를 따라간다(따라오지 못하는 동안은 그 자리에서 통통 뛰며 기다린다)
         const lastStep = hist.length - 1,
           trailGap = 6 * (b.order + 1),
           gapIndex = Math.min(lastStep, trailGap),
           hgt = hist[gapIndex],
           followRate = -9 * f.dt,
-          follow = 1 - Math.exp(followRate);
+          follow = this.canFollow ? 1 - Math.exp(followRate) : 0;
         b.pos.lerp(hgt.p, follow).normalize();
         b.a += (hgt.a - 0.7 - b.a) * follow;
         const hopPhase = time * 7 + b.order * 1.3,
@@ -126,6 +128,11 @@ export class BabyLimes implements Thing {
         BL.put(b.i, b.pos, height, 1.2, yaw);
       }
     }
+  }
+
+  /** 따라와도 되나(숨바꼭질 판이 도는 동안은 끈다 — 새로 따라붙지 않고, 따라오던 것은 그 자리에서 기다린다) */
+  setFollowing(on: boolean) {
+    this.canFollow = on;
   }
 
   /** 찍어 둔 묶음은 모델 자리(ModelLibrary)가 치운다 */

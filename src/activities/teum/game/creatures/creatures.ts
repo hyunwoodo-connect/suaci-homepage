@@ -18,14 +18,19 @@ import type { Habit, HabitCtx } from "./habits";
 import { HABITS } from "./habits";
 import { away, face, go } from "./moves";
 
+/** 숨바꼭질 판에 부른 땅 위 무리가 서는 모양(m): 둘러설 때의 반지름 · 한 줄로 설 때의 간격 */
+export const GUEST_RING = 2.8,
+  GUEST_ROW_GAP = 2.6;
+
 // 생물: 놀이기구가 아니라 손님이다. 저마다 제 할 일을 하다가 나를 알아채고, 동작이 끊기지 않고 이어진다. 이름은 없다.
 // 땅 위의 손님(걷는 찻주전자·카드 병정·뛰는 버섯…), 셋씩 낮게 도는 하늘 무리(열쇠·날개 하트·편지·찻잔·종), 해파리 우산,
 // 호수의 헤엄치는 것(물고기·일각고래·물개), 그리고 자리를 옮기지 않는 전설의 손님(라임 사슴·날개 달린 왕관).
 // 종의 생김새·크기·걸음새·버릇은 설정 표(assets/settings 의 CREATURES) 한곳에, 어디에 몇 무리인지는 지도(creatures)에 있고,
 // 여기는 갈래(땅·하늘·해파리·호수)마다의 공통 상태 기계와 놓는 규칙만 둔다. 종마다 다른 것은 버릇(habits)에게 묻는다.
 // 그리기는 종마다 한 묶음(ModelBatch): 가까이 보이는 것만 매 프레임 채워 그린다.
-// 숨바꼭질은 생물을 아이템으로 쓴다: 판마다 무대에 손님 무리를 불러 앉히고(invite·seat), 닿은 생물을 잡아(capture) 칸에 넣었다가
-// 풀어 준다(release) — 하늘을 도는 것은 일러바치러 날아간다(sendTo). 잡혀 있는 동안은 보이지 않고 움직이지 않는다
+// 숨바꼭질은 생물에게 길잡이를 맡긴다: 판마다 무대에 손님 무리를 불러 앉히고(invite·seat — 판의 손님은 놀라 달아나지 않는다),
+// 닿은 생물(touching)이 나를 숨은 상자 앞까지 데려다준다(escort — 그동안 자리는 숨바꼭질이 정한다, dismiss 로 돌려보낸다).
+// 판이 도는 동안은 만난 손님이 줄지어 따라오지 않는다(setFollowing)
 
 /** 내가 멀어지면 내 앞쪽으로 옮겨 가는 무리 */
 interface RoamGroup {
@@ -113,6 +118,8 @@ export class Creatures implements Thing {
   private lastJumps = -1;
   private nowTime = 0;
   private readonly restCut: number;
+  /** 만난 손님이 줄지어 따라와도 되나 */
+  private canFollow = true;
 
   constructor(
     private readonly s: Services,
@@ -138,7 +145,7 @@ export class Creatures implements Thing {
   /** 따라오지 않는 생물 하나라도 14m 안에 있나(무리는 무리 중심으로 본다) — 지루함 감독이 '새로 마주친 순간'을 센다 */
   isAnyNear(p: Readonly<THREE.Vector3>): boolean {
     for (const c of this.list) {
-      if (c.st === "follow" || c.st === "held" || c.gone) continue;
+      if (c.st === "follow" || c.st === "guide" || c.gone) continue;
       const at = c.hv || c.v;
       if (at.dot(p) > 0.9996 && p.angleTo(at) * S.R < 14) return true;
     }
@@ -177,8 +184,10 @@ export class Creatures implements Thing {
     const altA = player.P.length() - S.R;
     for (const i of this.active) {
       const c = this.list[i];
-      if (c.st === "held") {
-        // 잡혀 칸에 든 생물: 작아지며 사라진 채로 쉰다
+      if (c.st === "guide") {
+        // 데려다주는 중: 자리는 숨바꼭질이 정했다 — 달리는(나는) 몸짓으로 그린다
+        c.ph += dt * 12;
+        c.amt += (1 - c.amt) * ease(7, dt);
         this.put(c, dt);
         continue;
       }
@@ -192,7 +201,6 @@ export class Creatures implements Thing {
       pose.amt = 0;
       pose.head = 0;
       if (c.st === "follow") this.follow(c, pose);
-      else if (c.st === "tattle") this.tattle(c, pose);
       else if (c.role === "herd") this.herd(c, dP, dA, calm, rush, pose);
       else if (c.role === "flock") this.flock(c, dP, dA, pose);
       else if (c.role === "fish") this.fish(c, dP, calm, rush, pose);
@@ -214,8 +222,8 @@ export class Creatures implements Thing {
     const dir = this.list.length % 2 ? 1 : -1;
     for (let j = 0; j < count; j++) {
       const o: Partial<Creature> = set?.sky
-        ? { ctr: here, rad: 10, dir, alt: 3, ang: -dir * j * 14, slot: j, st: "fly" }
-        : { gait: set?.herd?.gait ?? "walk", st: "graze", hv: here };
+        ? { ctr: here, rad: 10, dir, alt: 3, ang: -dir * j * 14, slot: j, st: "fly", calm: true }
+        : { gait: set?.herd?.gait ?? "walk", st: "graze", hv: here, calm: true };
       const role = set?.sky ? "flock" : "herd";
       const c = this.crit(species, role, here, o);
       if (c) out.push(c);
@@ -229,15 +237,21 @@ export class Creatures implements Thing {
   }
 
   /**
-   * 손님 무리를 그 자리(가운데 at)에 새로 앉힌다: 땅 위 무리는 둘러서 풀을 뜯고, 하늘 무리는 orbit(m) 반지름·땅에서 alt(m) 높이로 돈다.
-   * 잡혀 있던 것도 풀려나 제자리로 온다. 나를 따라오는 중인 손님은 그대로 따라온다(줄에서 빼지 않는다)
+   * 손님 무리를 그 자리(가운데 at)에 새로 앉힌다: 땅 위 무리는 둘러서(row 면 한 줄로 서서) 풀을 뜯고,
+   * 하늘 무리는 orbit(m) 반지름·땅에서 alt(m) 높이로 돈다. 데려다주던 것도 제자리로 온다
    */
-  seat(group: readonly Creature[], at: THREE.Vector3, orbit: number | null, alt: number | null) {
+  seat(
+    group: readonly Creature[],
+    at: THREE.Vector3,
+    orbit: number | null,
+    alt: number | null,
+    row: boolean,
+  ) {
     const ctr = at.clone().normalize(),
       ground = this.s.terrain.groundAt(ctr);
+    const mid = (group.length - 1) / 2;
     group.forEach((c, j) => {
       if (c.st === "follow") return;
-      c.want = 1;
       c.met = false;
       c.vt = 0;
       c.vc = 0;
@@ -255,9 +269,14 @@ export class Creatures implements Thing {
         c.st = "fly";
         return;
       }
-      const bearing = (j * 360) / group.length + 20;
+      const across = (j - mid) * GUEST_ROW_GAP,
+        dist = row ? Math.abs(across) : GUEST_RING,
+        ringBearing = (j * 360) / group.length + 20,
+        rowBearing = across < 0 ? 290 : 110,
+        bearing = row ? rowBearing : ringBearing;
       c.hv = ctr;
-      offsetInto(c.home, ctr, 2.8, bearing);
+      c.inRow = row;
+      offsetInto(c.home, ctr, dist, bearing);
       c.v.copy(c.home);
       c.a = this.s.terrain.groundAt(c.v);
       c.st = "graze";
@@ -270,8 +289,8 @@ export class Creatures implements Thing {
   }
 
   /**
-   * 지금 나와 닿은 잡을 수 있는 생물 하나(없으면 null): 땅 위 무리·하늘 무리 가운데 수평 reach(m)·높이 차 band(m) 안에서 가장 가까운 것.
-   * 전설의 손님·따라오는 손님·잡혀 있는 것·skip 에 든 것(이 판에 이미 쓴 것)은 뺀다
+   * 지금 나와 닿은, 길잡이가 될 수 있는 생물 하나(없으면 null): 땅 위 무리·하늘 무리 가운데 수평 reach(m)·높이 차 band(m) 안에서 가장 가까운 것.
+   * 전설의 손님·따라오는 손님·데려다주는 중인 것·skip 에 든 것(이 판에 이미 데려다준 것)은 뺀다
    */
   touching(reach: number, band: number, skip: ReadonlySet<Creature>): Creature | null {
     const pl = this.s.player,
@@ -281,7 +300,7 @@ export class Creatures implements Thing {
       bestD = reach;
     for (const i of this.active) {
       const c = this.list[i];
-      if (c.legend || c.gone || c.st === "follow" || c.st === "held" || c.st === "tattle") continue;
+      if (c.legend || c.gone || c.st === "follow" || c.st === "guide") continue;
       if ((c.role !== "herd" && c.role !== "flock") || skip.has(c) || c.vis < 0.5) continue;
       const d = c.v.angleTo(p) * S.R,
         gap = c.a + c.batch.hh - altA;
@@ -292,51 +311,42 @@ export class Creatures implements Thing {
     return best;
   }
 
-  /** 잡았다: 인사를 한 번 하고(반짝·소리) 작아지며 사라진다 — 숨바꼭질의 아이템 칸으로 들어간다 */
-  capture(c: Creature) {
-    const first = !this.met.has(c.k),
-      kind = c.k;
-    this.met.add(c.k);
-    c.met = true;
-    this.s.events.emit("creatureMet", { kind, first, legend: false });
-    this.s.fx.burst(c.pos, 12, 8);
-    c.st = "held";
-    c.want = 0;
+  /**
+   * 데려다주기를 맡긴다(숨바꼭질): 이 생물은 제 할 일을 멈추고, 자리(v·a)와 보는 쪽(f)을 숨바꼭질이 프레임마다 정한다 —
+   * 여기서는 달리는(나는) 몸짓으로 그리기만 한다. 다 데려다주면 dismiss
+   */
+  escort(c: Creature) {
+    c.st = "guide";
+    c.hop = 0;
+    c.hopV = 0;
+    c.sink = 0;
+    c.pitch = 0;
+    c.roll = 0;
+    this.lastTime = -1e9;
   }
 
-  /**
-   * 풀어 준다: at 자리(땅에서 높이 above m)에 다시 나타나 제 갈 길을 간다(땅 위 무리는 집으로 걸어가고, 하늘 무리는 제 궤도로 돌아간다).
-   * 나를 찾아와 도는 버릇이 있는 하늘 무리는 떠나기 전에 내 둘레를 circle 초 돈다
-   */
-  release(c: Creature, at: Readonly<THREE.Vector3>, above: number, circle: number) {
-    c.v.copy(at).normalize();
-    const ground = this.s.terrain.groundAt(c.v);
-    c.a = c.role === "flock" ? ground + above : ground;
-    c.want = 1;
-    c.vt = c.role === "flock" ? circle : 0;
+  /** 데려다주기를 마쳤다: 제 갈 길을 간다(땅 위 무리는 집으로 걸어가고, 하늘 무리는 제 궤도로 돌아간다) */
+  dismiss(c: Creature) {
+    if (c.st !== "guide") return;
+    c.vt = 0;
     c.vc = 28;
     c.still = 0;
     c.st = c.role === "flock" ? "fly" : "home";
-    this.lastTime = -1e9;
   }
 
   /**
-   * 일러바치러 간다(하늘 무리): goal(단위 벡터) 쪽으로 seconds 동안 날아가 거기서 멈춘 뒤 제 궤도로 돌아간다.
-   * 날아가는 동안은 땅에서 above(m) 높이를 지킨다. 지금 날아가는 중인지는 isTattling 이 알려 준다
+   * 만난 손님이 줄지어 따라와도 되나(숨바꼭질 판이 도는 동안은 아니다 — 내 뒤에는 찾은 상자만 선다).
+   * 끄면 따라오던 손님은 제 갈 길을 간다
    */
-  sendTo(c: Creature, goal: THREE.Vector3, seconds: number, above: number) {
-    const dist = c.v.angleTo(goal) * S.R;
-    c.goal = goal.clone().normalize();
-    c.rs = dist / seconds;
-    c.t = seconds;
-    c.base = above;
-    c.st = "tattle";
-    this.lastTime = -1e9;
-  }
-
-  /** 일러바치러 날아가는 중인가 */
-  isTattling(c: Creature): boolean {
-    return c.st === "tattle";
+  setFollowing(on: boolean) {
+    this.canFollow = on;
+    if (on) return;
+    // 따라오는 것은 땅 위 무리뿐이다 — 집으로 걸어간다
+    for (const c of this.followers) {
+      c.order = -1;
+      c.st = "home";
+    }
+    this.followers.length = 0;
   }
 
   /** 치운다(그리는 묶음은 모델 창구가 치운다) */
@@ -396,21 +406,6 @@ export class Creatures implements Thing {
     }
   }
 
-  // 일러바치러 가는 하늘 손님: 정한 빠르기로 곧장 날아가고, 다 가면 제 궤도로 돌아간다
-  private tattle(c: Creature, pose: Pose) {
-    const dt = this.ctx.dt;
-    const left = go(c, c.goal!, c.rs, dt, 2.6);
-    c.t -= dt;
-    const ground = this.s.terrain.groundAt(c.v),
-      wantA = ground + c.base,
-      altEase = ease(4, dt);
-    c.a += (wantA - c.a) * altEase;
-    c.ph += dt * 15;
-    c.roll = 0;
-    pose.amt = 1;
-    if (c.t <= 0 || left < 0.5) c.st = "fly";
-  }
-
   // 땅 위 무리: 풀 뜯기·쳐다보기·다가오기·기대기·놀라 달아나기·돌아보기·집으로. 종마다의 버릇이 그 앞뒤에 끼어든다
   private herd(c: Creature, dP: number, dA: number, calm: boolean, rush: boolean, pose: Pose) {
     const x = this.ctx,
@@ -430,7 +425,7 @@ export class Creatures implements Thing {
         c.hopV = 0;
       }
     }
-    const scare = dP < 9 && rush && Math.abs(dA) < 6,
+    const scare = !c.calm && dP < 9 && rush && Math.abs(dA) < 6,
       seen = dP < 13 && Math.abs(dA) < 7;
     const sense = this.sense;
     sense.dP = dP;
@@ -469,7 +464,8 @@ export class Creatures implements Thing {
       } else if (st === "graze") {
         pose.head = -1;
         c.t -= dt;
-        if (c.t <= 0) {
+        // 줄지어 선 무리는 제자리를 지킨다(돌아다니면 줄이 풀린다)
+        if (c.t <= 0 && !c.inRow) {
           c.st = "wander";
           // 난수 순서: 거리 → 방향
           const wanderDist = c.rng.range(1, 5.5);
@@ -801,7 +797,7 @@ export class Creatures implements Thing {
   // 줄지어 따라오기에 넣는다(여섯까지)
   private join(c: Creature): boolean {
     const FOL = this.followers;
-    if (FOL.length >= 6 || c.order >= 0) return false;
+    if (!this.canFollow || FOL.length >= 6 || c.order >= 0) return false;
     c.order = FOL.length;
     FOL.push(c);
     c.st = "follow";
@@ -1111,6 +1107,8 @@ export class Creatures implements Thing {
       gait: "walk",
       hv: null,
       legend: 0,
+      calm: false,
+      inRow: false,
       ctr: null,
       rad: 0,
       dir: 0,

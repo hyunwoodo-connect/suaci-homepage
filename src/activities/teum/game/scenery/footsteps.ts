@@ -47,6 +47,34 @@ export class Footsteps implements Thing {
     return this.hist[i];
   }
 
+  /**
+   * 내 뒤로 지나온 길을 따라 meters 만큼 되짚은 자리를 out 에 넣는다(단위 벡터 — 숨바꼭질의 상자 줄이 밟는다).
+   * 걸음 사이의 실제 거리를 더해 가며 찾고(빨리 날면 걸음이 성기다), 걸음 사이는 고르게 이어 붙인다. 발자취가 거기까지 없으면 가장 오래된 것
+   */
+  behind(meters: number, out: THREE.Vector3) {
+    const p = this.s.player.p,
+      hist = this.hist;
+    if (!hist.length) {
+      out.copy(p);
+      return;
+    }
+    // 내 자리에서 가장 최근 걸음까지, 그다음은 걸음에서 걸음으로
+    let left = meters - p.angleTo(hist[0].p) * S.R;
+    for (let i = 0; i < hist.length - 1 && left > 0; i++) {
+      const near = hist[i].p,
+        far = hist[i + 1].p,
+        span = near.angleTo(far) * S.R;
+      if (span >= left) {
+        const k = left / span;
+        out.copy(near).lerp(far, k).normalize();
+        return;
+      }
+      left -= span;
+    }
+    const at = left > 0 ? hist[hist.length - 1] : hist[0];
+    out.copy(at.p);
+  }
+
   /** 움직인 만큼만 발자취를 남긴다 */
   update() {
     const { p, P } = this.s.player,
