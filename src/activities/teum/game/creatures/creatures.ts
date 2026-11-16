@@ -68,11 +68,15 @@ const REST_COS = 0.8,
   REBUILD_MOVE = 30,
   REBUILD_TIME = 1;
 
-/** 따라오는 손님의 몸 반지름(m) — 비켜서는 거리에 더한다 */
-const FOLLOW_BODY = 1.1;
+/**
+ * 따라오는 손님 줄: 내 발자취(한 걸음 0.3m) 위에 한 줄로 선다. 아기 라임(여섯 걸음 간격)이 있으면 그 뒤부터.
+ * 첫 손님은 FOLLOW_FIRST 걸음 뒤, 그다음은 FOLLOW_GAP 걸음마다 — 손님끼리 거의 닿을 만큼 붙여, 셋까지는 한 화면에 든다
+ */
+const FOLLOW_FIRST = 7,
+  FOLLOW_GAP = 7,
+  BABY_GAP = 6;
 
-const fSide = new THREE.Vector3(),
-  fAim = new THREE.Vector3(),
+const fAim = new THREE.Vector3(),
   cf = new THREE.Vector3(),
   cx = new THREE.Vector3(),
   cm = new THREE.Matrix4(),
@@ -215,19 +219,14 @@ export class Creatures implements Thing {
     const dt = this.ctx.dt,
       steps = this.links.footsteps;
     const lastHist = steps.length - 1;
-    const trailIndex = 5 * (this.links.babyLimes.joined + c.order + 1) + 2;
+    const babies = BABY_GAP * this.links.babyLimes.joined,
+      trailIndex = babies + FOLLOW_FIRST + FOLLOW_GAP * c.order;
     const histIndex = Math.min(lastHist, trailIndex);
     const hg = histIndex >= 0 ? steps.at(histIndex) : undefined;
     if (hg) {
-      // 내 바로 뒤가 아니라 좌우로 번갈아 비켜서 온다(카메라가 내 뒤라서, 바로 뒤에 서면 화면을 가린다). 뒤의 것일수록 더 비켜선다
-      const pl = this.s.player;
-      fSide.crossVectors(pl.h, pl.p).normalize();
-      const half = c.order / 2;
-      const pair = Math.floor(half);
-      const sign = c.order % 2 ? 1 : -1,
-        lane = 3 + 1.5 * pair + FOLLOW_BODY;
-      const sideArc = (sign * lane) / S.R;
-      fAim.copy(hg.p).addScaledVector(fSide, sideArc).normalize();
+      // 내 발자취를 그대로 밟아 한 줄로 온다. 좌우로 비켜서면 세로 폰 화면(가로 시야가 좁다)에서 대각선으로 빠져 안 보였다 —
+      // 카메라는 손님 수만큼 높고 멀어지고 조금 아래를 봐서(CameraRig.setCompany) 내 뒤의 줄이 나를 가리지 않고 화면에 든다
+      fAim.copy(hg.p);
       const d = c.v.angleTo(fAim) * S.R;
       if (d > 0.25) {
         const chase = d * 4;

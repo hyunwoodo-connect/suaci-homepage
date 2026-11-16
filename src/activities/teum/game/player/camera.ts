@@ -12,6 +12,12 @@ import type { Player } from "./player";
 
 /** 이만큼 데리고 다니면 카메라가 가장 높고 멀다 */
 const COMPANY_FULL = 3;
+/** 첫 손님 하나로 오르는 몫(0..1) */
+const COMPANY_FIRST = 0.6;
+/** 가장 많이 데리고 다닐 때 더 오르는 높이·물러나는 거리·보는 곳을 낮추는 정도(m) */
+const COMPANY_RISE = 6,
+  COMPANY_BACK = 4.5,
+  COMPANY_LOOK_DOWN = 1.5;
 
 const cdir = new THREE.Vector3(),
   tmp = new THREE.Vector3(),
@@ -48,9 +54,14 @@ export class CameraRig {
   easeOverlook(target: number, k: number) {
     this.over += (target - this.over) * k;
   }
-  /** 데리고 다니는 손님 수 — 하나·둘·셋으로 늘 때마다 카메라가 한 단계씩 높아지고 멀어진다 */
+  /** 데리고 다니는 손님 수 — 한 명만 와도 내 뒤 줄이 나를 가리지 않을 만큼 오르고, 둘·셋으로 늘면 조금씩 더 높아지고 멀어진다 */
   setCompany(count: number) {
-    const share = count / COMPANY_FULL;
+    if (count <= 0) {
+      this.companyWant = 0;
+      return;
+    }
+    const more = (count - 1) / (COMPANY_FULL - 1),
+      share = COMPANY_FIRST + (1 - COMPANY_FIRST) * more;
     this.companyWant = Math.min(1, share);
   }
   /** 지금 보는 쪽을 붙잡아 둔다(회오리·깔때기에 들어서는 순간) */
@@ -85,9 +96,15 @@ export class CameraRig {
     cdir.applyAxisAngle(p, orbit);
     const sp = clamp(pl.tot, 0, 2.2);
     // 빠를수록·높이 뜰수록·회오리(wB)·놀이기구(rB)에 탈수록 위로 올라가고 뒤로 물러난다
-    const rise = S.camH + 24 * over + pl.air * 0.22 + 5 * wB + 4 * rB + 2.7 * folK;
+    // 손님을 데리고 다니면 높이 올라 내려다본다 — 내 발자취 위에 한 줄로 선 손님들이 나를 가리지 않고 내 아래쪽 화면에 든다
+    const rise = S.camH + 24 * over + pl.air * 0.22 + 5 * wB + 4 * rB + COMPANY_RISE * folK;
     const back =
-      -S.camD * (1 + 0.22 * sp) - 20 * over - pl.air * 0.35 - 9 * wB - 10 * rB - 3.9 * folK;
+      -S.camD * (1 + 0.22 * sp) -
+      20 * over -
+      pl.air * 0.35 -
+      9 * wB -
+      10 * rB -
+      COMPANY_BACK * folK;
     want.copy(P).addScaledVector(p, rise).addScaledVector(cdir, back);
     if (pl.takeSnap()) camera.position.copy(want);
     else {
@@ -98,7 +115,7 @@ export class CameraRig {
     const minR = S.R + this.terrain.groundAt(cn) + 1.2;
     if (camera.position.length() < minR) camera.position.setLength(minR);
     camera.up.copy(p);
-    const lookRise = 0.8 - 6 * over;
+    const lookRise = 0.8 - 6 * over - COMPANY_LOOK_DOWN * folK;
     const lookAhead = 5 + 45 * over;
     look.copy(P).addScaledVector(p, lookRise).addScaledVector(cdir, lookAhead);
     camera.lookAt(look);
