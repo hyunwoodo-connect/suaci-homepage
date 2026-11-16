@@ -33,8 +33,7 @@ const BUBBLES = 4;
 // 칸에 들어가는 상자 그림(먹색 선 — 리본과 귀)
 const BOX_ICON = `<svg width="${ICON}" height="${ICON}" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="9.5" width="16" height="10.5" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 9.5v10.5M4 13.5h16M12 9.5c-2-4.5-6.5-4.5-6.5-1.5S10 9.5 12 9.5c2 0 6.5 1.5 6.5-1.5S14 5 12 9.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`;
 // 전설의 생물이 판 위에 있다는 작은 표시(고래)
-const WHALE_ICON =
-  '<svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 13c0-4 3.500-6.500 8-6.500 5 0 7.500 3 9 3.500 1 .300 2-.500 2-2 .800 2.500 0 5-2 6-1.500 3-4.500 4.500-8.500 4.500-5 0-8.500-2-8.500-5.500z" fill="#fff" stroke="#141414" stroke-width="1.600" stroke-linejoin="round"/><circle cx="7.200" cy="12" r="1" fill="#141414"/></svg>';
+const WHALE_ICON = `<svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 13c0-4 3.5-6.5 8-6.5 5 0 7.5 3 9 3.5 1 .3 2-.5 2-2 .8 2.5 0 5-2 6-1.5 3-4.5 4.5-8.5 4.5-5 0-8.5-2-8.5-5.5z" fill="#fff" stroke="${INK}" stroke-width="1.6" stroke-linejoin="round"/><circle cx="7.2" cy="12" r="1" fill="${INK}"/></svg>`;
 /** 말풍선 하나: 세계의 어느 자리에 붙는지(프레임마다 묻는다)와 남은 시간 */
 interface Bubble {
   el: HTMLDivElement;
@@ -68,9 +67,7 @@ export class HideOverlay {
   constructor(private readonly parent: HTMLElement) {
     // 눈꺼풀: 화면 위아래에서 어두운 띠가 내려오고 올라와 맞닿는다(맞닿는 가장자리는 둥글다)
     for (const isUpper of [true, false]) {
-      const lid = document.createElement("div");
-      Object.assign(lid.style, {
-        position: "fixed",
+      const lid = fixedBox({
         left: "-10%",
         width: "120%",
         height: "0%",
@@ -84,9 +81,7 @@ export class HideOverlay {
       else lid.style.bottom = "0";
       this.lids.push(lid);
     }
-    this.slots = document.createElement("div");
-    Object.assign(this.slots.style, {
-      position: "fixed",
+    this.slots = fixedBox({
       top: `max(${SLOTS_TOP}px, calc(env(safe-area-inset-top) + 12px))`,
       left: "50%",
       transform: "translateX(-50%)",
@@ -96,8 +91,7 @@ export class HideOverlay {
       pointerEvents: "none",
     });
     for (let i = 0; i < 4; i++) {
-      const cell = document.createElement("div");
-      Object.assign(cell.style, {
+      const cell = styledBox({
         width: `${CELL}px`,
         height: `${CELL}px`,
         borderRadius: "10px",
@@ -110,19 +104,16 @@ export class HideOverlay {
       this.cells.push(cell);
       this.slots.append(cell);
     }
-    this.mark = document.createElement("div");
-    this.mark.innerHTML = WHALE_ICON;
-    Object.assign(this.mark.style, {
+    this.mark = styledBox({
       position: "absolute",
       left: "100%",
       top: "7px",
       marginLeft: "8px",
       display: "none",
     });
+    this.mark.innerHTML = WHALE_ICON;
     this.slots.append(this.mark);
-    this.hint = document.createElement("div");
-    Object.assign(this.hint.style, {
-      position: "fixed",
+    this.hint = fixedBox({
       top: `max(${HINT_TOP}px, calc(env(safe-area-inset-top) + ${HINT_TOP - SLOTS_TOP + 12}px))`,
       left: "50%",
       transform: "translateX(-50%)",
@@ -138,9 +129,7 @@ export class HideOverlay {
       zIndex: "3",
       pointerEvents: "none",
     });
-    this.big = document.createElement("div");
-    Object.assign(this.big.style, {
-      position: "fixed",
+    this.big = fixedBox({
       left: "50%",
       top: `${BIG_TOP}px`,
       padding: "4px 18px 6px",
@@ -159,9 +148,7 @@ export class HideOverlay {
       pointerEvents: "none",
       zIndex: "4",
     });
-    this.ending = document.createElement("div");
-    Object.assign(this.ending.style, {
-      position: "fixed",
+    this.ending = fixedBox({
       left: "50%",
       bottom: "calc(36px + env(safe-area-inset-bottom))",
       transform: "translateX(-50%)",
@@ -175,9 +162,7 @@ export class HideOverlay {
     this.again = pill(HIDE.copy.again, 64, true);
     this.again.addEventListener("click", () => this.onAgain());
     this.ending.append(this.open, this.again);
-    this.stats = document.createElement("div");
-    Object.assign(this.stats.style, {
-      position: "fixed",
+    this.stats = fixedBox({
       left: "12px",
       right: "12px",
       top: "45%",
@@ -193,9 +178,7 @@ export class HideOverlay {
       zIndex: "4",
       pointerEvents: "none",
     });
-    this.stamp = document.createElement("div");
-    Object.assign(this.stamp.style, {
-      position: "fixed",
+    this.stamp = fixedBox({
       left: "calc(8px + env(safe-area-inset-left))",
       bottom: "calc(6px + env(safe-area-inset-bottom))",
       fontFamily: HUD_FONT,
@@ -388,6 +371,18 @@ export class HideOverlay {
 }
 
 /* ─── 내부 ─────────────────────────── */
+
+// 스타일을 준 div
+function styledBox(style: Partial<CSSStyleDeclaration>): HTMLDivElement {
+  const el = document.createElement("div");
+  Object.assign(el.style, style);
+  return el;
+}
+
+// 화면에 붙박인 div(스크롤·세계와 상관없이 그 자리)
+function fixedBox(style: Partial<CSSStyleDeclaration>): HTMLDivElement {
+  return styledBox({ position: "fixed", ...style });
+}
 
 // 알약 단추: 라임(먹색 글자) 또는 흰 바탕, 먹색 테두리
 function pill(text: string, height: number, isLime: boolean): HTMLButtonElement {
