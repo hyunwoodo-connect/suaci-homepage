@@ -1,10 +1,19 @@
 import * as THREE from "three";
 
+import { BIG_FLOWERS, SCULPTURES } from "../assets/settings";
 import type { Game } from "./Game";
+import { STAGE_HUB } from "./hideseek/spots";
 import { MAPS, mapNamed } from "./maps";
+import type { Audit } from "./maps/audit";
+import { auditWorld } from "./maps/audit";
 import type { MapProblem } from "./maps/check";
 import { checkMap } from "./maps/check";
 import type { GameMap } from "./maps/map";
+import type { MapShotOptions } from "./maps/mapShot";
+import { mapShot } from "./maps/mapShot";
+import { groundRadius, widest } from "./maps/tangles";
+import { planeOf, worldBodies } from "./maps/worldBodies";
+import { measureGirth } from "./models/girth";
 
 // 개발 중 시험용 — 운영 빌드에서는 NODE_ENV 비교가 상수가 되어 통째로 빠진다.
 // ?seed=숫자: 게임 난수를 고정하고, 시제품과 같은지 보는 시험 창구(window.__teum.probe)를 건다.
@@ -12,10 +21,23 @@ import type { GameMap } from "./maps/map";
 // ?fest=숫자: 오늘의 축제 지역을 그 지역으로 고정한다(운영은 늘 한국 시간 날짜로).
 // ?quick: 처음 온 사람에게 먼저 뜨는 꾸미기 씬을 건너뛴다.
 // 창구가 돌려주는 모양은 시제품 계측 사본과 같다(배치 목록·몸 상태·놀이기구 자리) — /tmp 의 비교 도구가 읽는다.
-// 지도 점검 명령(tools/map-check.sh)은 counts·firstScreen·check 를 읽는다
+// ?noavoid: 흩뿌리는 것이 숨바꼭질 물건을 피하기 전으로 짓는다(지도 점검이 앞뒤를 견준다).
+// 지도 점검 명령(tools/map-check.sh)은 counts·firstScreen·check 와 지도 도구(window.__teum.map — 엉킨 것 목록·내려다본 지도)를 읽는다
 
 interface DebugWindow {
-  __teum?: { game: Game; probe: Probe };
+  __teum?: { game: Game; probe: Probe; map: MapTools };
+}
+
+/** 지도 도구(개발): 지어진 세계의 점검과 내려다본 지도 */
+interface MapTools {
+  /** 엉킨 것 목록(가운데에서 가까운 차례로 번호) */
+  audit(): Audit;
+  /** 지도 한 장(PNG 데이터 주소) */
+  shot(opt: MapShotOptions): string;
+  /** 받은 모델에서 잰 굵기 표(assets/girths.json 에 옮긴다 — 조형물·큰 풍선 꽃) */
+  girths(): Record<string, number[]>;
+  /** 놓인 것의 목록: 이름·누가 놓았나·무대 마을 가운데 기준 평면 자리(m)·땅 높이의 반지름(m) */
+  things(): { name: string; layer: string; x: number; y: number; r: number }[];
 }
 
 /** 시험 창구 */
@@ -47,10 +69,22 @@ interface Probe {
   check(): MapProblem[];
 }
 
+/** 조형물 설정표 밖에서 찍는 열기구(굵기 표에 같이 잰다) */
+const BALLOON_KEY = "d_hotairballoon";
+
 /** 시험용 주소 인자 ?nodir: 지루함 감독과 방울 길을 끈다(빈 구간을 감독 없이 잴 때). 운영에선 늘 false */
 export function isDirectorOff(): boolean {
   if (process.env.NODE_ENV === "production") return false;
   return new URLSearchParams(location.search).has("nodir");
+}
+
+/**
+ * 시험용 주소 인자 ?noavoid: 흩뿌리는 것이 숨바꼭질 물건을 피하지 않던 때로 짓는다(지도 점검이 '피하기 전'을 잴 때).
+ * 운영에선 늘 false
+ */
+export function isAvoidOff(): boolean {
+  if (process.env.NODE_ENV === "production") return false;
+  return new URLSearchParams(location.search).has("noavoid");
 }
 
 /** 시험용 주소 인자 ?quick: 처음 온 사람의 꾸미기 씬을 건너뛴다(세상부터 볼 때). 운영에선 늘 false */
@@ -96,7 +130,28 @@ export function exposeGame(game: Game, firstScreen: readonly string[]): () => vo
   if (!new URLSearchParams(location.search).has("seed")) return () => {};
   const w = window as unknown as DebugWindow;
   const probe = createProbe(game, firstScreen);
-  w.__teum = { game, probe };
+  const map: MapTools = {
+    audit: () => auditWorld(game),
+    shot: (opt) => mapShot(game, opt).toDataURL("image/png"),
+    things: () => {
+      const hub = game.s.occ.hubs[STAGE_HUB];
+      return worldBodies(game).bodies.map((body) => {
+        const { x, y } = planeOf(hub, body.v),
+          r = groundRadius(body) || widest(body);
+        return { name: body.name, layer: body.layer, x, y, r };
+      });
+    },
+    girths: () => {
+      const out: Record<string, number[]> = {};
+      for (const key of [...Object.keys(SCULPTURES), ...BIG_FLOWERS, BALLOON_KEY]) {
+        const root = game.s.models.arrived.get(key),
+          girth = root ? measureGirth(root) : null;
+        if (girth) out[key] = girth;
+      }
+      return out;
+    },
+  };
+  w.__teum = { game, probe, map };
   return () => {
     delete w.__teum;
   };

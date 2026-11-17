@@ -341,6 +341,11 @@ export class Creatures implements Thing {
     this.followers.length = 0;
   }
 
+  /** 그리지 않는다·다시 그린다(내려다본 지도를 뽑을 때 생물을 끈다) */
+  setHidden(on: boolean) {
+    for (const batch of this.batches) batch.setHidden(on);
+  }
+
   /** 치운다(그리는 묶음은 모델 창구가 치운다) */
   dispose() {
     this.list.length = 0;

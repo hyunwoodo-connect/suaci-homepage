@@ -33,6 +33,11 @@ export interface Tree {
   i: number;
 }
 
+/** 키 H(m) 인 나무의 줄기 반지름(m) */
+export function trunkOf(H: number): number {
+  return 0.6 + H * 0.03;
+}
+
 /** 한 종류에 찍는 나무 수 */
 const TREES_PER_KIND = 300;
 
@@ -138,7 +143,7 @@ export class Trees implements Thing, HasHeights {
         yaw,
         cr: T.I.rw * H,
         cb: T.cb * H,
-        tr: 0.6 + H * 0.03,
+        tr: trunkOf(H),
         sq: 0,
         i: 0,
       };

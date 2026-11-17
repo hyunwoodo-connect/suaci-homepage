@@ -180,6 +180,11 @@ export class ModelBatch {
     lime[to] = lime[from];
   }
 
+  /** 그리지 않는다·다시 그린다(내려다본 지도를 뽑을 때 생물을 끈다) */
+  setHidden(on: boolean) {
+    for (const mesh of this.meshes) mesh.visible = !on;
+  }
+
   /** 치운다 */
   dispose() {
     for (const im of this.meshes) {

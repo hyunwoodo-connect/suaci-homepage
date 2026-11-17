@@ -2,9 +2,11 @@ import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
 import { within } from "../maps/map";
+import { babyLimeBody } from "../maps/placed";
 import type { Instancer } from "../models/instancer";
 import type { Services } from "../services";
 import { S } from "../settings";
+import type { BodyField } from "../world/bodyField";
 import { fr } from "../world/hash";
 import type { Footsteps } from "./footsteps";
 
@@ -33,12 +35,14 @@ export class BabyLimes implements Thing {
   /** 따라와도 되나(숨바꼭질 판이 도는 동안은 아니다 — 따라오던 것은 제자리에서 기다린다) */
   private canFollow = true;
   private readonly BL: Instancer | null;
+  /** 고른 자리(build 가 놓는다) */
+  private readonly spots: { v: THREE.Vector3; ph: number }[] = [];
 
   constructor(
     private readonly s: Services,
     private readonly footsteps: Footsteps,
   ) {
-    const { models, occ, terrain } = s;
+    const { models, occ } = s;
     const HV = occ.hubs,
       plan = s.map.babyLimes,
       count = HV.length * plan.perHub;
@@ -57,20 +61,33 @@ export class BabyLimes implements Thing {
           v = occ.hubAt(hk, dist, bearing);
         if (!occ.isFree(v, plan.clear)) continue;
         got++;
-        const ground = terrain.groundAt(v);
-        const baby: Baby = {
-          v,
-          g: ground,
-          ph: 6.28 * fr(i, 83),
-          join: false,
-          order: 0,
-          pos: v.clone(),
-          a: 0,
-          i: BL.stamp(v, ground, 1.4, 0),
-        };
-        this.list.push(baby);
+        const ph = 6.28 * fr(i, 83);
+        this.spots.push({ v, ph });
         occ.fill(v, plan.clear);
       }
+  }
+
+  /** 고른 자리에 놓는다(조형물까지 다 놓인 뒤). field 를 주면 다른 것과 엉키는 것은 놓지 않는다 */
+  build(field: BodyField | null) {
+    const BL = this.BL;
+    if (!BL) return;
+    for (const { v, ph } of this.spots) {
+      const body = babyLimeBody(this.list.length, v);
+      if (field?.tangles(body)) continue;
+      field?.add(body);
+      const ground = this.s.terrain.groundAt(v);
+      this.list.push({
+        v,
+        g: ground,
+        ph,
+        join: false,
+        order: 0,
+        pos: v.clone(),
+        a: 0,
+        i: BL.stamp(v, ground, 1.4, 0),
+      });
+    }
+    this.spots.length = 0;
   }
 
   /** 숨어서 통통 뛰다가, 닿으면 줄지어 따라온다 */

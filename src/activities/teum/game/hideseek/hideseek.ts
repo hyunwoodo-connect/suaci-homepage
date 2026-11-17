@@ -9,7 +9,7 @@ import type { BystanderCreatures } from "./bystanders";
 import { Bystanders } from "./bystanders";
 import { HideFx } from "./effects";
 import { FindLog } from "./findStats";
-import type { Pattern } from "./findTuning";
+import type { Pattern, PropSpec } from "./findTuning";
 import { FIND } from "./findTuning";
 import { HidingScene } from "./hiding";
 import { LimeBox } from "./limebox";
@@ -19,7 +19,7 @@ import { Mushrooms } from "./mushrooms";
 import { OUTLINE_VIEW } from "./outline";
 import { HideOverlay, LIDS_MOVE } from "./overlay";
 import { buildStamp, forcedLevel, hideSet, isLookAround, isStatsShown } from "./params";
-import { dealPatterns, dealRound, moveTargets } from "./patterns";
+import { classOf, dealPatterns, dealRound, moveTargets } from "./patterns";
 import type { PickTarget } from "./picker";
 import { pickAt } from "./picker";
 import type { Candidate } from "./props";
@@ -28,7 +28,8 @@ import type { Seeker } from "./seeker";
 import { createSeeker } from "./seeker";
 import { roundSpots, STAGE_HUB } from "./spots";
 import { Timeline } from "./timeline";
-import { FlowerTrail } from "./trail";
+import type { BloomSpot } from "./trail";
+import { FlowerTrail, longestTrail } from "./trail";
 import { HIDE } from "./tuning";
 import type { UnboxLinks } from "./unbox";
 import { dealContents, Unboxing } from "./unbox";
@@ -234,6 +235,21 @@ export class HideSeek implements Thing, Tappable {
   }
 
   /**
+   * 길 끝이 될 수 있는 물건(낱개)마다 놓일 꽃 길 — 가장 길게 놓았을 때(지도 점검과 내려다본 지도가 본다).
+   * 길을 놓을 데가 없는 물건은 꽃이 없다
+   */
+  trailPlans(): { host: string; blooms: BloomSpot[] }[] {
+    const T = FIND.trail,
+      cls = classOf("B");
+    return this.props.list
+      .filter((c) => c.spec.cls === cls)
+      .map((c) => {
+        const found = longestTrail(this.s, this.hub, c, this.props.list, T.count[1], T.gap[1]);
+        return { host: c.spec.id, blooms: found ?? [] };
+      });
+  }
+
+  /**
    * 화면 (x, y)를 눌렀다: 후보 물건이나 버섯에 걸리면 그것이 반응하고 true. 걸린 것이 없으면 false(판 중에는 아무 일도 없다)
    */
   pick(x: number, y: number): boolean {
@@ -397,7 +413,11 @@ export class HideSeek implements Thing, Tappable {
     this.bystanders.seat(hub);
     const rand = this.dealRand(),
       patterns = dealPatterns(this.first, rand),
-      dealt = dealRound(FIND.props, patterns, rand);
+      // 꽃 길을 놓을 데가 없는 물건은 이번 판에 길 끝으로 쓰지 않는다(이 빠진 길은 길로 안 읽힌다).
+      // 그런 물건뿐이라 못 고르면 가리지 않고 고른다 — 길 없는 길 끝이 판이 멈추는 것보다 낫다
+      canEnd = (p: PropSpec) => this.canTrail(this.props.of(p)),
+      dealt =
+        dealRound(FIND.props, patterns, rand, canEnd) ?? dealRound(FIND.props, patterns, rand);
     if (!dealt)
       throw new Error("[teum] hideseek.data.json — props: 상자 넷을 숨길 물건을 고르지 못했다");
     dealt.forEach((d, i) => {
@@ -428,6 +448,12 @@ export class HideSeek implements Thing, Tappable {
     });
     const ids = dealt.map((d) => d.prop.id);
     this.log.dealt(patterns, ids);
+  }
+
+  // 그 물건 앞에 꽃 길을 놓을 수 있나: 가장 짧은 길을 가장 넓은 간격으로 놓아 본다
+  private canTrail(c: Candidate): boolean {
+    const T = FIND.trail;
+    return longestTrail(this.s, this.hub, c, this.props.list, T.count[0], T.gap[1]) !== null;
   }
 
   // 아직 쓰지 않은 꽃 길 하나(모자라면 만든다 — 길 끝 상자가 둘이면 길도 둘이다)
@@ -735,9 +761,11 @@ export class HideSeek implements Thing, Tappable {
   // 이사 갈 물건: 같은 갈래, miss.moveRange 안, 다른 상자가 들지 않았고 아직 찾지 않은 것 가운데 아무거나(없으면 null)
   private moveTarget(h: Hider): Candidate | null {
     const hosts = this.hiders.flatMap((x) => (x.next ? [x.host, x.next] : [x.host]));
+    // 길 끝 상자는 꽃 길을 놓을 수 있는 물건으로만 이사 간다
     const isTaken = (spec: Candidate["spec"]) => {
       const c = this.props.of(spec);
-      return c.isFound || hosts.includes(c);
+      if (c.isFound || hosts.includes(c)) return true;
+      return h.pattern === "B" && !this.canTrail(c);
     };
     const open = moveTargets(h.host.spec, FIND.props, isTaken);
     if (open.length === 0) return null;

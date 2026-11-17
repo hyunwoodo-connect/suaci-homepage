@@ -119,3 +119,18 @@ describe("후보 물건의 자리(hideseek.data.json 의 props·mushrooms)", () 
       for (const p of FIND.props) expect(between(m, p), p.id).toBeGreaterThanOrEqual(4);
   });
 });
+
+describe("dealRound — 꽃 길을 놓을 수 있는 물건", () => {
+  const rand = () => 0.42;
+
+  it("길 끝(B)은 고른 물건에만 숨고, 속에 쏙(C)은 가리지 않는다", () => {
+    const allowed = "jar-s",
+      dealt = dealRound(FIND.props, ["B", "C", "A", "D"], rand, (p) => p.id === allowed)!;
+    expect(dealt.find((d) => d.pattern === "B")!.prop.id).toBe(allowed);
+    expect(dealt.find((d) => d.pattern === "C")!.prop.cls).toBe("solo");
+  });
+
+  it("길 끝으로 쓸 물건이 하나도 없으면 → null(부르는 쪽이 가리지 않고 다시 고른다)", () => {
+    expect(dealRound(FIND.props, ["B", "A", "A", "D"], rand, () => false)).toBeNull();
+  });
+});

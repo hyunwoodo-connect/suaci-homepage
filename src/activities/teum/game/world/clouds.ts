@@ -98,6 +98,11 @@ export class Clouds implements Thing {
     }
   }
 
+  /** 그리지 않는다·다시 그린다(내려다본 지도를 뽑을 때 뭉게구름을 끈다) */
+  setHidden(on: boolean) {
+    this.m.visible = !on;
+  }
+
   /** 치운다 */
   dispose() {
     this.m.removeFromParent();

@@ -50,18 +50,22 @@ export function usableHighs(props: readonly PropSpec[]): PropSpec[] {
   });
 }
 
-/** 패턴 넷에 물건을 하나씩 고른다(못 고르면 null) */
+/**
+ * 패턴 넷에 물건을 하나씩 고른다(못 고르면 null).
+ * canEndTrail 을 주면 길 끝(B)은 그것이 고른 물건(꽃 길을 놓을 수 있는 것)에만 숨는다
+ */
 export function dealRound(
   props: readonly PropSpec[],
   patterns: readonly Pattern[],
   rand: () => number,
+  canEndTrail: (p: PropSpec) => boolean = () => true,
 ): Hiding[] | null {
   const highs = usableHighs(props),
     pool = props.filter((p) => p.cls !== "high" || highs.includes(p));
   let apart = FIND.hide.minApart;
   for (let step = 0; step <= RELAX_STEPS; step++) {
     for (let i = 0; i < DEAL_TRIES; i++) {
-      const dealt = tryDeal(pool, patterns, apart, rand);
+      const dealt = tryDeal(pool, patterns, apart, rand, canEndTrail);
       if (dealt) return dealt;
     }
     apart *= RELAX;
@@ -100,6 +104,7 @@ function tryDeal(
   patterns: readonly Pattern[],
   apart: number,
   rand: () => number,
+  canEndTrail: (p: PropSpec) => boolean,
 ): Hiding[] | null {
   const start = startPoint(),
     fromStart = FIND.hide.minFromStart,
@@ -108,6 +113,7 @@ function tryDeal(
     const cls = classOf(pattern);
     const open = pool.filter((p) => {
       if (p.cls !== cls) return false;
+      if (pattern === "B" && !canEndTrail(p)) return false;
       if (between(p, start) < fromStart) return false;
       return out.every((h) => h.prop.group !== p.group && between(h.prop, p) >= apart);
     });

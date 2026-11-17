@@ -4,14 +4,14 @@ import { ease } from "../core/frame";
 import type { Hold } from "../models/library";
 import type { Services } from "../services";
 import { S } from "../settings";
-import { UP } from "../world/sphere";
+import { from, UP } from "../world/sphere";
 import { FIND } from "./findTuning";
 import type { Candidate } from "./props";
 import { sphereAt, startPoint } from "./spots";
 import { HIDE } from "./tuning";
 
 // 길 끝(패턴 B)의 꽃 길: 풍선꽃 trail.count 송이가 한 줄로 놓여 길을 만들고, 그 끝에 상자가 든 물건이 있다.
-// 길은 물건에서 출발 자리(사람이 다니는 쪽) 방향으로 뻗는다 — 그쪽이 막혔으면 조금씩 틀어서 빈 쪽으로.
+// 길은 물건에서 출발 자리(사람이 다니는 쪽) 방향으로 뻗는다 — 그쪽이 막혔으면 조금씩 틀어서 빈 쪽으로(planTrail).
 // 꽃은 trail.gap 간격, 끝(물건 쪽)으로 갈수록 커진다. 화살표가 아니라 '뭔가 이어져 있네' 정도.
 // 상자가 이사 가면 꽃들도 새 물건 앞으로 옮겨 다시 핀다
 
@@ -29,14 +29,92 @@ interface Bloom {
 const BLOOM_KEYS = ["flower_pink", "flower_blue"] as const;
 /** 길 방향을 틀어 보는 각(도, 출발 쪽에서 좌우로) */
 const TURNS = [0, 25, -25, 50, -50, 80, -80, 115, -115, 150, -150, 180];
-/** 꽃 둘레에 비워 둘 자리(m) · 다른 물건에서 띄울 거리(m) · 차례로 피는 간격(초) · 피는 빠르기 */
-const BLOOM_ROOM = 0.9,
+/** 꽃 길의 꽃 하나: 무대 평면 자리(m)와 다 피었을 때의 크기(m) */
+export interface BloomSpot {
+  x: number;
+  y: number;
+  size: number;
+}
+
+/** 꽃송이 가장자리에서 더 비워 둘 거리(m) · 다른 물건에서 띄울 거리(m) · 장소 한가운데(소원 나무·분수…)에서 띄울 거리(m) */
+const BLOOM_GAP = 0.3,
   PROP_ROOM = 2,
-  STAGGER = 0.07,
+  PLACE_ROOM = 10;
+/** 차례로 피는 간격(초) · 피는 빠르기 */
+const STAGGER = 0.07,
   GROW = 9;
 
 const at = new THREE.Vector3(),
   q = new THREE.Quaternion();
+
+/**
+ * end(길 끝 물건) 앞에 놓을 꽃 길: 꽃 count 송이를 gap 간격으로, 물건에서 출발 자리 쪽으로(막혔으면 방향을 틀어서).
+ * 놓인 것(놀이기구·랜드마크·나무·호수·큰 꽃·비눗방울·다른 물건·버섯·구경꾼)과 겹치는 꽃이 하나라도 있으면
+ * 그 꽃만 빼지 않고 길 전체를 다른 방향으로 놓는다 — 어느 방향도 안 되면 null(그 물건은 길 끝으로 쓰지 않는다)
+ */
+export function planTrail(
+  s: Services,
+  hub: THREE.Vector3,
+  end: Candidate,
+  others: readonly Candidate[],
+  count: number,
+  gap: number,
+): BloomSpot[] | null {
+  const T = FIND.trail,
+    start = startPoint(),
+    { x, y } = end.spec,
+    dx = start.x - x,
+    dy = start.y - y,
+    toward = Math.atan2(dy, dx),
+    first = end.wide + T.fromEnd,
+    places = s.map.layout.place.map((pl) => from(pl.dist, pl.bear));
+  const isOpen = (spot: BloomSpot) => {
+    if (Math.hypot(spot.x, spot.y) > HIDE.stage.radius) return false;
+    sphereAt(at, hub, spot.x, spot.y);
+    const room = spot.size / 2 + BLOOM_GAP;
+    if (!s.occ.isFree(at, room)) return false;
+    if (places.some((pv) => pv.angleTo(at) * S.R < PLACE_ROOM)) return false;
+    return others.every((c) => {
+      if (c === end) return true;
+      const cx = c.spec.x - spot.x,
+        cy = c.spec.y - spot.y;
+      return Math.hypot(cx, cy) >= c.wide + PROP_ROOM;
+    });
+  };
+  for (const turn of TURNS) {
+    const angle = toward + THREE.MathUtils.degToRad(turn),
+      ux = Math.cos(angle),
+      uy = Math.sin(angle),
+      spots: BloomSpot[] = [];
+    for (let i = 0; i < count; i++) {
+      // i = 0 이 물건 쪽(가장 크다), 마지막이 길의 시작(가장 작다)
+      const along = first + i * gap,
+        share = count > 1 ? i / (count - 1) : 0,
+        size = T.size[1] + (T.size[0] - T.size[1]) * share,
+        bx = x + ux * along,
+        by = y + uy * along;
+      spots.push({ x: bx, y: by, size });
+    }
+    if (spots.every(isOpen)) return spots;
+  }
+  return null;
+}
+
+/** end 앞에 놓을 수 있는 가장 긴 꽃 길(wanted 송이부터 줄여 가며). 놓을 데가 없으면 null */
+export function longestTrail(
+  s: Services,
+  hub: THREE.Vector3,
+  end: Candidate,
+  others: readonly Candidate[],
+  wanted: number,
+  gap: number,
+): BloomSpot[] | null {
+  for (let count = wanted; count >= FIND.trail.count[0]; count--) {
+    const spots = planTrail(s, hub, end, others, count, gap);
+    if (spots) return spots;
+  }
+  return null;
+}
 
 /** 꽃 길 */
 export class FlowerTrail {
@@ -81,22 +159,21 @@ export class FlowerTrail {
       wanted = T.count[0] + Math.floor(extra),
       gap = T.gap[0] + (T.gap[1] - T.gap[0]) * rand();
     this.clear();
-    for (let count = wanted; count >= T.count[0]; count--) {
-      const spots = this.lay(end, others, count, gap);
-      if (!spots) continue;
-      spots.forEach(([x, y], i) => {
-        // i = 0 이 물건 쪽(가장 크다), 마지막이 길의 시작(가장 작다)
-        const share = count > 1 ? i / (count - 1) : 0,
-          b = this.blooms[i];
-        b.size = T.size[1] + (T.size[0] - T.size[1]) * share;
-        b.wait = (count - 1 - i) * STAGGER;
-        b.k = 0;
-        b.isOn = true;
-        this.put(b, x, y, rand);
-      });
-      return true;
-    }
-    return false;
+    // 뽑은 간격으로 안 놓이면, 놓을 수 있나 물을 때 본 모양(가장 짧은 길·가장 넓은 간격)으로 한 번 더
+    const spots =
+      longestTrail(this.s, this.hub, end, others, wanted, gap) ??
+      longestTrail(this.s, this.hub, end, others, T.count[0], T.gap[1]);
+    if (!spots) return false;
+    const count = spots.length;
+    spots.forEach((spot, i) => {
+      const b = this.blooms[i];
+      b.size = spot.size;
+      b.wait = (count - 1 - i) * STAGGER;
+      b.k = 0;
+      b.isOn = true;
+      this.put(b, spot.x, spot.y, rand);
+    });
+    return true;
   }
 
   /** 한 프레임: 차례로 핀다 */
@@ -119,48 +196,6 @@ export class FlowerTrail {
   }
 
   /* ─── 내부 ─────────────────────────── */
-
-  // 꽃 count 송이의 자리(광장 가운데 기준 평면 m): 물건에서 출발 쪽으로, 막혔으면 방향을 틀어 본다. 다 막혔으면 null
-  private lay(
-    end: Candidate,
-    others: readonly Candidate[],
-    count: number,
-    gap: number,
-  ): [number, number][] | null {
-    const start = startPoint(),
-      { x, y } = end.spec,
-      dx = start.x - x,
-      dy = start.y - y,
-      toward = Math.atan2(dy, dx),
-      first = end.wide + FIND.trail.fromEnd;
-    for (const turn of TURNS) {
-      const angle = toward + THREE.MathUtils.degToRad(turn),
-        ux = Math.cos(angle),
-        uy = Math.sin(angle),
-        spots: [number, number][] = [];
-      for (let i = 0; i < count; i++) {
-        const along = first + i * gap,
-          px = x + ux * along,
-          py = y + uy * along;
-        spots.push([px, py]);
-      }
-      if (spots.every(([px, py]) => this.isOpen(px, py, end, others))) return spots;
-    }
-    return null;
-  }
-
-  // 그 자리에 꽃을 놓을 수 있나: 무대 안이고, 놓인 것이 없고, 다른 물건과 떨어져 있다
-  private isOpen(x: number, y: number, end: Candidate, others: readonly Candidate[]): boolean {
-    if (Math.hypot(x, y) > HIDE.stage.radius) return false;
-    sphereAt(at, this.hub, x, y);
-    if (!this.s.occ.isFree(at, BLOOM_ROOM)) return false;
-    return others.every((c) => {
-      if (c === end) return true;
-      const dx = c.spec.x - x,
-        dy = c.spec.y - y;
-      return Math.hypot(dx, dy) >= c.wide + PROP_ROOM;
-    });
-  }
 
   private put(b: Bloom, x: number, y: number, rand: () => number) {
     sphereAt(at, this.hub, x, y);

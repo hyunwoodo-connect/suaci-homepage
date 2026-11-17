@@ -13,12 +13,15 @@ import type { Frame, Thing } from "./core/frame";
 import { Random } from "./core/random";
 import type { Tap, Tappable } from "./core/tap";
 import { Creatures } from "./creatures/creatures";
-import { isStudioSkipped } from "./debug";
+import { isAvoidOff, isStudioSkipped } from "./debug";
 import { GameEvents } from "./events";
 import { Fx } from "./fx/fx";
 import { Petals } from "./fx/petals";
 import { Ripples } from "./fx/ripples";
 import { HideSeek } from "./hideseek/hideseek";
+import { sphereAt, STAGE_HUB } from "./hideseek/spots";
+import { handBodies, stageBodies, treeBody } from "./maps/placed";
+import { halfWidthFromBoxes, stageZones } from "./hideseek/stageZones";
 import { HIDE } from "./hideseek/tuning";
 import { Hud } from "./hud";
 import { Landmarks } from "./landmarks/landmarks";
@@ -79,6 +82,7 @@ import { RegionLook } from "./world/regionLook";
 import { Regions } from "./world/regions";
 import { Sites } from "./world/sites";
 import { Sky } from "./world/sky";
+import { BodyField } from "./world/bodyField";
 import { from } from "./world/sphere";
 import { createStage } from "./world/stage";
 import type { Stage } from "./world/stage";
@@ -92,6 +96,8 @@ import { TerrainView } from "./world/terrainView";
 //   3) 칙에 반응하는 순서(tapOrder)
 // 세계 위의 것들은 서로의 상태를 직접 만지지 않는다. 필요한 다른 것은 여기서 만들 때 넘겨 준다
 
+/** 숨바꼭질 자리 둘레에 더 비워 두는 거리(m — 흩뿌리는 것이 이만큼 떨어진다) */
+const STAGE_MARGIN = 1;
 /** 첫 화면 고르기: 놓인 자리에서 이만큼 위를 가운데로, 이 반지름의 공이 시야에 걸리면 첫 화면에 받는다(m) */
 const START_VIEW_LIFT = 30,
   START_VIEW_RADIUS = 60,
@@ -164,6 +170,8 @@ export class Game {
   readonly signature: Signature;
   /** 숨바꼭질(메인 퀘스트 시험판) */
   readonly hideSeek: HideSeek;
+  /** 놓인 것의 몸(채우는 것이 엉키지 않게 놓는 데 썼다 — ?noavoid 면 없다) */
+  readonly placed: BodyField | null;
   readonly bubbleTrail: BubbleTrail;
   readonly director: Director;
   readonly creatures: Creatures;
@@ -312,6 +320,7 @@ export class Game {
     this.cannons.fitModels();
     this.bumpers.fitModels();
     this.claimAll();
+    if (!isAvoidOff()) this.reserveStage();
     this.footsteps = new Footsteps(s);
     // suaci 잔디 로고 자리를 나무·꽃·조형물보다 먼저 맡아 둔다
     const lawn = Signature.reserveLawn(s);
@@ -320,7 +329,14 @@ export class Game {
     this.balls.fitModels();
     this.bubbles = new Bubbles(s);
     this.babyLimes = new BabyLimes(s, this.footsteps);
-    this.sculptures = new Sculptures(s, this.trees, this.cannons);
+    // 큰 꽃·비눗방울·꼬마 라임은 여기까지 자리만 골라 맡아 두었다(조형물이 그 자리를 피한다). 조형물을 놓은 뒤에,
+    // 다른 것과 엉키지 않는 것만 심는다 — 뒤에 선 큰 조형물의 머리에 꽃이 박히지 않게
+    const field = isAvoidOff() ? null : this.bodyField();
+    this.placed = field;
+    this.sculptures = new Sculptures(s, this.trees, this.cannons, field);
+    this.bigFlowers.build(field);
+    this.bubbles.build(field);
+    this.babyLimes.build(field);
     this.whale.choosePath([this.trees, this.bigFlowers, this.sculptures, this.sites]);
     const store = new LocalSaveStore();
     this.progress = new Progress(store);
@@ -389,6 +405,7 @@ export class Game {
       hudParent,
     );
     this.director = new Director(s, this.bubbleTrail, this.seeds, this.creatures);
+    if (field) this.clearFlowers(field);
     this.whale.fitModels();
     this.balloons.fitModels();
     this.stars.fitModels();
@@ -669,6 +686,59 @@ export class Game {
     this.terrainView.layoutHills();
     this.flowers.settle();
     this.clouds.layout();
+  }
+
+  // 놓인 것의 몸(높이마다 굵기): 손으로 놓은 것·숨바꼭질 자리·지금까지 심긴 나무. 채우는 것이 여기에 엉키면 놓지 않는다
+  private bodyField(): BodyField {
+    const { occ, models, map } = this.s,
+      field = new BodyField(),
+      hand = handBodies(map, (kind) => this.rideMembers(kind)),
+      hub = occ.hubs[STAGE_HUB],
+      handTrees = map.layout.tree.length;
+    for (const body of hand) field.add(body);
+    if (hub) {
+      const halfWidthOf = halfWidthFromBoxes((key) => models.boxValues(key));
+      for (const body of stageBodies(hub, halfWidthOf, hand)) field.add(body);
+    }
+    this.trees.list.forEach((t, i) => {
+      const layer = i < handTrees ? "손" : "흩뿌림",
+        body = treeBody(i, t.T.I.key, layer, t.v, t);
+      field.add(body);
+    });
+    return field;
+  }
+
+  // 숨바꼭질이 차지하는 자리(후보 물건·탑·버섯·구경꾼 자리·출발 줄)를 흩뿌리기 전에 맡아 둔다 —
+  // 나무·큰 풍선 꽃·비눗방울·꼬마 라임·조형물·생물 무리가 그 자리와 둘레(STAGE_MARGIN)를 피한다
+  private reserveStage() {
+    const { occ, models } = this.s,
+      hub = occ.hubs[STAGE_HUB];
+    if (!hub) return;
+    const halfWidthOf = halfWidthFromBoxes((key) => models.boxValues(key));
+    for (const zone of stageZones(halfWidthOf)) {
+      const v = new THREE.Vector3(),
+        room = zone.r + STAGE_MARGIN;
+      sphereAt(v, hub, zone.x, zone.y);
+      occ.fill(v, room);
+    }
+  }
+
+  // 놓인 것 밑에 깔린 바닥 꽃은 피우지 않는다: 놓인 것의 땅에 닿은 몸 안, 호수 안, 장소 한가운데.
+  // 꽃 자리는 지형 씨앗으로 먼저 정해져서, 다 놓은 뒤에 거른다
+  private clearFlowers(field: BodyField) {
+    const { map } = this.s,
+      lakes = map.layout.lake.map((l) => ({ v: from(l.dist, l.bear), r: l.r }));
+    this.flowers.clearUnder(
+      (v) => field.covers(v) || lakes.some((l) => l.v.angleTo(v) * S.R < l.r),
+    );
+  }
+
+  /** 한 자리에 여럿 놓이는 놀이기구의 놓인 목록(자리표 갈래로 묻는다 — 몸을 잴 때 무리 전체를 덮게) */
+  rideMembers(kind: string): readonly { v: THREE.Vector3 }[] {
+    if (kind === "bumper") return this.bumpers.list;
+    if (kind === "star") return this.stars.list;
+    if (kind === "pad") return this.pads.list;
+    return [];
   }
 
   // 자리 차지: 이미 찬 자리와 비행 통로(키 작은 것을 두지 않는 길). 차례는 결과에 영향이 없다

@@ -4,8 +4,10 @@ import { BIG_FLOWERS } from "../../assets/settings";
 import type { Frame, Thing } from "../core/frame";
 import { within } from "../maps/map";
 import type { Instancer } from "../models/instancer";
+import { bigFlowerBody } from "../maps/placed";
 import type { Services } from "../services";
 import { S } from "../settings";
+import type { BodyField } from "../world/bodyField";
 import { fr } from "../world/hash";
 import type { Height, HasHeights } from "../world/tall";
 import { NearSet } from "./trees";
@@ -33,6 +35,8 @@ export class BigFlowers implements Thing, HasHeights {
   readonly list: BigFlower[] = [];
   private readonly near = new NearSet(30);
   private readonly squashing = new Set<BigFlower>();
+  /** 고른 자리(build 가 심는다) */
+  private readonly spots: (Omit<BigFlower, "sq" | "i"> & { tilt: number })[] = [];
 
   constructor(private readonly s: Services) {
     const { models, occ, terrain } = s;
@@ -43,7 +47,8 @@ export class BigFlowers implements Thing, HasHeights {
     }
     if (!FK.length) return;
     const HV = occ.hubs,
-      plan = s.map.bigFlowers;
+      plan = s.map.bigFlowers,
+      picked = new Map<Instancer, number>();
     for (let hk = 0; hk < HV.length; hk++)
       for (let i0 = 0, got = 0; i0 < plan.tries && got < plan.perHub; i0++) {
         const i = hk * HUB_STRIDE + i0,
@@ -52,23 +57,41 @@ export class BigFlowers implements Thing, HasHeights {
           dist = within(plan.dist, far),
           bearing = 360 * fr(i, 42),
           v = occ.hubAt(hk, dist, bearing),
-          I = FK[i % FK.length];
-        if (I.n >= PER_KIND || !occ.isFree(v, plan.clear)) continue;
+          I = FK[i % FK.length],
+          count = picked.get(I) ?? 0;
+        if (count >= PER_KIND || !occ.isFree(v, plan.clear)) continue;
         got++;
+        const taken = count + 1;
+        picked.set(I, taken);
         const giantRoll = fr(i, 47),
           H = 8 + 15 * fr(i, 43) * fr(i, 44) + 40 * Math.pow(giantRoll, 5),
-          gr = terrain.groundAt(v),
           yaw = 6.28 * fr(i, 45),
-          f: BigFlower = { v, g: gr, H, I, yaw, sq: 0, i: 0 };
-        const base = gr - 0.2,
-          tilt = (fr(i, 46) - 0.5) * 0.16;
-        f.i = I.stamp(v, base, H, yaw, tilt);
-        this.list.push(f);
-        const topReach = H * 0.32,
-          reach = Math.max(topReach, 2.6);
-        this.near.add(v, reach);
+          tilt = (fr(i, 46) - 0.5) * 0.16,
+          g = terrain.groundAt(v);
+        this.spots.push({ v, g, H, I, yaw, tilt });
         occ.fill(v, plan.clear);
       }
+  }
+
+  /**
+   * 고른 자리에 심는다(조형물까지 다 놓인 뒤). field 를 주면 다른 것과 엉키는 꽃은 심지 않는다 —
+   * 꽃 자리는 조형물보다 먼저 맡아 두므로(조형물이 꽃 자리를 피한다), 뒤에 선 큰 조형물의 머리와 엉키는 꽃은 여기서 걸러진다
+   */
+  build(field: BodyField | null) {
+    for (const spot of this.spots) {
+      const { v, g, H, I, yaw, tilt } = spot,
+        body = bigFlowerBody(this.list.length, I.key, I.rw, v, H);
+      if (field?.tangles(body)) continue;
+      field?.add(body);
+      const f: BigFlower = { v, g, H, I, yaw, sq: 0, i: 0 },
+        base = g - 0.2;
+      f.i = I.stamp(v, base, H, yaw, tilt);
+      this.list.push(f);
+      const topReach = H * 0.32,
+        reach = Math.max(topReach, 2.6);
+      this.near.add(v, reach);
+    }
+    this.spots.length = 0;
   }
 
   /** 고래 길을 정할 때 보는 꼭대기 높이 */
