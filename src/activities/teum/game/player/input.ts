@@ -137,6 +137,11 @@ export class Input {
     this.hideStick();
   }
 
+  /** 지금 끌고 있나(막은 동안은 아니다) — 잠깐 빌린 카메라가 끌면 바로 돌려준다 */
+  isDragging(): boolean {
+    return this.drag && !this.held;
+  }
+
   /** 마지막 끌기가 끝나고 지난 시간(ms) — 끌다가 칙이 나간 것을 센다 */
   msSinceDragEnd(): number {
     const now = performance.now();

@@ -4,9 +4,8 @@ import type { Services } from "../services";
 import { S } from "../settings";
 import type { CatLink } from "./coach";
 import type { HideOverlay } from "./overlay";
-import type { LineTrail } from "./line";
+import type { BoxLine } from "./line";
 import type { Seeker } from "./seeker";
-import { overBox } from "./seeker";
 import { sphereAt, startPoint } from "./spots";
 import type { DisguiseKind } from "./tuning";
 import { HIDE } from "./tuning";
@@ -29,14 +28,14 @@ export const PROP_KEYS = {
   mask: "rabbit_mask",
 } as const;
 
-/** 아닌 척에 쓰는 것: 손님 무리 자리(가면이 섞여 든다)와 병정 줄 끝, 옆의 고양이, 내 뒤 줄이 밟는 길 */
+/** 아닌 척에 쓰는 것: 손님 무리 자리(가면이 섞여 든다)와 병정 줄 끝, 옆의 고양이, 내 뒤 줄의 자리 */
 export interface DisguiseLinks {
   help: {
     homeOf(species: string, out: THREE.Vector3): THREE.Vector3 | null;
     rowEnd(out: THREE.Vector3, face: THREE.Vector3): boolean;
   };
   cat: CatLink;
-  trail: LineTrail;
+  line: Pick<BoxLine, "spotFor">;
 }
 
 /** 받침대: 키(m)·반지름(m)·색 · 고양이 뒤로 물러앉는 거리(m) · 가면 상자가 무리 가운데에서 떨어진 거리(m) · 휘파람 간격(초) · 조각상 포즈를 바꾸는 간격(초) */
@@ -353,12 +352,11 @@ export class Disguises {
     return this.entries.find((e) => e.k === k) ?? null;
   }
 
-  // 내 줄에 끼기: 하나 이상 찾은 뒤, 줄 끝 자리가 화면 밖일 때 슬쩍 붙는다. 붙으면 줄 끝을 따라온다(혼자 원래 크기)
+  // 내 줄에 끼기: 하나 이상 찾은 뒤, 줄 끝 자리가 화면 밖일 때 슬쩍 붙는다. 붙으면 줄 끝을 따라온다 —
+  // 줄 선 상자와 같은 크기라 크기로는 구분이 안 된다. 티는 귀가 혼자 길다는 것과, 돌아보면 고개를 돌리고 몸을 흔드는 휘파람 부는 척
   private lineUp(e: Entry, dt: number, found: number) {
-    const b = e.k.box,
-      L = HIDE.line,
-      back = L.first + L.gap * found;
-    this.links.trail.behind(back, at);
+    const b = e.k.box;
+    this.links.line.spotFor(found, at);
     if (!e.hasJoined) {
       if (found < 1) return;
       const tail = tmp.copy(at).multiplyScalar(S.R);
@@ -366,8 +364,9 @@ export class Disguises {
       const ground = this.s.terrain.groundAt(at);
       face.copy(this.s.player.p).sub(at);
       b.visible = true;
-      b.setSize(1, true);
-      b.setLongEars(false);
+      b.setSize(HIDE.line.scale, true);
+      b.setLongEars(true);
+      b.setOutline(false);
       b.put(at, ground, face);
       e.hasJoined = true;
       e.since = this.time;
@@ -381,12 +380,14 @@ export class Disguises {
       b.setScurry(1);
     } else b.setScurry(0);
     b.a = this.s.terrain.groundAt(b.v);
-    // 돌아보면(가까이서 화면에 잡히면) 휘파람 부는 척
+    // 돌아보면(가까이서 화면에 잡히면) 휘파람 부는 척: 딴 데를 보며 몸을 흔든다
     e.whistleT -= dt;
     const center = b.center(tmp);
     if (e.whistleT > 0 || !this.isOnScreen(center)) return;
     e.whistleT = WHISTLE_EVERY;
-    this.overlay.bubble(HIDE.copy.whistle, (out) => overBox(e.k, out), 1.2);
+    face.copy(b.v).sub(this.s.player.p);
+    b.faceTo(face);
+    b.jiggle();
   }
 
   // 고양이 뒤에 웅크리고 따라온다

@@ -282,15 +282,21 @@ const HIDE_CONTENT_SOUND: Readonly<Partial<Record<Content, SoundCue>>> = {
   whale: { key: "snd_whale", volume: 0.6, delay: 0.3, gap: 0.01 },
 };
 
-/** 생물을 눌러 도움을 받을 때(토끼 깡충·버섯 퐁·열쇠 찰칵·병정 차렷·컵케이크 달콤·시계 똑딱) — 따로 만든 소리가 오기 전까지 있던 소리를 빌린다 */
+/**
+ * 생물의 도움이 시작되는 몸짓마다(토끼가 깜짝 뛸 때·버섯이 쏘아 올릴 때·열쇠가 돌아갈 때·병정이 창을 찍을 때·컵케이크가 풀썩 앉을 때·바늘이 거꾸로 돌 때) —
+ * 기획이 넘긴 소리(teum-handoff/assets/sounds-01e). 크기는 잰 평균 음량(rabbit -8.6dB … watch -27.9dB)을 맞춘 것
+ */
 const HIDE_HELP_SOUND: Readonly<Record<HelpKind, SoundCue>> = {
-  rabbit: { key: "snd_boing", volume: 0.5, rate: 1.5 },
-  mushroom: { key: "snd_boing", volume: 0.7, rate: 0.7 },
-  key: { key: "snd_pick", volume: 0.6, rate: 1.6 },
-  soldier: { key: "snd_quad", volume: 0.6, rate: 0.8 },
-  cupcake: { key: "snd_ring", volume: 0.45, rate: 1.2 },
-  watch: { key: "snd_pick", volume: 0.6, rate: 0.7 },
+  rabbit: { key: "snd_help_rabbit", volume: 0.3 },
+  mushroom: { key: "snd_help_mushroom", volume: 0.65 },
+  key: { key: "snd_help_key", volume: 0.6 },
+  soldier: { key: "snd_help_soldier", volume: 0.55 },
+  cupcake: { key: "snd_help_cupcake", volume: 0.9 },
+  watch: { key: "snd_help_watch", volume: 0.95 },
 };
+
+/** 상자·생물·전설을 눌렀을 때 미스트 줄기가 날아가는 소리 */
+const TAP_MIST: SoundCue = { key: "snd_hide_tap_mist", volume: 0.55 };
 
 /** 생물 인사: 몸 휘는 방식(motion)마다 소리, 두 발(5)은 통통 튀는 소리. 종마다 음높이가 조금씩 다르다 */
 const GREET_SOUND: Readonly<Record<number, string>> = {
@@ -345,14 +351,17 @@ export const SOUND_EFFECTS: SoundTable = {
         : { key: "snd_ring", volume: 0.5, delay: 0.35, gap: 0.01 },
   ],
   questDone: { key: "snd_win", volume: 0.7 },
-  // ---- 숨바꼭질 — 기획이 넘긴 소리(snd_box_…). 소리가 없는 순간(칙 헛손질·뛰어가기·생물 도움·전설에 칙·휘파람·언박싱)은 있던 효과음을 빌려 쓴다 ----
+  // ---- 숨바꼭질 — 기획이 넘긴 소리(snd_box_… 01b, snd_hide_…·snd_help_… 01e). 소리가 없는 순간(빈 데 톡·언박싱)은 있던 효과음을 빌려 쓴다 ----
   hideStarted: { key: "snd_box_steps_a", volume: 0.7, rate: [0.95, 1.1] },
   hideChik: ({ sneezed }) =>
     sneezed ? null : { key: "snd_ring", volume: 0.16, rate: 0.55, gap: 0.2 },
-  hideBoxSneezed: { key: "snd_box_sneeze_a", volume: 0.7, rate: [0.9, 1.15], gap: 0.08 },
+  hideBoxSneezed: inTurn(
+    { key: "snd_box_sneeze_a", volume: 0.7, rate: [0.9, 1.15], gap: 0.08 },
+    { key: "snd_box_sneeze_b", volume: 0.62, rate: [0.9, 1.15], gap: 0.08 },
+  ),
   // 높은 상자: 놓치는 순간 떨어지는 소리, 바닥에 꽂힐 때 쿵
   hideBoxDropped: [
-    { key: "snd_box_fall_b", volume: 0.4, delay: 0.9, gap: 0.01 },
+    { key: "snd_box_fall_a", volume: 0.7, delay: 0.9, gap: 0.01 },
     { key: "snd_box_thud_small", volume: 0.7, delay: 1.3, gap: 0.01 },
   ],
   hideBoxFound: mixWhenRepeated(
@@ -360,26 +369,30 @@ export const SOUND_EFFECTS: SoundTable = {
     { key: "snd_box_found_b", volume: 0.75 },
     4,
   ),
-  hideBoxSighed: { key: "snd_box_phew_b", volume: 0.5, rate: [0.95, 1.1], gap: 0.5 },
+  hideBoxSighed: inTurn(
+    { key: "snd_box_phew_a", volume: 0.42, rate: [0.95, 1.1], gap: 0.5 },
+    { key: "snd_box_phew_b", volume: 0.5, rate: [0.95, 1.1], gap: 0.5 },
+  ),
   hideBoxGiggled: inTurn(
     { key: "snd_box_giggle_a", volume: 0.5, gap: 0.5 },
     { key: "snd_box_giggle_b", volume: 0.6, gap: 0.5 },
   ),
-  hideBoxTapped: ({ far }) =>
-    far
-      ? { key: "snd_box_giggle_b", volume: 0.5, gap: 0.3 }
-      : { key: "snd_ring", volume: 0.4, rate: 1.4 },
-  hideLeapt: { key: "snd_boing", volume: 0.45, rate: 1.3 },
-  hideBoxSneaked: { key: "snd_box_steps_a", volume: 0.35, rate: [1.1, 1.3], gap: 0.9 },
+  hideBoxTapped: ({ far }) => (far ? { key: "snd_box_giggle_b", volume: 0.5, gap: 0.3 } : TAP_MIST),
+  hideLeapt: { key: "snd_hide_leap", volume: 0.65 },
+  hideBoxSneaked: inTurn(
+    { key: "snd_box_steps_a", volume: 0.35, rate: [1.1, 1.3], gap: 0.9 },
+    { key: "snd_box_steps_b", volume: 0.18, rate: [1.1, 1.3], gap: 0.9 },
+  ),
   hideDisguiseBlown: { key: "snd_box_giggle_a", volume: 0.55 },
+  // 고리는 자주 켜지니 다른 소리의 절반으로
+  hideRingOn: { key: "snd_hide_ring_on", volume: 0.14, gap: 0.6 },
+  hideCreatureTapped: TAP_MIST,
   hideHelpUsed: ({ kind }) => HIDE_HELP_SOUND[kind],
   hideBoxAnswered: { key: "snd_box_giggle_b", volume: 0.35, rate: [1.2, 1.5], gap: 0.05 },
-  hideLegendHit: ({ hits }) => ({
-    key: "snd_whale",
-    volume: 0.45 + hits * 0.1,
-    rate: 0.9 + hits * 0.1,
-  }),
+  hidePrintStomped: { key: "snd_ring", volume: 0.2, rate: [1.6, 2], gap: 0.08 },
   hideLegendCame: { key: "snd_box_legend", volume: 0.7 },
+  hideLegendTapped: TAP_MIST,
+  hideLegendCried: { key: "snd_hide_legend", volume: 0.6 },
   hideLegendBoarded: { key: "snd_legend", volume: 0.6 },
   hideBoxesWon: { key: "snd_box_steps_a", volume: 0.7, rate: 1.15 },
   hideAllFound: { key: "snd_box_allfound", volume: 0.7 },

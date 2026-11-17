@@ -112,9 +112,8 @@ export interface Seat {
 /** 숨바꼭질 값 전체 */
 export interface HideTuning {
   /**
-   * 화면 위 글: 큰 글자(꼭꼭 숨어라·술래는 너·찾았다!·깔까?·우리가 이겼다!), 단추(한 판 더),
-   * 한 줄 안내(톡·찾았으면 눌러·고양이가 냄새를 맡았어·생물을 눌러 봐·전설이다! 칙 세 번!),
-   * 말풍선(에취!·늦었다 늦었어!·번호!·하나! 둘! …·휘파람)
+   * 화면에 뜰 수 있는 글은 이것뿐이다: 큰 글자(꼭꼭 숨어라·술래는 너·찾았다!·깔까?·우리가 이겼다!), 단추(한 판 더),
+   * 말풍선(상자의 에취!·병정 점호 때 상자가 대답하는 숫자). 안내 줄·기호 말풍선은 없다 — 나머지는 몸짓으로
    */
   copy: {
     hide: string;
@@ -123,16 +122,8 @@ export interface HideTuning {
     open: string;
     boxesWin: string;
     again: string;
-    tap: string;
-    tapBox: string;
-    catSniff: string;
-    tapCreature: string;
-    legendCame: string;
     sneeze: string;
-    rabbitLate: string;
-    rollCall: string;
     counts: readonly string[];
-    whistle: string;
   };
   /** 화면 색: 찬 칸의 라임·글자와 테두리의 먹색 */
   colors: { lime: string; ink: string };
@@ -161,8 +152,8 @@ export interface HideTuning {
     firstShowShare: number;
     firstSneezeEvery: number;
   };
-  /** 화면: 큰 글자가 떠 있는 시간(초), '톡' 안내가 뜨는 거리(숨은 상자와 m) */
-  screen: { bigSeconds: number; tapHintReach: number };
+  /** 화면: 큰 글자가 떠 있는 시간(초) */
+  screen: { bigSeconds: number };
   /** 칙: 닿는 거리(m)·같은 상자가 다시 재채기하기까지(초) */
   chik: { reach: number; sneezeCooldown: number };
   /**
@@ -186,24 +177,48 @@ export interface HideTuning {
   nearby: { holdBreathReach: number; passReach: number; watchShare: number };
   /** 높이 숨은 상자: 땅에서 이만큼(m) 넘게 위면 찾았을 때 굴러떨어지는 연출 */
   drop: { minAbove: number };
-  /** 생물: 눌러서 쓰는 거리(m) · 머리 위 표시가 커지는 거리(m) · 누른 뒤 카메라가 생물을 잡는 시간 · 조작이 잠기는 시간(초) */
-  help: { tapReach: number; markReach: number; focusSeconds: number; lockSeconds: number };
-  /** 토끼(길): 상자 이만큼(m) 앞에서 굴로 사라진다 · 발자국이 남는 시간(초) · 나와 이만큼(m) 넘게 벌어지면 기다린다 */
-  rabbit: { stop: number; trailSeconds: number; waitGap: number };
-  /** 버섯(높이): 튕겨 오르는 높이(m) · 천천히 내려오는 시간(초) · 떠 있는 동안 상자를 눌러 찾는 거리(m) */
-  mushroom: { height: number; hang: number; tapReach: number };
-  /** 열쇠(투시): 내 둘레 이만큼(m) 안의 가리는 물건이 · 이만큼(초) · 이 몫만 남기고 비친다 */
-  key: { reach: number; seconds: number; alpha: number };
-  /** 카드 병정(점호): 점호하는 시간(초) · 상자들이 대답하는 사이(초) */
-  soldier: { seconds: number; gap: number };
-  /** 컵케이크(미끼): 냄새를 풍기는 시간(초) · 이 안(m)의 가장 가까운 숨은 상자가 다가온다 */
-  cupcake: { seconds: number; reach: number };
-  /** 회중시계(시간): 해가 되돌아가는 시간(초) */
-  watch: { addSeconds: number };
+  /**
+   * 생물: 이 거리(m) 안이고 화면 안이면 발밑 고리가 켜지고 나를 본다(누를 수 있다) · 고리 지름(몸 폭의 배수) · 한 번에 고리가 켜지는 생물 수 ·
+   * 힌트가 시작되고 카메라가 생물을 잡고 있는 시간 · 누른 뒤 조작이 잠기는 시간(초)
+   */
+  help: {
+    markReach: number;
+    ringScale: number;
+    ringMax: number;
+    focusSeconds: number;
+    lockSeconds: number;
+  };
+  /**
+   * 토끼(길): 내 평소 빠르기의 몫으로 뛴다 · 나와 이만큼(m) 넘게 벌어지면 기다렸다가 이 안(m)으로 오면 다시 뛴다 · 발자국 사이(m) ·
+   * 상자 이만큼(m) 앞에서 굴로 사라진다 · 발자국이 남는 시간(초)
+   */
+  rabbit: {
+    speedShare: number;
+    waitGap: number;
+    resumeGap: number;
+    stepGap: number;
+    stop: number;
+    trailSeconds: number;
+  };
+  /** 버섯(높이): 튕겨 오르는 높이(m) · 꼭대기에 떠 있는 시간(초) · 떠 있는 동안 상자를 눌러 찾는 거리(m) · 걸어 들어가도 튕겨 주는 거리(수평 m) */
+  mushroom: { height: number; hang: number; tapReach: number; walkReach: number };
+  /** 열쇠(투시): 파동이 퍼지는 거리(m) · 비치는 시간(초) · 이 몫만 남기고 비친다 · 끝나기 이만큼(초) 전에 깜빡여 알린다 */
+  key: { reach: number; seconds: number; alpha: number; warnSeconds: number };
+  /** 카드 병정(점호): 상자들이 대답하는 사이(초) · 점호 뒤 1번 상자 쪽을 창으로 가리키는 시간(초) */
+  soldier: { gap: number; pointSeconds: number };
+  /** 컵케이크(미끼): 냄새를 풍기는 시간(초) · 이 안(m)의 가장 가까운 숨은 상자가 다가온다 · 다가오는 상자가 이 안(m)이면 힐끔·떨기·깜짝 */
+  cupcake: { seconds: number; reach: number; tellReach: readonly [number, number, number] };
+  /** 회중시계(시간): 해가 되돌아가는 시간(초) · 판 시작 뒤 이만큼(초)이 지나야 쓸 수 있다(고리가 켜진다) */
+  watch: { addSeconds: number; minElapsed: number };
   /** 고양이가 냄새를 맡는 거리(가장 가까운 숨은 상자까지 m): far 안이면 킁킁, mid 안이면 통통, near 안이면 폴짝폴짝. wobble: 고개가 흔들리는 폭(도) */
   cat: { far: number; mid: number; near: number; wobble: number };
-  /** 찾은 상자의 줄: 상자 사이(m)·첫 상자가 내 뒤로 떨어진 거리(m)·줄 선 상자의 크기 배수 */
-  line: { gap: number; first: number; scale: number };
+  /**
+   * 찾은 상자의 줄(내 뒤 좌우로 비스듬히 — V자): 줄마다 뒤로 물러나는 거리(m)·첫 상자가 내 뒤로 떨어진 거리(m)·줄 선 상자의 크기 배수 ·
+   * 카메라와 나를 잇는 선에서 좌우로 비켜서는 거리(m, 이 안으로는 안 들어온다)
+   */
+  line: { gap: number; first: number; scale: number; side: number };
+  /** 처음 배우기(첫 판): 첫 상자를 찾은 뒤 토끼가 와서 서는 내 앞 거리(m)·누를 때까지 나와 이 안(m)을 지킨다 */
+  teach: { creatureAhead: number; creatureKeep: number };
   /**
    * 상자는 내가 안 볼 때만 움직인다: 자리 옮기는 간격(초, 이 사이 아무 때나) · 내 등 뒤로 따라붙는 거리(m, 이 사이) ·
    * 화면에서 벗어나고 다시 움직이기까지(초) · 이만큼(초) 넘게 보고 있으면 땀을 흘리며 떤다 · 움직이는 상자 수(첫 판·둘째 판부터) · 걷는 빠르기(m/s)
@@ -222,8 +237,9 @@ export interface HideTuning {
   /** 생물 무리가 앉는 자리(판마다 섞는다 — 첫 판에는 토끼가 시작 자리에서 가장 가까운 땅 위 자리) */
   seats: readonly Seat[];
   /**
-   * 전설의 생물(고래): 판마다 나올 확률, 나타나는 때(판 시작 뒤 초, from~to 사이), 판 위를 가로지르는 시간·태워 가는 시간(초),
-   * 떠 가는 높이(m)·무대 가운데에서 나타나고 사라지는 거리(m)·가운데에서 비켜 지나는 거리(m)·타고 갈 때 곁의 상자가 움찔하는 거리(m)
+   * 전설의 생물(고래): 판마다 나올 확률, 나타나는 때(판 시작 뒤 초, from~to 사이), 판 위를 가로지르는 시간(이 안에 못 누르면 지나간다)·태워 가는 시간(초),
+   * 떠 가는 높이(m — 화면에 보이면 거리와 상관없이 한 번 누른다)·눌린 뒤 큰 원을 그리며 내게 내려오는 시간(초)·태워 갈 때의 높이(m),
+   * 무대 가운데에서 나타나고 사라지는 거리(m)·가운데에서 비켜 지나는 거리(m)·타고 갈 때 곁의 상자가 움찔하는 거리(m)
    */
   legend: {
     chance: number;
@@ -232,15 +248,23 @@ export interface HideTuning {
     staySeconds: number;
     rideSeconds: number;
     lift: number;
-    /** 톡 쳐서 맞혀야 하는 수 · 누를 수 있는 거리(m) */
-    hits: number;
-    catchReach: number;
+    descendSeconds: number;
+    carryLift: number;
     span: number;
     aside: number;
     flinchReach: number;
   };
-  /** 못 찾을 때: 참을성을 잃는 때·쓸 수 있는 생물이 내 화면 안으로 와서 표시를 흔드는 때(마지막으로 찾은 뒤 초), 참을성을 잃으면 고개 내미는 간격에 곱하는 몫 */
-  stuck: { restlessAfter: number; callAfter: number; restlessPeek: number };
+  /**
+   * 못 찾을 때: 참을성을 잃는 때·쓸 수 있는 생물이 내 화면 안으로 오는 때(마지막으로 찾은 뒤 초), 참을성을 잃으면 고개 내미는 간격에 곱하는 몫,
+   * 부르러 온 생물이 서는 내 앞 거리(m)·고리 밝기 배수
+   */
+  stuck: {
+    restlessAfter: number;
+    callAfter: number;
+    restlessPeek: number;
+    callAhead: number;
+    callBright: number;
+  };
   /** 해가 진 뒤의 장면(초): 남은 상자들이 튀어나옴 · 내 앞으로 몰려와 둘러쌈 · 한 놈이 머리 위에 올라탐 · 단추가 뜸 */
   lost: { popAt: number; gatherAt: number; climbAt: number; buttonsAt: number };
   /** 몸짓: 종종걸음 한 걸음(초)과 뒤뚱거리는 각(도), 폴짝의 납작·늘어남(키 배수), 깜짝의 늘어남, 재채기로 젖히는 각·움찔·버둥의 각(도) */
@@ -254,11 +278,14 @@ export interface HideTuning {
     flinchDegrees: number;
     flailDegrees: number;
   };
-  /** 상자: 키(m)·뒤에 숨어 비어져 나오는 몫·숨쉬기·재채기로 튀는 높이(m)·고개 내밀기, 화면에서 이 키(px) 밑으로 안 작아지게 키우는 것(최대 배수), 리본 귀 길이 배수 */
+  /**
+   * 상자: 키(m — 거리와 상관없이 늘 같다)·뒤에 숨어 비어져 나오는 몫·숨쉬기·재채기로 튀는 높이(m)·고개 내밀기, 숨어 있는 동안 리본 귀 길이 배수,
+   * 숨은 상자의 흰 윤곽선 굵기(폰 px — 버섯 꼭대기에서 내려다볼 때는 더 굵게)
+   */
   box: {
-    minScreen: number;
-    maxGrow: number;
     earScale: number;
+    outlinePx: number;
+    outlineHighPx: number;
     height: number;
     showShare: number;
     breathSeconds: number;
@@ -323,7 +350,7 @@ export function readTuning(raw: unknown): HideTuning {
     "line",
     "sneak",
   ].map((k) => record(r[k], k));
-  const [legend, stuck, box, bonus, unbox, look, measure] = [
+  const [legend, stuck, box, bonus, unbox, look, measure, teach] = [
     "legend",
     "stuck",
     "box",
@@ -331,6 +358,7 @@ export function readTuning(raw: unknown): HideTuning {
     "unbox",
     "look",
     "measure",
+    "teach",
   ].map((k) => record(r[k], k));
   const radius = positive(stage.radius, "stage.radius");
   const guests = list(r.guests, "guests").map((g, i) => guestOf(g, `guests[${i}]`));
@@ -393,12 +421,19 @@ export function readTuning(raw: unknown): HideTuning {
     mid = positive(cat.mid, "cat.mid"),
     near = positive(cat.near, "cat.near");
   if (near > mid || mid > far) fail("cat: near ≤ mid ≤ far 여야 한다");
-  const maxGrow = positive(box.maxGrow, "box.maxGrow");
-  if (maxGrow < 1) fail("box.maxGrow: 1 이상이어야 한다(키우기만 한다)");
   const counts = list(copy.counts, "copy.counts").map((t, i) => text(t, `copy.counts[${i}]`));
   if (counts.length < ROUND_BOXES) fail(`copy.counts: 적어도 ${ROUND_BOXES}개여야 한다`);
-  const hits = count(legend.hits, "legend.hits");
-  if (hits < 1) fail("legend.hits: 1 이상이어야 한다");
+  const ringMax = count(help.ringMax, "help.ringMax");
+  if (ringMax < 1) fail("help.ringMax: 1 이상이어야 한다");
+  const waitGap = positive(rabbit.waitGap, "rabbit.waitGap"),
+    resumeGap = positive(rabbit.resumeGap, "rabbit.resumeGap");
+  if (resumeGap >= waitGap) fail("rabbit: resumeGap 이 waitGap 보다 작아야 한다");
+  const tells = list(cupcake.tellReach, "cupcake.tellReach").map((v, i) =>
+    positive(v, `cupcake.tellReach[${i}]`),
+  );
+  if (tells.length !== 3 || tells[0] <= tells[1] || tells[1] <= tells[2])
+    fail("cupcake.tellReach: 멀리서 가까이로 줄어드는 셋이어야 한다(예: [20, 10, 5])");
+  const tellReach = [tells[0], tells[1], tells[2]] as const;
   const firstRound = count(sneak.firstRound, "sneak.firstRound"),
     later = count(sneak.later, "sneak.later");
   if (firstRound > ROUND_BOXES || later > ROUND_BOXES)
@@ -411,16 +446,8 @@ export function readTuning(raw: unknown): HideTuning {
       open: text(copy.open, "copy.open"),
       boxesWin: text(copy.boxesWin, "copy.boxesWin"),
       again: text(copy.again, "copy.again"),
-      tap: text(copy.tap, "copy.tap"),
-      tapBox: text(copy.tapBox, "copy.tapBox"),
-      catSniff: text(copy.catSniff, "copy.catSniff"),
-      tapCreature: text(copy.tapCreature, "copy.tapCreature"),
-      legendCame: text(copy.legendCame, "copy.legendCame"),
       sneeze: text(copy.sneeze, "copy.sneeze"),
-      rabbitLate: text(copy.rabbitLate, "copy.rabbitLate"),
-      rollCall: text(copy.rollCall, "copy.rollCall"),
       counts,
-      whistle: text(copy.whistle, "copy.whistle"),
     },
     colors: {
       lime: text(colors.lime, "colors.lime"),
@@ -436,10 +463,7 @@ export function readTuning(raw: unknown): HideTuning {
       firstShowShare: share(start.firstShowShare, "start.firstShowShare"),
       firstSneezeEvery: positive(start.firstSneezeEvery, "start.firstSneezeEvery"),
     },
-    screen: {
-      bigSeconds: positive(screen.bigSeconds, "screen.bigSeconds"),
-      tapHintReach: positive(screen.tapHintReach, "screen.tapHintReach"),
-    },
+    screen: { bigSeconds: positive(screen.bigSeconds, "screen.bigSeconds") },
     chik: {
       reach: positive(chik.reach, "chik.reach"),
       sneezeCooldown: positive(chik.sneezeCooldown, "chik.sneezeCooldown"),
@@ -463,40 +487,55 @@ export function readTuning(raw: unknown): HideTuning {
     },
     drop: { minAbove: positive(drop.minAbove, "drop.minAbove") },
     help: {
-      tapReach: positive(help.tapReach, "help.tapReach"),
       markReach: positive(help.markReach, "help.markReach"),
+      ringScale: positive(help.ringScale, "help.ringScale"),
+      ringMax,
       focusSeconds: positive(help.focusSeconds, "help.focusSeconds"),
       lockSeconds: positive(help.lockSeconds, "help.lockSeconds"),
     },
     rabbit: {
+      speedShare: positive(rabbit.speedShare, "rabbit.speedShare"),
+      waitGap,
+      resumeGap,
+      stepGap: positive(rabbit.stepGap, "rabbit.stepGap"),
       stop: positive(rabbit.stop, "rabbit.stop"),
       trailSeconds: positive(rabbit.trailSeconds, "rabbit.trailSeconds"),
-      waitGap: positive(rabbit.waitGap, "rabbit.waitGap"),
     },
     mushroom: {
       height: positive(mushroom.height, "mushroom.height"),
       hang: positive(mushroom.hang, "mushroom.hang"),
       tapReach: positive(mushroom.tapReach, "mushroom.tapReach"),
+      walkReach: positive(mushroom.walkReach, "mushroom.walkReach"),
     },
     key: {
       reach: positive(key.reach, "key.reach"),
       seconds: positive(key.seconds, "key.seconds"),
       alpha: share(key.alpha, "key.alpha"),
+      warnSeconds: positive(key.warnSeconds, "key.warnSeconds"),
     },
     soldier: {
-      seconds: positive(soldier.seconds, "soldier.seconds"),
       gap: positive(soldier.gap, "soldier.gap"),
+      pointSeconds: positive(soldier.pointSeconds, "soldier.pointSeconds"),
     },
     cupcake: {
       seconds: positive(cupcake.seconds, "cupcake.seconds"),
       reach: positive(cupcake.reach, "cupcake.reach"),
+      tellReach,
     },
-    watch: { addSeconds: positive(watch.addSeconds, "watch.addSeconds") },
+    watch: {
+      addSeconds: positive(watch.addSeconds, "watch.addSeconds"),
+      minElapsed: positive(watch.minElapsed, "watch.minElapsed"),
+    },
     cat: { far, mid, near, wobble },
     line: {
       gap: positive(line.gap, "line.gap"),
       first: positive(line.first, "line.first"),
       scale: lineScale,
+      side: positive(line.side, "line.side"),
+    },
+    teach: {
+      creatureAhead: positive(teach.creatureAhead, "teach.creatureAhead"),
+      creatureKeep: positive(teach.creatureKeep, "teach.creatureKeep"),
     },
     sneak: {
       moveEvery,
@@ -516,8 +555,8 @@ export function readTuning(raw: unknown): HideTuning {
       staySeconds: positive(legend.staySeconds, "legend.staySeconds"),
       rideSeconds: positive(legend.rideSeconds, "legend.rideSeconds"),
       lift: positive(legend.lift, "legend.lift"),
-      hits,
-      catchReach: positive(legend.catchReach, "legend.catchReach"),
+      descendSeconds: positive(legend.descendSeconds, "legend.descendSeconds"),
+      carryLift: positive(legend.carryLift, "legend.carryLift"),
       span: positive(legend.span, "legend.span"),
       aside: finite(legend.aside, "legend.aside"),
       flinchReach: positive(legend.flinchReach, "legend.flinchReach"),
@@ -526,6 +565,8 @@ export function readTuning(raw: unknown): HideTuning {
       restlessAfter: positive(stuck.restlessAfter, "stuck.restlessAfter"),
       callAfter: positive(stuck.callAfter, "stuck.callAfter"),
       restlessPeek: positive(stuck.restlessPeek, "stuck.restlessPeek"),
+      callAhead: positive(stuck.callAhead, "stuck.callAhead"),
+      callBright: positive(stuck.callBright, "stuck.callBright"),
     },
     lost: { popAt, gatherAt, climbAt, buttonsAt },
     moves: {
@@ -539,9 +580,9 @@ export function readTuning(raw: unknown): HideTuning {
       flailDegrees: positive(moves.flailDegrees, "moves.flailDegrees"),
     },
     box: {
-      minScreen: positive(box.minScreen, "box.minScreen"),
-      maxGrow,
       earScale: positive(box.earScale, "box.earScale"),
+      outlinePx: positive(box.outlinePx, "box.outlinePx"),
+      outlineHighPx: positive(box.outlineHighPx, "box.outlineHighPx"),
       height: positive(box.height, "box.height"),
       showShare: share(box.showShare, "box.showShare"),
       breathSeconds: positive(box.breathSeconds, "box.breathSeconds"),

@@ -95,9 +95,13 @@ export class Sneak {
   /** k 가 at(단위 벡터) 쪽으로 다가온다(컵케이크 냄새). null 이면 그친다 */
   lure(k: Seeker | null, at: THREE.Vector3 | null) {
     const was = this.lured;
-    if (was && !this.movers.includes(was)) was.k.box.setFrozen(false);
-    // 냄새가 그치면 컵케이크로 가던 걸음을 멈춘다(움직이는 상자는 하던 짓으로 돌아간다)
+    // 냄새가 그쳤는데 못 찾았으면 가까운 물건 뒤로 숨는다(내가 안 볼 때 — 들킨 상자처럼 그 판엔 거기 머문다)
     if (was && was.goal === this.lureAt) was.goal = null;
+    if (was && was.k.state === "hidden") {
+      was.wasSpotted = true;
+      was.goalSpot = null;
+      if (!this.movers.includes(was)) this.movers.push(was);
+    }
     this.lured = null;
     if (!k || !at) return;
     this.lureAt.copy(at);

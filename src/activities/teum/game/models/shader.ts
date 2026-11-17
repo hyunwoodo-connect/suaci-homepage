@@ -115,7 +115,7 @@ export function styleModel(mat: THREE.MeshStandardMaterial, o: ModelLookOptions)
   };
   mat.customProgramCacheKey = () => {
     const regions = regionCount();
-    const kind = isBody ? "teum-look10-body-r" : o.batch ? "teum-look10-batch-r" : "teum-look10-r";
+    const kind = isBody ? "teum-look11-body-r" : o.batch ? "teum-look11-batch-r" : "teum-look11-r";
     return kind + regions;
   };
   mat.needsUpdate = true;
@@ -133,7 +133,7 @@ export function seeThrough(mat: THREE.MeshStandardMaterial, lookU: LookUniforms)
     const fragment = sh.fragmentShader.replace("#include <map_fragment>", PLAIN_XRAY_GLSL);
     sh.fragmentShader = PLAIN_XRAY_HEAD + fragment;
   };
-  mat.customProgramCacheKey = () => "teum-xray-plain";
+  mat.customProgramCacheKey = () => "teum-xray-plain2";
   mat.needsUpdate = true;
 }
 
@@ -233,13 +233,15 @@ const BODY_VERTEX_HEAD = `varying vec3 vOn;
 const BODY_VERTEX = `
   vOn = normal;`;
 
-// 투시: 물건의 원점이 둘레 안이면 화면 점 무늬로 uXrayA 몫만 남기고 지운다(투명 정렬 없이 비친다). 시선과 비스듬한 가장자리는 남겨 윤곽이 보인다
+// 투시: 물건의 원점이 둘레 안이면 화면 점 무늬로 uXrayA 몫만 남기고 지운다(투명 정렬 없이 비친다 — 유리처럼).
+// 시선과 비스듬한 가장자리는 남겨 흰 윤곽선으로(다 비칠수록 하얗게, 원래대로 돌아오면 제 색)
 const XRAY_GLSL = `
   #ifndef FLAT_SHADED
   if (uXrayK > 0.5 && uAk < 0.5 && uXray.w > 0.0 && distance(vRo, uXray.xyz) < uXray.w) {
     float xrRim = 1.0 - abs(dot(normalize(vNormal), normalize(vViewPosition)));
     float xrNoise = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
-    if (xrRim < 0.7 && xrNoise > uXrayA) discard;
+    if (xrRim < 0.7) { if (xrNoise > uXrayA) discard; }
+    else diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), clamp((1.0 - uXrayA) * 1.6, 0.0, 1.0));
   }
   #endif
 `;

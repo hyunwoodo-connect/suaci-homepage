@@ -2,6 +2,8 @@ import * as THREE from "three";
 
 import type { ModelLibrary } from "../models/library";
 import { S } from "../settings";
+import type { Hull } from "./outline";
+import { addHull } from "./outline";
 import { HIDE } from "./tuning";
 
 // 숨는 애(라임 상자) 하나. 뼈대가 없어 움직임은 모두 여기서 몸 전체를 옮기고 늘이고 기울여서 낸다 — 늘 찌그러졌다 펴지는 맛이 있게.
@@ -14,6 +16,8 @@ import { HIDE } from "./tuning";
 const BOX_HEIGHT = HIDE.box.height;
 /** 상자 모델 키 */
 export const LIMEBOX = "limebox";
+/** 숨은 상자의 흰 테두리 굵기(px) — 모든 상자가 나눠 쓴다(버섯 꼭대기에서 내려다볼 때 굵게) */
+export const BOX_OUTLINE_PX = { value: HIDE.box.outlinePx };
 
 const { box, moves } = HIDE;
 const RAD = Math.PI / 180;
@@ -89,6 +93,7 @@ const EAR_GLSL = `#include <begin_vertex>
       earQ.xy = vec2(earQ.x * earC + earQ.y * earS, earQ.y * earC - earQ.x * earS);
       earQ.x += uEar.x * earTip; earQ.z += uEar.y * earTip;
       transformed = mix(transformed, earQ + vec3(0.0, ${EAR_FROM}, 0.0), earW); }`;
+const EAR_HEAD = "uniform vec4 uEar;\nuniform float uEarL;\nvarying float vEarW;\n";
 /** 귀 테두리: 귀 부분에서 시선과 비스듬한 가장자리를 먹색으로 */
 const EAR_RIM_GLSL = `#include <alphamap_fragment>
       #ifndef FLAT_SHADED
@@ -204,6 +209,9 @@ export class LimeBox {
   private readonly frozenAt = new THREE.Vector3();
   /** 입은 소품(변장) */
   private worn: THREE.Object3D | null = null;
+  /** 흰 테두리(숨어 있는 동안 — 모델이 오면 만든다)와 켜 달라는 값 */
+  private hull: Hull | null = null;
+  private wantsOutline = false;
 
   /** scale: 키 배수(보너스 1.4·안에서 나오는 작은 상자), gold: 리본을 금빛으로 */
   constructor(
@@ -217,6 +225,15 @@ export class LimeBox {
     const onArrive = (model: THREE.Object3D) => {
       livelyEars(model, this.ear, this.earLong);
       if (gold) goldRibbon(model);
+      // 테두리 껍데기도 귀와 같이 휜다
+      const bend = {
+        head: EAR_HEAD,
+        vertex: EAR_GLSL,
+        uniforms: { uEar: this.ear, uEarL: this.earLong },
+        key: "ears2",
+      };
+      this.hull = addHull(model, 0xffffff, BOX_OUTLINE_PX, bend);
+      this.hull.visible = this.wantsOutline;
     };
     this.hold = models.fit(LIMEBOX, height, "h", { ownLime: true, onArrive });
     this.hh = this.hold.userData.hh;
@@ -234,6 +251,12 @@ export class LimeBox {
   /** 숨어 있는 동안 귀를 길게(box.earScale) · 원래대로 */
   setLongEars(on: boolean) {
     this.earLong.value = on ? HIDE.box.earScale : 1;
+  }
+
+  /** 몸과 귀 둘레의 흰 테두리(숨어 있는 동안 — 배경이 무슨 색이든 떠 보이게) */
+  setOutline(on: boolean) {
+    this.wantsOutline = on;
+    if (this.hull) this.hull.visible = on;
   }
 
   /** 굳는다(화면에 잡힌 그 자세 그대로 — 한 발 든 채, 기우뚱한 채) · 풀린다 */
@@ -559,6 +582,7 @@ export class LimeBox {
   /** 치운다(모델 재질은 모델 자리가 치운다) */
   dispose() {
     this.g.removeFromParent();
+    this.hull?.dispose();
   }
 
   /* ─── 내부 ─────────────────────────── */
@@ -974,8 +998,7 @@ function livelyEars(model: THREE.Object3D, ear: { value: THREE.Vector4 }, long: 
       sh.uniforms.uEar = ear;
       sh.uniforms.uEarL = long;
       const patched = sh.vertexShader.replace("#include <begin_vertex>", EAR_GLSL);
-      sh.vertexShader =
-        "uniform vec4 uEar;\nuniform float uEarL;\nvarying float vEarW;\n" + patched;
+      sh.vertexShader = EAR_HEAD + patched;
       const rimmed = sh.fragmentShader.replace("#include <alphamap_fragment>", EAR_RIM_GLSL);
       sh.fragmentShader = "varying float vEarW;\n" + rimmed;
     };

@@ -194,13 +194,51 @@ describe("숨바꼭질 값 파일(hideseek.data.json)", () => {
     expect(() => readTuning(wide)).toThrow("cat.wobble: 0~90 도여야 한다");
   });
 
-  it("이 조각의 값 → 톡 30m·넉넉한 자리, 상자는 화면에서 72px 밑으로 안 작아진다, 전설은 세 번", () => {
+  it("이 조각의 값 → 톡 30m·넉넉한 자리, 상자는 늘 3m, 생물 고리 20m·둘까지, 전설은 하늘 36m", () => {
     expect(HIDE.find).toMatchObject({ tapReach: 30, tapPad: 24, tapMin: 96, tapMove: 10 });
     expect(HIDE.find).toMatchObject({ leapMin: 0.6, leapMax: 1 });
-    expect(HIDE.box).toMatchObject({ height: 2.5, minScreen: 72, maxGrow: 3, earScale: 2 });
-    expect(HIDE.legend).toMatchObject({ hits: 3, catchReach: 40 });
-    expect(HIDE.rabbit).toMatchObject({ stop: 20, trailSeconds: 12, waitGap: 25 });
-    expect(HIDE.mushroom).toMatchObject({ height: 18, hang: 3, tapReach: 60 });
+    expect(HIDE.box).toMatchObject({ height: 3, earScale: 2, outlinePx: 2 });
+    expect(HIDE.help).toMatchObject({
+      markReach: 20,
+      ringScale: 1.4,
+      ringMax: 2,
+      lockSeconds: 0.5,
+    });
+    expect(HIDE.legend).toMatchObject({ lift: 36, descendSeconds: 2.5, carryLift: 20 });
+    expect(HIDE.rabbit).toMatchObject({
+      speedShare: 0.9,
+      waitGap: 12,
+      resumeGap: 8,
+      stepGap: 2,
+      stop: 20,
+    });
+    expect(HIDE.mushroom).toMatchObject({ height: 18, hang: 3, tapReach: 60, walkReach: 2.5 });
+    expect(HIDE.key).toMatchObject({ reach: 25, seconds: 5, alpha: 0.4, warnSeconds: 1 });
+    expect(HIDE.soldier).toMatchObject({ gap: 0.4, pointSeconds: 3 });
+    expect(HIDE.cupcake).toMatchObject({ seconds: 30, reach: 60, tellReach: [20, 10, 5] });
+    expect(HIDE.watch).toMatchObject({ addSeconds: 20, minElapsed: 60 });
+    expect(HIDE.line).toMatchObject({ scale: 0.4, side: 1.2 });
+    expect(HIDE.copy.counts).toEqual(["1", "2", "3", "4"]);
     expect(HIDE.sneak).toMatchObject({ firstRound: 1, later: 2, resumeAfter: 0.5, sweatAfter: 2 });
+  });
+
+  it("화면 글 → 큰 글자·단추·에취!·숫자 말고는 없다(칙이라는 낱말은 어디에도 없다)", () => {
+    const texts = Object.values(HIDE.copy).flat();
+    expect(Object.keys(HIDE.copy).sort()).toEqual(
+      ["again", "boxesWin", "counts", "found", "hide", "it", "open", "sneeze"].sort(),
+    );
+    for (const t of texts) expect(t).not.toContain("칙");
+  });
+
+  it("컵케이크 알림 거리 → 멀리서 가까이로 줄지 않으면 멈춘다", () => {
+    const raw = JSON.parse(JSON.stringify(data)) as Record<string, Record<string, unknown>>;
+    raw.cupcake.tellReach = [5, 10, 20];
+    expect(() => readTuning(raw)).toThrow(/cupcake.tellReach/);
+  });
+
+  it("토끼 다시 뛰는 거리 → 기다리는 거리보다 작지 않으면 멈춘다", () => {
+    const raw = JSON.parse(JSON.stringify(data)) as Record<string, Record<string, unknown>>;
+    raw.rabbit.resumeGap = 12;
+    expect(() => readTuning(raw)).toThrow(/rabbit/);
   });
 });

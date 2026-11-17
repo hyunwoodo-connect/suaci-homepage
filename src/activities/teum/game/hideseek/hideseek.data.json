@@ -1,5 +1,5 @@
 {
-  "_about": "숨바꼭질 값. 기획이 코드 없이 직접 고친다 — 칸마다 뜻·단위·고치는 법은 teum-handoff/slice-01d/RESULT.md. 고친 뒤 pnpm test 가 모양과 규칙(자리는 무대 반경 안, 한 판 넷은 서로 떨어져 있기, 판에 부르는 생물 수 등)을 확인한다",
+  "_about": "숨바꼭질 값. 기획이 코드 없이 직접 고친다 — 칸마다 뜻·단위·고치는 법은 teum-handoff/slice-01e/RESULT.md. 고친 뒤 pnpm test 가 모양과 규칙(자리는 무대 반경 안, 한 판 넷은 서로 떨어져 있기, 판에 부르는 생물 수 등)을 확인한다",
   "copy": {
     "hide": "꼭꼭 숨어라",
     "it": "술래는 너",
@@ -7,16 +7,8 @@
     "open": "깔까?",
     "boxesWin": "우리가 이겼다!",
     "again": "한 판 더",
-    "tap": "톡",
-    "tapBox": "찾았으면 눌러",
-    "catSniff": "고양이가 냄새를 맡았어",
-    "tapCreature": "생물을 눌러 봐",
-    "legendCame": "전설이다! 칙 세 번!",
     "sneeze": "에취!",
-    "rabbitLate": "늦었다 늦었어!",
-    "rollCall": "번호!",
-    "counts": ["하나!", "둘!", "셋!", "넷!"],
-    "whistle": "♪"
+    "counts": ["1", "2", "3", "4"]
   },
   "colors": {
     "lime": "#A9FF39",
@@ -45,8 +37,7 @@
     "firstSneezeEvery": 5
   },
   "screen": {
-    "bigSeconds": 1.5,
-    "tapHintReach": 15
+    "bigSeconds": 1.5
   },
   "chik": {
     "reach": 35,
@@ -73,36 +64,44 @@
     "minAbove": 2
   },
   "help": {
-    "tapReach": 20,
     "markReach": 20,
+    "ringScale": 1.4,
+    "ringMax": 2,
     "focusSeconds": 1,
     "lockSeconds": 0.5
   },
   "rabbit": {
+    "speedShare": 0.9,
+    "waitGap": 12,
+    "resumeGap": 8,
+    "stepGap": 2,
     "stop": 20,
-    "trailSeconds": 12,
-    "waitGap": 25
+    "trailSeconds": 12
   },
   "mushroom": {
     "height": 18,
     "hang": 3,
-    "tapReach": 60
+    "tapReach": 60,
+    "walkReach": 2.5
   },
   "key": {
     "reach": 25,
     "seconds": 5,
-    "alpha": 0.4
+    "alpha": 0.4,
+    "warnSeconds": 1
   },
   "soldier": {
-    "seconds": 3,
-    "gap": 0.4
+    "gap": 0.4,
+    "pointSeconds": 3
   },
   "cupcake": {
     "seconds": 30,
-    "reach": 60
+    "reach": 60,
+    "tellReach": [20, 10, 5]
   },
   "watch": {
-    "addSeconds": 20
+    "addSeconds": 20,
+    "minElapsed": 60
   },
   "cat": {
     "far": 50,
@@ -112,8 +111,9 @@
   },
   "line": {
     "gap": 1.1,
-    "first": 1.4,
-    "scale": 0.6
+    "first": 2.2,
+    "scale": 0.4,
+    "side": 1.2
   },
   "sneak": {
     "moveEvery": [20, 40],
@@ -130,17 +130,19 @@
     "to": 100,
     "staySeconds": 25,
     "rideSeconds": 6,
-    "lift": 12,
+    "lift": 36,
     "span": 110,
     "aside": 30,
     "flinchReach": 18,
-    "hits": 3,
-    "catchReach": 40
+    "descendSeconds": 2.5,
+    "carryLift": 20
   },
   "stuck": {
     "restlessAfter": 30,
     "callAfter": 40,
-    "restlessPeek": 0.4
+    "restlessPeek": 0.4,
+    "callAhead": 10,
+    "callBright": 1.5
   },
   "lost": {
     "popAt": 0.5,
@@ -159,16 +161,16 @@
     "flailDegrees": 25
   },
   "box": {
-    "height": 2.5,
+    "height": 3,
     "showShare": 0.4,
     "breathSeconds": 2.2,
     "breathSquash": 0.03,
     "sneezeHop": 0.45,
     "peekEvery": [3, 5],
     "peekReach": 0.6,
-    "minScreen": 72,
-    "maxGrow": 3,
-    "earScale": 2
+    "earScale": 2,
+    "outlinePx": 2,
+    "outlineHighPx": 4
   },
   "bonus": {
     "waitSeconds": 1,
@@ -455,5 +457,9 @@
     ["wishtree", "tree-e", "cat", "statue"],
     ["wishtree", "pad-s-top", "mask", "line"],
     ["wishtree", "pad-n", "balloon", "cake"]
-  ]
+  ],
+  "teach": {
+    "creatureAhead": 8,
+    "creatureKeep": 10
+  }
 }

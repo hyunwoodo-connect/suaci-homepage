@@ -11,12 +11,12 @@ import type { HasHeights, Height } from "../world/tall";
 // 고래 등 — 고래는 한자리를 돌지 않는다. 출발 마을에서 떠나 행성을 한 바퀴 크게 돌고, 바퀴마다 방향을 90도씩 바꿔
 // 여섯 마을 하늘을 차례로 지난다. 높이는 길 아래 가장 높은 것 + 10m 를 미리 재 둔 표(빈 들판 위에서는 낮게 내려온다).
 // 내가 가까이(220m 안) 있으면 천천히 가서 따라잡을 수 있고, 등에 타면 빨리 간다. 아래에서 뛰어오르기만 하면 등으로 끌어 올린다.
-// 숨바꼭질에서는 전설의 손님 노릇도 한다(parade): 판 위를 낮게 가로지르는 동안은 닿기만 하면 태우고, 끌어도 내리지 않고,
-// 숨바꼭질이 정한 곳까지 태워 간다(carryTo). 다 하면 큰 바퀴로 돌아간다
+// 숨바꼭질에서는 전설의 손님 노릇도 한다(parade): 판 위 하늘을 가로지르다가, 눌리면 큰 원을 그리며 내 앞으로 내려와(swoop)
+// 등을 내밀고(board) 나를 태워 숨바꼭질이 정한 곳까지 간다(carryTo — 끌어도 내리지 않는다). 다 하면 큰 바퀴로 돌아간다
 
 /** 한 바퀴의 길이(자리표 거리 — 행성 둘레)와 빠르기(자리표 거리/초) */
 const spinQ = new THREE.Quaternion(),
-  Y_AXIS = new THREE.Vector3(0, 1, 0);
+  X_AXIS = new THREE.Vector3(1, 0, 0);
 const LAP = 1485.2,
   SPEED = 6.8;
 /** 출발 마을에서 조금 떨어진 곳에서 떠난다(바퀴의 몫) */
@@ -41,8 +41,10 @@ const NEAR_SLOW = 220,
 const PICK_REACH = 46,
   PICK_GROUND = 18,
   PICK_BELOW = 21;
-/** 등에 탄 채로 가장 오래(초) */
-const RIDE_MAX = 90;
+/** 등에 탄 채로 가장 오래(초) · 전설의 등에 오를 때 솟는 빠르기와 건너가기 시작하는 높이(등 높이 아래 m) */
+const RIDE_MAX = 90,
+  BOARD_RISE = 9,
+  BOARD_OVER = 3;
 /** 내린 뒤 다시 태우려면 땅에 내려앉거나 이만큼(m) 멀어져야 한다 — 고래는 내 곁에서 느려져서, 떨어지는 동안 다시 끌려 올라갔다 */
 const REARM_AWAY = 90,
   REARM_LANDED = 0.3;
@@ -105,9 +107,21 @@ export class Whale implements Thing, Holder {
   private visitTotal = VISIT_LEAD + VISIT_TAIL;
   private visitSpeed = VISIT_SPEED;
   private visitLift = VISIT_LIFT;
-  /** 제자리에서 한 바퀴 도는 중(숨바꼭질 전설이 크게 울 때): 흐른 시간과 다 도는 시간(초, 안 돌면 -1) */
+  /** 몸을 한 번 뒤집는 중(숨바꼭질 전설이 크게 울 때): 흐른 시간과 다 도는 시간(초, 안 돌면 -1) */
   private spinT = -1;
   private spinFor = 1;
+  /** 큰 원을 그리며 내려오는 중(숨바꼭질 전설): 흐른 시간(초, 안 하면 -1)·다 내려오는 시간, 원의 가운데와 그 접평면, 처음·끝의 반지름(m)·각, 처음·끝의 높이(땅에서 m) */
+  private swoopT = -1;
+  private swoopFor = 1;
+  private readonly swoopC = new THREE.Vector3();
+  private readonly swoopE1 = new THREE.Vector3();
+  private readonly swoopE2 = new THREE.Vector3();
+  private swoopR0 = 0;
+  private swoopR1 = 0;
+  private swoopTh0 = 0;
+  private swoopSweep = 0;
+  private swoopLift0 = 0;
+  private swoopLift1 = 0;
   /** 전설의 손님 노릇 중(숨바꼭질): 닿으면(수평 이 거리 안 — 0 이면 닿아서는 안 태운다) 바로 태우고, 끌어도 내리지 않는다 */
   private parading = false;
   private paradeReach = 0;
@@ -211,18 +225,63 @@ export class Whale implements Thing, Holder {
     this.pathTo(from, to, seconds);
   }
 
-  /** 태운 채 지금 자리에서 to(단위 벡터)까지 seconds 동안 간다(전설의 손님이 숨은 상자 앞으로 데려다준다) */
-  carryTo(to: THREE.Vector3, seconds: number) {
+  /** 태운 채 지금 자리에서 to(단위 벡터)까지 seconds 동안 땅에서 lift(m) 높이로 간다(전설의 손님이 숨은 상자 앞으로 데려다준다) */
+  carryTo(to: THREE.Vector3, seconds: number, lift: number) {
+    this.swoopT = -1;
+    this.visitLift = lift;
     this.pathTo(this.v, to, seconds);
   }
 
-  /** seconds 초 동안 제자리에서 한 바퀴 돈다(전설이 칙을 맞고 크게 울 때) */
-  spin(seconds: number) {
+  /** 몸 키의 절반(m) — 등 높이에서 거꾸로 잰다 */
+  get bodyHalf(): number {
+    return this.rideH - 0.9;
+  }
+
+  /** seconds 초 동안 몸을 한 번 뒤집는다(전설이 눌려 크게 울 때) */
+  roll(seconds: number) {
     this.spinT = 0;
     this.spinFor = seconds;
   }
 
-  // 한 바퀴: 몸의 위쪽 축으로 돈다(가는 길은 그대로)
+  /**
+   * 전설이 내게 내려온다: center(나, 단위 벡터)를 가운데로 큰 원을 그리며 seconds 동안 end(단위 벡터) 하늘로 와서 땅에서 lift(m) 높이에 선다.
+   * 가던 길은 거기서 끝난다
+   */
+  swoop(center: THREE.Vector3, end: THREE.Vector3, seconds: number, lift: number) {
+    if (!this.parading) return;
+    this.visitT = -1;
+    const c = this.swoopC.copy(center).normalize();
+    this.swoopE1.copy(this.v).sub(c);
+    const up1 = this.swoopE1.dot(c);
+    this.swoopE1.addScaledVector(c, -up1);
+    if (this.swoopE1.lengthSq() < 1e-12) this.swoopE1.copy(this.f);
+    this.swoopE1.normalize();
+    this.swoopE2.crossVectors(c, this.swoopE1).normalize();
+    this.swoopR0 = c.angleTo(this.v) * S.R;
+    this.swoopR1 = c.angleTo(end) * S.R;
+    this.swoopTh0 = 0;
+    tv.copy(end).sub(c);
+    const x = tv.dot(this.swoopE1),
+      y = tv.dot(this.swoopE2),
+      endTh = Math.atan2(y, x);
+    // 적어도 반 바퀴는 돈다(큰 원) — 짧은 쪽이 너무 짧으면 반대로 돌아간다
+    const sign = endTh >= 0 ? 1 : -1,
+      isShort = Math.abs(endTh) < Math.PI * 0.6;
+    this.swoopSweep = isShort ? endTh - sign * Math.PI * 2 : endTh;
+    const ground = this.s.terrain.groundAt(this.v);
+    this.swoopLift0 = this.WH - ground;
+    this.swoopLift1 = lift;
+    this.swoopFor = seconds;
+    this.swoopT = 0;
+  }
+
+  /** 전설의 손님이 등을 내민다: 어디 있든 다음 프레임에 나를 태운다(내려와 섰다) */
+  board() {
+    if (!this.parading) return;
+    this.isBoarding = true;
+  }
+
+  // 뒤집기: 나아가는 축으로 한 바퀴(가는 길은 그대로)
   private turnAround(dt: number) {
     if (this.spinT < 0) return;
     this.spinT += dt;
@@ -230,16 +289,44 @@ export class Whale implements Thing, Holder {
       u = Math.min(1, raw),
       eased = u * u * (3 - 2 * u),
       angle = eased * Math.PI * 2;
-    spinQ.setFromAxisAngle(Y_AXIS, angle);
+    spinQ.setFromAxisAngle(X_AXIS, angle);
     this.g.quaternion.multiply(spinQ);
     if (u >= 1) this.spinT = -1;
   }
 
-  /** 전설의 손님이 내려와 등을 내민다: 낮게 내려오며 나를 태운다(칙을 다 맞혔다) */
-  board(lift: number) {
-    if (!this.parading) return;
-    this.visitLift = lift;
-    this.isBoarding = true;
+  // 큰 원 위 e(0..1)의 자리(단위 벡터)
+  private swoopAt(e: number, out: THREE.Vector3): THREE.Vector3 {
+    const r = this.swoopR0 + (this.swoopR1 - this.swoopR0) * e,
+      th = this.swoopTh0 + this.swoopSweep * e,
+      arc = r / S.R,
+      cos = Math.cos(th) * arc,
+      sin = Math.sin(th) * arc;
+    return out
+      .copy(this.swoopC)
+      .addScaledVector(this.swoopE1, cos)
+      .addScaledVector(this.swoopE2, sin)
+      .normalize();
+  }
+
+  // 내려오는 한 걸음: 자리·앞(조금 뒤의 자리)·높이. 다 내려오면 그 자리에 떠서 기다린다
+  private swoopStep(dt: number): number {
+    this.swoopT += dt;
+    const raw = this.swoopT / this.swoopFor,
+      u = Math.min(1, raw),
+      e = u * u * (3 - 2 * u),
+      nudged = e + 0.02,
+      next = Math.min(1, nudged),
+      back = next - 0.02,
+      prev = Math.max(0, back);
+    this.swoopAt(e, this.v);
+    this.swoopAt(next, ahead);
+    if (next - prev < 0.019) {
+      this.swoopAt(prev, tv);
+      ahead.sub(tv).add(this.v);
+    }
+    const ground = this.s.terrain.groundAt(this.v),
+      lift = this.swoopLift0 + (this.swoopLift1 - this.swoopLift0) * e;
+    return ground + lift;
   }
 
   /** 전설의 손님 노릇을 마친다: 태웠으면 살짝 띄워 내려 주고, 큰 바퀴로 돌아간다 */
@@ -247,6 +334,14 @@ export class Whale implements Thing, Holder {
     if (!this.parading) return;
     this.parading = false;
     this.isBoarding = false;
+    // 내려와 떠 있던 자리에서 큰 바퀴로 천천히 돌아간다(그 자리를 '지나가기'의 끝으로 친다)
+    if (this.swoopT >= 0) {
+      this.swoopT = -1;
+      this.visitEnd.copy(this.v);
+      this.visitTotal = 0;
+      this.visitSpeed = 1;
+      this.visitT = 1e-3;
+    }
     if (this.on) {
       this.on = false;
       this.armed = false;
@@ -307,15 +402,19 @@ export class Whale implements Thing, Holder {
     if (this.on && body) {
       this.t += dt;
       const k = ease(6, dt);
-      body.p.lerp(this.v, k).normalize();
+      const rideAir = this.WH + this.rideH + this.wbob - player.floor - S.hover;
+      const targetAir = Math.max(0.01, rideAir);
+      // 전설이 등을 내밀면 먼저 등 높이까지 솟은 뒤 건너간다(옆에서 끌어 올리면 큰 몸을 뚫고 지나간다)
+      const isRising = this.parading && body.air < targetAir - BOARD_OVER,
+        kp = isRising ? 0 : k,
+        ka = this.parading ? ease(BOARD_RISE, dt) : k;
+      body.p.lerp(this.v, kp).normalize();
       body.h.lerp(this.f, k);
       const hUp = body.h.dot(body.p);
       body.h.addScaledVector(body.p, -hUp).normalize();
       body.vel.copy(body.h);
       body.vy = 0;
-      const rideAir = this.WH + this.rideH + this.wbob - player.floor - S.hover;
-      const targetAir = Math.max(0.01, rideAir);
-      body.air += (targetAir - body.air) * k;
+      body.air += (targetAir - body.air) * ka;
       const wantsOff = !this.parading && this.t > 1.2 && player.m0 > 0.6;
       if (wantsOff || this.t > RIDE_MAX) {
         this.on = false;
@@ -366,8 +465,11 @@ export class Whale implements Thing, Holder {
     pointAt(this.clock, this.v);
     const aheadT = this.clock + 0.4;
     pointAt(aheadT, ahead);
-    if (this.visitT >= 0) top = this.visit(dt, top);
-    this.WH += (top - this.WH) * (this.visitT >= 0 ? perFrame(0.05, dt) : heightEase);
+    if (this.swoopT >= 0) top = this.swoopStep(dt);
+    else if (this.visitT >= 0) top = this.visit(dt, top);
+    const isPathed = this.visitT >= 0 || this.swoopT >= 0,
+      pathEase = this.swoopT >= 0 ? perFrame(0.25, dt) : perFrame(0.05, dt);
+    this.WH += (top - this.WH) * (isPathed ? pathEase : heightEase);
     this.f.copy(ahead).sub(this.v);
     const fUp = this.f.dot(this.v);
     this.f.addScaledVector(this.v, -fUp).normalize();

@@ -89,10 +89,17 @@ export const CATALOG = {
     "snd_up snd_boing snd_quad snd_swim snd_wing snd_jelly snd_legend snd_rocket snd_cannon snd_rail snd_whale snd_splash snd_ring snd_stamp snd_pick snd_palin snd_open snd_blank snd_win",
   ),
   // 숨바꼭질 소리(v6 부터): 기획이 넘긴 mp3(teum-handoff/slice-01b/sounds)의 앞뒤 무음을 자르고 음량을 맞춘 것 — raw/snd_box_<이름>.mp3.
-  // 두 벌(a·b) 가운데 원본이 사실상 무음인 것(재채기 b·발소리 b·떨어짐 a·휴 a)과 하나만 고르는 것의 나머지(전설 b·다 찾음 b)는 싣지 않았다
+  // 하나만 고르는 것의 나머지(전설 b·다 찾음 b)는 싣지 않았다. 01b 에서 무음이던 넷(재채기 b·발소리 b·떨어짐·휴 a)은 v8 에서 새 벌로 채웠다
+  // (떨어짐은 의심스럽던 b 대신 새 a 를 쓴다)
   ...sounds(
     "audio/sfx",
-    "snd_box_sneeze_a snd_box_steps_a snd_box_found_a snd_box_found_b snd_box_fall_b snd_box_thud_small snd_box_thud_big snd_box_giggle_a snd_box_giggle_b snd_box_phew_b snd_box_legend snd_box_allfound",
+    "snd_box_sneeze_a snd_box_sneeze_b snd_box_steps_a snd_box_steps_b snd_box_found_a snd_box_found_b snd_box_fall_a snd_box_thud_small snd_box_thud_big snd_box_giggle_a snd_box_giggle_b snd_box_phew_a snd_box_phew_b snd_box_legend snd_box_allfound",
+  ),
+  // 생물·누르기 소리(v8 — teum-handoff/assets/sounds-01e, 기획이 앞뒤 무음을 자르고 가장 큰 소리를 −1dB 에 맞춰 넘긴 것):
+  // 누르기(미스트)·뛰어가기·고리 켜짐·전설이 울며 내려옴, 여섯 생물이 도움을 시작하는 몸짓
+  ...sounds(
+    "audio/sfx",
+    "snd_hide_tap_mist snd_hide_leap snd_hide_ring_on snd_hide_legend snd_help_rabbit snd_help_mushroom snd_help_key snd_help_soldier snd_help_cupcake snd_help_watch",
   ),
 };
 

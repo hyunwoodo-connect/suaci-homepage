@@ -351,7 +351,6 @@ export class Game {
     this.hideSeek = new HideSeek(
       s,
       {
-        footsteps: this.footsteps,
         input: this.input,
         studio: this.studio,
         unbox: {
@@ -377,6 +376,8 @@ export class Game {
         },
         pause: (seconds) => this.pause(seconds),
         setPlaceGlow: (on) => places.setLimeGlow(on),
+        // 판 동안 화면에 글자를 띄우지 않는다(장소 이름표·쉬는 곳 말풍선)
+        setLabels: (on) => this.sites.setLabels(on),
         // 판이 도는 동안은 만난 손님·꼬마 라임·별이 따라붙지 않는다
         setCompany: (on) => {
           creatures.setFollowing(on);

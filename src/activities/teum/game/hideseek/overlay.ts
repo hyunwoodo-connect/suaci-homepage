@@ -4,13 +4,13 @@ import { HUD_FONT } from "../hud";
 import { HIDE } from "./tuning";
 
 // 숨바꼭질 화면 위 표시. 자리와 크기는 화면 시안(폰 390×844 기준 px)대로, 글은 hideseek.data.json 의 copy, 색은 colors.
-// 판이 도는 동안 누를 단추는 하나도 없다:
+// 판이 도는 동안 화면에 늘 떠 있는 것은 위 칸 넷뿐이다(안내 줄·기호 말풍선은 없다 — 무엇을 할지는 몸짓과 고리로 보인다):
 //   위 가운데(위에서 56) — 상자 칸 넷(40×40, 간격 10). 빈 칸은 어두운 반투명에 점선, 찬 칸은 라임에 먹색 테두리(찰 때 출렁인다)
-//   칸 밑(위에서 108) — 한 줄 안내(톡 · 고양이가 냄새를 맡았어). 한 번에 하나
 //   한가운데 조금 위(위에서 232) — 큰 글자(라임 바탕·먹색 글자와 테두리, 3도 기울임): 꼭꼭 숨어라 · 술래는 너 · 찾았다! · 깔까? · 우리가 이겼다!
 //   아래 가운데 — 판이 끝난 뒤의 '한 판 더'(가장 큰 단추. 해가 졌는데 찾은 것이 있으면 작은 '깔까?'도)
-// 그 밖에 세계에 붙는 말풍선(에취! · 상자 봤어! 따라와! · 저기!)과 고양이 머리 위 냄새 표시, 눈꺼풀(판 시작·언박싱으로 넘어갈 때 잠깐 감긴다),
-// 전설의 생물 표시, ?debug 의 잰 값과 빌드 표시. 누르는 칸은 44px 넘게, 라임 위 글자는 먹색
+// 잠깐 뜨는 것: 세계에 붙는 말풍선(상자의 에취! · 점호의 숫자), 화면 밖에서 무언가 지나간 쪽의 먼지 퐁, 가르쳐 주는 손가락,
+// 전설이 화면 밖에 나타난 쪽 가장자리의 금빛, 회중시계가 해를 되감을 때 가장자리를 반시계로 도는 빛 띠, 눈꺼풀(판 시작·언박싱으로 넘어갈 때),
+// ?debug 의 잰 값과 빌드 표시. 누르는 칸은 44px 넘게, 라임 위 글자는 먹색
 
 const { lime: LIME, ink: INK } = HIDE.colors;
 /** 눈꺼풀이 감기고 뜨는 시간(초) */
@@ -23,10 +23,14 @@ const EDGE_X = 0.74,
 const CELL = 40,
   GAP = 10,
   ICON = 30;
-/** 위에서의 자리(px): 상자 칸 · 한 줄 안내 · 큰 글자 */
+/** 위에서의 자리(px): 상자 칸 · 큰 글자 */
 const SLOTS_TOP = 56,
-  HINT_TOP = 108,
   BIG_TOP = 232;
+/** 전설이 화면 밖에 나타났을 때 그쪽 가장자리가 금빛인 시간(초)·흘러드는 빛가루 수·흘러드는 거리(px)·한 바퀴(초) */
+const EDGE_SECONDS = 3,
+  EDGE_DUST = 7,
+  EDGE_FLOW = 140,
+  EDGE_CYCLE = 1.1;
 /** 동시에 뜨는 말풍선 수(점호에 넷이 같이 대답한다) · 먼지 퐁퐁 수·떠 있는 시간(초) */
 const BUBBLES = 8,
   PUFFS = 4,
@@ -36,8 +40,6 @@ const FINGER_ICON = `<svg width="44" height="44" viewBox="0 0 24 24" aria-hidden
 
 // 칸에 들어가는 상자 그림(먹색 선 — 리본과 귀)
 const BOX_ICON = `<svg width="${ICON}" height="${ICON}" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="9.5" width="16" height="10.5" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 9.5v10.5M4 13.5h16M12 9.5c-2-4.5-6.5-4.5-6.5-1.5S10 9.5 12 9.5c2 0 6.5 1.5 6.5-1.5S14 5 12 9.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`;
-// 전설의 생물이 판 위에 있다는 작은 표시(고래)
-const WHALE_ICON = `<svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 13c0-4 3.5-6.5 8-6.5 5 0 7.5 3 9 3.5 1 .3 2-.5 2-2 .8 2.5 0 5-2 6-1.5 3-4.5 4.5-8.5 4.5-5 0-8.5-2-8.5-5.5z" fill="#fff" stroke="${INK}" stroke-width="1.6" stroke-linejoin="round"/><circle cx="7.2" cy="12" r="1" fill="${INK}"/></svg>`;
 /** 말풍선 하나: 세계의 어느 자리에 붙는지(프레임마다 묻는다)와 남은 시간 */
 interface Bubble {
   el: HTMLDivElement;
@@ -52,20 +54,25 @@ export class HideOverlay {
   private readonly lids: HTMLDivElement[] = [];
   private readonly slots: HTMLDivElement;
   private readonly cells: HTMLDivElement[] = [];
-  private readonly mark: HTMLDivElement;
-  private readonly hint: HTMLDivElement;
   private readonly big: HTMLDivElement;
   private readonly ending: HTMLDivElement;
   private readonly open: HTMLButtonElement;
   private readonly again: HTMLButtonElement;
   private readonly stats: HTMLDivElement;
   private readonly stamp: HTMLDivElement;
-  private readonly catMark: HTMLDivElement;
-  private catWhere: ((out: THREE.Vector3) => void) | null = null;
   private readonly bubbles: Bubble[] = [];
   private readonly puffs: Bubble[] = [];
   private readonly pointer: HTMLDivElement;
   private pointerWhere: ((out: THREE.Vector3) => void) | null = null;
+  /** 전설이 화면 밖에 나타난 쪽: 가장자리 금빛 · 흘러드는 빛가루 · 붙을 세계 자리 · 남은 시간(초) · 흐른 시간 */
+  private readonly edge: HTMLDivElement;
+  private readonly edgeDust: HTMLDivElement[] = [];
+  private edgeWhere: ((out: THREE.Vector3) => void) | null = null;
+  private edgeLeft = 0;
+  private edgeT = 0;
+  /** 회중시계의 빛 띠(가장자리를 반시계로 한 바퀴) */
+  private readonly band: HTMLDivElement;
+  private readonly bandSpin: HTMLDivElement;
   private onOpen: () => void = () => {};
   private onAgain: () => void = () => {};
   private endingAway = false;
@@ -111,31 +118,49 @@ export class HideOverlay {
       this.cells.push(cell);
       this.slots.append(cell);
     }
-    this.mark = styledBox({
-      position: "absolute",
-      left: "100%",
-      top: "7px",
-      marginLeft: "8px",
+    this.edge = fixedBox({
+      inset: "0",
       display: "none",
-    });
-    this.mark.innerHTML = WHALE_ICON;
-    this.slots.append(this.mark);
-    this.hint = fixedBox({
-      top: `max(${HINT_TOP}px, calc(env(safe-area-inset-top) + ${HINT_TOP - SLOTS_TOP + 12}px))`,
-      left: "50%",
-      transform: "translateX(-50%)",
-      padding: "7px 16px",
-      borderRadius: "999px",
-      background: "rgba(20,20,20,.82)",
-      color: "#fff",
-      fontFamily: HUD_FONT,
-      fontSize: "17px",
-      fontWeight: "700",
-      whiteSpace: "nowrap",
-      display: "none",
-      zIndex: "3",
+      zIndex: "2",
       pointerEvents: "none",
     });
+    for (let i = 0; i < EDGE_DUST; i++) {
+      const dot = styledBox({
+        position: "fixed",
+        width: "7px",
+        height: "7px",
+        borderRadius: "50%",
+        background: "#ffe08a",
+        boxShadow: "0 0 8px 2px rgba(255,209,102,.8)",
+        display: "none",
+        zIndex: "2",
+        pointerEvents: "none",
+        transform: "translate(-50%, -50%)",
+      });
+      this.edgeDust.push(dot);
+    }
+    this.band = fixedBox({
+      inset: "0",
+      overflow: "hidden",
+      opacity: "0",
+      zIndex: "2",
+      pointerEvents: "none",
+    });
+    const edgeOnly = "radial-gradient(ellipse at center, transparent 58%, #000 78%)";
+    this.band.style.setProperty("mask-image", edgeOnly);
+    this.band.style.setProperty("-webkit-mask-image", edgeOnly);
+    this.bandSpin = styledBox({
+      position: "absolute",
+      left: "50%",
+      top: "50%",
+      width: "220vmax",
+      height: "220vmax",
+      marginLeft: "-110vmax",
+      marginTop: "-110vmax",
+      background:
+        "conic-gradient(from 0deg, rgba(255,255,255,0) 0deg, rgba(255,255,255,.75) 50deg, rgba(255,255,255,0) 100deg, rgba(255,255,255,0) 360deg)",
+    });
+    this.band.append(this.bandSpin);
     this.big = fixedBox({
       left: "50%",
       top: `${BIG_TOP}px`,
@@ -196,14 +221,6 @@ export class HideOverlay {
       zIndex: "4",
       pointerEvents: "none",
     });
-    this.catMark = bubbleElement();
-    Object.assign(this.catMark.style, {
-      transform: "translate(-50%, -100%)",
-      padding: "1px 7px",
-      fontSize: "14px",
-      marginTop: "-4px",
-    });
-    (this.catMark.lastChild as HTMLElement).style.display = "none";
     for (let i = 0; i < BUBBLES; i++) {
       const el = bubbleElement();
       const bubble: Bubble = { el, where: null, left: 0 };
@@ -225,7 +242,8 @@ export class HideOverlay {
     });
     this.pointer.innerHTML = FINGER_ICON;
     parent.append(this.pointer);
-    parent.append(this.slots, this.hint, this.big, this.ending, this.catMark);
+    parent.append(this.edge, ...this.edgeDust, this.band);
+    parent.append(this.slots, this.big, this.ending);
     parent.append(this.stats, this.stamp, ...this.lids);
     this.resetSlots();
   }
@@ -276,22 +294,29 @@ export class HideOverlay {
     }
   }
 
-  /** 칸 옆의 전설의 생물 표시(판 위에 있는 동안 깜빡인다) */
-  showLegendMark(on: boolean) {
-    const m = this.mark;
-    m.style.display = on ? "block" : "none";
-    for (const a of m.getAnimations?.() ?? []) a.cancel();
-    if (on && typeof m.animate === "function")
-      m.animate([{ opacity: 1 }, { opacity: 0.25 }, { opacity: 1 }], {
-        duration: 900,
-        iterations: Infinity,
-      });
+  /** 전설이 나타났다: 화면 밖이면 where 쪽 가장자리가 3초 동안 금빛으로 은은하고 빛가루가 흘러든다 */
+  legendEdge(where: (out: THREE.Vector3) => void) {
+    this.edgeWhere = where;
+    this.edgeLeft = EDGE_SECONDS;
+    this.edgeT = 0;
   }
 
-  /** 칸 밑 한 줄 안내(null 이면 숨긴다) */
-  showHint(text: string | null) {
-    this.hint.style.display = text ? "block" : "none";
-    if (text) this.hint.textContent = text;
+  /** 회중시계: 화면 가장자리에 옅은 빛 띠가 seconds 동안 반시계로 한 바퀴 */
+  rewindBand(seconds: number) {
+    const band = this.band,
+      spin = this.bandSpin,
+      ms = seconds * 1000;
+    if (typeof band.animate !== "function" || typeof spin.animate !== "function") return;
+    band.animate(
+      [{ opacity: 0 }, { opacity: 1, offset: 0.2 }, { opacity: 1, offset: 0.75 }, { opacity: 0 }],
+      {
+        duration: ms,
+      },
+    );
+    spin.animate([{ transform: "rotate(0deg)" }, { transform: "rotate(-360deg)" }], {
+      duration: ms,
+      easing: "ease-in-out",
+    });
   }
 
   /** 큰 글자를 seconds 초 띄운다(통 튀며 나온다) */
@@ -317,13 +342,6 @@ export class HideOverlay {
     if (away === this.endingAway) return;
     this.endingAway = away;
     this.ending.style.visibility = away ? "hidden" : "visible";
-  }
-
-  /** 고양이 머리 위 냄새 표시(… · ! · !!). text 가 null 이면 숨긴다. where 가 프레임마다 붙을 세계 자리를 채운다 */
-  setCatMark(text: string | null, where: (out: THREE.Vector3) => void) {
-    this.catWhere = text ? where : null;
-    if (text) this.catMark.firstChild!.textContent = text;
-    else this.catMark.style.display = "none";
   }
 
   /** ?debug 의 빌드 표시(커밋 앞 7자와 빌드 시각) — 왼쪽 아래 구석에 작게 */
@@ -406,9 +424,59 @@ export class HideOverlay {
       this.pointerWhere(at);
       pin(this.pointer, at, camera, true, false);
     }
-    if (!this.catWhere) return;
-    this.catWhere(at);
-    pin(this.catMark, at, camera, true, false);
+    this.showEdge(camera, dt);
+  }
+
+  // 전설이 화면 밖이면 그쪽 가장자리가 금빛(남은 시간 동안 옅어진다), 빛가루가 그쪽에서 화면 안으로 흘러든다
+  private showEdge(camera: THREE.Camera, dt: number) {
+    const where = this.edgeWhere;
+    if (where) this.edgeLeft -= dt;
+    this.edgeT += dt;
+    let isShown = false,
+      x = 0,
+      y = 0,
+      nx = 0,
+      ny = 0;
+    if (where && this.edgeLeft > 0) {
+      where(at);
+      at.project(camera);
+      const isBehind = at.z >= 1,
+        isInside = !isBehind && Math.abs(at.x) < 1 && Math.abs(at.y) < 1;
+      if (!isInside) {
+        const flip = isBehind ? -1 : 1,
+          fx = at.x * flip,
+          fy = at.y * flip,
+          ax = Math.abs(fx),
+          ay = Math.abs(fy),
+          far = Math.max(ax, ay, 1e-6);
+        nx = fx / far;
+        ny = fy / far;
+        x = (nx + 1) * 0.5 * innerWidth;
+        y = (1 - ny) * 0.5 * innerHeight;
+        isShown = true;
+      }
+    }
+    if (!where || this.edgeLeft <= 0) this.edgeWhere = null;
+    this.edge.style.display = isShown ? "block" : "none";
+    for (const d of this.edgeDust) d.style.display = isShown ? "block" : "none";
+    if (!isShown) return;
+    const fading = this.edgeLeft / 0.8,
+      fade = Math.min(1, fading);
+    this.edge.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(255,209,102,${0.55 * fade}) 0, rgba(255,209,102,0) 45vmin)`;
+    // 화면 안쪽으로 흘러든다
+    const len = Math.hypot(nx, ny) || 1,
+      inX = -nx / len,
+      inY = ny / len;
+    this.edgeDust.forEach((d, i) => {
+      const phase = (this.edgeT / EDGE_CYCLE + i / EDGE_DUST) % 1,
+        spread = ((i * 37) % 11) - 5,
+        along = phase * EDGE_FLOW,
+        px = x + inX * along - inY * spread * 9,
+        py = y + inY * along + inX * spread * 9;
+      d.style.left = `${px}px`;
+      d.style.top = `${py}px`;
+      d.style.opacity = `${(1 - phase) * fade}`;
+    });
   }
 
   /** 잰 값(줄들, null 이면 숨긴다) */
@@ -421,8 +489,8 @@ export class HideOverlay {
   dispose() {
     for (const b of [...this.bubbles, ...this.puffs]) b.el.remove();
     this.pointer.remove();
-    const own = [this.slots, this.hint, this.big, this.ending, this.catMark, this.stats];
-    for (const el of [...own, this.stamp, ...this.lids]) el.remove();
+    const own = [this.slots, this.big, this.ending, this.stats, this.edge, this.band];
+    for (const el of [...own, ...this.edgeDust, this.stamp, ...this.lids]) el.remove();
   }
 }
 

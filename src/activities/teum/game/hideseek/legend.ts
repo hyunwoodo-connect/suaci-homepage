@@ -1,15 +1,21 @@
 import * as THREE from "three";
 
+import type { Services } from "../services";
 import { S } from "../settings";
 import { offset, offsetInto } from "../world/sphere";
 import type { HideFx } from "./effects";
+import type { Hull } from "./outline";
+import { addHull } from "./outline";
 import { HIDE } from "./tuning";
 
-// 전설의 생물: 가장 큰 생물(고래)이 한 판에 많아야 한 번, 판 위를 낮게 천천히 가로지른다. 멀리서도 보이게 몸이 은은히 빛나고 지나간 자리에 라임 빛가루가 남는다.
-// 잡는 법은 다른 생물과 같다 — 톡 친다. 다만 legend.hits 번(세 번). 머리 위 큰 물방울 셋이 맞힐 때마다 하나씩 차고 고래가 점점 크게 반응한다
-// (1 빛나며 빛 고리, 2 크게 울며 제자리에서 한 바퀴, 3 내려와 등을 내민다). 부딪쳐서는 안 타진다.
-// 다 맞히면 태워 가장 먼 숨은 상자 앞까지 데려다준다 — 그 상자는 찾은 것이 된다. 조작을 가져가는 것은 전설뿐이다(볼거리라서).
-// 나올지(판마다 chance, 첫 판은 반드시)·언제(from~to 초 사이)·얼마나(staySeconds)·태워 가는 시간(rideSeconds)은 hideseek.data.json 의 legend
+// 전설의 생물: 가장 큰 생물(고래)이 한 판에 많아야 한 번, 하늘 높이(legend.lift) 크고 느리게 판 위를 가로지른다. 땅에 닿아 보이면 안 된다.
+// 나타날 때 그쪽 하늘이 밝아지고 낮은 울음이 한 번(화면 밖이면 그쪽 화면 가장자리가 3초 동안 금빛으로 — overlay). 글자는 없다.
+// 보통 생물과 급이 다르게: 고리 대신 몸 전체에 금빛 테두리가 1.5초 주기로 숨 쉰다.
+// 화면에 보이면 거리와 상관없이 한 번 누른다(몸 전체를 받는다) →
+//   0초 미스트 줄기가 하늘로 길게(0.5초) → 0.5초 크게 울며 몸을 한 번 뒤집고 하늘에 금빛 고리 →
+//   1.2초 나를 향해 큰 원을 그리며 내려온다(descendSeconds — 카메라가 따라 올려다본다) → 내 앞에서 등을 낮추고 나를 태운다 →
+//   carryLift 높이로 올라가 가장 먼 숨은 상자 앞까지 데려다준다(그 상자는 찾은 것). legend.staySeconds 안에 못 누르면 지나간다.
+// 나올지(판마다 chance, 첫 판은 반드시)·언제(from~to 초 사이)는 hideseek.data.json 의 legend
 
 /** 전설의 손님이 되는 고래에게 부탁하는 것(Whale) */
 export interface LegendWhale {
@@ -18,6 +24,8 @@ export interface LegendWhale {
   readonly g: THREE.Object3D;
   readonly isRiding: boolean;
   readonly pathLeft: number;
+  /** 몸 키의 절반(m — 땅에 닿지 않게 내려오는 높이를 정한다) */
+  readonly bodyHalf: number;
   parade(
     from: THREE.Vector3,
     to: THREE.Vector3,
@@ -25,98 +33,95 @@ export interface LegendWhale {
     lift: number,
     reach: number,
   ): void;
-  carryTo(to: THREE.Vector3, seconds: number): void;
-  board(lift: number): void;
-  spin(seconds: number): void;
+  swoop(center: THREE.Vector3, end: THREE.Vector3, seconds: number, lift: number): void;
+  carryTo(to: THREE.Vector3, seconds: number, lift: number): void;
+  board(): void;
+  roll(seconds: number): void;
   endParade(): void;
   keepOff(): void;
   attach(o: THREE.Object3D): void;
 }
 
-/** 이번 프레임에 일어난 일: 나타났다 · 나를 태웠다 · 데려다줬다 */
-export type LegendEvent = "came" | "boarded" | "arrived";
+/** 이번 프레임에 일어난 일: 나타났다 · 크게 울었다 · 내려오기 시작했다 · 나를 태웠다 · 데려다줬다 */
+export type LegendEvent = "came" | "cried" | "descending" | "boarded" | "arrived";
 
-/** 지금 하는 일: 안 나옴 · 나올 때를 기다림 · 판 위를 지나감 · 태워 감 */
-type LegendState = "off" | "waiting" | "passing" | "carrying";
+/** 지금 하는 일: 안 나옴 · 나올 때를 기다림 · 판 위를 지나감 · 눌렸다 · 내려온다 · 등을 내밀었다 · 태워 감 */
+type LegendState =
+  "off" | "waiting" | "passing" | "tapped" | "descending" | "boarding" | "carrying";
 
-/** 몸의 빛: 크기(m)·가장 밝을 때·숨 쉬듯 밝아졌다 어두워지는 빠르기, 가까이 가면 옅어진다(이 거리 m 안에서는 꺼지고, 이만큼 더 멀어지면 다 켜진다 — 곁에서는 화면을 덮지 않게) */
+/** 몸의 빛: 크기(m)·가장 밝을 때·숨 쉬듯 밝아졌다 어두워지는 빠르기, 가까이 가면 옅어진다(이 거리 m 안에서는 꺼지고, 이만큼 더 멀어지면 다 켜진다) */
 const GLOW_SIZE = 110,
   GLOW_PEAK = 0.5,
   GLOW_BREATH = 1.3,
   GLOW_OFF_WITHIN = 60,
-  GLOW_FADE_SPAN = 80;
+  GLOW_FADE_SPAN = 80,
+  GOLD = 0xffd166;
 /** 빛가루: 뿌리는 간격(초)·몸 둘레로 흩는 거리(m)·크기(m)·남아 있는 시간(초) */
 const DUST_EVERY = 0.12,
   DUST_SPREAD = 16,
   DUST_SIZE = 1.6,
   DUST_LIFE = 6;
-
-/** 물방울 표시: 크기(m)·몸 위 높이(m)·사이(m) · 맞힐 때 번쩍이는 빛의 세기 · 등을 내밀 때 내려오는 높이(땅에서 m) · 누를 수 있는 몸의 반높이·반길이(m) */
-const DROP_SIZE = 6,
-  DROP_OVER = 17,
-  DROP_GAP = 7,
-  HIT_FLASH = 1.8,
-  BOARD_LIFT = 7,
+/** 금빛 테두리: 굵기(px)·숨 쉬는 주기(초) · 나타날 때 하늘이 밝아지는 시간(초) */
+const RIM_PX = 3,
+  RIM_PERIOD = 1.5,
+  ARRIVE_GLOW = 0.8;
+/** 눌린 뒤(초): 미스트가 닿는 때 · 내려오기 시작하는 때 · 뒤집는 시간 · 하늘의 금빛 고리 반지름(m) · 미스트 알갱이 수 */
+const MIST_SECONDS = 0.5,
+  DESCEND_AT = 1.2,
+  ROLL_SECONDS = 0.7,
+  SKY_RING = 45,
+  MIST_DOTS = 8;
+/**
+ * 내려와 서는 자리(내 앞 m — 고래 모델은 길이 64m·지느러미까지 폭 54m 라, 이보다 가까우면 카메라가 몸속에 든다) · 몸 아래 띄우는 높이(m) ·
+ * 등을 내밀고 못 태우면 떠나기까지(초) · 누를 수 있는 몸의 반높이·반길이(m)
+ */
+const BOARD_AHEAD = 40,
+  BELLY_CLEAR = 2.5,
+  BOARD_WAIT = 2,
   BODY_HALF_H = 9,
-  BODY_HALF_L = 26,
-  SPIN_SECONDS = 1.4;
+  BODY_HALF_L = 26;
 
 const from = new THREE.Vector3(),
   to = new THREE.Vector3(),
-  dust = new THREE.Vector3();
+  dust = new THREE.Vector3(),
+  mote = new THREE.Vector3();
 
 /** 전설의 생물 */
 export class Legend {
   private state: LegendState = "off";
-  /** 나타날 때(찾기 시작 뒤 초) */
+  /** 나타날 때(찾기 시작 뒤 초) · 지금 일을 한 지(초) */
   private at = 0;
+  private stateT = 0;
   private readonly glow: THREE.Sprite;
   private glowK = 0;
+  private flash = 0;
   private dustT = 0;
   private time = 0;
+  private hasCried = false;
+  private mistShown = -1;
   private readonly hub = new THREE.Vector3();
-  /** 맞힌 수 · 맞힐 때 번쩍임(1 에서 줄어든다) · 머리 위 물방울 · 빈 것·찬 것 그림 */
-  private hits = 0;
-  private flash = 0;
-  private readonly drops: THREE.Sprite[] = [];
-  private readonly emptyTex: THREE.CanvasTexture;
-  private readonly fullTex: THREE.CanvasTexture;
+  private readonly rimPx = { value: RIM_PX };
+  private rim: Hull | null = null;
+  /** 테두리를 두른 고래의 면 수(모델이 늦게 오면 다시 두른다) */
+  private rimFor = 0;
+  private readonly mistFrom = new THREE.Vector3();
 
   /** eye: 보는 자리(카메라 — 가까이서는 몸의 빛을 줄인다) */
   constructor(
+    private readonly s: Services,
     private readonly whale: LegendWhale,
     private readonly fx: HideFx,
     private readonly rand: () => number,
     private readonly eye: THREE.Object3D,
   ) {
     this.glow = fx.glowSprite(GLOW_SIZE);
+    this.glow.material.color.set(GOLD);
     whale.attach(this.glow);
-    this.emptyTex = dropTexture(false);
-    this.fullTex = dropTexture(true);
-    const n = HIDE.legend.hits,
-      mid = (n - 1) / 2;
-    for (let i = 0; i < n; i++) {
-      const mat = new THREE.SpriteMaterial({
-        map: this.emptyTex,
-        transparent: true,
-        depthTest: false,
-        depthWrite: false,
-        fog: false,
-      });
-      const sp = new THREE.Sprite(mat),
-        across = (i - mid) * DROP_GAP;
-      sp.position.set(0, DROP_OVER, across);
-      sp.scale.setScalar(DROP_SIZE);
-      sp.renderOrder = 6;
-      sp.visible = false;
-      whale.attach(sp);
-      this.drops.push(sp);
-    }
   }
 
-  /** 지금 지나가는 중이라 칙으로 맞힐 수 있나 */
+  /** 지금 지나가는 중이라 누를 수 있나 */
   get isCatchable(): boolean {
-    return this.state === "passing" && this.hits < HIDE.legend.hits;
+    return this.state === "passing";
   }
 
   /** 누를 수 있는 몸(지나가는 동안): 몸 가운데(out)와 반높이·반길이(m). 없으면 null */
@@ -126,35 +131,29 @@ export class Legend {
     return { halfH: BODY_HALF_H, halfW: BODY_HALF_L };
   }
 
-  /** 칙에 맞았다: 물방울 하나가 차고 점점 크게 반응한다. 다 차면 내려와 등을 내민다. 맞힌 수 */
-  hit(): number {
-    if (!this.isCatchable) return this.hits;
-    this.hits++;
-    this.drops[this.hits - 1].material.map = this.fullTex;
-    this.flash = this.hits >= 2 ? 1.6 : 1;
-    const ring = 10 + this.hits * 8;
-    this.fx.sonar(this.whale.v, 0, ring, 0.8);
-    if (this.hits === 2) this.whale.spin(SPIN_SECONDS);
-    if (this.hits >= HIDE.legend.hits) this.whale.board(BOARD_LIFT);
-    return this.hits;
+  /** 눌렸다: 미스트 줄기가 하늘로 날아간다(그 뒤는 update 가 정한 때에) */
+  tap() {
+    if (!this.isCatchable) return;
+    this.goTo("tapped");
+    this.hasCried = false;
+    this.mistShown = -1;
+    this.mistFrom.copy(this.s.player.P);
   }
 
-  /** 지금 판 위에 있나(지나가거나 태워 가는 중 — 칸 옆 표시가 깜빡인다) */
+  /** 지금 판 위에 있나(지나가거나 내려오거나 태워 가는 중) */
   get isAround(): boolean {
-    return this.state === "passing" || this.state === "carrying";
+    return this.state !== "off" && this.state !== "waiting";
   }
 
-  /** 지금 나를 태워 가는 중인가(그동안 조작은 멈춘다) */
+  /** 지금 나를 붙잡고 있나 — 내려오기 시작한 뒤부터 데려다줄 때까지(그동안 조작은 멈춘다) */
   get isCarrying(): boolean {
-    return this.state === "carrying";
+    return this.state === "descending" || this.state === "boarding" || this.state === "carrying";
   }
 
   /** 판 시작: 이번 판에 나올지와 나올 때를 정한다(sure — 첫 판은 반드시 나온다). hub: 무대 마을 중심 */
   plan(sure: boolean, hub: THREE.Vector3) {
     this.stop();
     this.hub.copy(hub);
-    this.hits = 0;
-    for (const d of this.drops) d.material.map = this.emptyTex;
     const roll = this.rand(),
       when = this.rand();
     const comes = sure || roll < HIDE.legend.chance;
@@ -167,8 +166,10 @@ export class Legend {
    * 일어난 일이 있으면 알려 준다
    */
   update(dt: number, roundT: number, farthest: () => THREE.Vector3 | null): LegendEvent | null {
-    const whale = this.whale;
+    const whale = this.whale,
+      L = HIDE.legend;
     this.time += dt;
+    this.stateT += dt;
     let event: LegendEvent | null = null;
     if (this.state === "waiting") {
       // 큰 바퀴를 돌던 고래가 판 도중에 나를 태워 가지 않게 한다
@@ -181,14 +182,31 @@ export class Legend {
       }
     } else if (this.state === "off") whale.keepOff();
     else if (this.state === "passing") {
+      if (whale.pathLeft <= 0) this.leave();
+    } else if (this.state === "tapped") event = this.afterTap();
+    else if (this.state === "descending") {
+      if (this.stateT >= L.descendSeconds) {
+        whale.board();
+        this.goTo("boarding");
+      }
+    } else if (this.state === "boarding") {
       if (whale.isRiding) {
         const goal = farthest();
         if (goal) {
-          whale.carryTo(goal, HIDE.legend.rideSeconds);
-          this.state = "carrying";
+          // 높이는 몸 가운데 — 배가 땅에 닿지 않게 몸 키의 절반 + BELLY_CLEAR 밑으로는 내려가지 않는다
+          const lowest = whale.bodyHalf + BELLY_CLEAR,
+            lift = Math.max(L.carryLift, lowest);
+          whale.carryTo(goal, L.rideSeconds, lift);
+          this.goTo("carrying");
           event = "boarded";
-        } else this.leave();
-      } else if (whale.pathLeft <= 0) this.leave();
+        } else {
+          this.leave();
+          event = "arrived";
+        }
+      } else if (this.stateT > BOARD_WAIT) {
+        this.leave();
+        event = "arrived";
+      }
     } else if (whale.pathLeft <= 0 || !whale.isRiding) {
       this.leave();
       event = "arrived";
@@ -199,7 +217,7 @@ export class Legend {
 
   /** 지나가던 것을 돌려보낸다(판이 끝났다) — 태웠으면 내려 준다 */
   stop() {
-    if (this.state === "passing" || this.state === "carrying") this.whale.endParade();
+    if (this.isAround) this.whale.endParade();
     this.state = "off";
   }
 
@@ -208,7 +226,18 @@ export class Legend {
     this.shine(dt);
   }
 
-  // 판 위로 들어선다: 무대 가운데에서 aside 만큼 비켜난 줄을, 가운데 span 밖에서 반대편 span 밖까지
+  dispose() {
+    this.rim?.dispose();
+  }
+
+  /* ─── 내부 ─────────────────────────── */
+
+  private goTo(state: LegendState) {
+    this.state = state;
+    this.stateT = 0;
+  }
+
+  // 판 위로 들어선다: 무대 가운데에서 aside 만큼 비켜난 줄을, 가운데 span 밖에서 반대편 span 밖까지 하늘 높이
   private enter() {
     const L = HIDE.legend;
     const bearing = this.rand() * 360,
@@ -217,9 +246,56 @@ export class Legend {
     const mid = offset(this.hub, L.aside, sideBearing);
     offsetInto(from, mid, L.span, backBearing);
     offsetInto(to, mid, L.span, bearing);
-    // 닿아서는 안 태운다(칙을 다 맞혀야 등을 내민다)
+    // 닿아서는 안 태운다(눌러야 내려온다)
     this.whale.parade(from, to, L.staySeconds, L.lift, 0);
-    this.state = "passing";
+    this.goTo("passing");
+    this.flash = 1.5;
+    // 고래 모델이 자리 채움 도형 뒤에 늦게 오면 그때 다시 두른다
+    const meshes = countMeshes(this.whale.g);
+    if (meshes !== this.rimFor) {
+      this.rim?.dispose();
+      this.rim = addHull(this.whale.g, GOLD, this.rimPx);
+      this.rimFor = meshes;
+    }
+  }
+
+  // 눌린 뒤: 미스트가 하늘로 → 크게 울며 뒤집고 금빛 고리 → 나를 향해 내려오기 시작
+  private afterTap(): LegendEvent | null {
+    const t = this.stateT;
+    if (t < MIST_SECONDS) {
+      this.mist(t);
+      return null;
+    }
+    if (!this.hasCried) {
+      this.hasCried = true;
+      this.whale.roll(ROLL_SECONDS);
+      this.flash = 1.8;
+      const alt = this.whale.g.position.length() - S.R;
+      this.fx.wave(this.whale.v, alt, SKY_RING, 1, GOLD);
+      return "cried";
+    }
+    if (t < DESCEND_AT) return null;
+    const { player } = this.s,
+      arc = BOARD_AHEAD / S.R;
+    to.copy(player.p).addScaledVector(player.h, arc).normalize();
+    const lift = this.whale.bodyHalf + BELLY_CLEAR;
+    this.whale.swoop(player.p as THREE.Vector3, to, HIDE.legend.descendSeconds, lift);
+    this.goTo("descending");
+    return "descending";
+  }
+
+  // 미스트 줄기: 내 자리에서 고래까지 알갱이가 차례로 날아간다
+  private mist(t: number) {
+    const share = t / MIST_SECONDS,
+      steps = share * MIST_DOTS,
+      shown = Math.floor(steps);
+    this.whale.g.getWorldPosition(dust);
+    for (let i = this.mistShown + 1; i <= shown && i < MIST_DOTS; i++) {
+      const part = (i + 1) / (MIST_DOTS + 1);
+      mote.copy(this.mistFrom).lerp(dust, part);
+      this.fx.dot(mote, 1.1, 0.5);
+    }
+    this.mistShown = Math.max(this.mistShown, shown);
   }
 
   private leave() {
@@ -227,18 +303,16 @@ export class Legend {
     this.state = "off";
   }
 
-  // 몸이 은은히 빛나고(지나가거나 태워 가는 동안), 지나간 자리에 빛가루가 남는다
+  // 몸이 은은히 빛나고 금빛 테두리가 숨 쉬고(판 위에 있는 동안), 지나간 자리에 빛가루가 남는다
   private shine(dt: number) {
-    const on = this.state === "passing" || this.state === "carrying";
+    const on = this.isAround;
     const want = on ? 1 : 0,
       step = dt * 1.5,
       k = Math.min(1, step);
     this.glowK += (want - this.glowK) * k;
-    const fade = dt * 2.5;
+    const fade = dt / ARRIVE_GLOW;
     const left = this.flash - fade;
     this.flash = Math.max(0, left);
-    const showDrops = this.isCatchable || (this.state === "passing" && this.hits > 0);
-    for (const d of this.drops) d.visible = showDrops;
     this.whale.g.getWorldPosition(dust);
     const breathPhase = this.time * GLOW_BREATH,
       breath = 0.8 + 0.2 * Math.sin(breathPhase),
@@ -246,9 +320,15 @@ export class Legend {
       clear = (away - GLOW_OFF_WITHIN) / GLOW_FADE_SPAN,
       capped = Math.min(1, clear),
       far = Math.max(0, capped);
-    const bright = 1 + this.flash * HIT_FLASH;
+    const bright = 1 + this.flash;
     this.glow.material.opacity = GLOW_PEAK * this.glowK * breath * far * bright;
     this.glow.visible = this.glowK > 0.01;
+    if (this.rim) {
+      const rimPhase = (this.time / RIM_PERIOD) * Math.PI * 2,
+        pulse = 0.5 + 0.5 * Math.sin(rimPhase);
+      this.rim.visible = on;
+      this.rim.opacity.value = 0.35 + 0.65 * pulse;
+    }
     if (!on) return;
     this.dustT -= dt;
     if (this.dustT > 0) return;
@@ -263,32 +343,17 @@ export class Legend {
     // 몸 아래쪽(행성 쪽)으로 조금 내려 뿌린다 — 지나간 자리가 땅에서도 보인다
     const sink = S.R + (dust.length() - S.R) * 0.75;
     dust.setLength(sink);
-    this.fx.dot(dust, size, DUST_LIFE);
+    this.fx.dot(dust, size, DUST_LIFE, GOLD);
   }
 }
 
 /* ─── 내부 ─────────────────────────── */
 
-// 머리 위 물방울 그림: 빈 것은 흰 바탕, 찬 것은 라임. 먹색 테두리
-function dropTexture(isFull: boolean): THREE.CanvasTexture {
-  const size = 64,
-    cv = document.createElement("canvas");
-  cv.width = cv.height = size;
-  const g = cv.getContext("2d");
-  if (g) {
-    g.beginPath();
-    g.moveTo(32, 6);
-    g.bezierCurveTo(44, 22, 54, 32, 54, 42);
-    g.arc(32, 42, 22, 0, Math.PI);
-    g.bezierCurveTo(10, 32, 20, 22, 32, 6);
-    g.closePath();
-    g.fillStyle = isFull ? HIDE.colors.lime : "rgba(255,255,255,0.85)";
-    g.fill();
-    g.lineWidth = 5;
-    g.strokeStyle = HIDE.colors.ink;
-    g.stroke();
-  }
-  const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+// 테두리 껍데기를 뺀 면 수
+function countMeshes(root: THREE.Object3D): number {
+  let n = 0;
+  root.traverse((o) => {
+    if (o instanceof THREE.Mesh && !o.userData.isHull) n++;
+  });
+  return n;
 }

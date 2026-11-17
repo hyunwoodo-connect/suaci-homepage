@@ -1,5 +1,5 @@
 {
-  "version": "v7",
+  "version": "v8",
   "assets": {
     "snd_bgm": {
       "file": "audio/bgm/bgm.mp3",
@@ -26,10 +26,10 @@
       "category": "audio/sfx",
       "bytes": 23815
     },
-    "snd_box_fall_b": {
-      "file": "audio/sfx/box-fall-b.mp3",
+    "snd_box_fall_a": {
+      "file": "audio/sfx/box-fall-a.mp3",
       "category": "audio/sfx",
-      "bytes": 15404
+      "bytes": 5374
     },
     "snd_box_found_a": {
       "file": "audio/sfx/box-found-a.mp3",
@@ -56,6 +56,11 @@
       "category": "audio/sfx",
       "bytes": 43198
     },
+    "snd_box_phew_a": {
+      "file": "audio/sfx/box-phew-a.mp3",
+      "category": "audio/sfx",
+      "bytes": 10703
+    },
     "snd_box_phew_b": {
       "file": "audio/sfx/box-phew-b.mp3",
       "category": "audio/sfx",
@@ -66,10 +71,20 @@
       "category": "audio/sfx",
       "bytes": 9187
     },
+    "snd_box_sneeze_b": {
+      "file": "audio/sfx/box-sneeze-b.mp3",
+      "category": "audio/sfx",
+      "bytes": 12897
+    },
     "snd_box_steps_a": {
       "file": "audio/sfx/box-steps-a.mp3",
       "category": "audio/sfx",
       "bytes": 29301
+    },
+    "snd_box_steps_b": {
+      "file": "audio/sfx/box-steps-b.mp3",
+      "category": "audio/sfx",
+      "bytes": 14778
     },
     "snd_box_thud_big": {
       "file": "audio/sfx/box-thud-big.mp3",
@@ -85,6 +100,56 @@
       "file": "audio/sfx/cannon.mp3",
       "category": "audio/sfx",
       "bytes": 4432
+    },
+    "snd_help_cupcake": {
+      "file": "audio/sfx/help-cupcake.mp3",
+      "category": "audio/sfx",
+      "bytes": 12897
+    },
+    "snd_help_key": {
+      "file": "audio/sfx/help-key.mp3",
+      "category": "audio/sfx",
+      "bytes": 5060
+    },
+    "snd_help_mushroom": {
+      "file": "audio/sfx/help-mushroom.mp3",
+      "category": "audio/sfx",
+      "bytes": 7568
+    },
+    "snd_help_rabbit": {
+      "file": "audio/sfx/help-rabbit.mp3",
+      "category": "audio/sfx",
+      "bytes": 10703
+    },
+    "snd_help_soldier": {
+      "file": "audio/sfx/help-soldier.mp3",
+      "category": "audio/sfx",
+      "bytes": 2239
+    },
+    "snd_help_watch": {
+      "file": "audio/sfx/help-watch.mp3",
+      "category": "audio/sfx",
+      "bytes": 24809
+    },
+    "snd_hide_leap": {
+      "file": "audio/sfx/hide-leap.mp3",
+      "category": "audio/sfx",
+      "bytes": 12897
+    },
+    "snd_hide_legend": {
+      "file": "audio/sfx/hide-legend.mp3",
+      "category": "audio/sfx",
+      "bytes": 32959
+    },
+    "snd_hide_ring_on": {
+      "file": "audio/sfx/hide-ring-on.mp3",
+      "category": "audio/sfx",
+      "bytes": 12897
+    },
+    "snd_hide_tap_mist": {
+      "file": "audio/sfx/hide-tap-mist.mp3",
+      "category": "audio/sfx",
+      "bytes": 7568
     },
     "snd_jelly": {
       "file": "audio/sfx/jelly.mp3",

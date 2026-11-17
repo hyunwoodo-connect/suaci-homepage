@@ -106,6 +106,8 @@ const siteCol = new THREE.Color(),
 
 /** 랜드마크·쉬는 곳 전체(미끄럼틀은 나를 붙잡는다) */
 export class Sites implements Thing, Holder, HasHeights {
+  /** 이름표·말풍선을 보이나 */
+  private isLabeled = true;
   readonly rideName = "slide";
   readonly list: Site[];
   /** 미끄럼틀을 타는 동안에도 몸 크기는 그대로 */
@@ -238,6 +240,11 @@ export class Sites implements Thing, Holder, HasHeights {
   }
 
   /** 모델을 끼운다(꼭대기·몸 반지름·쉬는 곳 고리를 모델 크기로). 먼 것은 장면에서 뗀다 */
+  /** 이름표와 쉬는 곳 말풍선을 보이거나 숨긴다(숨바꼭질 판 동안은 숨긴다 — 화면에 글자를 띄우지 않는다) */
+  setLabels(on: boolean) {
+    this.isLabeled = on;
+  }
+
   fitModels() {
     const { models, culler } = this.s;
     for (const st of this.list) {
@@ -329,6 +336,8 @@ export class Sites implements Thing, Holder, HasHeights {
       }
       st.wasNear = nr;
       st.tag.material.opacity = st.near;
+      st.tag.visible = this.isLabeled;
+      if (st.bub) st.bub.visible = this.isLabeled;
       // 부딪힘
       if (!held) {
         const bump = this.collide(st, dg, d3);

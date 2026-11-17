@@ -10,7 +10,7 @@ import { LIMEBOX } from "../game/hideseek/limebox";
 import { MAPS } from "../game/maps";
 import { CATALOG, RETIRED } from "../tools/catalog.mjs";
 import { ASSET_VERSION } from "./config";
-import manifestJson from "./manifest.v7.json";
+import manifestJson from "./manifest.v8.json";
 import {
   BIG_FLOWERS,
   CREATURES,
@@ -20,7 +20,7 @@ import {
   TREE_CROWN_BASE,
 } from "./settings";
 
-// 배포본 manifest(v6 사본)와 분류표·코드가 서로 맞는지 본다
+// 배포본 manifest(배포본 사본)와 분류표·코드가 서로 맞는지 본다
 
 /** 올라가 있지만 일부러 받지 않는 에셋과 그 까닭 */
 const INTENTIONALLY_UNUSED: Record<string, string> = {
