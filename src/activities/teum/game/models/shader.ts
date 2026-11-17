@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 import { GLOWING_LIME, MODEL_STRIPES, MODEL_TINT } from "../../assets/settings";
-import { AVATAR_BODY, PARTS } from "../avatar/parts";
+import { AVATAR_BODY, HAND_FROM_Z, NECK_FROM_Y, PARTS } from "../avatar/parts";
 import type { LookUniforms } from "../look";
 import { LOOK } from "../look";
 
@@ -115,7 +115,7 @@ export function styleModel(mat: THREE.MeshStandardMaterial, o: ModelLookOptions)
   };
   mat.customProgramCacheKey = () => {
     const regions = regionCount();
-    const kind = isBody ? "teum-look11-body-r" : o.batch ? "teum-look11-batch-r" : "teum-look11-r";
+    const kind = isBody ? "teum-look12-body-r" : o.batch ? "teum-look12-batch-r" : "teum-look12-r";
     return kind + regions;
   };
   mat.needsUpdate = true;
@@ -267,13 +267,17 @@ const BODY_RAW = `#include <map_fragment>
       vec3 rawC = diffuseColor.rgb;`;
 
 // 옷 자리 = 원래 텍스처 색 + 처음 선 자세의 높이(vOp.y, 키 1.2). 분홍·라임 스웨터와 그 둘이 만나는 경계색은 윗옷(0.44~0.84 — 앞섶 밑단까지),
-// 허리께 흰색은 치마(0.34~0.68), 발께 흰색은 신발(0.22 아래). 살색은 파랑이 많아서 경계색에서 빠진다.
+// 허리께 흰색은 치마(0.34~0.68), 발께 흰색은 신발(0.22 아래).
+// 살빛도 (선형 색에서) 경계색에 든다 — 그래서 목(NECK_FROM_Y 위)의 경계색과 소매 끝 너머(HAND_FROM_Z, 손)는 윗옷에서 뺀다
+// (빼지 않으면 무늬가 턱밑까지 올라오고 손이 장갑처럼 칠해진다).
 // 무늬는 몸에 붙은 좌표로 세 방향에서 입혀서(삼면 투영) 움직여도 미끄러지지 않는다. 명암은 원래 옷의 밝기를 따른다
+const NECK_GLSL = NECK_FROM_Y.toFixed(3),
+  HAND_GLSL = HAND_FROM_Z.toFixed(3);
 const OUTFIT_GLSL = `
       { float yy = vOp.y, rmx = max(rawC.r, max(rawC.g, rawC.b)), rmn = min(rawC.r, min(rawC.g, rawC.b)), rl = dot(rawC, vec3(0.3, 0.59, 0.11)), rsat = (rmx - rmn) / max(rmx, 0.001);
         float isPink = step(0.1, rawC.r) * step(rawC.g, rawC.r * 0.4) * step(rawC.b, rawC.r * 0.7), isLime = step(0.25, rawC.g) * step(rawC.r, rawC.g * 0.85) * step(rawC.b, rawC.g * 0.35);
         float isMix = step(0.25, rsat) * step(rawC.b, rmx * 0.55);
-        float topM = max(max(isPink, isLime), isMix) * step(0.44, yy) * step(yy, 0.84), wh = step(0.22, rmx) * step(rsat, 0.2), botM = wh * step(0.34, yy) * step(yy, 0.68), shoeM = wh * step(yy, 0.22);
+        float topM = max(max(isPink, isLime), isMix * step(yy, ${NECK_GLSL})) * step(0.44, yy) * step(yy, 0.84) * step(abs(vOp.z), ${HAND_GLSL}), wh = step(0.22, rmx) * step(rsat, 0.2), botM = wh * step(0.34, yy) * step(yy, 0.68), shoeM = wh * step(yy, 0.22);
         vec3 an = pow(abs(normalize(vOn)), vec3(4.0)); an /= (an.x + an.y + an.z); vec3 q = vOp * uPrS;
         if (uPrTon > 0.5 && topM > 0.5) { vec3 pt = texture2D(uPrT, q.zy).rgb * an.x + texture2D(uPrT, q.xz).rgb * an.y + texture2D(uPrT, q.xy).rgb * an.z; float pl = dot(pt, vec3(0.3, 0.59, 0.11)); pt = clamp(mix(vec3(pl), pt, 1.3), 0.0, 1.0); diffuseColor.rgb = pt * (isLime > 0.5 ? 0.98 : mix(1.0, clamp(rl / 0.24, 0.6, 1.15), 0.55)); }
         if (botM > 0.5) { if (uPrBon > 0.5) { vec3 pb = texture2D(uPrB, q.zy).rgb * an.x + texture2D(uPrB, q.xz).rgb * an.y + texture2D(uPrB, q.xy).rgb * an.z; float pl2 = dot(pb, vec3(0.3, 0.59, 0.11)); pb = clamp(mix(vec3(pl2), pb, 1.3), 0.0, 1.0); diffuseColor.rgb = pb * clamp(rl / 0.75, 0.5, 1.1); } else if (uSkOn > 0.5) diffuseColor.rgb = uSkC * clamp(rl / 0.75, 0.45, 1.1); }

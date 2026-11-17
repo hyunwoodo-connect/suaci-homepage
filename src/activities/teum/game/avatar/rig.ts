@@ -3,6 +3,8 @@ import * as THREE from "three";
 import { ease } from "../core/frame";
 import type { Services } from "../services";
 import { clamp } from "../world/sphere";
+import type { SkinPoint } from "./hand";
+import { handPoints } from "./hand";
 import type { PartFit, PartSlot } from "./parts";
 import { AVATAR_BODY, PARTS } from "./parts";
 import { unbindSkirtFromArms } from "./skirtWeights";
@@ -48,20 +50,13 @@ interface Rest {
   wi: THREE.Quaternion;
 }
 
-/** 손에 든 것: 손뼈 원점은 실제 손보다 몸 안쪽에 있어, 팔 방향으로 (처음 자세의 손끝까지 남은 길이 × 이 비율)만큼 더 나간 자리가 손이다 */
-const HAND_REACH = 0.45;
-/** 손에 든 것이 따라가는 손 살(점) 수 */
-const PALM_POINTS = 12;
-/** 쥔 자리 살의 이만큼이 한 뼈에 묶였으면 그 뼈에 끼운다(살과 함께 돌아서 정확하다). 아니면 살(점)을 매 프레임 따라간다 */
+/** 손 살의 이만큼이 한 뼈에 묶였으면 그 뼈에 끼운다(살과 함께 돌아서 정확하다). 아니면 손 살의 가운데를 매 프레임 따라간다 */
 const RIGID_SHARE = 0.85;
-/** 손 살로 치지 않는 점: 몸통·다리 뼈에 가장 많이 묶인 점(팔을 내리면 손이 허리께라 둘레에 치마·엉덩이 살이 섞인다) */
-const BODY_BONE = /Hips|Spine|UpLeg|Leg|Foot|Toe/;
-
-/** 몸 메시의 점 하나 */
-interface SkinPoint {
-  mesh: THREE.SkinnedMesh;
-  i: number;
-}
+/** 쥐는 자리(몸 기준): 가방은 끈 꼭대기가 손 가운데보다 이만큼 위(주먹을 지난다), 꽃다발은 줄기 가운데에서 키의 이 몫만큼 아래 */
+const STRAP_THROUGH = 0.02;
+const STEM_GRIP = 0.22;
+/** 꽃다발을 앞으로 기울이는 각(rad) */
+const BOUQUET_TILT = 0.45;
 
 /**
  * 뼈대 있는 몸이 오면 도형 몸을 숨기고 끼운 뒤, 몸짓 함수와 부품 끼우기를 onReady 로 넘긴다(무엇을 입을지는 옷장이 정한다).
@@ -151,9 +146,9 @@ export function setupRig(s: Services, slots: RigSlots, onReady: (rig: RigHandle)
       Q.copy(r.wi).multiply(D).multiply(r.w);
       b.quaternion.copy(r.q).multiply(Q);
     };
-    // 손에 든 것은 손뼈가 아니라 보이는 손의 살을 따라간다. 자동 뼈대가 손 살을 손뼈 아닌 뼈에 묶어 두어서(오른손은 머리 앞 뼈
-    // headfront 에 거의 다, 왼손은 여러 뼈에 나눠서), 손뼈에 끼우면 팔을 크게 움직일 때(솟구치기·떨어지기·날기) 보이는 손에서 떨어진다.
-    // 쥔 자리 살이 거의 한 뼈에 묶였으면 그 뼈에 끼우고, 나눠 묶였으면 살(점) 몇 개를 매 프레임 따라간다 — 이때 방향은 몸에 대해
+    // 손에 든 것은 손뼈가 아니라 보이는 손의 살(소매 끝 너머의 점)을 따라간다. 자동 뼈대의 손뼈는 보이는 손에서 몸 쪽·앞쪽으로
+    // 떨어져 있고(왼손뼈는 키의 1/4쯤), 손 살은 손뼈 아닌 뼈에 묶여 있다(오른손은 머리 앞 뼈 headfront 에 거의 다, 왼손은 여러 뼈에 나눠서).
+    // 손 살이 거의 한 뼈에 묶였으면 그 뼈에 끼우고, 나눠 묶였으면 손 살의 가운데를 매 프레임 따라간다 — 이때 방향은 몸에 대해
     // 그대로 둔다(가방은 늘 몸 아래쪽으로 늘어진다)
     const skins: THREE.SkinnedMesh[] = [];
     av.traverse((c) => {
@@ -309,22 +304,6 @@ export function setupRig(s: Services, slots: RigSlots, onReady: (rig: RigHandle)
       G.updateMatrixWorld(true);
       bone.attach(G);
     };
-    // 지금 자세에서 쥔 자리(몸 모델 기준)에 가장 가까운 손 살(점)들
-    const palmPointsNear = (point: THREE.Vector3): SkinPoint[] => {
-      const near: { d: number; p: SkinPoint }[] = [];
-      for (const mesh of skins) {
-        mesh.skeleton.update();
-        const count = mesh.geometry.attributes.position.count;
-        for (let i = 0; i < count; i++) {
-          const p = { mesh, i };
-          if (isBodySkin(p)) continue;
-          const d = skinAt(p).distanceToSquared(point);
-          near.push({ d, p });
-        }
-      }
-      near.sort((a, b) => a.d - b.d);
-      return near.slice(0, PALM_POINTS).map(({ p }) => p);
-    };
     const local = (o: THREE.Object3D) => {
       const w = new THREE.Vector3();
       o.getWorldPosition(w);
@@ -381,46 +360,35 @@ export function setupRig(s: Services, slots: RigSlots, onReady: (rig: RigHandle)
         return G;
       }
       if (d.slot === "hand") {
-        const bone = B[d.bone],
-          fore = B[d.bone.replace("Hand", "ForeArm")];
-        if (!bone) return null;
-        const k = d.size / Math.max(bs.x, bs.y, bs.z);
+        // 어느 쪽 손인지는 어깨뼈로 정한다(어깨뼈는 제자리에 있다)
+        const shoulder = B[d.bone.replace("Hand", "Arm")];
+        if (!shoulder) return null;
         toBind();
-        // 처음 자세(팔을 옆으로 뻗음)에서 손뼈부터 몸 옆 끝(손끝)까지
-        const handAtBind = local(bone),
-          fromMiddle = handAtBind.z - ct.z,
-          handOut = Math.abs(fromMiddle),
-          tip = sz.z / 2 - handOut - 0.04,
-          reach = Math.max(0, tip) * HAND_REACH;
-        toIdle();
-        const hp = local(bone);
-        if (fore) {
-          const elbow = local(fore),
-            along = hp.clone().sub(elbow).normalize();
-          hp.addScaledVector(along, reach);
-        }
+        const shoulderZ = local(shoulder).z - ct.z,
+          side = Math.sign(shoulderZ),
+          points = handPoints(skins, side);
+        if (points.length === 0) return null;
+        const k = d.size / Math.max(bs.x, bs.y, bs.z),
+          h = bs.y * k;
         G.add(m);
         G.scale.setScalar(k);
-        // 드는 것(부케)은 손목에서 앞으로 기울이고, 늘어뜨리는 것(가방)은 손 아래로 곧게
-        const tilt = d.hang ? 0 : -faceDir * 0.45;
+        // 드는 것(꽃다발)은 앞으로 기울이고, 늘어뜨리는 것(가방)은 손 아래로 곧게
+        const tilt = d.hang ? 0 : -faceDir * BOUQUET_TILT;
         G.rotation.set(0, yaw, tilt);
-        const handX = hp.x + faceDir * (d.hang ? 0.02 : 0.09),
-          handY = hp.y + (d.hang ? -bs.y * k * 0.52 : bs.y * k * 0.22),
-          handZ = hp.z + Math.sign(hp.z) * (d.hang ? 0.08 : 0.03);
-        G.position.set(handX, handY, handZ);
-        // 쥔 자리: 드는 것은 그 가운데(시제품에서 손에 쥔 듯 맞춘 자리), 늘어뜨리는 것은 끈 꼭대기
-        const gripY = d.hang ? hp.y : handY,
-          grip = new THREE.Vector3(handX, gripY, handZ),
-          points = palmPointsNear(grip);
+        // 팔을 내린 자세의 손 가운데에 쥐는 자리(가방 끈 꼭대기 · 꽃다발 줄기 아래쪽)를 둔다
+        toIdle();
+        const palm = new THREE.Vector3();
+        palmCenter(points, palm);
+        const gripY = d.hang ? h / 2 - STRAP_THROUGH : -h * STEM_GRIP,
+          grip = new THREE.Vector3(0, gripY, 0).applyEuler(G.rotation);
+        G.position.copy(palm).sub(grip);
         const { main, share } = mainBoneOf(points);
-        if (points.length === 0 || share >= RIGID_SHARE) {
-          attachTo(main ?? bone, G);
+        if (main && share >= RIGID_SHARE) {
+          attachTo(main, G);
           return G;
         }
         av.add(G);
-        const center = new THREE.Vector3();
-        palmCenter(points, center);
-        const offset = G.position.clone().sub(center);
+        const offset = G.position.clone().sub(palm);
         held = { G, points, offset };
         return G;
       }
@@ -462,20 +430,6 @@ export function setupRig(s: Services, slots: RigSlots, onReady: (rig: RigHandle)
 }
 
 /* ─── 내부 ─────────────────────────── */
-
-// 이 점이 가장 많이 묶인 뼈가 몸통·다리인가
-function isBodySkin(p: SkinPoint): boolean {
-  const bone = topBone(p);
-  return BODY_BONE.test(bone.name);
-}
-
-// 이 점이 가장 많이 묶인 뼈
-function topBone({ mesh, i }: SkinPoint): THREE.Bone {
-  const pairs = skinPairs(mesh, i);
-  let top = pairs[0];
-  for (const pair of pairs) if (pair[1] > top[1]) top = pair;
-  return mesh.skeleton.bones[top[0]];
-}
 
 // 점들이 가장 많이 묶인 뼈와 그 몫(0..1)
 function mainBoneOf(points: readonly SkinPoint[]): { main: THREE.Bone | null; share: number } {

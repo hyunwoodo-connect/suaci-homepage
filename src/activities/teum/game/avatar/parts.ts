@@ -5,6 +5,15 @@
 /** 뼈대가 있는 몸 에셋 */
 export const AVATAR_BODY = "SUACI_AV";
 
+/**
+ * 몸 에셋(처음 선 자세 — 키 1.2, 팔을 옆(±z)으로 비스듬히 내림)에서 소매가 끝나는 곳: |z| 가 이보다 크면 손이다.
+ * 자동 뼈대의 손뼈는 보이는 손에서 떨어져 있어서, 손에 드는 것과 윗옷 무늬는 이 값으로 손을 찾는다
+ */
+export const HAND_FROM_Z = 0.377;
+
+/** 몸 에셋에서 목이 시작하는 높이: 이 위의 살빛은 윗옷이 아니다(목폴라 깃은 분홍이라 그대로 윗옷) */
+export const NECK_FROM_Y = 0.78;
+
 /** 곁에 떠 다니는 고양이 에셋 */
 export const AVATAR_COMPANION = "cat_lime";
 
