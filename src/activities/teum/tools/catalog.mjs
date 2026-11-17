@@ -78,6 +78,9 @@ export const CATALOG = {
   ),
   // 숨바꼭질의 숨는 애(라임 상자, 원본 약 2만 폴리곤). 언박싱에서 가까이 보므로 1024 텍스처
   ...group("hideseek", 8000, 1024, "limebox"),
+  // 아닌 척하는 상자가 입는 소품(v7 — 기획 세션이 만들어 teum-handoff/assets/props 에 넣은 것): 안경·화분·토끼 가면, 선물 더미는 1024 텍스처
+  ...group("hideseek", 6000, 512, "disguise_glasses flowerpot rabbit_mask"),
+  ...group("hideseek", 9000, 1024, "gift_pile"),
   // suaci 프로모션 오브젝트(로고·제품 등)는 'brand' 분류로 넣는다. 예: ...group("brand", 5000, 1024, "logo_sign bottle"),
   // 소리(v3 부터): 원본은 raw/snd_<이름>.mp3(시제품 v78 assets16.js 에서 푼 것). 되풀이하는 것은 'audio/bgm', 한 번씩 나는 것은 'audio/sfx'
   ...sounds("audio/bgm", "snd_bgm snd_wind"),

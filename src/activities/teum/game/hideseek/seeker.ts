@@ -4,7 +4,6 @@ import type { Services } from "../services";
 import { S } from "../settings";
 import type { LimeBox } from "./limebox";
 import type { HideSpot } from "./tuning";
-import { HIDE } from "./tuning";
 
 // 숨는 애(상자 하나)의 처지와, 나와 숨은 상자 사이를 재는 것
 
@@ -12,7 +11,7 @@ import { HIDE } from "./tuning";
 export interface Seeker {
   box: LimeBox;
   spot: HideSpot;
-  /** 숨음 · 칙에 맞음(곧 굴러떨어진다) · 굴러떨어지는 중 · 들켜 뛰는 중 · 내 뒤 줄에 섬 */
+  /** 숨음 · 톡에 맞음(미스트가 날아가고 내가 뛰어가는 중) · 굴러떨어지는 중(높이 숨은 상자) · 들켜 뛰는 중 · 내 뒤 줄에 섬 */
   state: "hidden" | "struck" | "falling" | "caught" | "line";
   /** 달려갈 곳(숨으러 갈 때는 숨는 자리의 땅 위 자리, 해가 진 뒤에는 내 둘레)과 빠르기(m/s, 0 이면 서 있다) */
   to: THREE.Vector3;
@@ -29,17 +28,16 @@ export interface Seeker {
   slot: number;
 }
 
-/** 나와 상자 사이: 3차원 거리(m) · 수평 거리(m) · 내 높이보다 drop.minAbove 넘게 위인가(그러면 닿아서 못 찾는다) */
+/** 나와 상자 사이: 3차원 거리(m) · 수평 거리(m) */
 interface Reach {
   dist: number;
   flat: number;
-  isHigh: boolean;
 }
 
 const at = new THREE.Vector3();
 
 /** reachOf 가 돌려 쓰는 칸(프레임마다 새로 만들지 않는다) */
-const REACH: Reach = { dist: 0, flat: 0, isHigh: false };
+const REACH: Reach = { dist: 0, flat: 0 };
 
 /** 새 숨는 애 */
 export function createSeeker(box: LimeBox, spot: HideSpot): Seeker {
@@ -71,11 +69,8 @@ export function resetSeeker(k: Seeker, spot: HideSpot) {
 /** 나와 상자 사이를 잰다(돌려 쓰는 칸에 담아 준다 — 다음 reachOf 전까지만 쓴다) */
 export function reachOf(k: Seeker, player: Services["player"]): Reach {
   const center = k.box.center(at);
-  const altA = player.P.length() - S.R,
-    above = k.box.altitude - altA;
   REACH.dist = center.distanceTo(player.P);
   REACH.flat = k.box.v.angleTo(player.p) * S.R;
-  REACH.isHigh = above > HIDE.drop.minAbove;
   return REACH;
 }
 

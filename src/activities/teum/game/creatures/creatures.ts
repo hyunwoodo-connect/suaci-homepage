@@ -28,8 +28,8 @@ export const GUEST_RING = 2.8,
 // 종의 생김새·크기·걸음새·버릇은 설정 표(assets/settings 의 CREATURES) 한곳에, 어디에 몇 무리인지는 지도(creatures)에 있고,
 // 여기는 갈래(땅·하늘·해파리·호수)마다의 공통 상태 기계와 놓는 규칙만 둔다. 종마다 다른 것은 버릇(habits)에게 묻는다.
 // 그리기는 종마다 한 묶음(ModelBatch): 가까이 보이는 것만 매 프레임 채워 그린다.
-// 숨바꼭질은 생물에게 길잡이를 맡긴다: 판마다 무대에 손님 무리를 불러 앉히고(invite·seat — 판의 손님은 놀라 달아나지 않는다),
-// 닿은 생물(touching)이 나를 숨은 상자 앞까지 데려다준다(escort — 그동안 자리는 숨바꼭질이 정한다, dismiss 로 돌려보낸다).
+// 숨바꼭질은 생물에게 도움을 맡긴다: 판마다 무대에 손님 무리를 불러 앉히고(invite·seat — 판의 손님은 놀라 달아나지 않는다),
+// 누른 생물이 도움을 주는 동안은 자리를 숨바꼭질이 정한다(escort, 끝나면 dismiss 로 돌려보낸다).
 // 판이 도는 동안은 만난 손님이 줄지어 따라오지 않는다(setFollowing)
 
 /** 내가 멀어지면 내 앞쪽으로 옮겨 가는 무리 */
@@ -185,9 +185,10 @@ export class Creatures implements Thing {
     for (const i of this.active) {
       const c = this.list[i];
       if (c.st === "guide") {
-        // 데려다주는 중: 자리는 숨바꼭질이 정했다 — 달리는(나는) 몸짓으로 그린다
-        c.ph += dt * 12;
-        c.amt += (1 - c.amt) * ease(7, dt);
+        // 숨바꼭질이 맡은 동안: 자리는 숨바꼭질이 정한다 — 달리면 달리는(나는) 몸짓, 서 있으면 선 몸짓
+        const stride = c.isRunning ? 1 : 0;
+        if (c.isRunning) c.ph += dt * 12;
+        c.amt += (stride - c.amt) * ease(7, dt);
         this.put(c, dt);
         continue;
       }
@@ -252,6 +253,7 @@ export class Creatures implements Thing {
     const mid = (group.length - 1) / 2;
     group.forEach((c, j) => {
       if (c.st === "follow") return;
+      c.want = 1;
       c.met = false;
       c.vt = 0;
       c.vc = 0;
@@ -289,34 +291,12 @@ export class Creatures implements Thing {
   }
 
   /**
-   * 지금 나와 닿은, 길잡이가 될 수 있는 생물 하나(없으면 null): 땅 위 무리·하늘 무리 가운데 수평 reach(m)·높이 차 band(m) 안에서 가장 가까운 것.
-   * 전설의 손님·따라오는 손님·데려다주는 중인 것·skip 에 든 것(이 판에 이미 데려다준 것)은 뺀다
+   * 숨바꼭질에 맡긴다(도움을 주는 동안): 이 생물은 제 할 일을 멈추고, 자리(v·a)와 보는 쪽(f)을 숨바꼭질이 프레임마다 정한다 —
+   * 여기서는 그리기만 한다(run 이면 달리는 몸짓). 다 하면 dismiss
    */
-  touching(reach: number, band: number, skip: ReadonlySet<Creature>): Creature | null {
-    const pl = this.s.player,
-      p = pl.p,
-      altA = pl.P.length() - S.R;
-    let best: Creature | null = null,
-      bestD = reach;
-    for (const i of this.active) {
-      const c = this.list[i];
-      if (c.legend || c.gone || c.st === "follow" || c.st === "guide") continue;
-      if ((c.role !== "herd" && c.role !== "flock") || skip.has(c) || c.vis < 0.5) continue;
-      const d = c.v.angleTo(p) * S.R,
-        gap = c.a + c.batch.hh - altA;
-      if (d >= bestD || Math.abs(gap) > band) continue;
-      bestD = d;
-      best = c;
-    }
-    return best;
-  }
-
-  /**
-   * 데려다주기를 맡긴다(숨바꼭질): 이 생물은 제 할 일을 멈추고, 자리(v·a)와 보는 쪽(f)을 숨바꼭질이 프레임마다 정한다 —
-   * 여기서는 달리는(나는) 몸짓으로 그리기만 한다. 다 데려다주면 dismiss
-   */
-  escort(c: Creature) {
+  escort(c: Creature, run = true) {
     c.st = "guide";
+    c.isRunning = run;
     c.hop = 0;
     c.hopV = 0;
     c.sink = 0;
@@ -325,7 +305,7 @@ export class Creatures implements Thing {
     this.lastTime = -1e9;
   }
 
-  /** 데려다주기를 마쳤다: 제 갈 길을 간다(땅 위 무리는 집으로 걸어가고, 하늘 무리는 제 궤도로 돌아간다) */
+  /** 도움을 마쳤다: 제 갈 길을 간다(땅 위 무리는 집으로 걸어가고, 하늘 무리는 제 궤도로 돌아간다) */
   dismiss(c: Creature) {
     if (c.st !== "guide") return;
     c.vt = 0;
@@ -1109,6 +1089,7 @@ export class Creatures implements Thing {
       legend: 0,
       calm: false,
       inRow: false,
+      isRunning: false,
       ctr: null,
       rad: 0,
       dir: 0,

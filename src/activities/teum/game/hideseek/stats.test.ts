@@ -14,6 +14,10 @@ function memoryStore(initial: string | null = null): LogStore & { text: string |
   return store;
 }
 
+// 뒤에 숨은 상자를 톡 쳐서 찾은 기록
+const found = (spot: string) =>
+  ({ spot, kind: "behind", how: "tap", as: null, shownFor: null }) as const;
+
 const NOW = Date.UTC(2026, 10, 16, 3, 0, 0);
 
 describe("RoundLog", () => {
@@ -28,18 +32,21 @@ describe("RoundLog", () => {
     expect(readList(store)[0]).toMatchObject({ chiks: 3, sneezeChiks: 1, dragChiks: 1 });
   });
 
-  it("찾기 → 가림이 걷힌 때부터 초를 재고, 첫 상자 시간과 찾은 길을 남긴다", () => {
+  it("찾기 → 가림이 걷힌 때부터 초를 재고, 첫 상자 시간과 찾은 길·아닌 척을 남긴다", () => {
     const store = memoryStore();
     const log = new RoundLog(store);
     log.begin(2, true, "390x844", NOW, 10);
     log.seekStarted(15);
-    log.found({ spot: "wishtree", kind: "behind", how: "touch" }, 27.34);
-    log.found({ spot: "pad-n-top", kind: "high", how: "drop" }, 80);
+    log.found(found("wishtree"), 27.34);
+    log.found(
+      { spot: "glasses", kind: "disguise", how: "legend", as: "glasses", shownFor: 31.27 },
+      80,
+    );
     log.finish(90);
     const [saved] = readList(store);
     expect(saved.firstFound).toBe(12.3);
     expect(saved.found.map((f) => f.seconds)).toEqual([12.3, 65]);
-    expect(saved.found[1]).toMatchObject({ how: "drop" });
+    expect(saved.found[1]).toMatchObject({ how: "legend", as: "glasses", shownFor: 31.27 });
     expect(saved.foundAll).toBeNull();
   });
 
@@ -48,26 +55,37 @@ describe("RoundLog", () => {
     const log = new RoundLog(store);
     log.begin(1, false, "390x844", NOW, 0);
     log.seekStarted(4);
-    for (const t of [10, 40, 70, 124])
-      log.found({ spot: "wishtree", kind: "behind", how: "touch" }, t);
+    for (const t of [10, 40, 70, 124]) log.found(found("wishtree"), t);
     log.ended("all");
     expect(readList(store)[0]).toMatchObject({ foundAll: 120, endedBy: "all" });
   });
 
-  it("생물·전설·끝난 까닭 → 데려다준 횟수와 그중 찾아온 횟수를 따로 남긴다", () => {
+  it("생물·전설·끝난 까닭 → 생물 도움은 종류마다, 전설은 나왔는지·탔는지 남긴다", () => {
     const store = memoryStore();
     const log = new RoundLog(store);
     log.begin(1, false, "390x844", NOW, 0);
-    log.guided(false);
-    log.guided(true);
-    log.guided(true);
+    log.helped("rabbit");
+    log.helped("key");
+    log.helped("rabbit");
     log.legendAppeared();
     log.ended("sunset");
     const [saved] = readList(store);
-    expect(saved).toMatchObject({ guided: 3, rescued: 2 });
+    expect(saved.helps).toEqual({ rabbit: 2, key: 1 });
     expect(saved.legend).toEqual({ appeared: true, ridden: false });
     expect(saved.endedBy).toBe("sunset");
     expect(saved.total).toBeNull();
+  });
+
+  it("톡 → 상자를 친 거리와 너무 먼 톡, 움직이다 들킨 수를 남긴다", () => {
+    const store = memoryStore();
+    const log = new RoundLog(store);
+    log.begin(1, false, "390x844", NOW, 0);
+    log.tapped(12.34);
+    log.tapped(27.9);
+    log.tooFar();
+    log.spotted(2);
+    log.ended("all");
+    expect(readList(store)[0]).toMatchObject({ tapDistances: [12.3, 27.9], tooFar: 1, spotted: 2 });
   });
 
   it("이 기기 첫 판 → 남은 기록이 없을 때만 첫 판으로 적는다", () => {

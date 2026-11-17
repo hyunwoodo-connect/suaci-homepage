@@ -4,10 +4,23 @@ import type { CatScent } from "../avatar/avatar";
 import type { HideOverlay } from "./overlay";
 import { HIDE } from "./tuning";
 
-// 다음에 갈 곳을 알려 주는 것 둘:
+// 다음에 할 것을 알려 주는 것 둘:
 //   고양이 — 옆을 따라다니는 라임 고양이가 가장 가까운 숨은 상자까지의 거리로 몸짓과 머리 위 표시(… · ! · !!)를 바꾼다(cat.far·mid·near)
-//   한 줄 안내 — 첫 판에만, 한 번에 하나. 고양이가 처음 냄새를 맡으면 '고양이가 냄새를 맡았어', 둘째 상자부터 숨은 상자 가까이 오면 '톡'
-//   (칙을 한 번 쏘면 '톡'은 다시 뜨지 않는다)
+//   한 줄 안내 — 한 번에 하나. 앞의 것이 먼저다:
+//     전설이 나타나면(어느 판이든) '전설이다! 칙 세 번!'
+//     첫 판 첫 상자가 화면에 들면 '찾았으면 눌러'(한 번 찾으면 다시 안 뜬다)
+//     첫 판에 고양이가 처음 냄새를 맡으면 '고양이가 냄새를 맡았어', 쓸 수 있는 생물이 처음 가까이 오면 '생물을 눌러 봐'
+//     첫 판 둘째 상자부터 숨은 상자 가까이 오면 '톡'(칙을 한 번 쏘면 다시 안 뜬다)
+
+/** 한 줄 안내가 보는 판의 사정 */
+export interface TeachState {
+  isFirst: boolean;
+  /** 지금까지 찾은 수 · 숨은 상자 곁인가 · 첫 상자가 화면에 들었나 · 쓸 수 있는 생물이 가까이 있나 */
+  found: number;
+  isNearHidden: boolean;
+  isFirstBoxSeen: boolean;
+  isHelperNear: boolean;
+}
 
 /** 옆을 따라다니는 고양이: 맡은 냄새(상자가 가까운 정도와 있는 쪽) · 머리 위 자리 */
 export interface CatLink {
@@ -15,10 +28,12 @@ export interface CatLink {
   catHead(out: THREE.Vector3): THREE.Vector3;
 }
 
-/** 고양이 머리 위 냄새 표시(멀다 → 바로 곁) · '고양이가 냄새를 맡았어'가 뜨는 때(찾기 시작 뒤 초)와 떠 있는 시간(초) */
+/** 고양이 머리 위 냄새 표시(멀다 → 바로 곁) · '고양이가 냄새를 맡았어'가 뜨는 때(찾기 시작 뒤 초)와 떠 있는 시간(초) · 생물·전설 안내가 떠 있는 시간(초) */
 const CAT_MARKS = [null, "…", "!", "!!"] as const,
   CAT_HINT_AFTER = 2,
-  CAT_HINT_TIME = 3.5;
+  CAT_HINT_TIME = 3.5,
+  CREATURE_HINT_TIME = 3.5,
+  LEGEND_HINT_TIME = 4;
 
 /** 고양이와 한 줄 안내 */
 export class Coach {
@@ -27,6 +42,9 @@ export class Coach {
   private tapHint = false;
   private catHinted = false;
   private catHintLeft = 0;
+  private creatureHinted = false;
+  private creatureHintLeft = 0;
+  private legendHintLeft = 0;
   private hint: string | null = null;
   private scent: CatScent = 0;
 
@@ -40,6 +58,13 @@ export class Coach {
     this.showHint(null);
     this.smell(0, null);
     this.catHintLeft = 0;
+    this.creatureHintLeft = 0;
+    this.legendHintLeft = 0;
+  }
+
+  /** 전설이 나타났다 */
+  legendCame() {
+    this.legendHintLeft = LEGEND_HINT_TIME;
   }
 
   /** 칙을 쐈다 */
@@ -57,14 +82,36 @@ export class Coach {
     this.catHintLeft = CAT_HINT_TIME;
   }
 
-  /** 한 줄 안내(첫 판에만): found 는 지금까지 찾은 수, isNearHidden 은 숨은 상자 곁인가 */
-  teach(isFirst: boolean, found: number, isNearHidden: boolean, dt: number) {
-    if (!isFirst) return;
-    if (!this.chikEver && found >= 1 && isNearHidden) this.tapHint = true;
+  /** 한 줄 안내 */
+  teach(st: TeachState, dt: number) {
     if (this.catHintLeft > 0) this.catHintLeft -= dt;
-    const isTapShown = this.tapHint && !this.chikEver,
-      isCatShown = this.catHintLeft > 0;
-    const text = isCatShown ? HIDE.copy.catSniff : isTapShown ? HIDE.copy.tap : null;
+    if (this.creatureHintLeft > 0) this.creatureHintLeft -= dt;
+    if (this.legendHintLeft > 0) this.legendHintLeft -= dt;
+    const C = HIDE.copy;
+    if (this.legendHintLeft > 0) {
+      this.showHint(C.legendCame);
+      return;
+    }
+    if (!st.isFirst) {
+      this.showHint(null);
+      return;
+    }
+    if (!this.creatureHinted && st.isHelperNear) {
+      this.creatureHinted = true;
+      this.creatureHintLeft = CREATURE_HINT_TIME;
+    }
+    if (!this.chikEver && st.found >= 1 && st.isNearHidden) this.tapHint = true;
+    const isTapBox = st.found === 0 && st.isFirstBoxSeen,
+      isTapShown = this.tapHint && !this.chikEver;
+    const text = isTapBox
+      ? C.tapBox
+      : this.catHintLeft > 0
+        ? C.catSniff
+        : this.creatureHintLeft > 0
+          ? C.tapCreature
+          : isTapShown
+            ? C.tap
+            : null;
     this.showHint(text);
   }
 

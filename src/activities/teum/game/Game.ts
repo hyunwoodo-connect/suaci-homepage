@@ -19,6 +19,7 @@ import { Fx } from "./fx/fx";
 import { Petals } from "./fx/petals";
 import { Ripples } from "./fx/ripples";
 import { HideSeek } from "./hideseek/hideseek";
+import { HIDE } from "./hideseek/tuning";
 import { Hud } from "./hud";
 import { Landmarks } from "./landmarks/landmarks";
 import { Mats } from "./look";
@@ -280,7 +281,9 @@ export class Game {
     this.avatar = new Avatar(s, this.wings);
     this.trail = new Trail(s);
     this.stars.followTrail(this.trail);
-    this.input = new Input(canvas, hud, (x, y) => this.tap(x, y));
+    // 톡은 0.2초 안에 떼고 그 사이 조금(find.tapMove px)만 움직였을 때 — 끌다가 지나간 것은 톡이 아니다
+    const tapRule = { ms: HIDE.measure.dragTapMs, movePx: HIDE.find.tapMove };
+    this.input = new Input(canvas, hud, tapRule, (x, y) => this.tap(x, y));
     this.sound = new SoundManager({
       events,
       manifest,
@@ -379,6 +382,11 @@ export class Game {
           creatures.setFollowing(on);
           babyLimes.setFollowing(on);
           stars.setFollowing(on);
+        },
+        // 열쇠의 투시: 모든 물건 재질이 같이 보는 값 하나를 바꾼다
+        xray: (center, radius, alpha) => {
+          mats.lookU.xray.value.set(center.x, center.y, center.z, radius);
+          mats.lookU.xrayAlpha.value = alpha;
         },
       },
       hudParent,
@@ -610,6 +618,8 @@ export class Game {
       this.hideSeek.onTap();
       return;
     }
+    // 숨바꼭질: 상자·생물·전설을 직접 톡 쳤으면 그것만 반응한다(빈 데 칙이 아니다)
+    if (this.hideSeek.pick(x, y)) return;
     const ndcX = (x / innerWidth) * 2 - 1,
       ndcY = -(y / innerHeight) * 2 + 1;
     this.ndc.set(ndcX, ndcY);

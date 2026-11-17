@@ -137,6 +137,7 @@ export class Unboxing {
       const box = new LimeBox(models, scene, k, false, rand);
       // 겉 상자가 줄 설 때의 크기로 서 있으니 속 상자도 같은 배수로 줄인다(속 상자가 더 크면 안 된다)
       box.setSize(HIDE.line.scale, true);
+      box.setLongEars(false);
       box.visible = false;
       return box;
     });

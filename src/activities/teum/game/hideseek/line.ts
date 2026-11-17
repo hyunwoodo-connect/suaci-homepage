@@ -55,6 +55,7 @@ export class BoxLine {
       lift = Math.max(0, above);
     this.members.push({ box, slot, still: 0, hasHopped: true, lift });
     box.setSize(HIDE.line.scale);
+    box.setLongEars(false);
   }
 
   /** 줄을 푼다(새 판) */

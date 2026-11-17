@@ -19,8 +19,8 @@ const PUFF_PER = 7,
 /** 종이 꽃가루 한 번의 조각 수·크기(m) */
 const CONFETTI_PER = 12,
   CONFETTI_SIZE = 0.7;
-/** 라임 점 수 */
-const DOT_N = 140;
+/** 점 수(발자국 한 줄이 다 들어가게) */
+const DOT_N = 240;
 
 /** 연기 하나 */
 interface Puff {
@@ -148,10 +148,11 @@ export class HideFx {
     }
   }
 
-  /** 라임 점 하나를 그 자리에 남긴다(size m, life 초 동안 옅어진다) */
-  dot(at: THREE.Vector3, size: number, life: number) {
+  /** 점 하나를 그 자리에 남긴다(size m, life 초 동안 옅어진다 — 색은 라임, 다른 색이면 color) */
+  dot(at: THREE.Vector3, size: number, life: number, color: THREE.ColorRepresentation = LIME) {
     const d = this.dots[this.nextDot];
     this.nextDot = (this.nextDot + 1) % DOT_N;
+    d.sp.material.color.set(color);
     d.sp.position.copy(at);
     d.sp.visible = true;
     d.t = 0;

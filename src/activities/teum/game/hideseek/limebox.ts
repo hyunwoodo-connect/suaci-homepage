@@ -73,17 +73,28 @@ const GOLD_GLSL = `// 금빛 리본
       float gs = (gmx - gmn) / max(gmx, 0.001), isWhite = step(gs, 0.2) * step(0.45, gmx);
       diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0, 0.76, 0.22) * (0.5 + 0.55 * gmx), isWhite); }
       #include <alphamap_fragment>`;
-/** 리본 귀: 밑동(EAR_BASE)을 축으로 늘이고(z) 앞으로 접고(w) 끝으로 갈수록 앞뒤(x)·좌우(y)로 휜다 */
+/**
+ * 리본 귀: 밑동(EAR_BASE)을 축으로 box.earScale 배 길게(폰에서 물건 위·옆으로 삐죽 나오게) 늘이고(z) 앞으로 접고(w)
+ * 끝으로 갈수록 앞뒤(x)·좌우(y)로 휜다. 귀에는 먹색 테두리를 둘러 배경과 섞이지 않게 한다
+ */
 const EAR_FROM = EAR_BASE.toFixed(3),
-  EAR_SPAN = (1 - EAR_BASE).toFixed(3);
+  EAR_SPAN = (1 - EAR_BASE).toFixed(3),
+  EAR_INK = new THREE.Color(HIDE.colors.ink);
 const EAR_GLSL = `#include <begin_vertex>
       { float earW = smoothstep(${EAR_FROM} - 0.05, ${EAR_FROM} + 0.1, position.y);
       vec3 earQ = transformed - vec3(0.0, ${EAR_FROM}, 0.0);
       float earTip = clamp(earQ.y / ${EAR_SPAN}, 0.0, 1.0), earC = cos(uEar.w), earS = sin(uEar.w);
-      earQ.y *= 1.0 + uEar.z;
+      vEarW = earW;
+      earQ.y *= uEarL * (1.0 + uEar.z);
       earQ.xy = vec2(earQ.x * earC + earQ.y * earS, earQ.y * earC - earQ.x * earS);
       earQ.x += uEar.x * earTip; earQ.z += uEar.y * earTip;
       transformed = mix(transformed, earQ + vec3(0.0, ${EAR_FROM}, 0.0), earW); }`;
+/** 귀 테두리: 귀 부분에서 시선과 비스듬한 가장자리를 먹색으로 */
+const EAR_RIM_GLSL = `#include <alphamap_fragment>
+      #ifndef FLAT_SHADED
+      { float earRim = 1.0 - abs(dot(normalize(vNormal), normalize(vViewPosition)));
+      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(${EAR_INK.r.toFixed(3)}, ${EAR_INK.g.toFixed(3)}, ${EAR_INK.b.toFixed(3)}), smoothstep(0.62, 0.8, earRim) * vEarW); }
+      #endif`;
 
 /** 한 번 하고 끝나는 몸짓 */
 type Act =
@@ -147,6 +158,8 @@ export class LimeBox {
   private readonly pose: Pose = blankPose();
   /** 리본 귀 셰이더 값(x 앞뒤 휨, y 좌우 휨, z 늘어남, w 앞으로 접힘)과 스프링 */
   private readonly ear = { value: new THREE.Vector4() };
+  /** 귀 길이 배수(숨어 있는 동안 box.earScale — 물건 위·옆으로 삐죽 나오게, 줄에 서면 원래대로) */
+  private readonly earLong = { value: HIDE.box.earScale };
   private readonly earAt = new THREE.Vector3();
   private readonly earVel = new THREE.Vector3();
   // ---- 한 번 하는 몸짓 ----
@@ -185,6 +198,12 @@ export class LimeBox {
   /** 크기 배수: 바라는 값과 지금 값 */
   private sizeWant = 1;
   private sizeNow = 1;
+  /** 굳었다(화면에 잡힌 그 자세 그대로) · 땀을 흘리며 떤다 · 굳은 자리 */
+  private isFrozen = false;
+  private isSweating = false;
+  private readonly frozenAt = new THREE.Vector3();
+  /** 입은 소품(변장) */
+  private worn: THREE.Object3D | null = null;
 
   /** scale: 키 배수(보너스 1.4·안에서 나오는 작은 상자), gold: 리본을 금빛으로 */
   constructor(
@@ -196,7 +215,7 @@ export class LimeBox {
   ) {
     const height = BOX_HEIGHT * scale;
     const onArrive = (model: THREE.Object3D) => {
-      livelyEars(model, this.ear);
+      livelyEars(model, this.ear, this.earLong);
       if (gold) goldRibbon(model);
     };
     this.hold = models.fit(LIMEBOX, height, "h", { ownLime: true, onArrive });
@@ -205,6 +224,35 @@ export class LimeBox {
     scene.add(this.g);
     this.ph = rand() * Math.PI * 2;
     this.peekWait = this.nextPeek();
+  }
+
+  /** 지금 크기 배수(줄 설 때 작아지고, 멀면 화면에서 보이게 커진다) */
+  get size(): number {
+    return this.sizeNow;
+  }
+
+  /** 숨어 있는 동안 귀를 길게(box.earScale) · 원래대로 */
+  setLongEars(on: boolean) {
+    this.earLong.value = on ? HIDE.box.earScale : 1;
+  }
+
+  /** 굳는다(화면에 잡힌 그 자세 그대로 — 한 발 든 채, 기우뚱한 채) · 풀린다 */
+  setFrozen(on: boolean) {
+    if (on && !this.isFrozen) this.frozenAt.copy(this.g.position);
+    this.isFrozen = on;
+    if (!on) this.isSweating = false;
+  }
+
+  /** 굳은 채 오래 보고 있으면: 부들부들 떤다 */
+  setSweat(on: boolean) {
+    this.isSweating = on;
+  }
+
+  /** 소품을 입는다(변장 — 상자 바닥이 원점, 앞이 +x, 위가 +y, 미터). null 이면 벗는다 */
+  wear(o: THREE.Object3D | null) {
+    this.worn?.removeFromParent();
+    this.worn = o;
+    if (o) this.g.add(o);
   }
 
   /** 보이나 */
@@ -217,6 +265,8 @@ export class LimeBox {
 
   /** 이 자리(v 단위 벡터, 바닥 높이 a)에 face 쪽을 보고 선다. 하던 짓은 그친다(크기 배수는 그대로) */
   put(v: THREE.Vector3, a: number, face: THREE.Vector3) {
+    this.isFrozen = false;
+    this.isSweating = false;
     this.v.copy(v).normalize();
     this.a = a;
     this.faceTo(face);
@@ -410,6 +460,10 @@ export class LimeBox {
   update(dt: number, time: number) {
     const g = this.g;
     if (!g.visible) return;
+    if (this.isFrozen) {
+      this.tremble(time);
+      return;
+    }
     const P = this.pose;
     resetPose(P);
     const breathTime = time + this.ph;
@@ -470,6 +524,19 @@ export class LimeBox {
     }
     if (lean) g.position.addScaledVector(this.peekDir, lean);
     if (this.slid) g.position.addScaledVector(this.f, this.slid);
+  }
+
+  // 굳은 채: 그 자리 그대로, 땀을 흘리면 부들부들
+  private tremble(time: number) {
+    const g = this.g;
+    g.position.copy(this.frozenAt);
+    if (!this.isSweating) return;
+    const shake = time * 47,
+      side = Math.sin(shake) * 0.035,
+      shake2 = time * 53,
+      back = Math.cos(shake2) * 0.035;
+    bx.crossVectors(this.f, this.v).normalize();
+    g.position.addScaledVector(bx, side).addScaledVector(this.f, back);
   }
 
   /** v 에서 to(단위 벡터) 쪽으로 speed(m/s) 만큼 간다. 남은 거리(m)를 돌려준다 */
@@ -895,7 +962,7 @@ function share(t: number, seconds: number): number {
 }
 
 // 리본 귀가 따로 움직이게 한다(재질은 이 틀만의 복제본이다): 정점 셰이더에서 귀 부분만 휘고 늘이고 접는다
-function livelyEars(model: THREE.Object3D, ear: { value: THREE.Vector4 }) {
+function livelyEars(model: THREE.Object3D, ear: { value: THREE.Vector4 }, long: { value: number }) {
   model.traverse((c) => {
     if (!(c instanceof THREE.Mesh)) return;
     const mat = c.material as THREE.MeshStandardMaterial;
@@ -904,12 +971,16 @@ function livelyEars(model: THREE.Object3D, ear: { value: THREE.Vector4 }) {
     mat.onBeforeCompile = (sh, renderer) => {
       base.call(mat, sh, renderer);
       sh.uniforms.uEar = ear;
+      sh.uniforms.uEarL = long;
       const patched = sh.vertexShader.replace("#include <begin_vertex>", EAR_GLSL);
-      sh.vertexShader = "uniform vec4 uEar;\n" + patched;
+      sh.vertexShader =
+        "uniform vec4 uEar;\nuniform float uEarL;\nvarying float vEarW;\n" + patched;
+      const rimmed = sh.fragmentShader.replace("#include <alphamap_fragment>", EAR_RIM_GLSL);
+      sh.fragmentShader = "varying float vEarW;\n" + rimmed;
     };
     mat.customProgramCacheKey = () => {
       const key = baseKey.call(mat);
-      return key + "-ears";
+      return key + "-ears2";
     };
     mat.needsUpdate = true;
   });

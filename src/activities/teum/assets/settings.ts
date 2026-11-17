@@ -1,5 +1,5 @@
 import type { GameEventMap, GameEventName, RideName } from "../game/events";
-import type { Content } from "../game/hideseek/tuning";
+import type { Content, HelpKind } from "../game/hideseek/tuning";
 
 // 에셋 종류마다의 설정. 시제품 곳곳에 있던 표(KIND·BAKE·SP·색조 tint·줄무늬 pat·조형물 목록)를 한곳에 모았다.
 // 생물·조형물을 늘릴 때: 파일을 raw/ 에 넣고 → tools/catalog.mjs 에 한 줄 → 여기 표에 한 줄.
@@ -282,6 +282,16 @@ const HIDE_CONTENT_SOUND: Readonly<Partial<Record<Content, SoundCue>>> = {
   whale: { key: "snd_whale", volume: 0.6, delay: 0.3, gap: 0.01 },
 };
 
+/** 생물을 눌러 도움을 받을 때(토끼 깡충·버섯 퐁·열쇠 찰칵·병정 차렷·컵케이크 달콤·시계 똑딱) — 따로 만든 소리가 오기 전까지 있던 소리를 빌린다 */
+const HIDE_HELP_SOUND: Readonly<Record<HelpKind, SoundCue>> = {
+  rabbit: { key: "snd_boing", volume: 0.5, rate: 1.5 },
+  mushroom: { key: "snd_boing", volume: 0.7, rate: 0.7 },
+  key: { key: "snd_pick", volume: 0.6, rate: 1.6 },
+  soldier: { key: "snd_quad", volume: 0.6, rate: 0.8 },
+  cupcake: { key: "snd_ring", volume: 0.45, rate: 1.2 },
+  watch: { key: "snd_pick", volume: 0.6, rate: 0.7 },
+};
+
 /** 생물 인사: 몸 휘는 방식(motion)마다 소리, 두 발(5)은 통통 튀는 소리. 종마다 음높이가 조금씩 다르다 */
 const GREET_SOUND: Readonly<Record<number, string>> = {
   1: "snd_quad",
@@ -335,7 +345,7 @@ export const SOUND_EFFECTS: SoundTable = {
         : { key: "snd_ring", volume: 0.5, delay: 0.35, gap: 0.01 },
   ],
   questDone: { key: "snd_win", volume: 0.7 },
-  // ---- 숨바꼭질 — 기획이 넘긴 소리(snd_box_…). 소리가 없는 순간(칙 헛손질·생물이 데려다줌·전설에 올라탐·휘파람·언박싱)은 있던 효과음을 빌려 쓴다 ----
+  // ---- 숨바꼭질 — 기획이 넘긴 소리(snd_box_…). 소리가 없는 순간(칙 헛손질·뛰어가기·생물 도움·전설에 칙·휘파람·언박싱)은 있던 효과음을 빌려 쓴다 ----
   hideStarted: { key: "snd_box_steps_a", volume: 0.7, rate: [0.95, 1.1] },
   hideChik: ({ sneezed }) =>
     sneezed ? null : { key: "snd_ring", volume: 0.16, rate: 0.55, gap: 0.2 },
@@ -355,8 +365,20 @@ export const SOUND_EFFECTS: SoundTable = {
     { key: "snd_box_giggle_a", volume: 0.5, gap: 0.5 },
     { key: "snd_box_giggle_b", volume: 0.6, gap: 0.5 },
   ),
-  hideGuideStarted: { key: "snd_quad", volume: 0.6, rate: 1.3 },
-  hideGuideArrived: { key: "snd_pick", volume: 0.5, rate: 1.4 },
+  hideBoxTapped: ({ far }) =>
+    far
+      ? { key: "snd_box_giggle_b", volume: 0.5, gap: 0.3 }
+      : { key: "snd_ring", volume: 0.4, rate: 1.4 },
+  hideLeapt: { key: "snd_boing", volume: 0.45, rate: 1.3 },
+  hideBoxSneaked: { key: "snd_box_steps_a", volume: 0.35, rate: [1.1, 1.3], gap: 0.9 },
+  hideDisguiseBlown: { key: "snd_box_giggle_a", volume: 0.55 },
+  hideHelpUsed: ({ kind }) => HIDE_HELP_SOUND[kind],
+  hideBoxAnswered: { key: "snd_box_giggle_b", volume: 0.35, rate: [1.2, 1.5], gap: 0.05 },
+  hideLegendHit: ({ hits }) => ({
+    key: "snd_whale",
+    volume: 0.45 + hits * 0.1,
+    rate: 0.9 + hits * 0.1,
+  }),
   hideLegendCame: { key: "snd_box_legend", volume: 0.7 },
   hideLegendBoarded: { key: "snd_legend", volume: 0.6 },
   hideBoxesWon: { key: "snd_box_steps_a", volume: 0.7, rate: 1.15 },

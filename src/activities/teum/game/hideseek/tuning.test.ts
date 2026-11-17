@@ -13,7 +13,7 @@ function edited(change: (copy: Record<string, unknown>) => void): unknown {
 describe("숨바꼭질 값 파일(hideseek.data.json)", () => {
   it("지금 파일 → 그대로 읽힌다", () => {
     expect(readTuning(data)).toEqual(HIDE);
-    expect(HIDE.spots).toHaveLength(8);
+    expect(HIDE.spots).toHaveLength(16);
     expect(HIDE.copy.hide).toBe("꼭꼭 숨어라");
   });
 
@@ -114,11 +114,11 @@ describe("숨바꼭질 값 파일(hideseek.data.json)", () => {
     expect(() => readTuning(bad)).toThrow("spots[0].side");
   });
 
-  it("생물이 데려다주는 시간·고양이가 냄새 맡는 거리가 차례대로가 아니면 → 멈춘다", () => {
+  it("뛰어가는 시간·고양이가 냄새 맡는 거리가 차례대로가 아니면 → 멈춘다", () => {
     const slow = edited((c) => {
-      (c.guide as Record<string, unknown>).minSeconds = 6;
+      (c.find as Record<string, unknown>).leapMin = 2;
     });
-    expect(() => readTuning(slow)).toThrow("guide: minSeconds 가 maxSeconds 보다 길다");
+    expect(() => readTuning(slow)).toThrow("find: leapMin 이 leapMax 보다 길다");
     const mixed = edited((c) => {
       (c.cat as Record<string, unknown>).near = 30;
     });
@@ -133,16 +133,54 @@ describe("숨바꼭질 값 파일(hideseek.data.json)", () => {
     expect(() => readTuning(bad)).toThrow("guests[0].row");
     const sky = edited((c) => {
       const guests = c.guests as Record<string, unknown>[];
-      guests[0] = { species: "c_wletter", count: 2, x: 40, y: -8, orbit: 6, alt: 3, row: true };
+      guests[0] = { species: "c_wletter", count: 2, orbit: 6, alt: 3, row: true };
     });
     expect(() => readTuning(sky)).toThrow("guests[0].row: 하늘 무리는 줄 서지 않는다");
   });
 
-  it("생물이 내려놓는 거리가 찾는 거리 안이면 → 멈춘다(데려다준 것이 찾은 것이 되면 안 된다)", () => {
-    const bad = edited((c) => {
-      (c.guide as Record<string, unknown>).stop = 4;
+  it("도움을 주는 무리가 종류마다 하나가 아니면 → 멈춘다", () => {
+    const twice = edited((c) => {
+      const guests = c.guests as Record<string, unknown>[];
+      guests[6] = { ...guests[6], help: "rabbit" };
     });
-    expect(() => readTuning(bad)).toThrow("guide.stop: find.reach 보다 커야 한다");
+    expect(() => readTuning(twice)).toThrow('도움 "rabbit" 를 주는 무리가 하나여야 한다(지금 2)');
+    const unknown = edited((c) => {
+      const guests = c.guests as Record<string, unknown>[];
+      guests[0] = { ...guests[0], help: "map" };
+    });
+    expect(() => readTuning(unknown)).toThrow("guests[0].help");
+  });
+
+  it("앉을 자리가 무리보다 적거나 무대 밖이면 → 멈춘다", () => {
+    const few = edited((c) => {
+      c.seats = (c.seats as unknown[]).slice(0, 3);
+    });
+    expect(() => readTuning(few)).toThrow("seats: 생물 무리(guests) 수보다 적다");
+    const far = edited((c) => {
+      const seats = c.seats as Record<string, unknown>[];
+      seats[0] = { x: 90, y: 0 };
+    });
+    expect(() => readTuning(far)).toThrow("seats[0]: 무대 반경");
+  });
+
+  it("묶음의 아닌 척 수가 틀리거나 첫 묶음에 내 줄에 끼기가 있으면 → 멈춘다", () => {
+    const many = edited((c) => {
+      c.rounds = [["wishtree", "glasses", "flowerpot", "pad-n"]];
+    });
+    expect(() => readTuning(many)).toThrow("rounds[0]: 아닌 척하기가 1개여야 한다");
+    const line = edited((c) => {
+      c.rounds = [["wishtree", "wishtree-fruit", "pad-n", "line"]];
+    });
+    expect(() => readTuning(line)).toThrow("rounds[0]: 첫 묶음에는 내 줄에 끼기를 쓰지 않는다");
+  });
+
+  it("가면이 섞여 들 무리가 땅 위 손님이 아니면 → 멈춘다", () => {
+    const bad = edited((c) => {
+      const list = c.disguises as Record<string, unknown>[];
+      const at = list.findIndex((d) => d.as === "mask");
+      list[at] = { ...list[at], group: "c_wletter" };
+    });
+    expect(() => readTuning(bad)).toThrow('"c_wletter" 는 guests 의 땅 위 무리가 아니다');
   });
 
   it("줄 선 상자의 배수가 1 을 넘거나 고양이 고개 폭이 0~90 도 밖이면 → 멈춘다", () => {
@@ -156,11 +194,13 @@ describe("숨바꼭질 값 파일(hideseek.data.json)", () => {
     expect(() => readTuning(wide)).toThrow("cat.wobble: 0~90 도여야 한다");
   });
 
-  it("이 조각의 값 → 칙 35m, 상자 키 2.5m, 구조는 40초 뒤 한 판에 두 번까지", () => {
-    expect(HIDE.chik.reach).toBe(35);
-    expect(HIDE.box.height).toBe(2.5);
-    expect(HIDE.stuck).toMatchObject({ rescueAfter: 40, rescueMax: 2 });
-    expect(HIDE.guide).toMatchObject({ stop: 8, minSeconds: 3, maxSeconds: 5 });
-    expect(HIDE.line).toMatchObject({ gap: 1.1, first: 1.4 });
+  it("이 조각의 값 → 톡 30m·넉넉한 자리, 상자는 화면에서 72px 밑으로 안 작아진다, 전설은 세 번", () => {
+    expect(HIDE.find).toMatchObject({ tapReach: 30, tapPad: 24, tapMin: 96, tapMove: 10 });
+    expect(HIDE.find).toMatchObject({ leapMin: 0.6, leapMax: 1 });
+    expect(HIDE.box).toMatchObject({ height: 2.5, minScreen: 72, maxGrow: 3, earScale: 2 });
+    expect(HIDE.legend).toMatchObject({ hits: 3, catchReach: 40 });
+    expect(HIDE.rabbit).toMatchObject({ stop: 20, trailSeconds: 12, waitGap: 25 });
+    expect(HIDE.mushroom).toMatchObject({ height: 18, hang: 3, tapReach: 60 });
+    expect(HIDE.sneak).toMatchObject({ firstRound: 1, later: 2, resumeAfter: 0.5, sweatAfter: 2 });
   });
 });

@@ -5,11 +5,12 @@ import { describe, expect, it } from "vitest";
 
 import { PRINTS, printKey } from "../game/avatar/outfit";
 import { AVATAR_BODY, AVATAR_COMPANION, PARTS, thumbKey } from "../game/avatar/parts";
+import { PROP_KEYS } from "../game/hideseek/disguise";
 import { LIMEBOX } from "../game/hideseek/limebox";
 import { MAPS } from "../game/maps";
 import { CATALOG, RETIRED } from "../tools/catalog.mjs";
 import { ASSET_VERSION } from "./config";
-import manifestJson from "./manifest.v6.json";
+import manifestJson from "./manifest.v7.json";
 import {
   BIG_FLOWERS,
   CREATURES,
@@ -87,6 +88,7 @@ function referencedKeys(): Set<string> {
     AVATAR_BODY,
     AVATAR_COMPANION,
     LIMEBOX,
+    ...Object.values(PROP_KEYS),
     ...Object.keys(PARTS),
     ...Object.keys(PARTS).map(thumbKey),
     ...PRINTS.map(printKey),

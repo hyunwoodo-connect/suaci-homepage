@@ -58,6 +58,8 @@ export interface Creature {
   calm: boolean;
   /** 줄지어 서 있다(숨바꼭질 판의 카드 병정 — 제자리를 지킨다) */
   inRow: boolean;
+  /** 숨바꼭질이 맡아 옮기는 동안 달리는 몸짓으로 그리나(아니면 제자리에 선 몸짓) */
+  isRunning: boolean;
   // ---- 하늘을 도는 셋 ----
   ctr: THREE.Vector3 | null;
   rad: number;

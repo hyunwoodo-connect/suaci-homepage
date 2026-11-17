@@ -103,9 +103,11 @@ export class Whale implements Thing, Holder {
   private visitTotal = VISIT_LEAD + VISIT_TAIL;
   private visitSpeed = VISIT_SPEED;
   private visitLift = VISIT_LIFT;
-  /** 전설의 손님 노릇 중(숨바꼭질): 닿으면(수평 이 거리 안) 바로 태우고, 끌어도 내리지 않는다 */
+  /** 전설의 손님 노릇 중(숨바꼭질): 닿으면(수평 이 거리 안 — 0 이면 닿아서는 안 태운다) 바로 태우고, 끌어도 내리지 않는다 */
   private parading = false;
   private paradeReach = 0;
+  /** 전설의 손님이 등을 내민다(숨바꼭질 — 칙을 다 맞혔다): 다음 프레임에 어디 있든 태운다 */
+  private isBoarding = false;
   /** 한 번이라도 움직였나(처음 프레임에는 고래 자리를 아직 모르는 것으로 쳐서 제 빠르기로 떠난다 — 시제품과 같은 첫 빠르기) */
   private moved = false;
 
@@ -209,10 +211,18 @@ export class Whale implements Thing, Holder {
     this.pathTo(this.v, to, seconds);
   }
 
+  /** 전설의 손님이 내려와 등을 내민다: 낮게 내려오며 나를 태운다(칙을 다 맞혔다) */
+  board(lift: number) {
+    if (!this.parading) return;
+    this.visitLift = lift;
+    this.isBoarding = true;
+  }
+
   /** 전설의 손님 노릇을 마친다: 태웠으면 살짝 띄워 내려 주고, 큰 바퀴로 돌아간다 */
   endParade() {
     if (!this.parading) return;
     this.parading = false;
+    this.isBoarding = false;
     if (this.on) {
       this.on = false;
       this.armed = false;
@@ -253,9 +263,9 @@ export class Whale implements Thing, Holder {
     const d = player.p.angleTo(this.v) * S.R;
     if (!this.armed && !this.on && (player.air < REARM_LANDED || d > REARM_AWAY)) this.armed = true;
     // 다른 놀이기구에 실려 가는 중에도 올라탈 수 있다(시제품). 회오리에 실려 있을 때만은 아니다
-    // 전설의 손님일 때는 닿기만 하면 태우되, 다른 것(길잡이 생물)이 나를 데려가는 중이면 기다린다
+    // 전설의 손님일 때는 닿아서는 안 태우고(숨바꼭질 — 칙을 다 맞히면 등을 내민다), 다른 것이 나를 붙잡고 있으면 기다린다
     const inReach = this.parading
-      ? d < this.paradeReach && !player.isHeld
+      ? (d < this.paradeReach || this.isBoarding) && !player.isHeld
       : this.armed && this.cool <= 0 && (player.air > 0.2 || d < PICK_GROUND) && d < PICK_REACH;
     if (
       !this.on &&
@@ -265,6 +275,7 @@ export class Whale implements Thing, Holder {
       player.grab(this)
     ) {
       this.on = true;
+      this.isBoarding = false;
       this.t = 0;
       if (!this.parading) hud.say("고래 등 — 끌면 내립니다");
     }

@@ -1,5 +1,5 @@
 import type { FoundHow } from "./hideseek/stats";
-import type { Content } from "./hideseek/tuning";
+import type { Content, HelpKind } from "./hideseek/tuning";
 import type { BoxSource, Prize, QuestType } from "./progress/save";
 
 // 게임에서 일어나는 일을 알리는 작은 알림판. 놀이기구·생물·만남이 알리기만 하고, 소리(sound/)가 듣는다.
@@ -18,7 +18,7 @@ export type RideName =
   | "whale"
   | "comet"
   | "slide"
-  | "guide";
+  | "leap";
 
 /** 알리는 일과 그때 함께 오는 값 */
 export interface GameEventMap {
@@ -81,9 +81,17 @@ export interface GameEventMap {
   hideChik: { sneezed: number };
   /** 숨은 상자가 재채기했다 */
   hideBoxSneezed: Record<string, never>;
-  /** 높이 숨은 상자가 칙에 맞아 굴러떨어진다 */
+  /** 높이 숨은 상자를 찾아 굴러떨어진다 */
   hideBoxDropped: Record<string, never>;
-  /** 상자를 찾았다(count: 찾은 수, how: 닿아서·떨어뜨려서·전설이 데려다줘서) */
+  /** 상자를 톡 쳤다: 미스트가 날아간다(far: 너무 멀어 힘없이 떨어진다 — 상자는 메롱) */
+  hideBoxTapped: { far: boolean };
+  /** 아바타가 상자까지 뛰어간다 */
+  hideLeapt: Record<string, never>;
+  /** 숨은 상자가 내가 안 볼 때 살금살금 움직였다 */
+  hideBoxSneaked: Record<string, never>;
+  /** 아닌 척하던 상자가 들통났다 */
+  hideDisguiseBlown: Record<string, never>;
+  /** 상자를 찾았다(count: 찾은 수, how: 톡 쳐서·전설이 데려다줘서) */
   hideBoxFound: { count: number; how: FoundHow };
   /** 숨은 상자가 '휴' 했다(내가 못 보고 지나쳤다) */
   hideBoxSighed: Record<string, never>;
@@ -91,11 +99,12 @@ export interface GameEventMap {
   hideBoxGiggled: Record<string, never>;
   /** 넷을 다 찾았다(칸 넷이 번쩍인다) */
   hideAllFound: Record<string, never>;
-  /** 생물이 "상자 봤어! 따라와!" 하고 나를 데려가기 시작했다 · 상자 앞에 내려놓았다 */
-  hideGuideStarted: Record<string, never>;
-  hideGuideArrived: Record<string, never>;
-  /** 전설의 생물이 판 위에 나타났다 · 나를 태웠다 */
+  /** 생물을 눌러 도움을 받았다(kind: 길·높이·투시·점호·미끼·시간) · 숨은 상자가 점호에 번호를 댔다 */
+  hideHelpUsed: { kind: HelpKind };
+  hideBoxAnswered: Record<string, never>;
+  /** 전설의 생물이 판 위에 나타났다 · 칙에 맞았다(hits: 맞은 수) · 나를 태웠다 */
   hideLegendCame: Record<string, never>;
+  hideLegendHit: { hits: number };
   hideLegendBoarded: Record<string, never>;
   /** 해가 져서 남은 상자들이 튀어나와 이겼다고 뛴다 */
   hideBoxesWon: Record<string, never>;

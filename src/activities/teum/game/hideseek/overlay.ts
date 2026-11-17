@@ -27,8 +27,12 @@ const CELL = 40,
 const SLOTS_TOP = 56,
   HINT_TOP = 108,
   BIG_TOP = 232;
-/** 동시에 뜨는 말풍선 수 */
-const BUBBLES = 4;
+/** 동시에 뜨는 말풍선 수(점호에 넷이 같이 대답한다) · 먼지 퐁퐁 수·떠 있는 시간(초) */
+const BUBBLES = 8,
+  PUFFS = 4,
+  PUFF_TIME = 0.8;
+// 누르기 안내 손가락(먹색 선, 흰 바탕)
+const FINGER_ICON = `<svg width="44" height="44" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10m0-.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15c0 3.3-2.2 6-5.5 6-2.4 0-3.8-1-5.2-3L5.2 15c-.8-1.3.9-2.6 2-1.5L9 15" fill="#fff" stroke="${INK}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 
 // 칸에 들어가는 상자 그림(먹색 선 — 리본과 귀)
 const BOX_ICON = `<svg width="${ICON}" height="${ICON}" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="9.5" width="16" height="10.5" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 9.5v10.5M4 13.5h16M12 9.5c-2-4.5-6.5-4.5-6.5-1.5S10 9.5 12 9.5c2 0 6.5 1.5 6.5-1.5S14 5 12 9.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`;
@@ -59,6 +63,9 @@ export class HideOverlay {
   private readonly catMark: HTMLDivElement;
   private catWhere: ((out: THREE.Vector3) => void) | null = null;
   private readonly bubbles: Bubble[] = [];
+  private readonly puffs: Bubble[] = [];
+  private readonly pointer: HTMLDivElement;
+  private pointerWhere: ((out: THREE.Vector3) => void) | null = null;
   private onOpen: () => void = () => {};
   private onAgain: () => void = () => {};
   private endingAway = false;
@@ -203,6 +210,21 @@ export class HideOverlay {
       this.bubbles.push(bubble);
       parent.append(el);
     }
+    for (let i = 0; i < PUFFS; i++) {
+      const el = puffElement();
+      const puff: Bubble = { el, where: null, left: 0 };
+      this.puffs.push(puff);
+      parent.append(el);
+    }
+    this.pointer = styledBox({
+      position: "fixed",
+      display: "none",
+      zIndex: "3",
+      pointerEvents: "none",
+      transform: "translate(-30%, 10%)",
+    });
+    this.pointer.innerHTML = FINGER_ICON;
+    parent.append(this.pointer);
     parent.append(this.slots, this.hint, this.big, this.ending, this.catMark);
     parent.append(this.stats, this.stamp, ...this.lids);
     this.resetSlots();
@@ -319,6 +341,27 @@ export class HideOverlay {
     pop(free.el, 1.2);
   }
 
+  /** 화면 밖에서 무언가 지나갔다: where 쪽 화면 가장자리에 먼지가 퐁 오른다 */
+  puff(where: (out: THREE.Vector3) => void) {
+    const free = this.puffs.find((b) => b.left <= 0) ?? this.puffs[0];
+    free.where = where;
+    free.left = PUFF_TIME;
+    pop(free.el, 1.4);
+  }
+
+  /** 누르기 안내 손가락: where 위에서 톡톡(null 이면 숨긴다) */
+  setPointer(where: ((out: THREE.Vector3) => void) | null) {
+    const isNew = where !== null && this.pointerWhere === null;
+    this.pointerWhere = where;
+    if (!where) this.pointer.style.display = "none";
+    if (!isNew || typeof this.pointer.animate !== "function") return;
+    for (const a of this.pointer.getAnimations?.() ?? []) a.cancel();
+    this.pointer.animate([{ marginTop: "0px" }, { marginTop: "10px" }, { marginTop: "0px" }], {
+      duration: 700,
+      iterations: Infinity,
+    });
+  }
+
   /** 화면이 살짝 흔들린다(금색 상자가 쿵) */
   shake() {
     const canvas = this.parent.querySelector("canvas");
@@ -351,6 +394,18 @@ export class HideOverlay {
       const isLive = b.left > 0;
       pin(b.el, at, camera, isLive, true);
     }
+    for (const b of this.puffs) {
+      if (b.left <= 0 || !b.where) continue;
+      b.left -= dt;
+      b.where(at);
+      const isLive = b.left > 0;
+      pin(b.el, at, camera, isLive, true);
+      b.el.style.opacity = `${Math.max(0, b.left / PUFF_TIME)}`;
+    }
+    if (this.pointerWhere) {
+      this.pointerWhere(at);
+      pin(this.pointer, at, camera, true, false);
+    }
     if (!this.catWhere) return;
     this.catWhere(at);
     pin(this.catMark, at, camera, true, false);
@@ -364,7 +419,8 @@ export class HideOverlay {
   }
 
   dispose() {
-    for (const b of this.bubbles) b.el.remove();
+    for (const b of [...this.bubbles, ...this.puffs]) b.el.remove();
+    this.pointer.remove();
     const own = [this.slots, this.hint, this.big, this.ending, this.catMark, this.stats];
     for (const el of [...own, this.stamp, ...this.lids]) el.remove();
   }
@@ -441,6 +497,23 @@ function bubbleElement(): HTMLDivElement {
     transform: "rotate(45deg)",
   });
   el.append(label, tail);
+  return el;
+}
+
+// 먼지 퐁(화면 밖에서 무언가 지나갔다): 흰 구름 세 덩이
+function puffElement(): HTMLDivElement {
+  const el = styledBox({
+    position: "fixed",
+    width: "34px",
+    height: "22px",
+    transform: "translate(-50%, -50%)",
+    background:
+      "radial-gradient(circle at 25% 65%, #fff 0 30%, transparent 32%), radial-gradient(circle at 55% 40%, #fff 0 36%, transparent 38%), radial-gradient(circle at 80% 68%, #fff 0 28%, transparent 30%)",
+    filter: "drop-shadow(0 1px 2px rgba(20,20,20,.45))",
+    display: "none",
+    zIndex: "3",
+    pointerEvents: "none",
+  });
   return el;
 }
 

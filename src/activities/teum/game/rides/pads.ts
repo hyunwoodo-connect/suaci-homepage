@@ -5,6 +5,7 @@ import type { Frame, Thing } from "../core/frame";
 import type { Echoing, Tap, Tappable } from "../core/tap";
 import { ECHO_REACH, echoTime } from "../core/tap";
 import { LOOK } from "../look";
+import { seeThrough } from "../models/shader";
 import type { LayoutHop } from "../maps/layout";
 import type { Services } from "../services";
 import { S } from "../settings";
@@ -61,6 +62,8 @@ export class Pads implements Thing, Tappable, Echoing {
       emissive: 0xffffff,
       emissiveIntensity: 0.12,
     });
+    // 숨바꼭질 열쇠의 투시에 같이 비친다(구름 뒤에 숨은 상자가 보이게)
+    seeThrough(this.mat, s.mats.lookU);
     for (const { dist, bear } of s.layout.pad) {
       const pad = newPad({ dist, bear });
       this.list.push(pad);

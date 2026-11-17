@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 import { HOME_BEAR, HOME_DIST } from "../player/player";
 import { offsetInto } from "../world/sphere";
-import type { HideSpot } from "./tuning";
+import type { BehindSpot, HideSpot, HighSpot } from "./tuning";
 import { HIDE } from "./tuning";
 
 // 숨바꼭질의 숨는 자리: 광장(자리표 마을 0 — 소원 나무가 선 출발 마을) 중심에서 반경 70m(stage.radius) 안을 지도에서 손으로 골랐다. 값은 hideseek.data.json 의 spots·rounds.
@@ -59,7 +59,7 @@ export function startPoint(): { x: number; y: number } {
  * (share 를 안 주면 box.showShare — 첫 판의 '제일 못 숨은 놈'만 더 많이 내놓는다).
  * 높이 숨기는 가운데에서 출발 쪽으로 edge 만큼 나앉는다. 상자는 출발 쪽을 본다
  */
-export function placeOf(spot: HideSpot, share = HIDE.box.showShare): SpotPlace {
+export function placeOf(spot: BehindSpot | HighSpot, share = HIDE.box.showShare): SpotPlace {
   const s = startPoint();
   const dx = spot.x - s.x,
     dy = spot.y - s.y,

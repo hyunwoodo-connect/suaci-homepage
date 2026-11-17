@@ -7,10 +7,11 @@ import type { HideOverlay } from "./overlay";
 import { LIDS_MOVE } from "./overlay";
 import type { Seeker } from "./seeker";
 import { resetSeeker } from "./seeker";
+import type { SpotPlace } from "./spots";
 import { placeOf, sphereAt } from "./spots";
 import type { Timeline } from "./timeline";
-import type { HideSpot } from "./tuning";
-import { HIDE } from "./tuning";
+import type { BehindSpot, HideSpot, HighSpot } from "./tuning";
+import { HIDE, PLACED_DISGUISES } from "./tuning";
 
 // '꼭꼭 숨어라': 상자 넷이 내 앞에 한 줄로 서서 차례로 폴짝 → 큰 글자 → 깜짝 놀라 우왕좌왕(하나는 넘어지고 하나는 버둥) →
 // 제각각 숨을 곳 쪽으로 종종걸음(발밑 먼지) → 눈꺼풀이 감긴 동안 숨는 자리에 든다 → 눈을 뜬다. 찾기는 판이 시작한다.
@@ -28,6 +29,8 @@ const WAVE_GAP = 0.1,
   FLUSTER_SPEED = 3.5,
   SCATTER_SPEED = 13,
   FLUSTER_FLAIL = 0.3;
+/** 자리가 판이 도는 동안 정해지는 아닌 척(내 줄·고양이·병정·가면)은 출발 자리 뒤로 이만큼(m) 달려가 화면 밖으로 사라진다 */
+const RUN_OFF = 40;
 /** 발밑 먼지: 간격(초)·크기(m)·남는 시간(초) */
 const DUST_EVERY = 0.12,
   DUST_SIZE = 0.55,
@@ -40,6 +43,8 @@ const at = new THREE.Vector3(),
 
 /** 숨는 장면 */
 export class HidingScene {
+  /** 무대 마을 중심(start 가 받는다) */
+  private readonly hub = new THREE.Vector3();
   /** 이번 판이 첫 판인가(start 가 받는다 — 장면의 시각과 '제일 못 숨은 놈'이 달라진다) */
   private first = false;
   /** 우왕좌왕하는 중 · 흩어져 달려가는 중, 다음 먼지까지(초) */
@@ -62,6 +67,7 @@ export class HidingScene {
       o = this.overlay,
       tl = this.timeline;
     this.first = first;
+    this.hub.copy(hub);
     this.flustering = this.scurrying = false;
     const p = player.p as THREE.Vector3,
       h = player.h as THREE.Vector3;
@@ -69,8 +75,9 @@ export class HidingScene {
     const back = tmp.copy(h).negate();
     this.seekers.forEach((k, i) => {
       resetSeeker(k, spots[i]);
-      const place = this.placeFor(k, i);
-      sphereAt(k.to, hub, place.x, place.y);
+      this.runTarget(k, i, k.to);
+      k.box.visible = true;
+      k.box.setLongEars(true);
       const across = (i - 1.5) * T.lineGap;
       const aheadArc = T.lineAhead / S.R,
         acrossArc = across / S.R;
@@ -91,7 +98,7 @@ export class HidingScene {
     tl.after(closeAt, () => o.setLids(true));
     tl.after(closeAt + LIDS_MOVE, () => {
       this.scurrying = false;
-      this.hideAll(hub);
+      this.hideAll();
       cues.settled();
     });
     tl.after(openAt, () => o.setLids(false));
@@ -167,34 +174,71 @@ export class HidingScene {
     this.s.events.emit("hideStarted", {});
   }
 
-  // 숨는 자리: 첫 판의 첫 상자만 '제일 못 숨은 놈' — 리본과 귀를 다 내놓는다
-  private placeFor(k: Seeker, i: number) {
-    const isWorst = this.first && i === 0;
-    return isWorst ? placeOf(k.spot, HIDE.start.firstShowShare) : placeOf(k.spot);
+  // 흩어져 달려갈 곳: 숨는 자리 · 놓을 자리가 정해진 아닌 척은 그 자리 · 나머지(내 줄·고양이·병정·가면)는 출발 자리 뒤쪽 멀리(화면 밖으로)
+  private runTarget(k: Seeker, i: number, out: THREE.Vector3) {
+    const spot = k.spot;
+    if (spot.kind !== "disguise") {
+      const place = this.placeFor(spot, i);
+      sphereAt(out, this.hub, place.x, place.y);
+      return;
+    }
+    if (PLACED_DISGUISES.includes(spot.as)) {
+      sphereAt(out, this.hub, spot.x, spot.y);
+      return;
+    }
+    const player = this.s.player,
+      back = -RUN_OFF / S.R;
+    out.copy(player.p).addScaledVector(player.h, back).normalize();
   }
 
-  // 숨는 자리에 든다: 뒤에 숨기는 가린 것 뒤에 비켜서고, 높이 숨기는 올라앉거나 매달린다. 모두 출발 쪽을 본다.
-  // 달리다 만 놈도 여기서 멈춘다(해가 진 뒤 몰려올 때까지 서 있는다)
-  private hideAll(hub: THREE.Vector3) {
-    const terrain = this.s.terrain;
+  // 숨는 자리: 첫 판의 첫 상자만 '제일 못 숨은 놈' — 리본과 귀를 다 내놓는다
+  private placeFor(spot: BehindSpot | HighSpot, i: number) {
+    const isWorst = this.first && i === 0;
+    return isWorst ? placeOf(spot, HIDE.start.firstShowShare) : placeOf(spot);
+  }
+
+  // 숨는 자리에 든다(아닌 척은 판이 따로 둔다)
+  private hideAll() {
     this.seekers.forEach((k, i) => {
-      const place = this.placeFor(k, i);
-      sphereAt(at, hub, place.x, place.y);
-      const faceX = place.x + place.faceX,
-        faceY = place.y + place.faceY;
-      const facePoint = sphereAt(tmp, hub, faceX, faceY).sub(at);
-      const ground = terrain.groundAt(at);
-      const base = place.top === null ? ground : ground + place.top;
-      k.speed = 0;
-      k.box.put(at, base, facePoint);
-      if (place.peekX || place.peekY) {
-        const peekX = place.x + place.peekX,
-          peekY = place.y + place.peekY;
-        const peekPoint = sphereAt(ahead, hub, peekX, peekY).sub(at);
-        const radial = peekPoint.dot(at);
-        peekPoint.addScaledVector(at, -radial).normalize();
-        k.box.setPeek(peekPoint);
-      } else k.box.setPeek(null);
+      if (k.spot.kind === "disguise") return;
+      const place = this.placeFor(k.spot, i);
+      this.putAt(k, place);
     });
+  }
+
+  /** k 를 숨는 자리 spot 에 숨긴다(자리를 옮긴 상자 — 안 볼 때 움직인다) */
+  placeAt(k: Seeker, spot: BehindSpot | HighSpot) {
+    const place = placeOf(spot);
+    this.putAt(k, place);
+  }
+
+  /** 숨는 자리 spot 에 숨은 상자가 서는 땅 위 자리(단위 벡터) */
+  groundOf(spot: BehindSpot | HighSpot): THREE.Vector3 {
+    const place = placeOf(spot);
+    const out = new THREE.Vector3();
+    return sphereAt(out, this.hub, place.x, place.y);
+  }
+
+  // 그 자리에 놓는다: 뒤에 숨기는 가린 것 뒤에 비켜서고, 높이 숨기는 올라앉거나 매달린다. 모두 출발 쪽을 본다.
+  // 달리다 만 놈도 여기서 멈춘다(해가 진 뒤 몰려올 때까지 서 있는다)
+  private putAt(k: Seeker, place: SpotPlace) {
+    const terrain = this.s.terrain,
+      hub = this.hub;
+    sphereAt(at, hub, place.x, place.y);
+    const faceX = place.x + place.faceX,
+      faceY = place.y + place.faceY;
+    const facePoint = sphereAt(tmp, hub, faceX, faceY).sub(at);
+    const ground = terrain.groundAt(at);
+    const base = place.top === null ? ground : ground + place.top;
+    k.speed = 0;
+    k.box.put(at, base, facePoint);
+    if (place.peekX || place.peekY) {
+      const peekX = place.x + place.peekX,
+        peekY = place.y + place.peekY;
+      const peekPoint = sphereAt(ahead, hub, peekX, peekY).sub(at);
+      const radial = peekPoint.dot(at);
+      peekPoint.addScaledVector(at, -radial).normalize();
+      k.box.setPeek(peekPoint);
+    } else k.box.setPeek(null);
   }
 }

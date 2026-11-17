@@ -78,6 +78,9 @@ export interface LookUniforms {
   regionHub: { value: THREE.Vector3[] };
   regionHue: { value: number[] };
   regionEdge: { value: THREE.Vector2 };
+  /** 투시(숨바꼭질의 열쇠): 이 둘레(xyz 세계 자리, w 반지름 m — 0 이면 끔) 안의 물건이 uXrayA 몫만 남기고 비친다(윤곽은 남긴다) */
+  xray: { value: THREE.Vector4 };
+  xrayAlpha: { value: number };
   /** 아바타 옷(몸 재질만 쓴다) */
   outfit: OutfitUniforms;
 }
@@ -111,6 +114,8 @@ export class Mats {
     regionHub: { value: [] },
     regionHue: { value: [] },
     regionEdge: { value: new THREE.Vector2(0.78, 0.12) },
+    xray: { value: new THREE.Vector4() },
+    xrayAlpha: { value: 1 },
     outfit: blankOutfit(),
   };
 
