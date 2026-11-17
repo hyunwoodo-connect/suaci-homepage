@@ -6,6 +6,7 @@ import type { CatLink } from "./coach";
 import type { HideOverlay } from "./overlay";
 import type { LineTrail } from "./line";
 import type { Seeker } from "./seeker";
+import { overBox } from "./seeker";
 import { sphereAt, startPoint } from "./spots";
 import type { DisguiseKind } from "./tuning";
 import { HIDE } from "./tuning";
@@ -16,6 +17,8 @@ import { HIDE } from "./tuning";
 //   고양이 뒤에 숨기 — 내 옆 고양이 뒤에 웅크리고 따라온다. 고양이보다 세 배 크다
 //   조각상인 척 — 받침대 위에서 포즈를 잡고 굳어 있다. 안 보면 포즈를 바꾸고, 오래 보면 부들부들
 //   변장 안경·화분의 꽃·선물 더미·가면 — 소품(assets)을 입는다. 소품 모델이 없으면 맨몸으로 그 자리에 선다
+//   풍선인 척 — 풍선 다발 사이에 떠서 같이 둥둥. 혼자 네모나고 가끔 움찔한다(광장 70m 안에 풍선 다발이 없어 다발을 같이 놓는다)
+//   케이크 장식인 척 — 케이크 꼭대기에 체리처럼. 케이크보다 너무 크고, 가끔 미끄러져 떨어졌다가 다시 기어오른다(케이크도 같이 놓는다)
 // 아닌 척하는 상자는 움직이지 않는다(컵케이크 냄새에는 끌려간다). 빈 데를 친 칙에는 움찔만 한다
 
 /** 소품 모델 키(분류표 hideseek): 안경 · 화분 · 선물 더미 · 토끼 가면 */
@@ -45,6 +48,20 @@ const PEDESTAL_H = 1.2,
   WHISTLE_EVERY = 3,
   POSE_EVERY = 1.6,
   WADDLE_FOR = 0.45;
+/** 풍선 다발: 풍선 수·반지름(m)·떠 있는 높이(m, 땅에서)·퍼진 폭(m)·색(라임은 상자의 것이라 뺀다) · 상자가 떠 있는 높이(m)·오르내림(m) */
+const BALLOONS = 5,
+  BALLOON_R = 1.1,
+  BALLOON_UP = 6.2,
+  BALLOON_SPREAD = 1.9,
+  BALLOON_COLORS = [0xff8fc6, 0x8fd3ff, 0xffe066, 0xc6a2ff, 0xffb38a],
+  FLOAT_AT = 4.4,
+  FLOAT_BOB = 0.35;
+/** 케이크: 너비(m — 상자보다 작게, 그래서 상자가 너무 크다) · 미끄러지는 간격(초) · 바닥에 있다가 다시 오르기까지(초) · 미끄러지는 거리(m) */
+const CAKE_KEY = "d_cake",
+  CAKE_W = 3,
+  SLIP_EVERY = 6,
+  SLIP_REST = 0.9,
+  SLIP_SIDE = 1.4;
 /** 줄 끝에 붙는 빠르기(거리의 몇 배 m/s, 가장 빠르게) · 서 있다 다시 걷는 거리(m) */
 const LINE_CHASE = 9,
   LINE_MAX = 26,
@@ -68,8 +85,13 @@ interface Entry {
   /** 내 줄에 끼기: 붙었나 · 다음 휘파람까지(초) */
   hasJoined: boolean;
   whistleT: number;
-  /** 다음 몸짓까지(초 — 조각상 포즈·병정 뒤뚱) · 뒤뚱거리는 남은 시간(초) · 화면 밖에 나간 지·화면에 잡혀 있은 지(초) */
+  /** 다음 몸짓까지(초 — 조각상 포즈·병정 뒤뚱·풍선 움찔·케이크 미끄럼) · 뒤뚱거리는 남은 시간(초) · 화면 밖에 나간 지·화면에 잡혀 있은 지(초) */
   poseT: number;
+  /** 제자리 높이(m, 땅에서 — 풍선 다발 속·케이크 꼭대기)와 그 자리(케이크에서 미끄러졌다 돌아올 곳) */
+  rest: number;
+  readonly home: THREE.Vector3;
+  /** 케이크: 미끄러져 바닥에 있은 지(초, 꼭대기에 있으면 -1) */
+  slipT: number;
   stepLeft: number;
   unseenT: number;
   watchT: number;
@@ -81,6 +103,9 @@ export class Disguises {
   /** 입힌 소품(종류마다 하나를 만들어 판마다 다시 쓴다) */
   private readonly props = new Map<DisguiseKind, THREE.Object3D>();
   private readonly pedestal: THREE.Mesh<THREE.CylinderGeometry, THREE.MeshStandardMaterial>;
+  /** 풍선 다발(풍선인 척)과 케이크(케이크 장식인 척) — 광장에 없어 같이 놓는다 */
+  private readonly bundle: THREE.Group;
+  private cake: THREE.Object3D | null = null;
   private time = 0;
 
   constructor(
@@ -95,8 +120,12 @@ export class Disguises {
     this.pedestal = new THREE.Mesh(geo, mat);
     this.pedestal.visible = false;
     s.scene.add(this.pedestal);
-    // 소품은 처음 화면에 없어 저절로 받지 않는다 — 판이 시작되기 전에 받아 둔다
+    this.bundle = balloonBundle();
+    this.bundle.visible = false;
+    s.scene.add(this.bundle);
+    // 소품과 케이크는 처음 화면에 없어 저절로 받지 않는다 — 판이 시작되기 전에 받아 둔다
     for (const key of Object.values(PROP_KEYS)) s.models.need(key);
+    s.models.need(CAKE_KEY);
   }
 
   /** 아닌 척하던 상자인가(들통난 뒤에도 그 판 동안은 — 잰 값에 남긴다) */
@@ -149,6 +178,9 @@ export class Disguises {
         stepLeft: 0,
         unseenT: 0,
         watchT: 0,
+        rest: 0,
+        home: new THREE.Vector3(),
+        slipT: -1,
       };
       this.entries.push(e);
       const b = k.box,
@@ -177,11 +209,12 @@ export class Disguises {
       if (spot.as === "mask") this.maskSpot(spot.group ?? "", hub, at);
       else sphereAt(at, hub, spot.x, spot.y);
       const ground = terrain.groundAt(at),
-        lift = spot.as === "statue" ? PEDESTAL_H : 0,
+        lift = this.standOn(spot.as, at, ground),
         base = ground + lift;
       face.sub(at);
       b.put(at, base, face);
-      if (spot.as === "statue") this.raisePedestal(at, ground);
+      e.rest = lift;
+      e.home.copy(at);
       e.prop = this.dress(spot.as);
       b.wear(e.prop);
     }
@@ -196,6 +229,8 @@ export class Disguises {
       else if (e.as === "cat") this.followCat(e);
       else if (e.as === "statue") this.pose(e, dt);
       else if (e.as === "soldier") this.waddle(e, dt);
+      else if (e.as === "balloon") this.float(e, dt);
+      else if (e.as === "cake") this.slip(e, dt);
     }
   }
 
@@ -215,17 +250,101 @@ export class Disguises {
     for (const e of this.entries) e.k.box.wear(null);
   }
 
-  /** 거둔다(새 판): 소품을 벗기고 받침대를 치운다 */
+  /** 거둔다(새 판): 소품을 벗기고 받침대·풍선 다발·케이크를 치운다 */
   clear() {
     this.undress();
     this.entries = [];
     this.pedestal.visible = false;
+    this.bundle.visible = false;
+    if (this.cake) this.cake.visible = false;
   }
 
   dispose() {
     this.pedestal.removeFromParent();
     this.pedestal.geometry.dispose();
     this.pedestal.material.dispose();
+    this.bundle.removeFromParent();
+    this.bundle.traverse((o) => {
+      if (!(o instanceof THREE.Mesh)) return;
+      o.geometry.dispose();
+      o.material.dispose();
+    });
+    this.cake?.removeFromParent();
+  }
+
+  /* ─── 내부: 풍선 다발·케이크 ─────────────────────────── */
+
+  // 서는 자리의 높이(땅에서 m): 조각상은 받침대 위, 풍선은 다발 속, 케이크는 꼭대기. 받침대·다발·케이크를 그 자리에 놓는다
+  private standOn(as: DisguiseKind, v: THREE.Vector3, ground: number): number {
+    if (as === "statue") {
+      this.raisePedestal(v, ground);
+      return PEDESTAL_H;
+    }
+    if (as === "balloon") {
+      this.raiseBalloons(v, ground);
+      return FLOAT_AT;
+    }
+    if (as === "cake") return this.setCake(v, ground);
+    return 0;
+  }
+
+  // 풍선 다발을 v(단위 벡터) 땅 위에 세운다(끈은 땅에 묶였다)
+  private raiseBalloons(v: THREE.Vector3, ground: number) {
+    const g = this.bundle,
+      foot = S.R + ground;
+    g.position.copy(v).multiplyScalar(foot);
+    g.quaternion.setFromUnitVectors(UP, v);
+    g.visible = true;
+  }
+
+  // 케이크를 v 땅 위에 놓고 꼭대기 높이(m)를 돌려준다. 모델이 아직 없으면 땅(0)
+  private setCake(v: THREE.Vector3, ground: number): number {
+    if (!this.cake && this.s.models.has(CAKE_KEY))
+      this.cake = this.s.models.fit(CAKE_KEY, CAKE_W, "w");
+    const c = this.cake;
+    if (!c) return 0;
+    if (!c.parent) this.s.scene.add(c);
+    const half = c.userData.hh as number,
+      mid = S.R + ground + half;
+    c.position.copy(v).multiplyScalar(mid);
+    c.quaternion.setFromUnitVectors(UP, v);
+    c.visible = true;
+    return half * 2;
+  }
+
+  // 풍선인 척: 다발과 같이 둥둥, 가끔 혼자 움찔
+  private float(e: Entry, dt: number) {
+    const b = e.k.box,
+      phase = this.time * 1.3,
+      bob = Math.sin(phase) * FLOAT_BOB,
+      ground = this.s.terrain.groundAt(b.v);
+    b.a = ground + e.rest + bob;
+    e.poseT -= dt;
+    if (e.poseT > 0) return;
+    e.poseT = POSE_EVERY * 1.6;
+    b.flinch();
+  }
+
+  // 케이크 장식인 척: 가끔 미끄러져 떨어졌다가(굴러떨어지기) 바닥에서 잠깐 뒤 다시 꼭대기로 기어오른다
+  private slip(e: Entry, dt: number) {
+    const b = e.k.box,
+      ground = this.s.terrain.groundAt(e.home);
+    if (e.slipT >= 0) {
+      if (b.isTumbling) return;
+      e.slipT += dt;
+      if (e.slipT < SLIP_REST) return;
+      e.slipT = -1;
+      face.copy(this.s.player.p).sub(e.home);
+      const top = ground + e.rest;
+      b.put(e.home, top, face);
+      b.hop(1.2);
+      return;
+    }
+    e.poseT -= dt;
+    if (e.poseT > 0 || e.rest <= 0) return;
+    e.poseT = SLIP_EVERY;
+    e.slipT = 0;
+    b.tumbleTo(ground, SLIP_SIDE);
   }
 
   /* ─── 내부 ─────────────────────────── */
@@ -405,8 +524,34 @@ export class Disguises {
 
 /* ─── 내부 ─────────────────────────── */
 
-// 말풍선 자리: 상자 위
-function overBox(k: Seeker, out: THREE.Vector3) {
-  const lift = k.box.hh * k.box.size + 0.5;
-  k.box.center(out).addScaledVector(k.box.v, lift);
+// 풍선 다발: 땅에 묶인 끈 다섯에 풍선 다섯(파스텔, 라임은 뺀다) — 원점이 끈을 묶은 땅, 위가 +y
+function balloonBundle(): THREE.Group {
+  const g = new THREE.Group(),
+    ball = new THREE.SphereGeometry(BALLOON_R, 18, 12);
+  for (let i = 0; i < BALLOONS; i++) {
+    const turn = (i / BALLOONS) * Math.PI * 2,
+      x = Math.cos(turn) * BALLOON_SPREAD,
+      z = Math.sin(turn) * BALLOON_SPREAD,
+      y = BALLOON_UP + (i % 2) * 0.9,
+      color = BALLOON_COLORS[i % BALLOON_COLORS.length];
+    // 풍선마다 제 기하를 가져 치울 때 한 번씩만 치운다
+    const geo = i === 0 ? ball : ball.clone(),
+      mat = new THREE.MeshStandardMaterial({ color, roughness: 0.35 }),
+      b = new THREE.Mesh(geo, mat);
+    b.position.set(x, y, z);
+    b.scale.set(1, 1.18, 1);
+    const len = Math.hypot(x, y, z),
+      str = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.03, 0.03, len, 5),
+        new THREE.MeshStandardMaterial({ color: 0xffffff }),
+      );
+    const hx = x / 2,
+      hy = y / 2,
+      hz = z / 2;
+    str.position.set(hx, hy, hz);
+    tmp.set(x, y, z).normalize();
+    str.quaternion.setFromUnitVectors(UP, tmp);
+    g.add(b, str);
+  }
+  return g;
 }

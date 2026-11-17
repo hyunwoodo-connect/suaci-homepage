@@ -89,10 +89,11 @@ export class Input {
       if (e.pointerId !== this.id) return;
       const now = performance.now(),
         held = now - this.t0;
+      // 끌기가 막 끝난 톡이면 끝난 때를 먼저 적는다(끌다 나간 칙을 셀 때 이번 끌기와 비교하게)
+      if (this.drag) this.dragEndAt = now;
       // 끌기가 막 시작됐어도(DRAG_PX 넘게) tap.movePx 안이면 톡이다 — 끌다가 손가락 밑으로 지나간 것은 톡이 아니다
       const isTap = held <= tap.ms && this.moved <= tap.movePx;
       if (isTap) onTap(e.clientX, e.clientY);
-      if (this.drag) this.dragEndAt = now;
       this.id = null;
       this.drag = false;
       this.dm = 0;

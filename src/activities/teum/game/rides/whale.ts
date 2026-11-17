@@ -15,6 +15,8 @@ import type { HasHeights, Height } from "../world/tall";
 // 숨바꼭질이 정한 곳까지 태워 간다(carryTo). 다 하면 큰 바퀴로 돌아간다
 
 /** 한 바퀴의 길이(자리표 거리 — 행성 둘레)와 빠르기(자리표 거리/초) */
+const spinQ = new THREE.Quaternion(),
+  Y_AXIS = new THREE.Vector3(0, 1, 0);
 const LAP = 1485.2,
   SPEED = 6.8;
 /** 출발 마을에서 조금 떨어진 곳에서 떠난다(바퀴의 몫) */
@@ -103,6 +105,9 @@ export class Whale implements Thing, Holder {
   private visitTotal = VISIT_LEAD + VISIT_TAIL;
   private visitSpeed = VISIT_SPEED;
   private visitLift = VISIT_LIFT;
+  /** 제자리에서 한 바퀴 도는 중(숨바꼭질 전설이 크게 울 때): 흐른 시간과 다 도는 시간(초, 안 돌면 -1) */
+  private spinT = -1;
+  private spinFor = 1;
   /** 전설의 손님 노릇 중(숨바꼭질): 닿으면(수평 이 거리 안 — 0 이면 닿아서는 안 태운다) 바로 태우고, 끌어도 내리지 않는다 */
   private parading = false;
   private paradeReach = 0;
@@ -209,6 +214,25 @@ export class Whale implements Thing, Holder {
   /** 태운 채 지금 자리에서 to(단위 벡터)까지 seconds 동안 간다(전설의 손님이 숨은 상자 앞으로 데려다준다) */
   carryTo(to: THREE.Vector3, seconds: number) {
     this.pathTo(this.v, to, seconds);
+  }
+
+  /** seconds 초 동안 제자리에서 한 바퀴 돈다(전설이 칙을 맞고 크게 울 때) */
+  spin(seconds: number) {
+    this.spinT = 0;
+    this.spinFor = seconds;
+  }
+
+  // 한 바퀴: 몸의 위쪽 축으로 돈다(가는 길은 그대로)
+  private turnAround(dt: number) {
+    if (this.spinT < 0) return;
+    this.spinT += dt;
+    const raw = this.spinT / this.spinFor,
+      u = Math.min(1, raw),
+      eased = u * u * (3 - 2 * u),
+      angle = eased * Math.PI * 2;
+    spinQ.setFromAxisAngle(Y_AXIS, angle);
+    this.g.quaternion.multiply(spinQ);
+    if (u >= 1) this.spinT = -1;
   }
 
   /** 전설의 손님이 내려와 등을 내민다: 낮게 내려오며 나를 태운다(칙을 다 맞혔다) */
@@ -352,6 +376,7 @@ export class Whale implements Thing, Holder {
     bx.crossVectors(this.v, this.f).normalize().negate();
     m4.makeBasis(this.f, this.v, bx);
     this.g.quaternion.setFromRotationMatrix(m4);
+    this.turnAround(dt);
   }
 
   // 한 번 지나가기: 큰 바퀴 자리(v·ahead) 대신 지나가는 길 위에 놓고 그 높이를 돌려준다. 다 지나면 큰 바퀴 자리로 천천히 섞어 돌아간다

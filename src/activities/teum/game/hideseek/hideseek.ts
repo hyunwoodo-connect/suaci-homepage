@@ -25,7 +25,7 @@ import { buildStamp, hideSet, isLookAround, isStatsShown } from "./params";
 import type { PickTarget } from "./picker";
 import { pickAt, screenHeight } from "./picker";
 import type { Seeker } from "./seeker";
-import { createSeeker, farthestHidden, nearestHidden, reachOf } from "./seeker";
+import { createSeeker, farthestHidden, nearestHidden, overBox, reachOf } from "./seeker";
 import { Sneak } from "./sneak";
 import { roundSpots, STAGE_HUB } from "./spots";
 import type { FoundHow, RoundEnd } from "./stats";
@@ -88,9 +88,8 @@ export interface HideSeekLinks {
 /** 칙 헛나감·너무 멂: 안개 알갱이 수 · 너무 멀 때 미스트가 가다 떨어지는 몫 */
 const MIST_DOTS = 5,
   FAR_SHARE = 0.45;
-/** 말풍선이 떠 있는 시간(초: 에취!)과 상자 머리 위로 띄우는 높이(m) */
-const BUBBLE_TIME = 1.1,
-  BUBBLE_OVER = 0.5;
+/** 말풍선이 떠 있는 시간(초: 에취!) */
+const BUBBLE_TIME = 1.1;
 /** 재채기한 상자를 가리던 것이 흔들리는 거리(m) */
 const SHAKE_NEAR = 5;
 /** 찾았다: 포기하고 크게 뛰는 높이(제 키의 배수) · 뛰어가 내리는 자리(상자 앞 m) */
@@ -1031,9 +1030,3 @@ export function duskAt(t: number): number {
 }
 
 /* ─── 내부 ─────────────────────────── */
-
-// 말풍선 자리: 상자 위
-function overBox(k: Seeker, out: THREE.Vector3) {
-  const lift = k.box.hh * k.box.size + BUBBLE_OVER;
-  k.box.center(out).addScaledVector(k.box.v, lift);
-}

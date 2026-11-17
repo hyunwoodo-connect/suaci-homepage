@@ -34,6 +34,9 @@ interface Reach {
   flat: number;
 }
 
+/** 말풍선을 상자 머리 위로 띄우는 높이(m) */
+const BUBBLE_OVER = 0.5;
+
 const at = new THREE.Vector3();
 
 /** reachOf 가 돌려 쓰는 칸(프레임마다 새로 만들지 않는다) */
@@ -102,4 +105,10 @@ export function farthestHidden(seekers: readonly Seeker[], p: Readonly<THREE.Vec
     }
   }
   return best;
+}
+
+/** 말풍선 자리: 상자 머리 위(지금 크기대로) */
+export function overBox(k: Seeker, out: THREE.Vector3): THREE.Vector3 {
+  const lift = k.box.hh * k.box.size + BUBBLE_OVER;
+  return k.box.center(out).addScaledVector(k.box.v, lift);
 }

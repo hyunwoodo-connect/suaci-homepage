@@ -10,6 +10,7 @@ import type { CameraFocus } from "./focus";
 import type { HideOverlay } from "./overlay";
 import type { PickTarget } from "./picker";
 import type { Seeker } from "./seeker";
+import { overBox } from "./seeker";
 import { startPoint, sphereAt } from "./spots";
 import type { Timeline } from "./timeline";
 import type { GuestGroup, HelpKind } from "./tuning";
@@ -772,12 +773,6 @@ class CupcakeLure implements Hint {
 function overCreature(c: Creature, out: THREE.Vector3) {
   const lift = c.batch.hh + BUBBLE_OVER;
   out.copy(c.pos).addScaledVector(c.v, lift);
-}
-
-// 말풍선 자리: 상자 위
-function overBox(k: Seeker, out: THREE.Vector3) {
-  const lift = k.box.hh * k.box.size + BUBBLE_OVER;
-  k.box.center(out).addScaledVector(k.box.v, lift);
 }
 
 // c 를 to(단위 벡터) 쪽으로 speed(m/s)로 옮기고 그쪽을 보게 한다

@@ -13,7 +13,7 @@ export type Content = (typeof CONTENTS)[number];
 /** 숨는 수법: 뒤에 숨기 · 높이 숨기 · 아닌 척하기 */
 export type HideKind = "behind" | "high" | "disguise";
 
-/** 아닌 척하는 법: 내 줄에 끼기 · 병정인 척 · 고양이 뒤에 숨기 · 조각상인 척 · 변장 안경 · 화분의 꽃 · 선물 더미 · 가면 */
+/** 아닌 척하는 법: 내 줄에 끼기 · 병정인 척 · 고양이 뒤에 숨기 · 조각상인 척 · 변장 안경 · 화분의 꽃 · 선물 더미 · 가면 · 풍선인 척 · 케이크 장식인 척 */
 export const DISGUISES = [
   "line",
   "soldier",
@@ -23,6 +23,8 @@ export const DISGUISES = [
   "flowerpot",
   "gifts",
   "mask",
+  "balloon",
+  "cake",
 ] as const;
 
 /** 아닌 척하는 법 하나 */
@@ -84,6 +86,8 @@ export const PLACED_DISGUISES: readonly DisguiseKind[] = [
   "glasses",
   "flowerpot",
   "gifts",
+  "balloon",
+  "cake",
 ];
 
 /** 판에 부르는 생물 한 무리: 종·마릿수(자리는 판마다 seats 에서 섞어 정한다). 하늘을 도는 종이면 도는 반지름과 땅에서의 높이(m) */

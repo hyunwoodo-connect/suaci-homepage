@@ -432,6 +432,20 @@
       "as": "mask",
       "group": "c_dice",
       "note": "토끼 가면을 쓰고 주사위 곁에 섞여 있다"
+    },
+    {
+      "id": "balloon",
+      "as": "balloon",
+      "x": 30,
+      "y": 10,
+      "note": "풍선 다발 사이에 귀를 끈처럼 늘어뜨리고 둥둥(광장 70m 안에 풍선 다발이 없어 같이 놓는다)"
+    },
+    {
+      "id": "cake",
+      "as": "cake",
+      "x": -10,
+      "y": -40,
+      "note": "큰 케이크 꼭대기에 체리처럼(광장 70m 안에 케이크가 없어 같이 놓는다)"
     }
   ],
   "rounds": [
@@ -439,6 +453,7 @@
     ["wishtree", "pad-s", "line", "flowerpot"],
     ["wishtree", "pad-n-top", "soldier", "gifts"],
     ["wishtree", "tree-e", "cat", "statue"],
-    ["wishtree", "pad-s-top", "mask", "line"]
+    ["wishtree", "pad-s-top", "mask", "line"],
+    ["wishtree", "pad-n", "balloon", "cake"]
   ]
 }

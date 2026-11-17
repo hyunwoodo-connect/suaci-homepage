@@ -7,7 +7,7 @@ import { HIDE } from "./tuning";
 
 // 전설의 생물: 가장 큰 생물(고래)이 한 판에 많아야 한 번, 판 위를 낮게 천천히 가로지른다. 멀리서도 보이게 몸이 은은히 빛나고 지나간 자리에 라임 빛가루가 남는다.
 // 잡는 법은 다른 생물과 같다 — 톡 친다. 다만 legend.hits 번(세 번). 머리 위 큰 물방울 셋이 맞힐 때마다 하나씩 차고 고래가 점점 크게 반응한다
-// (1 몸을 떨며 빛남, 2 크게 울며 빛 고리, 3 내려와 등을 내민다). 부딪쳐서는 안 타진다.
+// (1 빛나며 빛 고리, 2 크게 울며 제자리에서 한 바퀴, 3 내려와 등을 내민다). 부딪쳐서는 안 타진다.
 // 다 맞히면 태워 가장 먼 숨은 상자 앞까지 데려다준다 — 그 상자는 찾은 것이 된다. 조작을 가져가는 것은 전설뿐이다(볼거리라서).
 // 나올지(판마다 chance, 첫 판은 반드시)·언제(from~to 초 사이)·얼마나(staySeconds)·태워 가는 시간(rideSeconds)은 hideseek.data.json 의 legend
 
@@ -27,6 +27,7 @@ export interface LegendWhale {
   ): void;
   carryTo(to: THREE.Vector3, seconds: number): void;
   board(lift: number): void;
+  spin(seconds: number): void;
   endParade(): void;
   keepOff(): void;
   attach(o: THREE.Object3D): void;
@@ -57,7 +58,8 @@ const DROP_SIZE = 6,
   HIT_FLASH = 1.8,
   BOARD_LIFT = 7,
   BODY_HALF_H = 9,
-  BODY_HALF_L = 26;
+  BODY_HALF_L = 26,
+  SPIN_SECONDS = 1.4;
 
 const from = new THREE.Vector3(),
   to = new THREE.Vector3(),
@@ -132,6 +134,7 @@ export class Legend {
     this.flash = this.hits >= 2 ? 1.6 : 1;
     const ring = 10 + this.hits * 8;
     this.fx.sonar(this.whale.v, 0, ring, 0.8);
+    if (this.hits === 2) this.whale.spin(SPIN_SECONDS);
     if (this.hits >= HIDE.legend.hits) this.whale.board(BOARD_LIFT);
     return this.hits;
   }

@@ -303,9 +303,10 @@ export class LimeBox {
     this.peekT = -1;
   }
 
-  /** 가운데의 세계 자리 */
+  /** 몸 가운데의 세계 자리(지금 크기 배수대로) */
   center(out: THREE.Vector3): THREE.Vector3 {
-    const radius = S.R + this.a + this.air + this.hh;
+    const half = this.hh * this.sizeNow,
+      radius = S.R + this.a + this.air + half;
     return out.copy(this.v).multiplyScalar(radius);
   }
 

@@ -13,7 +13,7 @@ function edited(change: (copy: Record<string, unknown>) => void): unknown {
 describe("숨바꼭질 값 파일(hideseek.data.json)", () => {
   it("지금 파일 → 그대로 읽힌다", () => {
     expect(readTuning(data)).toEqual(HIDE);
-    expect(HIDE.spots).toHaveLength(16);
+    expect(HIDE.spots).toHaveLength(18);
     expect(HIDE.copy.hide).toBe("꼭꼭 숨어라");
   });
 
