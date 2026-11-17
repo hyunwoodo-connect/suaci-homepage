@@ -5,81 +5,94 @@ import type { Tappable } from "../core/tap";
 import type { Creature } from "../creatures/creature";
 import type { Services } from "../services";
 import { S } from "../settings";
-import type { CatLink } from "./coach";
-import { Coach } from "./coach";
-import { Disguises } from "./disguise";
+import type { BystanderCreatures } from "./bystanders";
+import { Bystanders } from "./bystanders";
 import { HideFx } from "./effects";
-import { CameraFocus } from "./focus";
-import type { HelpCreatures, HelpRound } from "./helpers";
-import { CreatureHelp } from "./helpers";
+import { FindLog } from "./findStats";
+import type { Pattern } from "./findTuning";
+import { FIND } from "./findTuning";
 import { HidingScene } from "./hiding";
-import { Leap } from "./leap";
-import type { LegendWhale } from "./legend";
-import { Legend } from "./legend";
-import { LimeBox, SNEEZE_AT } from "./limebox";
+import { LimeBox } from "./limebox";
 import { BoxLine } from "./line";
 import { LookAround } from "./lookAround";
+import { Mushrooms } from "./mushrooms";
 import { OUTLINE_VIEW } from "./outline";
 import { HideOverlay, LIDS_MOVE } from "./overlay";
 import { buildStamp, forcedLevel, hideSet, isLookAround, isStatsShown } from "./params";
+import { dealPatterns, dealRound, moveTargets } from "./patterns";
 import type { PickTarget } from "./picker";
 import { pickAt } from "./picker";
-import type { Seeker } from "./seeker";
-import { createSeeker, farthestHidden, nearestHidden, overBox, reachOf } from "./seeker";
-import { Sneak } from "./sneak";
 import { HideProgress } from "./progress";
-import { levelOf, pickRound, roundSpots, spotsOf, STAGE_HUB } from "./spots";
-import type { FoundHow, RoundEnd } from "./stats";
-import { RoundLog } from "./stats";
-import { Sunset } from "./sunset";
+import type { Candidate } from "./props";
+import { Props } from "./props";
+import type { Seeker } from "./seeker";
+import { createSeeker } from "./seeker";
+import { levelOf, roundSpots, STAGE_HUB } from "./spots";
 import { Timeline } from "./timeline";
-import type { BehindSpot, Difficulty, HelpTag } from "./tuning";
+import { FlowerTrail } from "./trail";
 import { HIDE } from "./tuning";
 import type { UnboxLinks } from "./unbox";
 import { dealContents, Unboxing } from "./unbox";
+import type { WarmCat, WarmTarget } from "./warmth";
+import { Warm } from "./warmth";
 
-// 숨바꼭질 한 판. 어려움은 '어디 숨었나'에만 둔다 — 본 다음에 거기 가는 일은 저절로 된다. 내 행동은 하나, 톡이다:
-//   보이는 상자를 톡 치면 찾은 것이다(찾았다고 정하는 것은 언제나 나 — 가까이 가기만 해서는 안 찾아진다). 미스트가 날아가 상자가 재채기하고,
-//     아바타가 스스로 뛰어가(leap) 상자를 톡 친다. 아닌 척하던 상자(disguise)는 들통나며 찾아진다
-//   발밑 고리가 켜진 생물을 톡 치면 종류마다 다른 도움을 준다(helpers — 버섯은 걸어 들어가도 된다). 하늘의 전설(legend)은 한 번 치면 내려와 태워 준다
-//   빈 데를 톡 치면 둘레 상자가 재채기한다(힌트일 뿐 찾은 것이 아니다)
-// 숨은 상자는 늘 같은 크기(box.height)이고 흰 테두리와 긴 귀로 멀리서도 보인다. 몇은 내가 안 볼 때만 움직인다(sneak).
-// 화면에 늘 떠 있는 글은 위 칸 넷뿐 — 가르침은 손가락 하나(첫 상자, 첫 생물)이고 옆의 고양이(coach)는 몸짓으로만 알린다.
-// 흐름: 꼭꼭 숨어라(hiding) → 술래는 너 → 찾기(해가 서서히 진다, 찾은 상자는 내 뒤에 줄을 선다 — line) →
-//   넷을 다 찾으면 금색 상자 → '깔까?' → 언박싱(unbox) → '한 판 더'. 3분에 해가 지면 남은 상자들이 이긴다(sunset — 찾은 것만 깐다).
-// 판이 도는 동안 누를 단추는 없고, 내 뒤에는 찾은 상자만 따라온다(만난 손님·꼬마 라임·별은 판이 끝난 뒤에).
-// 이 파일은 판의 흐름과 찾기를 맡고, 장면마다의 세부는 각 파일에 있다. 값은 hideseek.data.json(HIDE), 정한 때에 할 일은 timeline.
-// 유영 조작 값과 맵은 건드리지 않는다 — 상자를 놓고, 칙을 듣고, 카메라를 잠깐 빌릴 뿐이다
+// 숨바꼭질 한 판 — 조각 02 '찾는 손맛': 힌트 없이 '의심 → 가까워짐 → 눌러서 찾기'.
+//   판 영역에 후보 물건(props)이 스물 넘게 있고, 넷에만 상자가 숨어 있다. 숨는 패턴은 넷(patterns):
+//     A 혼자 튀는 애(같은 물건 무리 가운데 하나 — 리본 끝이 삐죽 나오고 혼자 살짝 떤다) · B 길 끝(꽃 길의 끝 물건 속) ·
+//     C 속에 쏙(낱개 물건 속 — 겉으로는 안 보인다) · D 높은 곳(탑 꼭대기·통통 구름 위 — 리본과 눈이 빼꼼, 올라가서 눌러야 한다)
+//   내 행동은 하나, 물건을 누르는 것이다(candidate.tapReach 안에서). 상자가 든 물건이면 찾은 것, 아니면 꽝(말랑 찌그러진다) —
+//     꽝 곁에 진짜 상자가 있으면 빼꼼 나와 메롱 하고 보이는 포물선으로 다른 물건에 이사 간다(miss)
+//   가까워지는 것은 소리와 세계 안의 움직임으로만 안다(warmth — 키득·고양이 꼬리·물건의 바스락). 화면에는 위 칸 넷과 큰 글자뿐
+//   버섯(mushrooms)은 높이 올라가 둘러보고 높은 곳에 닿는 이동 수단이다. 생물은 구경꾼(bystanders) — 눌러도 반응하지 않고 달아나지도 않는다
+// 흐름: 꼭꼭 숨어라(hiding — 상자들이 등 뒤로 달려 나가고, 눈을 감은 동안 물건 속에 든다) → 찾기(해는 지지 않는다 — 넷을 다 찾아야 끝난다) →
+//   금색 상자 → '깔까?' → 언박싱(unbox) → '한 판 더'.
+// 앞 조각의 생물 도움·전설·해 지기·몰래 움직이기·아닌 척하기는 꺼 두었다(파일은 남아 있다 — helpers·hints·legend·sunset·sneak·disguise·coach·focus).
+// 값은 hideseek.data.json(FIND·HIDE), 정한 때에 할 일은 timeline. 유영 조작 값과 맵은 건드리지 않는다
 
 /** 판 흐름 */
-type Phase = "wait" | "hiding" | "seek" | "lost" | "bonus" | "prompt" | "wipe" | "unbox" | "end";
+type Phase = "wait" | "hiding" | "seek" | "bonus" | "prompt" | "wipe" | "unbox" | "end";
 
-/** 톡 친 것: 상자 · 생물 · 전설 */
-type Picked = { kind: "box"; k: Seeker } | { kind: "creature"; c: Creature } | { kind: "legend" };
+/** 누른 것: 후보 물건 · 버섯 */
+type Picked = { kind: "prop"; c: Candidate } | { kind: "mushroom"; c: Creature };
+
+/** 숨은 상자 하나: 숨은 물건·패턴, 지금 하는 일(물건 속 · 빼꼼 나와 메롱 · 이사 중) */
+interface Hider {
+  k: Seeker;
+  pattern: Pattern;
+  host: Candidate;
+  mode: "in" | "taunt" | "hop";
+  modeT: number;
+  /** 메롱 뒤에 이사 갈 물건(없으면 제자리로 들어간다) · 이사 떠난 자리와 높이(m) */
+  next: Candidate | null;
+  readonly hopFrom: THREE.Vector3;
+  hopBase: number;
+  /** 이사한 횟수 · 마지막으로 이사한 때(찾기 시작부터 초) */
+  moves: number;
+  movedAt: number;
+  /** 내가 곁(candidate.tapReach)에 있나 · 곁에 왔다가 못 찾고 나간 횟수 */
+  isNear: boolean;
+  nearMisses: number;
+  /** 다음 몸짓(리본 빼꼼·혼자 떨기)까지(초) · 리본을 내밀고 있는 남은 시간(초 — 패턴 B) */
+  fidgetWait: number;
+  peekLeft: number;
+}
 
 /** 숨바꼭질이 쓰는 것(Game 이 만들 때 넘긴다) */
 export interface HideSeekLinks {
-  /** 입력: 막기·지금 끄는 중인가·끌기가 끝난 뒤 지난 시간(ms)·끌지 않고 누르고 있는 시간(초) */
-  input: {
-    hold(on: boolean): void;
-    isDragging(): boolean;
-    msSinceDragEnd(): number;
-    pressSeconds(): number;
-  };
+  /** 입력: 막기·끌지 않고 누르고 있는 시간(초) */
+  input: { hold(on: boolean): void; pressSeconds(): number };
   /** 꾸미기 씬: 열려 있나 · 옷장 단추 숨기기 */
   studio: { readonly isOpen: boolean; setWearHidden(hidden: boolean): void };
   /** 언박싱의 일어나는 일(커지기·고래) */
   unbox: UnboxLinks;
-  /** 생물(눌러서 도움을 받는다) */
-  creatures: HelpCreatures;
-  /** 전설의 손님이 되는 고래 */
-  whale: LegendWhale;
-  /** 하늘: 노을이 진 정도(0 낮 … 1 해가 졌다) */
+  /** 생물(버섯과 구경꾼을 판에 부른다) */
+  creatures: BystanderCreatures;
+  /** 고래: 타고 있으면 내려 준다 */
+  whale: { dismount(): void };
+  /** 하늘: 노을이 진 정도(0 낮 — 이 판은 해가 지지 않는다) */
   sky: { setDusk(k: number): void };
-  /** 옆을 따라다니는 고양이 */
-  cat: CatLink;
-  /** at 둘레 reach(m) 안의 것(나무·조형물·통통 구름·소원 나무)을 흔든다 */
-  shake(at: THREE.Vector3, reach: number): void;
+  /** 옆을 따라다니는 고양이(꼬리 반짝임) */
+  cat: WarmCat;
   /** 시간을 seconds 초 멈추고 화면을 살짝 당긴다(찾는 순간) */
   pause(seconds: number): void;
   /** 장소(소원 나무 …)가 반응할 때 라임빛으로 물드나 — 판 동안은 끈다(라임색은 상자의 것) */
@@ -88,53 +101,48 @@ export interface HideSeekLinks {
   setLabels(on: boolean): void;
   /** 내 뒤에 다른 것(만난 손님·꼬마 라임·별)이 따라붙어도 되나 — 판 동안은 끈다(찾은 상자만 줄을 선다) */
   setCompany(on: boolean): void;
-  /** 투시(열쇠): center 둘레 radius(m) 안의 물건을 alpha 몫만 남기고 비춘다(radius 0 이면 끈다) */
-  xray(center: THREE.Vector3, radius: number, alpha: number): void;
+  /** 세상의 것들(랜드마크·장소·생물)이 내게 반응하나 — 판 동안은 끈다(꿈틀하는 것은 후보 물건뿐이다) */
+  setReactions(on: boolean): void;
 }
 
-/** 칙 헛나감·너무 멂: 안개 알갱이 수 · 너무 멀 때 미스트가 가다 떨어지는 몫 */
-const MIST_DOTS = 5,
-  FAR_SHARE = 0.45;
-/** 말풍선이 떠 있는 시간(초: 에취!) */
-const BUBBLE_TIME = 1.1;
-/** 재채기한 상자를 가리던 것이 흔들리는 거리(m) */
-const SHAKE_NEAR = 5;
-/** 찾았다: 포기하고 크게 뛰는 높이(제 키의 배수) · 뛰어가 내리는 자리(상자 앞 m) */
-const FOUND_HOP = 1.2,
-  LAND_BEFORE = 1;
-/** 누르는 자리: 귀까지 넣은 키의 몫(상자 키 기준) · 너비의 몫 */
-const PICK_TALL = 1.3,
-  PICK_WIDE = 0.75;
+/** 누른 물건으로 날아가는 안개 알갱이 수 */
+const MIST_DOTS = 5;
+/** 누르는 자리: 사방으로 넓히는 폭·가장 작은 네모(px) */
+const TAP_PAD = HIDE.find.tapPad,
+  TAP_MIN = HIDE.find.tapMin;
 /** 금색 상자: 내려앉은 뒤 손을 흔들고 '깔까?'가 뜨기까지(초) · 먼지 고리의 반지름(m) */
 const BONUS_WAVE = 1.1,
   BONUS_RING = 7;
-/** 킥킥거리는 간격(초, 이 둘레에서 들쭉날쭉) */
-const GIGGLE_EVERY = 9;
-/** 화면 안으로 치는 범위(화면 끝에서 조금 안쪽 — 가장자리에 걸친 것은 못 본 것) · 눈이 마주친 것으로 치는 화면 가운데 범위 */
-const SEEN_EDGE = 0.94,
-  WATCH = HIDE.nearby.watchShare;
-/** redFrom 까지 가는 노을의 몫 */
-const DUSK_EARLY = 0.4;
-/** 전설이 내려오는 동안 카메라가 고래를 올려다보는 시간(내려오는 시간에 더한다, 초) */
-const LEGEND_LOOK_EXTRA = 0.5;
 /** 판 끝에서 이만큼(m) 돌아다니면 자유 놀이(끝 단추가 작아진다) */
 const FREE_AFTER = 6;
-/** 전설의 이름표 열쇠 · 고래 몸 위로 띄우는 높이(m) */
-const LEGEND_TAG = "legend",
-  LEGEND_TAG_OVER = 3;
+/** 숨은 모습 — 물건 꼭대기 위로 내미는 몫(귀까지 넣은 상자 키에서): A 는 리본 끝만 삐죽 · D 는 리본과 눈까지 · B 는 가끔 리본 끝을 잠깐 */
+const EARS_OUT = 0.07,
+  HIGH_PEEK = 0.72,
+  TRAIL_PEEK = 0.1;
+/** 속에 숨은 상자가 물건 꼭대기보다 이만큼(m) 아래에 있다(안 보인다) */
+const INSIDE_DIP = 0.3;
+/** 몸짓 사이(초, 이 사이 아무 때나) · 길 끝 상자가 리본을 내미는 시간(초) */
+const FIDGET_EVERY: readonly [number, number] = [3, 6],
+  PEEK_SECONDS = 1.3;
+/** 메롱: 물건 밖으로 내미는 몫(상자 키) · 올라오는 빠르기 */
+const TAUNT_OUT = 0.8,
+  TAUNT_RISE = 12;
+/** 곁을 떠난 것으로 치는 거리(candidate.tapReach 에 더한다, m) */
+const LEAVE_GAP = 3;
 
 const tmp = new THREE.Vector3(),
   at = new THREE.Vector3(),
   ahead = new THREE.Vector3(),
-  ndc = new THREE.Vector3();
+  axis = new THREE.Vector3(),
+  eye = new THREE.Vector3(),
+  side = new THREE.Vector3();
 
 /** 숨바꼭질 */
 export class HideSeek implements Thing, Tappable {
   private phase: Phase = "wait";
   private phaseT = 0;
-  /** 숨는 자리 묶음(?hide — '한 판 더'마다 다음 묶음) */
-  private set: number;
   private readonly seekers: Seeker[] = [];
+  private readonly hiders: Hider[] = [];
   /** 찾은 차례(칸 번호이자 줄에서의 차례) */
   private readonly caught: Seeker[] = [];
   private readonly bonus: LimeBox;
@@ -144,44 +152,26 @@ export class HideSeek implements Thing, Tappable {
   private readonly timeline = new Timeline();
   private readonly hiding: HidingScene;
   private readonly line: BoxLine;
-  private readonly sunset: Sunset;
-  private readonly coach: Coach;
   private readonly unboxing: Unboxing;
-  private readonly help: CreatureHelp;
-  private readonly legend: Legend;
-  private readonly leap: Leap;
-  private readonly focus: CameraFocus;
-  private readonly sneak: Sneak;
-  private readonly disguises: Disguises;
+  private readonly props: Props;
+  private readonly trail: FlowerTrail;
+  private readonly warm: Warm;
+  private readonly mushrooms: Mushrooms;
+  private readonly bystanders: Bystanders;
   private readonly looker: LookAround | null;
-  private readonly log = new RoundLog();
+  private readonly log = new FindLog();
   private readonly rand: () => number;
   private time = 0;
-  /** 찾기 시작 뒤 흐른 시간(초 — 이만큼 해가 진다) · 회중시계가 되돌릴 남은 시간(초)과 되감는 빠르기(초/초) */
+  /** 찾기 시작 뒤 흐른 시간(초) */
   private roundT = 0;
-  private rewindLeft = 0;
-  private rewindRate = 1;
-  /** 마지막으로 찾은 뒤(참을성) · 마지막으로 찾거나 생물을 쓴 뒤(생물이 부르러 온다) 흐른 시간(초) */
-  private sinceFind = 0;
-  private stuckT = 0;
-  /**
-   * 이 기기에서의 기억(한 판 수 — 어려움 단계를 정한다) · 이번 판의 어려움 단계와 그 값 · 맨 처음 판인가(첫 상자가 못 숨고, 손가락이 뜨고,
-   * 전설의 생물이 반드시 나온다) · 주소로 골라 본 묶음·단계(없으면 null)
-   */
+  /** 이 기기에서의 기억(한 판 수) · 맨 처음 판인가(쉬운 패턴) · 주소로 고른 단계·자리 씨앗(없으면 null) */
   private readonly progress = new HideProgress();
-  private levelIndex = 0;
-  private level: Difficulty = HIDE.difficulty[0];
   private first = false;
-  private readonly pickedSet: number | null;
   private readonly pickedLevel: number | null;
-  /** 첫 판의 첫 상자가 혼자 재채기하기까지 · 다음 킥킥까지(초) */
-  private easyT = 0;
-  private giggleT = 0;
-  /** 뛰어가는 중인 상자(내리면 찾은 것) */
-  private leapTo: Seeker | null = null;
-  /** 전설의 생물이 데려다주는 상자 */
-  private target: Seeker | null = null;
-  /** 꾸미기 씬이 열려 있었나(열고 닫히는 순간을 안다) · '한 판 더'를 눌렀는데 놀이기구에서 아직 못 내렸다 · 판 끝 단추가 뜬 자리 */
+  private readonly pickedSet: number | null;
+  /** 몇째 판인가(이번 방문에서 — 주소로 고른 자리 씨앗에 더한다) */
+  private played = 0;
+  /** 꾸미기 씬이 열려 있었나 · '한 판 더'를 눌렀는데 놀이기구에서 아직 못 내렸다 · 판 끝 단추가 뜬 자리 */
   private wasStudio = false;
   private isAgainWaiting = false;
   private readonly endAt = new THREE.Vector3();
@@ -195,13 +185,16 @@ export class HideSeek implements Thing, Tappable {
     this.rand = () => rng.next();
     this.pickedSet = hideSet();
     this.pickedLevel = forcedLevel();
-    this.set = this.pickedSet ?? 1;
     this.overlay = new HideOverlay(parent);
     this.fx = new HideFx(s.scene);
-    const spots = roundSpots(this.set);
+    const hub = s.occ.hubs[STAGE_HUB];
+    if (!hub)
+      throw new Error(`[teum] hideseek.data.json — stage.hub: 지도에 없는 마을(${STAGE_HUB})`);
+    // 상자 넷(숨는 자리는 판마다 물건으로 정한다 — 옛 자리표의 첫 묶음은 자리만 채워 둔다)
+    const spots = roundSpots(1);
     for (const spot of spots) {
-      const box = new LimeBox(s.models, s.scene, 1, false, this.rand);
-      const seeker = createSeeker(box, spot);
+      const box = new LimeBox(s.models, s.scene, 1, false, this.rand),
+        seeker = createSeeker(box, spot);
       this.seekers.push(seeker);
     }
     this.bonus = new LimeBox(s.models, s.scene, HIDE.bonus.scale, true, this.rand);
@@ -209,53 +202,12 @@ export class HideSeek implements Thing, Tappable {
     this.bonus.setLongEars(false);
     this.hiding = new HidingScene(s, this.seekers, this.fx, this.overlay, this.timeline);
     this.line = new BoxLine(s);
-    this.sunset = new Sunset(s, this.overlay, this.timeline);
-    this.coach = new Coach(links.cat);
     this.unboxing = new Unboxing(s, links.unbox, this.fx, this.rand);
-    this.focus = new CameraFocus(s, () => links.input.isDragging());
-    this.leap = new Leap(s);
-    const round: HelpRound = {
-      isSeeking: () => this.phase === "seek",
-      roundT: () => this.roundT,
-      hidden: () => this.findable(),
-      // 냄새에 걸어 나올 수 있는 것은 물건 뒤에 숨은 상자뿐(높이·아닌 척은 제자리에서 걸어 나올 수 없다)
-      lurable: () =>
-        this.findable().filter((k) => k.spot.kind === "behind" && !this.sneak.isOut(k)),
-      walkOut: (k, to, seconds) => this.sneak.walkOut(k, to, seconds),
-      isOut: (k) => this.sneak.isOut(k),
-      rewind: (seconds, over) => {
-        this.rewindLeft += seconds;
-        this.rewindRate = seconds / over;
-      },
-      xray: (center, radius, alpha) => links.xray(center, radius, alpha),
-      // 생물을 쓴 뒤 잠깐 잠갔다 푸는 것 — 그 사이 해가 졌거나 전설에 실려 가면 풀지 않는다
-      hold: (on) => {
-        const isOwnedElsewhere = this.phase !== "seek" || this.legend.isCarrying || this.leapTo;
-        if (!on && isOwnedElsewhere) return;
-        links.input.hold(on);
-      },
-    };
-    this.help = new CreatureHelp(
-      s,
-      links.creatures,
-      round,
-      this.fx,
-      this.overlay,
-      this.focus,
-      this.timeline,
-      this.rand,
-    );
-    const hands = {
-      place: (k: Seeker, spot: BehindSpot) => this.hiding.placeAt(k, spot),
-      ground: (spot: BehindSpot) => this.hiding.groundOf(spot),
-    };
-    this.sneak = new Sneak(s, this.fx, this.overlay, hands, this.rand);
-    const disguiseLinks = { help: this.help, cat: links.cat, line: this.line };
-    this.disguises = new Disguises(s, disguiseLinks, this.overlay, this.rand);
-    const hub = s.occ.hubs[STAGE_HUB];
-    if (!hub)
-      throw new Error(`[teum] hideseek.data.json — stage.hub: 지도에 없는 마을(${STAGE_HUB})`);
-    this.legend = new Legend(s, links.whale, this.fx, this.rand, s.camera.camera);
+    this.props = new Props(s, hub, this.rand);
+    this.trail = new FlowerTrail(s, hub);
+    this.warm = new Warm(s, links.cat, this.rand);
+    this.mushrooms = new Mushrooms(s, links.creatures, this.props, this.rand);
+    this.bystanders = new Bystanders(links.creatures, this.rand);
     const press = () => links.input.pressSeconds();
     this.looker = isLookAround() ? new LookAround(s, press) : null;
     if (isStatsShown()) {
@@ -264,79 +216,36 @@ export class HideSeek implements Thing, Tappable {
     }
   }
 
-  /** 언박싱(과 그리로 넘어가는 동안)은 칙을 혼자 받는다 — 다른 놀이기구가 나를 붙잡아 줄 앞에서 데려가지 않게 */
+  /** 언박싱(과 그리로 넘어가는 동안)은 누름을 혼자 받는다 — 다른 놀이기구가 나를 붙잡아 줄 앞에서 데려가지 않게 */
   get takesTaps(): boolean {
     return this.phase === "unbox" || this.phase === "wipe";
   }
 
+  /** 판이 도는 중인가(꼭꼭 숨어라~찾기) — 그동안은 바닥·장소가 누름에 반응하지 않는다(누를 수 있는 것은 후보 물건과 버섯뿐) */
+  get isRoundOn(): boolean {
+    return this.phase === "hiding" || this.phase === "seek";
+  }
+
   /**
-   * 화면 (x, y)를 톡 쳤다: 상자·생물·전설에 걸리면 그것에 칙이 날아가고 true(빈 데 칙은 하지 않는다).
-   * 걸린 것이 없으면 false — 그러면 빈 데 칙(onTap)이 된다
+   * 화면 (x, y)를 눌렀다: 후보 물건이나 버섯에 걸리면 그것이 반응하고 true. 걸린 것이 없으면 false(판 중에는 아무 일도 없다)
    */
   pick(x: number, y: number): boolean {
     if (this.phase !== "seek" || this.links.studio.isOpen) return false;
-    // 찾는 중인 상자(미스트가 날아가거나 뛰어가는 중)가 있거나 전설에 실려 가는 동안의 톡은 삼킨다 —
-    // 둘을 잇달아 치면 앞의 것이 뛰어가는 사이 뒤의 것이 '맞았는데 못 찾은' 채로 남아 판이 끝나지 않는다
-    const isBusy = this.leapTo || this.seekers.some((k) => k.state === "struck");
-    if (isBusy || this.legend.isCarrying) return true;
-    // 이름표(화면 위 단추)를 먼저 본다
-    const tag = this.overlay.tagAt(x, y);
-    if (tag === LEGEND_TAG) {
-      this.tapLegend();
-      return true;
-    }
-    if (tag) {
-      const kind = this.help.useTag(tag);
-      this.afterCreature(kind);
-      return true;
-    }
     const targets = this.pickTargets(),
-      view = { w: innerWidth, h: innerHeight },
-      F = HIDE.find;
-    const hit = pickAt(x, y, targets, this.s.camera.camera, view, F.tapPad, F.tapMin);
+      view = { w: innerWidth, h: innerHeight };
+    const hit = pickAt(x, y, targets, this.s.camera.camera, view, TAP_PAD, TAP_MIN);
     if (!hit) return false;
-    if (hit.kind === "box") this.tapBox(hit.k);
-    else if (hit.kind === "creature") this.tapCreature(hit.c);
-    else this.tapLegend();
+    if (hit.kind === "prop") this.tapProp(hit.c);
+    else this.mushrooms.ride(hit.c);
     return true;
   }
 
-  /**
-   * 빈 데 칙: 찾는 중이면 내 둘레로 안개가 퍼지고, 그 안의 숨은 상자가 재채기한다(화면 밖이어도 — 말풍선이 그쪽 화면 가장자리에 뜬다).
-   * 아닌 척하는 상자는 움찔만 한다. 헛나가도 안개가 닿은 것은 흔들린다. 언박싱 중이면 지금 상자를 연다
-   */
+  /** 빈 데 누름: 언박싱 중이면 지금 상자를 연다. 판 중에는 아무 일도 없다(바닥은 반응하지 않는다) */
   onTap() {
-    if (this.phase === "unbox") {
-      this.unboxing.tap();
-      return;
-    }
-    const isCarried = this.legend.isCarrying || this.leapTo !== null;
-    if (this.phase !== "seek" || this.links.studio.isOpen || isCarried) return;
-    const { player, terrain, events } = this.s;
-    const p = player.p as THREE.Vector3;
-    const ground = terrain.groundAt(p);
-    this.fx.sonar(p, ground, HIDE.chik.reach);
-    this.links.shake(p, HIDE.chik.reach);
-    let sneezed = 0;
-    for (const k of this.findable()) {
-      const near = reachOf(k, player);
-      if (near.dist > HIDE.chik.reach) continue;
-      if (this.disguises.isPretending(k)) {
-        k.box.flinch();
-        continue;
-      }
-      if (this.time - k.sneezedAt < HIDE.chik.sneezeCooldown) continue;
-      k.sneezedAt = this.time;
-      this.pullMist(k, 1);
-      this.timeline.after(HIDE.find.mistSeconds, () => this.sneeze(k));
-      sneezed++;
-    }
-    const afterDrag = this.links.input.msSinceDragEnd();
-    this.log.chik(sneezed > 0, afterDrag);
-    events.emit("hideChik", { sneezed });
+    if (this.phase === "unbox") this.unboxing.tap();
   }
 
-  /** 한 프레임: 판 흐름·상자·카메라(따라가는 카메라 뒤에 — 생물 보기·둘러보기·언박싱이 잠깐 빌린다) */
+  /** 한 프레임: 판 흐름·상자·물건(따라가는 카메라 뒤에 — 둘러보기·언박싱이 카메라를 잠깐 빌린다) */
   update(f: Frame) {
     const dt = f.dt;
     this.time = f.time;
@@ -348,17 +257,14 @@ export class HideSeek implements Thing, Tappable {
       if (this.phase === "hiding") this.restart();
       this.unboxing.dropCamera();
       this.looker?.drop();
-      this.focus.drop();
     } else this.step(dt);
     for (const k of this.seekers) k.box.update(dt, f.time);
     this.bonus.update(dt, f.time);
     this.fx.update(dt);
+    this.trail.update(dt);
     this.unboxing.update(dt, f.time);
     const canLook = this.phase === "seek" || this.phase === "prompt" || this.phase === "end";
-    if (!studioOpen) {
-      this.focus.update(dt);
-      this.looker?.update(dt, canLook);
-    }
+    if (!studioOpen) this.looker?.update(dt, canLook);
     this.overlay.update(this.s.camera.camera, dt);
   }
 
@@ -366,9 +272,8 @@ export class HideSeek implements Thing, Tappable {
     this.overlay.dispose();
     this.fx.dispose();
     this.unboxing.dispose();
-    this.help.dispose();
-    this.disguises.dispose();
-    this.legend.dispose();
+    this.props.dispose();
+    this.trail.dispose();
     for (const k of this.seekers) k.box.dispose();
     this.bonus.dispose();
   }
@@ -378,6 +283,9 @@ export class HideSeek implements Thing, Tappable {
   private step(dt: number) {
     this.phaseT += dt;
     this.timeline.tick(dt);
+    const isSeeking = this.phase === "seek";
+    this.props.update(dt, isSeeking);
+    this.mushrooms.update(dt, isSeeking);
     switch (this.phase) {
       case "wait":
         this.begin();
@@ -389,9 +297,6 @@ export class HideSeek implements Thing, Tappable {
         break;
       case "seek":
         this.seek(dt);
-        break;
-      case "lost":
-        this.sunset.update(dt);
         break;
       case "bonus":
         this.dropBonus();
@@ -405,27 +310,17 @@ export class HideSeek implements Thing, Tappable {
       default:
         break;
     }
-    for (const k of this.seekers)
-      if (k.state === "falling" && !k.box.isTumbling) this.catchBox(k, "tap");
-    this.followLeap(dt);
-    const hasLine =
-      this.phase === "seek" ||
-      this.phase === "lost" ||
-      this.phase === "bonus" ||
-      this.phase === "prompt";
+    const hasLine = isSeeking || this.phase === "bonus" || this.phase === "prompt";
     if (hasLine) this.line.update(dt);
-    if (this.phase !== "seek") this.legend.fade(dt);
     // '한 판 더'를 눌렀을 때 놀이기구에 실려 있었으면 내린 뒤에 시작한다(실린 채 옮기면 그 놀이기구가 나를 놓지 못한다)
     if (this.isAgainWaiting && !this.s.player.isHeld) {
       this.isAgainWaiting = false;
       this.startAgain();
     }
-    // 판 끝에서 돌아다니기 시작하면 자유 놀이: '한 판 더'가 작아진다
-    const isOver = this.phase === "end" || this.phase === "lost",
-      roam = this.s.player.p.angleTo(this.endAt) * S.R,
-      isFree = isOver && roam > FREE_AFTER;
+    // 판 끝에서 돌아다니기 시작하면 자유 놀이: '한 판 더'가 작아지고 세상의 안내 글이 돌아온다
+    const roam = this.s.player.p.angleTo(this.endAt) * S.R,
+      isFree = this.phase === "end" && roam > FREE_AFTER;
     this.overlay.setEndingSmall(isFree);
-    // 판 끝 화면에서는 세상의 안내 글을 띄우지 않는다(끝 단추와 겹친다) — 돌아다니기 시작하면(자유 놀이) 다시
     if (isFree) this.s.hud.setQuiet(false);
   }
 
@@ -448,540 +343,449 @@ export class HideSeek implements Thing, Tappable {
     player.goHome(hub);
     hud.setQuiet(true);
     camera.setZoom(1);
-    this.links.input.hold(true);
-    this.links.studio.setWearHidden(true);
-    this.links.sky.setDusk(0);
-    this.links.setPlaceGlow(false);
-    this.links.setLabels(false);
-    this.links.setCompany(false);
+    const L = this.links;
+    L.input.hold(true);
+    L.studio.setWearHidden(true);
+    L.sky.setDusk(0);
+    L.setPlaceGlow(false);
+    L.setLabels(false);
+    L.setCompany(false);
+    L.setReactions(false);
     const o = this.overlay;
     o.setLids(false);
     o.resetSlots();
     o.showSlots(true);
     o.showEnding(null);
     o.showStats(null);
-    o.setPointer(null);
-    this.coach.begin();
     this.fx.clear();
     this.timeline.clear();
     this.caught.length = 0;
+    this.hiders.length = 0;
     this.line.clear();
-    this.sunset.clear();
-    this.disguises.clear();
-    this.sneak.stop();
+    this.trail.clear();
+    this.warm.stop();
+    this.mushrooms.stop();
     this.hasBonus = false;
     this.bonus.visible = false;
-    this.target = null;
-    this.leapTo = null;
-    this.rewindLeft = 0;
-    const rounds = this.progress.rounds;
-    this.levelIndex = this.pickedLevel ?? levelOf(rounds);
-    this.level = HIDE.difficulty[this.levelIndex];
-    this.first = this.levelIndex === 0;
+    const rounds = this.progress.rounds,
+      level = this.pickedLevel ?? levelOf(rounds);
+    this.first = level === 0;
     const screen = `${innerWidth}x${innerHeight}`,
       now = Date.now(),
-      look = this.looker !== null,
-      spots = this.spotsForRound(),
-      ids = spots.map((s) => s.id);
-    this.log.begin(this.set, look, screen, now, this.time);
-    const roundNo = rounds + 1;
-    this.log.roundInfo(roundNo, this.levelIndex, ids);
-    this.hiding.start(hub, spots, this.first, this.level, {
-      // 눈을 감은 동안: 판의 생물이 섞인 자리에 앉고, 아닌 척하는 상자가 저마다 자리를 잡고, 움직일 상자가 정해지고,
-      // 전설의 생물이 나올 때가 정해진다
-      settled: () => {
-        this.help.reset(hub, this.first);
-        this.disguises.place(this.seekers, hub);
-        // 움직이는 상자는 뒤에 숨은 것에서 고른다(높이 숨은 것은 제자리, 첫 판의 '제일 못 숨은 놈'도 제자리)
-        const movers = this.seekers.filter((k, i) => {
-          const isWorst = this.first && i === 0;
-          return k.spot.kind === "behind" && !isWorst;
-        });
-        this.sneak.begin(movers, this.level.sneak, this.first);
-        this.legend.plan(this.first, hub);
-      },
+      roundNo = rounds + 1;
+    this.log.begin(roundNo, screen, now, this.time);
+    this.hiding.start(hub, null, this.first, HIDE.difficulty[0], {
+      // 눈을 감은 동안: 상자들이 물건 속에 들고, 꽃 길이 놓이고, 버섯과 구경꾼이 제자리에 앉는다
+      settled: () => this.settle(hub),
       go: () => this.startSeek(),
     });
     this.goTo("hiding");
   }
 
+  // 눈을 감은 동안: 패턴 넷을 섞어 물건을 고르고 상자를 숨긴다
+  private settle(hub: THREE.Vector3) {
+    this.props.reset();
+    this.mushrooms.begin(hub);
+    this.bystanders.seat(hub);
+    const rand = this.dealRand(),
+      patterns = dealPatterns(this.first, rand),
+      dealt = dealRound(FIND.props, patterns, rand);
+    if (!dealt)
+      throw new Error("[teum] hideseek.data.json — props: 상자 넷을 숨길 물건을 고르지 못했다");
+    dealt.forEach((d, i) => {
+      const k = this.seekers[i],
+        host = this.props.of(d.prop);
+      const h: Hider = {
+        k,
+        pattern: d.pattern,
+        host,
+        mode: "in",
+        modeT: 0,
+        next: null,
+        hopFrom: new THREE.Vector3(),
+        hopBase: 0,
+        moves: 0,
+        movedAt: -Infinity,
+        isNear: false,
+        nearMisses: 0,
+        fidgetWait: this.nextFidget(),
+        peekLeft: 0,
+      };
+      this.hiders.push(h);
+      this.tuck(h);
+      if (d.pattern === "B") this.trail.show(host, this.props.list, this.rand);
+    });
+    const ids = dealt.map((d) => d.prop.id);
+    this.log.dealt(patterns, ids);
+  }
+
+  // 자리를 고르는 난수: 주소로 자리 씨앗(?hide=N)을 골랐으면 그 씨앗(판마다 하나씩 더한다), 아니면 놀이 난수
+  private dealRand(): () => number {
+    if (this.pickedSet === null) return this.rand;
+    let seed = (this.pickedSet + this.played) * 7919 + 17;
+    return () => {
+      seed = (seed * 1664525 + 1013904223) % 4294967296;
+      return seed / 4294967296;
+    };
+  }
+
   // 눈을 떴다: '술래는 너'와 함께 조작이 풀리고 찾기가 시작된다
   private startSeek() {
     this.overlay.showBig(HIDE.copy.it);
-    // 숨은 상자: 흰 테두리(내 곁을 따라오는 아닌 척은 빼고 — 줄·고양이 곁에서 티가 나면 안 된다)
-    for (const k of this.seekers) {
-      const isBeside = this.disguises.isBeside(k);
-      k.box.setOutline(!isBeside);
-    }
     this.links.input.hold(false);
     this.log.seekStarted(this.time);
     this.roundT = 0;
-    this.sinceFind = 0;
-    this.stuckT = 0;
-    this.easyT = 0;
     // 주소로 단계를 골라 본 판은 세지 않는다(시험이 이 기기의 단계를 올리지 않게)
     if (this.pickedLevel === null) this.progress.countRound();
     this.goTo("seek");
   }
 
-  // 이번 판의 자리 넷: 주소로 골라 본 묶음이 있으면 그것, 맨 처음 판이면 첫째 묶음, 그다음부터는 네 방향에 하나씩 고른다(못 고르면 묶음 차례대로)
-  private spotsForRound() {
-    if (this.pickedSet !== null) return roundSpots(this.set);
-    if (this.first) return roundSpots(1);
-    const ids = pickRound(this.level, this.rand);
-    return ids ? spotsOf(ids) : roundSpots(this.set);
-  }
-
-  // 찾는 중: 해가 서서히 지고, 몇은 내가 안 볼 때 움직이고, 고양이가 냄새를 맡고, 생물이 도움을 준다
+  // 찾는 중: 숨은 상자들의 몸짓, 메롱과 이사, 뜨거워 차가워. 해는 지지 않는다 — 넷을 다 찾아야 끝난다
   private seek(dt: number) {
     this.roundT += dt;
-    this.sinceFind += dt;
-    this.stuckT += dt;
-    this.rewind(dt);
-    const dusk = duskAt(this.roundT);
-    this.links.sky.setDusk(dusk);
-    const player = this.s.player;
-    let nearest: Seeker | null = null,
+    let nearest: Hider | null = null,
       nearestD = Infinity;
-    for (const k of this.seekers) {
-      if (k.state !== "hidden") continue;
-      const center = k.box.center(at);
-      k.seen = k.box.visible && this.isSeen(center);
-      if (!k.box.visible) continue;
-      const isWatched = k.seen && Math.abs(ndc.x) <= WATCH && Math.abs(ndc.y) <= WATCH;
-      const near = reachOf(k, player);
-      // 내 곁을 따라오는 아닌 척(내 줄·고양이)은 고양이가 냄새로 가리키지 않는다(늘 가장 가까워 다른 상자를 가린다)
-      const isBeside = this.disguises.isBeside(k);
-      if (near.flat < nearestD && !isBeside) {
-        nearestD = near.flat;
-        nearest = k;
+    for (const h of this.hiders) {
+      if (h.k.state !== "hidden") continue;
+      this.stepHider(h, dt);
+      const dist = this.distanceTo(h);
+      this.watchNear(h, dist);
+      if (dist < nearestD) {
+        nearestD = dist;
+        nearest = h;
       }
-      if (!this.sneak.isMoving(k)) this.idle(k, near.dist, isWatched);
     }
-    const occupied = (spot: BehindSpot) => this.seekers.some((k) => k.spot.id === spot.id);
-    this.sneak.update(dt, occupied);
-    this.disguises.update(dt, this.caught.length);
-    this.help.update(dt);
-    if (this.stuckT >= HIDE.stuck.callAfter && this.help.call()) this.stuckT = 0;
-    const scentAt = nearest ? nearest.box.v : null;
-    this.coach.sniff(scentAt, nearestD);
-    this.easeFirstBox(dt);
-    this.giggle(dt);
-    this.rideLegend(dt);
-    this.pointAtFirst();
-    this.showTags();
+    const target = nearest ? this.warmTarget(nearest, nearestD) : null;
+    this.warm.update(dt, target);
     const isAllCaught = this.caught.length === this.seekers.length;
-    if (isAllCaught) {
-      if (this.caught.every((k) => k.state === "line")) this.endSeek("all");
+    if (isAllCaught && this.caught.every((k) => k.state === "line")) this.endSeek();
+  }
+
+  // 뜨거워 차가워가 보는 것: 가장 가까운 못 찾은 상자까지의 거리와 자리, 바스락거릴 물건(물건 속에 있을 때만 흔들린다)
+  private warmTarget(h: Hider, dist: number): WarmTarget {
+    const where = h.mode === "hop" ? h.k.box.center(at) : this.props.center(h.host, at);
+    return {
+      dist,
+      at: where,
+      rustle: () => {
+        if (h.mode === "in") this.props.rustle(h.host);
+      },
+    };
+  }
+
+  // 나와 숨은 상자 사이(m): 물건 속이면 그 물건까지, 이사 중이면 날아가는 상자까지
+  private distanceTo(h: Hider): number {
+    if (h.mode !== "hop") return this.props.distance(h.host);
+    return h.k.box.center(at).distanceTo(this.s.player.P);
+  }
+
+  // 곁(candidate.tapReach)에 왔다가 못 찾고 나가면 센다
+  private watchNear(h: Hider, dist: number) {
+    const reach = FIND.candidate.tapReach;
+    if (dist <= reach) {
+      h.isNear = true;
       return;
     }
-    // 찾는 중인 상자(미스트가 날아가거나 뛰어가거나 굴러떨어지는 중)가 있으면 다 찾아질 때까지 해가 기다린다
-    const isFinding = this.seekers.some((k) => k.state === "struck" || k.state === "falling");
-    if (this.roundT >= HIDE.round.seconds && !isFinding) this.endSeek("sunset");
+    if (!h.isNear || dist < reach + LEAVE_GAP) return;
+    h.isNear = false;
+    h.nearMisses++;
+    this.log.nearMiss();
   }
 
-  // 회중시계: 해가 눈에 띄게 되감긴다(정한 시간에 걸쳐)
-  private rewind(dt: number) {
-    if (this.rewindLeft <= 0) return;
-    const fast = this.rewindRate * dt,
-      step = Math.min(this.rewindLeft, fast);
-    this.rewindLeft -= step;
-    const back = this.roundT - step;
-    this.roundT = Math.max(0, back);
+  /* ─── 내부: 숨은 상자 ─────────────────────────── */
+
+  // 상자를 물건 속에 넣는다: 물건에 맞게 줄이고, 패턴대로 내민다(A 귀 끝만 · D 리본과 눈 · B·C 안 보인다)
+  private tuck(h: Hider) {
+    const b = h.k.box,
+      c = h.host,
+      scale = c.fit,
+      base = this.restBase(h, scale);
+    h.k.state = "hidden";
+    h.mode = "in";
+    h.modeT = 0;
+    h.peekLeft = 0;
+    b.setSize(scale, true);
+    const face = this.faceFrom(c.v);
+    b.put(c.v, base, face);
+    b.setPeek(null);
+    b.setLongEars(true);
+    b.setOutline(false);
+    b.visible = h.pattern === "A" || h.pattern === "D";
   }
 
-  // 숨어 있는 동안: 내가 가까이 오면 숨을 참고, 바로 곁을 지나쳐 멀어지면 '휴', 내밀다 눈이 마주치면 쏙, 오래 못 찾으면 참을성을 잃는다
-  private idle(k: Seeker, dist: number, isWatched: boolean) {
-    const N = HIDE.nearby,
-      b = k.box;
-    b.holdBreath(dist <= N.holdBreathReach);
-    b.setWatched(isWatched);
-    b.setRestless(this.sinceFind >= HIDE.stuck.restlessAfter);
-    if (dist <= N.passReach) {
-      k.wasClose = true;
+  // 물건 속에서의 바닥 높이(m): 패턴마다 내미는 만큼
+  private restBase(h: Hider, scale: number): number {
+    const c = h.host,
+      tall = h.k.box.hh * 2 * scale,
+      top = c.base + c.lid;
+    if (h.pattern === "A") return top - tall * (1 - EARS_OUT);
+    if (h.pattern === "D") return top - tall * (1 - HIGH_PEEK);
+    return top - tall - INSIDE_DIP;
+  }
+
+  // v 에 선 것이 볼 쪽: 나(없으면 출발 쪽)를 본다
+  private faceFrom(v: THREE.Vector3): THREE.Vector3 {
+    const p = this.s.player.p;
+    tmp.copy(p).sub(v);
+    if (tmp.lengthSq() < 1e-10) tmp.copy(this.s.player.h).negate();
+    return tmp;
+  }
+
+  private nextFidget(): number {
+    const [lo, hi] = FIDGET_EVERY;
+    return lo + (hi - lo) * this.rand();
+  }
+
+  // 숨은 상자의 한 프레임: 물건 속이면 가끔 몸짓(A 혼자 떨기 · B 리본 끝 빼꼼), 메롱 중이면 올라왔다가 이사 가거나 들어가고, 이사 중이면 포물선
+  private stepHider(h: Hider, dt: number) {
+    h.modeT += dt;
+    if (h.mode === "taunt") {
+      this.whileTaunting(h, dt);
       return;
     }
-    if (!k.wasClose || dist < N.passReach * 1.6) return;
-    k.wasClose = false;
-    b.sigh();
-    const breath = b.center(at).addScaledVector(b.v, b.hh);
-    this.fx.dot(breath, 0.9, 0.8);
-    this.s.events.emit("hideBoxSighed", {});
-  }
-
-  // 첫 판의 첫 상자: 못 찾고 있으면 몇 초마다 혼자 재채기한다(첫 발견이 빨리 나오게)
-  private easeFirstBox(dt: number) {
-    const worst = this.seekers[0];
-    if (!this.first || worst.state !== "hidden") return;
-    this.easyT += dt;
-    if (this.easyT < HIDE.start.firstSneezeEvery) return;
-    this.easyT = 0;
-    this.sneeze(worst);
-  }
-
-  // 첫 판 첫 상자: 화면에 들면 그 위에서 손가락이 톡톡(한 번 찾으면 다시 안 뜬다). 첫 생물은 따라다니는 토끼의 큰 손가락 이름표가 가르친다 —
-  // 누르기를 알려 주는 씬이 오기 전까지
-  private pointAtFirst() {
-    const k = this.seekers[0],
-      isBoxShown = this.first && this.caught.length === 0 && k.state === "hidden" && k.seen;
-    this.overlay.setPointer(isBoxShown ? (out) => overBox(k, out) : null);
-  }
-
-  // 생물 이름표 둘(helpers 가 고른다)과 지나가는 전설의 '타기'를 단다
-  private showTags() {
-    const tags = [...this.help.tags],
-      whale = this.links.whale;
-    if (this.legend.isCatchable)
-      tags.push({
-        key: LEGEND_TAG,
-        text: HIDE.copy.help.legend,
-        where: (out) => {
-          whale.g.getWorldPosition(out);
-          const up = whale.bodyHalf + LEGEND_TAG_OVER;
-          out.addScaledVector(whale.v, up);
-        },
-        isBig: false,
-      });
-    this.overlay.setTags(tags);
-  }
-
-  // 누른 뒤 위 칸 밑 한 줄: 지금 일어난 일과 내가 할 일. 같은 종류를 screen.helpLineQuietAfter 번 쓴 뒤로는 띄우지 않는다(이 기기에 기억)
-  private sayHelp(kind: HelpTag) {
-    const S_ = HIDE.screen,
-      uses = this.progress.helpUses(kind),
-      isQuiet = uses >= S_.helpLineQuietAfter;
-    this.progress.useHelp(kind);
-    if (isQuiet) {
-      this.overlay.showLine(null);
+    if (h.mode === "hop") {
+      this.whileHopping(h);
       return;
     }
-    const line = HIDE.copy.helpLine[kind];
-    this.overlay.showLine(line, S_.helpLineSeconds);
-  }
-
-  // 킥킥: 오래 못 찾았거나(참을성을 잃은 뒤) 해가 저물 무렵이면, 가장 가까운 숨은 상자가 가끔 리본 귀를 흔들며 웃는다
-  private giggle(dt: number) {
-    const isLate = this.roundT >= HIDE.round.redFrom,
-      isBored = this.sinceFind >= HIDE.stuck.restlessAfter;
-    if (!isLate && !isBored) {
-      this.giggleT = GIGGLE_EVERY * 0.5;
+    const b = h.k.box;
+    if (h.peekLeft > 0) {
+      h.peekLeft -= dt;
+      if (h.peekLeft <= 0) this.tuck(h);
       return;
     }
-    this.giggleT -= dt;
-    if (this.giggleT > 0) return;
-    this.giggleT = GIGGLE_EVERY * (0.7 + this.rand() * 0.6);
-    const hidden = this.findable(),
-      near = nearestHidden(hidden, this.s.player.P);
-    if (!near) return;
-    near.box.wave();
-    this.s.events.emit("hideBoxGiggled", {});
+    h.fidgetWait -= dt;
+    if (h.fidgetWait > 0) return;
+    h.fidgetWait = this.nextFidget();
+    if (h.pattern === "A") {
+      this.props.tremble(h.host);
+      b.wave();
+    } else if (h.pattern === "D") b.wave();
+    else if (h.pattern === "B") {
+      // 길 끝 상자: 리본 끝을 잠깐 내밀었다 숨는다
+      const scale = h.host.fit,
+        tall = b.hh * 2 * scale,
+        top = h.host.base + h.host.lid;
+      b.a = top - tall * (1 - TRAIL_PEEK);
+      b.visible = true;
+      b.wave();
+      h.peekLeft = PEEK_SECONDS;
+    }
   }
 
-  // 누를 수 있는 것: 찾을 수 있는 숨은 상자(귀까지 넣은 네모) · 쓸 수 있는 생물 · 지나가는 전설
+  // 메롱: 물건 밖으로 쑥 올라와 리본을 흔든다 → miss.tauntSeconds 뒤 이사 가거나(next) 제자리로 들어간다
+  private startTaunt(h: Hider, next: Candidate | null) {
+    const b = h.k.box;
+    h.mode = "taunt";
+    h.modeT = 0;
+    h.next = next;
+    h.peekLeft = 0;
+    b.visible = true;
+    b.wave();
+    const where = this.props.center(h.host, at),
+      pan = this.panOf(where);
+    this.s.events.emit("findTaunted", { pan });
+    this.log.taunted(next !== null);
+  }
+
+  private whileTaunting(h: Hider, dt: number) {
+    const b = h.k.box,
+      c = h.host,
+      tall = b.hh * 2 * b.size,
+      out = c.base + c.lid - tall * (1 - TAUNT_OUT),
+      step = dt * TAUNT_RISE,
+      k = Math.min(1, step);
+    b.a += (out - b.a) * k;
+    if (h.modeT < FIND.miss.tauntSeconds) return;
+    if (!h.next) {
+      this.tuck(h);
+      return;
+    }
+    // 폴짝 이사: 지금 자리에서 다음 물건 꼭대기로
+    h.mode = "hop";
+    h.modeT = 0;
+    h.hopFrom.copy(b.v);
+    h.hopBase = b.a;
+    h.moves++;
+    h.movedAt = this.roundT;
+    b.hop(0, true);
+    const where = b.center(at),
+      pan = this.panOf(where);
+    this.s.events.emit("findHopped", { pan });
+  }
+
+  // 이사 중: 눈에 보이는 포물선으로 다음 물건까지(땅 위로는 고르게, 높이는 miss.moveArc 만큼 솟았다가). 닿으면 그 물건 속으로 쏙
+  private whileHopping(h: Hider) {
+    const M = FIND.miss,
+      b = h.k.box,
+      to = h.next;
+    if (!to) {
+      this.tuck(h);
+      return;
+    }
+    const raw = h.modeT / M.moveSeconds,
+      u = Math.min(1, raw),
+      angle = h.hopFrom.angleTo(to.v) * u;
+    axis.crossVectors(h.hopFrom, to.v).normalize();
+    b.v.copy(h.hopFrom).applyAxisAngle(axis, angle).normalize();
+    const land = to.base + to.lid,
+      level = h.hopBase + (land - h.hopBase) * u,
+      hump = 4 * u * (1 - u) * M.moveArc;
+    b.a = level + hump;
+    ahead.crossVectors(axis, b.v);
+    b.faceTo(ahead);
+    if (u < 1) return;
+    h.host = to;
+    h.next = null;
+    h.isNear = false;
+    this.props.bump(to);
+    this.tuck(h);
+    if (h.pattern === "B") this.trail.show(to, this.props.list, this.rand);
+  }
+
+  /* ─── 내부: 누르기 ─────────────────────────── */
+
+  // 누를 수 있는 것: 아직 찾지 않은 후보 물건 모두(닿는지는 누른 뒤에 본다) · 가까운 버섯
   private pickTargets(): PickTarget<Picked>[] {
     const targets: PickTarget<Picked>[] = [];
-    for (const k of this.findable()) {
-      const b = k.box,
-        tall = b.hh * b.size,
-        ears = tall * (PICK_TALL - 1),
-        center = new THREE.Vector3();
-      b.center(center).addScaledVector(b.v, ears);
-      targets.push({
-        item: { kind: "box", k },
-        center,
-        halfH: tall * PICK_TALL,
-        halfW: tall * PICK_WIDE,
-      });
-    }
-    const creatures: PickTarget<Creature>[] = [];
-    this.help.targets(creatures);
-    for (const t of creatures) targets.push({ ...t, item: { kind: "creature", c: t.item } });
-    const center = new THREE.Vector3(),
-      body = this.legend.body(center);
-    if (body) targets.push({ item: { kind: "legend" }, center, ...body });
+    for (const t of this.props.targets()) targets.push({ ...t, item: { kind: "prop", c: t.item } });
+    const mushrooms: PickTarget<Creature>[] = [];
+    this.mushrooms.targets(mushrooms);
+    for (const t of mushrooms) targets.push({ ...t, item: { kind: "mushroom", c: t.item } });
     return targets;
   }
 
-  // 상자를 톡: 미스트가 날아가 재채기하면(아닌 척이면 들통나며) 아바타가 뛰어가 찾는다. 너무 멀면 미스트가 가다 떨어지고 상자가 메롱
-  private tapBox(k: Seeker) {
-    const { player, events } = this.s,
-      dist = reachOf(k, player).dist;
-    if (dist > this.help.tapReach) {
-      this.pullMist(k, FAR_SHARE);
-      this.log.tooFar();
-      events.emit("hideBoxTapped", { far: true });
-      this.timeline.after(HIDE.find.mistSeconds, () => {
-        if (k.state !== "hidden") return;
-        k.box.wave();
-        k.box.hop(0.5);
-      });
+  // 물건을 눌렀다: 닿지 않으면(멀거나, 높은 곳을 밑에서) 아무 일도 없다. 닿으면 미스트가 날아가고 — 상자가 들었으면 찾은 것, 아니면 꽝
+  private tapProp(c: Candidate) {
+    const { events } = this.s;
+    if (!this.props.canReach(c)) {
+      this.log.far();
+      events.emit("findTapped", { far: true });
       return;
     }
-    k.state = "struck";
-    k.box.setFrozen(false);
-    this.log.tapped(dist);
-    this.pullMist(k, 1);
-    events.emit("hideBoxTapped", { far: false });
-    this.timeline.after(HIDE.find.mistSeconds, () => {
-      if (this.phase !== "seek") return;
-      this.disguises.reveal(k);
-      this.sneeze(k);
-      this.leapToBox(k);
-    });
+    this.pullMist(c);
+    events.emit("findTapped", { far: false });
+    const h = this.hiders.find((x) => x.host === c && x.k.state === "hidden" && x.mode !== "hop");
+    if (h) {
+      this.catchBox(h);
+      return;
+    }
+    this.props.squish(c);
+    this.log.wrong();
+    events.emit("findMissed", {});
+    this.tauntNear(c);
   }
 
-  // 아바타가 뛰어간다: 상자 앞(나 쪽으로 조금)에 내린다. 놀이기구에 실려 있으면 뛰지 않고 그 자리에서 찾는다
-  private leapToBox(k: Seeker) {
-    const { player, terrain } = this.s,
+  // 꽝 곁(miss.tauntReach)의 진짜 상자가 메롱 한다: 가장 가까운 하나. 이사는 상자 하나당 miss.cooldown 초에 한 번, 한 판 miss.maxMoves 번까지
+  private tauntNear(dud: Candidate) {
+    const M = FIND.miss;
+    let best: Hider | null = null,
+      bestD = M.tauntReach;
+    for (const h of this.hiders) {
+      if (h.k.state !== "hidden" || h.mode !== "in") continue;
+      const dx = h.host.spec.x - dud.spec.x,
+        dy = h.host.spec.y - dud.spec.y,
+        gap = Math.hypot(dx, dy);
+      if (gap > bestD) continue;
+      bestD = gap;
+      best = h;
+    }
+    if (!best) return;
+    const canMove = best.moves < M.maxMoves && this.roundT - best.movedAt >= M.cooldown,
+      next = canMove ? this.moveTarget(best) : null;
+    this.startTaunt(best, next);
+  }
+
+  // 이사 갈 물건: 같은 갈래, miss.moveRange 안, 다른 상자가 들지 않았고 아직 찾지 않은 것 가운데 아무거나(없으면 null)
+  private moveTarget(h: Hider): Candidate | null {
+    const hosts = this.hiders.flatMap((x) => (x.next ? [x.host, x.next] : [x.host]));
+    const isTaken = (spec: Candidate["spec"]) => {
+      const c = this.props.of(spec);
+      return c.isFound || hosts.includes(c);
+    };
+    const open = moveTargets(h.host.spec, FIND.props, isTaken);
+    if (open.length === 0) return null;
+    const roll = this.rand() * open.length,
+      spec = open[Math.floor(roll)];
+    return this.props.of(spec);
+  }
+
+  // 찾았다: 시간이 잠깐 멈추고, 물건이 통 튀며 상자가 원래 크기로 튀어나와 공중에서 한 바퀴 → 짧은 춤 → 내 뒤 줄에 선다(위 칸이 하나 찬다).
+  // 상자가 나온 물건에는 작은 라임 리본이 남는다
+  private catchBox(h: Hider) {
+    const F = FIND.found,
+      k = h.k,
       b = k.box,
-      back = (b.hh * b.size + LAND_BEFORE) / S.R;
-    tmp.copy(player.p).sub(b.v);
-    const up = tmp.dot(b.v);
-    tmp.addScaledVector(b.v, -up).normalize();
-    ahead.copy(b.v).addScaledVector(tmp, back).normalize();
-    const ground = terrain.groundAt(ahead),
-      above = b.a - ground,
-      landAir = Math.max(0, above);
-    this.leapTo = k;
-    const isLeaping = this.leap.start(ahead, landAir);
-    if (isLeaping) this.s.events.emit("hideLeapt", {});
-    else this.arrive();
-  }
-
-  private followLeap(dt: number) {
-    const landed = this.leap.update(dt);
-    if (landed) this.arrive();
-  }
-
-  // 다 뛰어갔다: 톡! 높이 숨은 상자는 굴러떨어진 뒤, 나머지는 바로 찾은 것
-  private arrive() {
-    const k = this.leapTo;
-    this.leapTo = null;
-    // 생물을 누른 직후(0.5초 잠금 중)에 상자로 뛰었으면 그 잠금을 푸는 일이 뛰는 동안 건너뛰어졌다 — 내리면 푼다
-    if (this.phase === "seek" && !this.legend.isCarrying) this.links.input.hold(false);
-    if (!k || k.state !== "struck") return;
-    const terrain = this.s.terrain,
-      ground = terrain.groundAt(k.box.v),
-      above = k.box.a - ground;
-    if (above <= HIDE.drop.minAbove) {
-      this.catchBox(k, "tap");
-      return;
-    }
-    const slide = k.spot.kind === "high" ? k.spot.slide : 0;
-    k.state = "falling";
-    k.box.tumbleTo(ground, slide);
-    this.s.events.emit("hideBoxDropped", {});
-  }
-
-  // 생물을 톡: 도움 주는 생물(고리가 켜진 것)이면 그 생물만의 도움과 한 줄, 도움 없는 생물이면 요란한 반응
-  private tapCreature(c: Creature) {
-    const kind = this.help.use(c);
-    this.afterCreature(kind);
-  }
-
-  private afterCreature(kind: ReturnType<CreatureHelp["use"]>) {
-    if (!kind) return;
-    if (kind === "poke") {
-      this.log.poked();
-      return;
-    }
-    this.log.helped(kind);
-    this.sayHelp(kind);
-    this.stuckT = 0;
-  }
-
-  // 전설을 톡(화면에 보이면 거리와 상관없이 한 번): 미스트가 하늘로 날아가고 고래가 내게 내려온다
-  private tapLegend() {
-    if (!this.legend.isCatchable) return;
-    this.legend.tap();
-    this.sayHelp("legend");
-    this.s.events.emit("hideLegendTapped", {});
-  }
-
-  // 전설의 생물: 나타나고(화면 밖이면 그쪽 가장자리가 금빛), 누르면 울며 내려와 태워 가장 먼 숨은 상자 앞까지 가고, 도착하면 그 상자가 찾아진다.
-  // 내려오는 동안 카메라가 고래를 올려다보고 조작은 멈춘다
-  private rideLegend(dt: number) {
-    const event = this.legend.update(dt, this.roundT, () => this.legendTarget());
-    const { events } = this.s,
-      whale = this.links.whale;
-    if (event === "came") {
-      this.log.legendAppeared();
-      this.overlay.legendEdge((out) => whale.g.getWorldPosition(out));
-      events.emit("hideLegendCame", {});
-    } else if (event === "cried") events.emit("hideLegendCried", {});
-    else if (event === "descending") {
-      this.links.input.hold(true);
-      const where = (out: THREE.Vector3) => whale.g.getWorldPosition(out),
-        height = whale.bodyHalf * 2,
-        seconds = HIDE.legend.descendSeconds + LEGEND_LOOK_EXTRA;
-      this.focus.look({ where, height, hint: null }, seconds);
-    } else if (event === "boarded") {
-      this.log.legendRidden();
-      events.emit("hideLegendBoarded", {});
-    } else if (event === "arrived") {
-      this.links.input.hold(false);
-      const k = this.target;
-      this.target = null;
-      if (k && k.state === "hidden") {
-        this.disguises.reveal(k);
-        this.catchBox(k, "legend");
-      }
-    }
-    if (!this.legend.isCarrying) return;
-    // 타고 가는 동안 곁을 지나친 상자는 올려다보며 움찔한다(눈 밝은 사람은 자리를 하나 더 얻는다)
-    const whaleAt = this.links.whale.v;
-    for (const k of this.findable()) {
-      if (k.flinched || k === this.target) continue;
-      if (whaleAt.angleTo(k.box.v) * S.R > HIDE.legend.flinchReach) continue;
-      k.flinched = true;
-      k.box.flinch();
-    }
-  }
-
-  // 전설의 생물이 데려다줄 곳: 가장 먼 숨은 상자의 자리(그 상자를 기억해 둔다 — 도착하면 찾은 것이 된다)
-  private legendTarget(): THREE.Vector3 | null {
-    const hidden = this.findable(),
-      best = farthestHidden(hidden, this.s.player.p);
-    this.target = best;
-    return best ? best.box.v : null;
-  }
-
-  // 지금 찾을 수 있는 숨은 상자(내 줄에 끼기 전의 상자처럼 아무 데도 없는 것은 빼고)
-  private findable(): Seeker[] {
-    return this.seekers.filter(
-      (k) => k.state === "hidden" && k.box.visible && this.disguises.canFind(k),
-    );
-  }
-
-  // 찾기가 끝났다: 넷을 다 찾았으면 금색 상자로, 해가 졌으면 남은 상자들이 이긴다
-  private endSeek(by: RoundEnd) {
-    this.coach.stop();
-    this.help.stop();
-    this.overlay.setTags([]);
-    this.overlay.showLine(null);
-    for (const k of this.seekers) k.box.setOutline(false);
-    this.sneak.stop();
-    this.legend.stop();
-    this.leap.stop();
-    this.focus.drop();
-    this.overlay.setPointer(null);
-    this.links.xray(this.s.player.P as THREE.Vector3, 0, 1);
-    this.leapTo = null;
-    this.target = null;
-    this.s.camera.setZoom(1);
-    this.log.spotted(this.sneak.spotted);
-    this.log.ended(by);
-    if (by === "all") {
-      this.links.input.hold(false);
-      this.overlay.flashSlots();
-      this.s.events.emit("hideAllFound", {});
-      this.goTo("bonus");
-      return;
-    }
-    // 해가 톡 떨어지고 조작이 잠긴다. 장면이 끝나면 '한 판 더'(찾은 것이 있으면 작은 '깔까?'도)
-    this.links.sky.setDusk(1);
-    this.links.input.hold(true);
-    // 아직 줄에 끼지 못한 상자는 아무 데도 없으니 이긴 상자들에 끼지 않는다
-    const losers = this.seekers.filter((k) => k.state === "hidden" && k.box.visible);
-    for (const k of losers) k.box.setFrozen(false);
-    this.disguises.undress();
-    this.sunset.start(losers, () => {
-      this.release();
-      const canOpen = this.caught.length > 0;
-      this.showEnd(canOpen ? () => this.openFound() : null);
-    });
-    this.goTo("lost");
-  }
-
-  // 해가 진 뒤의 '깔까?': 찾은 것만 깐다
-  private openFound() {
-    if (this.phase !== "lost" || this.s.player.isHeld) return;
-    this.overlay.showEnding(null);
-    this.startWipe();
-  }
-
-  // 찾았다: 시간이 잠깐 멈추고(상자는 깜짝 자세로 굳는다) → 눈을 가리고 버티다 → 포기하고 크게 폴짝(한 바퀴, 종이 꽃가루, '찾았다!') →
-  // 내 뒤 줄에 선다(위 칸이 하나 찬다). 굴러떨어진 상자는 벌떡 일어난 데서 바로 폴짝으로 이어진다. 조작은 멈춘 뒤 바로 풀린다
-  private catchBox(k: Seeker, how: FoundHow) {
-    const F = HIDE.find,
-      b = k.box;
-    const as = this.disguises.kindOf(k),
-      shownFor = this.disguises.shownFor(k),
-      wasFalling = k.state === "falling";
+      c = h.host;
     k.state = "caught";
     k.slot = this.caught.length;
     this.caught.push(k);
-    b.setFrozen(false);
-    b.setPeek(null);
-    b.holdBreath(false);
-    b.setRestless(false);
-    b.setWobble(false);
-    const { id: spot, kind } = k.spot;
-    this.log.found({ spot, kind, how, as, shownFor }, this.time);
-    this.sinceFind = 0;
-    this.stuckT = 0;
-    // 굴러떨어진 상자는 벌떡 일어난 데서 바로 폴짝
-    const coverFor = wasFalling ? 0 : F.coverSeconds;
-    if (!wasFalling) {
-      b.startle(true);
-      b.coverEyes(true);
-      this.links.pause(F.pauseSeconds);
-    }
-    b.setOutline(false);
-    this.timeline.after(coverFor, () => {
-      const high = b.hh * 2 * FOUND_HOP;
-      b.coverEyes(false);
-      b.hop(high, true);
-      // 폴짝하는 동안 줄 설 크기로 줄어든다(작아져서 따라온다)
-      b.setSize(HIDE.line.scale);
-      const center = b.center(at);
-      this.fx.confetti(center, this.rand);
-      this.s.fx.burst(center, 14, 8);
-      this.overlay.showBig(HIDE.copy.found);
-      const count = this.caught.length;
-      this.s.events.emit("hideBoxFound", { count, how });
-    });
-    this.timeline.after(coverFor + F.hopSeconds, () => {
+    h.mode = "in";
+    h.next = null;
+    this.log.found(
+      { prop: c.spec.id, pattern: h.pattern, moves: h.moves, nearMisses: h.nearMisses },
+      this.time,
+    );
+    if (h.pattern === "B") this.trail.clear();
+    this.props.bump(c);
+    this.props.markFound(c);
+    const top = c.base + c.lid,
+      face = this.faceFrom(c.v);
+    b.put(c.v, top, face);
+    b.visible = true;
+    b.setSize(1);
+    b.hop(F.popHeight, true);
+    this.links.pause(HIDE.find.pauseSeconds);
+    const center = b.center(at);
+    this.fx.confetti(center, this.rand);
+    this.s.fx.burst(center, 14, 8);
+    this.overlay.showBig(HIDE.copy.found);
+    const count = this.caught.length;
+    this.s.events.emit("findFound", { count });
+    this.timeline.after(LimeBox.hopSeconds, () => b.dance(F.danceSeconds));
+    this.timeline.after(LimeBox.hopSeconds + F.danceSeconds, () => {
       k.state = "line";
       this.line.join(b, k.slot);
       this.overlay.fillSlot(k.slot);
-      // 첫 판에 첫 상자를 찾았다: 토끼가 와서 누르기를 배우게 한다(위 칸 밑 한 줄은 토끼를 누를 때까지)
-      const isFirstFind = this.first && this.caught.length === 1 && this.phase === "seek";
-      if (isFirstFind && this.help.teach()) this.overlay.showLine(HIDE.copy.teach);
     });
   }
 
-  // 칙에 걸림: 안개 알갱이가 내 자리에서 상자 쪽으로 빨려가듯 흐른다(share — 너무 멀면 가다 떨어진다)
-  private pullMist(k: Seeker, share: number) {
+  // 누른 물건으로 안개 알갱이가 내 자리에서 빨려가듯 흐른다
+  private pullMist(c: Candidate) {
     const from = this.s.player.P.clone(),
-      to = k.box.center(at).clone(),
-      isShort = share < 1,
-      down = this.s.player.p.clone();
+      spot = new THREE.Vector3(),
+      to = this.props.center(c, spot);
     for (let i = 1; i <= MIST_DOTS; i++) {
-      const part = (i / (MIST_DOTS + 1)) * share,
+      const part = i / (MIST_DOTS + 1),
         wait = part * HIDE.find.mistSeconds;
       this.timeline.after(wait, () => {
         const mote = tmp.copy(from).lerp(to, part);
-        // 너무 멀면 힘없이 처진다
-        const droop = -part * 4;
-        if (isShort) mote.addScaledVector(down, droop);
         this.fx.dot(mote, 0.7, 0.35);
       });
     }
   }
 
-  // 재채기: 에…취! — 터지는 순간 라임 안개, 상자 위 '에취!' 말풍선, 가리고 있던 것이 흔들린다(소리 없이도 보이게). 그 뒤 '들켰나?' 하고 굳는다
-  private sneeze(k: Seeker) {
-    if (this.phase !== "seek" || (k.state !== "hidden" && k.state !== "struck")) return;
-    k.sneezedAt = this.time;
-    k.box.sneeze();
-    this.timeline.after(SNEEZE_AT, () => {
-      const center = k.box.center(at);
-      this.fx.sneeze(center, this.rand);
-      this.overlay.bubble(HIDE.copy.sneeze, (out) => overBox(k, out), BUBBLE_TIME);
-      this.links.shake(k.box.v, SHAKE_NEAR);
-      this.s.events.emit("hideBoxSneezed", {});
-    });
+  // 화면에서 본 좌우(-1 왼쪽 … 1 오른쪽)
+  private panOf(world: THREE.Vector3): number {
+    const camera = this.s.camera.camera;
+    camera.getWorldPosition(eye);
+    tmp.copy(world).sub(eye).normalize();
+    side.set(1, 0, 0).applyQuaternion(camera.quaternion);
+    const pan = tmp.dot(side) * 1.6;
+    return THREE.MathUtils.clamp(pan, -1, 1);
+  }
+
+  /* ─── 내부: 판 끝 ─────────────────────────── */
+
+  // 넷을 다 찾았다: 금색 상자로
+  private endSeek() {
+    this.warm.stop();
+    this.mushrooms.stop();
+    this.s.camera.setZoom(1);
+    this.log.mushrooms(this.mushrooms.uses);
+    this.links.input.hold(false);
+    this.overlay.flashSlots();
+    this.s.events.emit("hideAllFound", {});
+    this.goTo("bonus");
   }
 
   // 다 찾았다: 칸 넷이 번쩍이고, 금색 리본 상자(1.4배)가 내 앞 하늘에서 떨어져 쿵(화면 흔들림·먼지 고리) → 통통 튀고 → 손을 흔들고 → '깔까?'
@@ -1034,7 +838,7 @@ export class HideSeek implements Thing, Tappable {
   }
 
   // 눈을 감은 동안 광장 출발 자리로 옮겨 찾은 상자들을 앞에 세운다(줄 설 때의 작은 크기로) —
-  // 그 자리가 놀이기구 안·조형물 곁이면 앞에서 비추는 카메라가 막혀서, 언박싱은 늘 트인 광장에서 한다. 못 찾은 상자는 물러난다
+  // 그 자리가 놀이기구 안·물건 곁이면 앞에서 비추는 카메라가 막혀서, 언박싱은 늘 트인 광장에서 한다
   private arrangeUnbox() {
     const { player, occ, camera } = this.s;
     // 닫히는 사이에 놀이기구가 나를 붙잡았으면 내릴 때까지 기다린다(실린 채 옮기면 그 놀이기구가 나를 놓지 못한다)
@@ -1044,9 +848,7 @@ export class HideSeek implements Thing, Tappable {
     }
     const boxes = this.caught.map((k) => k.box);
     if (this.hasBonus) boxes.push(this.bonus);
-    for (const k of this.seekers) if (k.state === "hidden") k.box.visible = false;
     for (const b of boxes) b.setSize(HIDE.line.scale, true);
-    this.sunset.clear();
     camera.setZoom(1);
     // 출발 자리에서 광장 바깥(트인 쪽)을 보고 선다 — 소원 나무 쪽은 공 놀이기구가 줄 가운데를 가린다
     const hub = occ.hubs[STAGE_HUB];
@@ -1067,24 +869,20 @@ export class HideSeek implements Thing, Tappable {
   private finish() {
     this.goTo("end");
     this.release();
-    this.showEnd(null);
-  }
-
-  // 판 끝 화면: 위 칸은 거두고 '한 판 더'(해가 졌는데 찾은 것이 있으면 작은 '깔까?'도)
-  private showEnd(onOpen: (() => void) | null) {
     this.overlay.showSlots(false);
     this.endAt.copy(this.s.player.p);
-    this.overlay.showEnding(() => this.again(), onOpen);
+    this.overlay.showEnding(() => this.again());
   }
 
-  // 판에서 놓아 준다(다 열었거나, 해가 져서 단추가 떴다): 손을 놓고, 옷장 단추·장소의 라임빛·따라붙는 손님을 돌려주고,
-  // 기록을 닫는다(?debug 면 잰 값도)
+  // 판에서 놓아 준다: 손을 놓고, 옷장 단추·장소의 라임빛·따라붙는 손님·세상의 반응을 돌려주고, 기록을 닫는다(?debug 면 잰 값도)
   private release() {
-    this.links.setPlaceGlow(true);
-    this.links.setLabels(true);
-    this.links.setCompany(true);
-    this.links.input.hold(false);
-    this.links.studio.setWearHidden(false);
+    const L = this.links;
+    L.setPlaceGlow(true);
+    L.setLabels(true);
+    L.setCompany(true);
+    L.setReactions(true);
+    L.input.hold(false);
+    L.studio.setWearHidden(false);
     this.log.finish(this.time);
     if (!isStatsShown()) return;
     const lines = this.log.lines();
@@ -1093,8 +891,7 @@ export class HideSeek implements Thing, Tappable {
 
   // 한 판 더: 고래에서 내려 주고 0.3초 눈을 감았다가(감은 동안 커진 몸을 바로 되돌린다) 다음 판으로. 다른 놀이기구에 실려 있으면 내린 뒤에
   private again() {
-    if (this.phase !== "end" && this.phase !== "lost") return;
-    if (this.isAgainWaiting) return;
+    if (this.phase !== "end" || this.isAgainWaiting) return;
     this.overlay.showEnding(null);
     // 눈을 감는 동안 옷장을 못 열게(감은 채 꾸미기 씬이 열리면 새 판이 시작되지 못한다)
     this.links.studio.setWearHidden(true);
@@ -1108,7 +905,7 @@ export class HideSeek implements Thing, Tappable {
 
   private startAgain() {
     this.log.again();
-    this.set++;
+    this.played++;
     this.overlay.setLids(true);
     // 눈을 감은 동안 커진 몸을 바로 되돌린다(효과가 걸린 채 새 판이 시작되지 않게)
     this.timeline.after(LIDS_MOVE, () => {
@@ -1129,23 +926,4 @@ export class HideSeek implements Thing, Tappable {
     this.phase = phase;
     this.phaseT = 0;
   }
-
-  /* ─── 내부: 화면 ─────────────────────────── */
-
-  // 화면 안인가(가장자리에 걸친 것·카메라 뒤는 아니다). 화면 위 자리는 ndc 에 남는다
-  private isSeen(world: THREE.Vector3): boolean {
-    ndc.copy(world).project(this.s.camera.camera);
-    return ndc.z < 1 && Math.abs(ndc.x) <= SEEN_EDGE && Math.abs(ndc.y) <= SEEN_EDGE;
-  }
 }
-
-/** 찾기 시작 뒤 t 초의 노을(0 낮 … 1 해가 졌다): redFrom 까지는 은은하게, 그 뒤로 눈에 띄게 붉어진다 */
-export function duskAt(t: number): number {
-  const { seconds, redFrom } = HIDE.round;
-  if (t <= redFrom) return DUSK_EARLY * (t / redFrom);
-  const share = (t - redFrom) / (seconds - redFrom),
-    late = Math.min(1, share);
-  return DUSK_EARLY + (1 - DUSK_EARLY) * late;
-}
-
-/* ─── 내부 ─────────────────────────── */

@@ -1,5 +1,5 @@
 {
-  "version": "v8",
+  "version": "v9",
   "assets": {
     "snd_bgm": {
       "file": "audio/bgm/bgm.mp3",
@@ -100,6 +100,46 @@
       "file": "audio/sfx/cannon.mp3",
       "category": "audio/sfx",
       "bytes": 4432
+    },
+    "snd_find_found": {
+      "file": "audio/sfx/find-found.mp3",
+      "category": "audio/sfx",
+      "bytes": 21360
+    },
+    "snd_find_giggle_1": {
+      "file": "audio/sfx/find-giggle-1.mp3",
+      "category": "audio/sfx",
+      "bytes": 11956
+    },
+    "snd_find_giggle_2": {
+      "file": "audio/sfx/find-giggle-2.mp3",
+      "category": "audio/sfx",
+      "bytes": 12897
+    },
+    "snd_find_giggle_3": {
+      "file": "audio/sfx/find-giggle-3.mp3",
+      "category": "audio/sfx",
+      "bytes": 6314
+    },
+    "snd_find_hop": {
+      "file": "audio/sfx/find-hop.mp3",
+      "category": "audio/sfx",
+      "bytes": 5687
+    },
+    "snd_find_rustle": {
+      "file": "audio/sfx/find-rustle.mp3",
+      "category": "audio/sfx",
+      "bytes": 12897
+    },
+    "snd_find_taunt": {
+      "file": "audio/sfx/find-taunt.mp3",
+      "category": "audio/sfx",
+      "bytes": 3493
+    },
+    "snd_find_wrong": {
+      "file": "audio/sfx/find-wrong.mp3",
+      "category": "audio/sfx",
+      "bytes": 12897
     },
     "snd_help_cupcake": {
       "file": "audio/sfx/help-cupcake.mp3",
@@ -628,6 +668,36 @@
       "box": [
         -0.41377177834510803, -0.43265265226364136, -0.4989451467990875, 0.4130449891090393,
         0.4323902130126953, 0.4997270107269287
+      ]
+    },
+    "hide_basket": {
+      "file": "hideseek/hide-basket.glb",
+      "category": "hideseek",
+      "bytes": 133772,
+      "tris": 6996,
+      "box": [
+        -0.34763920307159424, -0.49996593594551086, -0.45241403579711914, 0.34742623567581177,
+        0.4994336664676666, 0.45155104994773865
+      ]
+    },
+    "hide_jar": {
+      "file": "hideseek/hide-jar.glb",
+      "category": "hideseek",
+      "bytes": 57728,
+      "tris": 3998,
+      "box": [
+        -0.4262060225009918, -0.4999302327632904, -0.4270797073841095, 0.42628273367881775,
+        0.49980872869491577, 0.4264684021472931
+      ]
+    },
+    "hide_teacup": {
+      "file": "hideseek/hide-teacup.glb",
+      "category": "hideseek",
+      "bytes": 72892,
+      "tris": 5006,
+      "box": [
+        -0.4398266077041626, -0.3142772614955902, -0.49983224272727966, 0.4399736523628235,
+        0.3142016530036926, 0.4990358054637909
       ]
     },
     "limebox": {
@@ -1442,6 +1512,11 @@
       "file": "sky/sky.jpg",
       "category": "sky",
       "bytes": 95906
+    },
+    "ui_wardrobe": {
+      "file": "ui/ui-wardrobe.webp",
+      "category": "ui",
+      "bytes": 16754
     }
   }
 }

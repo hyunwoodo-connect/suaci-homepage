@@ -209,8 +209,18 @@ export interface HideTuning {
     run: number;
     trailSeconds: number;
   };
-  /** 버섯(높이): 튕겨 오르는 높이(m) · 꼭대기에 떠 있는 시간(초) · 떠 있는 동안 상자를 눌러 찾는 거리(m). 눌러야 올라탄다 */
-  mushroom: { height: number; hang: number; tapReach: number };
+  /**
+   * 버섯 높이 뛰기(이동 수단): 솟는 높이(m)·꼭대기에서 내려오는 시간(초)·떠 있는 동안 옮길 수 있는 수평 거리(m)·
+   * 눌러서 탈 수 있는 거리(m)·올라선 것으로 치는 거리(m). tapReach 는 꺼 둔 옛 도움(떠 있는 동안 멀리 누르기)의 값
+   */
+  mushroom: {
+    height: number;
+    hang: number;
+    drift: number;
+    rideReach: number;
+    stepReach: number;
+    tapReach: number;
+  };
   /** 열쇠(투시): 파동이 퍼지는 거리(m) · 비치는 시간(초) · 이 몫만 남기고 비친다 · 끝나기 이만큼(초) 전에 깜빡여 알린다 */
   key: { reach: number; seconds: number; alpha: number; warnSeconds: number };
   /** 카드 병정(점호): 상자들이 대답하는 사이(초) */
@@ -536,6 +546,9 @@ export function readTuning(raw: unknown): HideTuning {
     mushroom: {
       height: positive(mushroom.height, "mushroom.height"),
       hang: positive(mushroom.hang, "mushroom.hang"),
+      drift: positive(mushroom.drift, "mushroom.drift"),
+      rideReach: positive(mushroom.rideReach, "mushroom.rideReach"),
+      stepReach: positive(mushroom.stepReach, "mushroom.stepReach"),
       tapReach: positive(mushroom.tapReach, "mushroom.tapReach"),
     },
     key: {

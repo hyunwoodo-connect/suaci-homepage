@@ -305,6 +305,24 @@ export function noHelpShare(list: readonly RoundRecord[]): { played: number; non
   return { played: ended.length, none };
 }
 
+/** 이 기기의 기록 칸(사생활 모드·꽉 참으로 못 쓰면 남기지 않고 지나간다) */
+export function localLogStore(): LogStore {
+  return {
+    read: () => {
+      try {
+        return localStorage.getItem(HIDE_LOG_KEY);
+      } catch {
+        return null;
+      }
+    },
+    write: (text) => {
+      try {
+        localStorage.setItem(HIDE_LOG_KEY, text);
+      } catch {}
+    },
+  };
+}
+
 /* ─── 내부 ─────────────────────────── */
 
 const KIND_NAME: Readonly<Record<HideKind, string>> = {
@@ -323,22 +341,4 @@ const END_NAME: Readonly<Record<RoundEnd, string>> = { all: "다 찾음", sunset
 function round1(x: number): number {
   const scaled = x * 10;
   return Math.round(scaled) / 10;
-}
-
-// 사생활 모드·꽉 참으로 못 쓰면 남기지 않고 지나간다
-function localLogStore(): LogStore {
-  return {
-    read: () => {
-      try {
-        return localStorage.getItem(HIDE_LOG_KEY);
-      } catch {
-        return null;
-      }
-    },
-    write: (text) => {
-      try {
-        localStorage.setItem(HIDE_LOG_KEY, text);
-      } catch {}
-    },
-  };
 }

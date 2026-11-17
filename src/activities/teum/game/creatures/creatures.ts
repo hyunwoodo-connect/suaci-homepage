@@ -118,6 +118,8 @@ export class Creatures implements Thing {
   private lastJumps = -1;
   private nowTime = 0;
   private readonly restCut: number;
+  /** 내가 빨리 다가오면 놀라 달아나나(숨바꼭질 판 동안은 끈다 — 생물은 구경꾼이다) */
+  private isSkittish = true;
   /** 만난 손님이 줄지어 따라와도 되나 */
   private canFollow = true;
 
@@ -170,7 +172,7 @@ export class Creatures implements Thing {
     this.pPrev.copy(p);
     const held = player.held,
       calm = !held && this.pspd < 1.5,
-      rush = !held && this.pspd > 7;
+      rush = this.isSkittish && !held && this.pspd > 7;
     if (x.visit.t > 0) x.visit.t -= dt;
     for (const grp of this.roam) {
       const d = grp.ctr.angleTo(p) * S.R;
@@ -312,6 +314,11 @@ export class Creatures implements Thing {
     c.vc = 28;
     c.still = 0;
     c.st = c.role === "flock" ? "fly" : "home";
+  }
+
+  /** 내가 빨리 다가오면 놀라 달아나나(숨바꼭질 판 동안은 끈다) */
+  setSkittish(on: boolean) {
+    this.isSkittish = on;
   }
 
   /**

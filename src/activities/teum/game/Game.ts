@@ -172,6 +172,8 @@ export class Game {
   readonly sound: SoundManager;
   private readonly frameOrder: Step[];
   private readonly tapOrder: Tappable[];
+  /** 놀이기구를 모는 누름(날갯짓·풍선 놓기 …)만 — 숨바꼭질 판 동안은 이것만 누름을 받는다 */
+  private readonly rideTaps: Tappable[];
   private readonly ray = new THREE.Raycaster();
   /** 그리기 직전의 시야(여럿을 한 번에 그리는 묶음이 시야 밖의 것을 뺀다) */
   private readonly frustum = new THREE.Frustum();
@@ -336,7 +338,7 @@ export class Game {
     this.studio = new Studio(s, this.avatar, this.wardrobe, this.input, hudParent, urlOf);
     this.studio.greetNewcomer(skipStudio);
     this.landmarks = new Landmarks(s, this.sculptures.landmarks, this.progress);
-    this.signature = new Signature(s, lawn, this.sites, this.rockets);
+    this.signature = new Signature(s, lawn, this.sites, this.rockets, this.avatar);
     this.bubbleTrail = new BubbleTrail(s);
     this.creatures = new Creatures(s, {
       footsteps: this.footsteps,
@@ -347,7 +349,7 @@ export class Game {
     });
     const avatar = this.avatar,
       whale = this.whale,
-      { trees, sculptures, pads, creatures, babyLimes, stars } = this;
+      { creatures, babyLimes, stars } = this;
     this.hideSeek = new HideSeek(
       s,
       {
@@ -367,13 +369,6 @@ export class Game {
         whale,
         sky: this.sky,
         cat: avatar,
-        // 재채기한 상자를 가리던 것·칙이 닿은 것이 흔들린다
-        shake: (at, reach) => {
-          trees.shakeNear(at, reach);
-          sculptures.shakeNear(at, reach);
-          pads.shakeNear(at, reach);
-          places.shakeNear(at, reach);
-        },
         pause: (seconds) => this.pause(seconds),
         setPlaceGlow: (on) => places.setLimeGlow(on),
         // 판 동안 화면에 글자를 띄우지 않는다(장소 이름표·쉬는 곳 말풍선)
@@ -384,10 +379,11 @@ export class Game {
           babyLimes.setFollowing(on);
           stars.setFollowing(on);
         },
-        // 열쇠의 투시: 모든 물건 재질이 같이 보는 값 하나를 바꾼다
-        xray: (center, radius, alpha) => {
-          mats.lookU.xray.value.set(center.x, center.y, center.z, radius);
-          mats.lookU.xrayAlpha.value = alpha;
+        // 판 동안은 랜드마크가 인사하지 않고, 장소가 반응하지 않고, 생물이 놀라 달아나지 않는다(꿈틀하는 것은 후보 물건뿐)
+        setReactions: (on) => {
+          this.sites.setGreeting(on);
+          places.setReacting(on);
+          creatures.setSkittish(on);
         },
       },
       hudParent,
@@ -481,13 +477,10 @@ export class Game {
       this.avatar.cat,
       this.stars.models,
     ];
+    this.rideTaps = [this.wings, this.rails, this.swings, this.stars, this.balloons];
     this.tapOrder = [
       this.hideSeek,
-      this.wings,
-      this.rails,
-      this.swings,
-      this.stars,
-      this.balloons,
+      ...this.rideTaps,
       // 아래는 땅을 눌렀을 때만 반응한다(tap.ground)
       ripples,
       this.flowers,
@@ -619,7 +612,7 @@ export class Game {
       this.hideSeek.onTap();
       return;
     }
-    // 숨바꼭질: 상자·생물·전설을 직접 톡 쳤으면 그것만 반응한다(빈 데 칙이 아니다)
+    // 숨바꼭질: 후보 물건·버섯을 눌렀으면 그것만 반응한다
     if (this.hideSeek.pick(x, y)) return;
     const ndcX = (x / innerWidth) * 2 - 1,
       ndcY = -(y / innerHeight) * 2 + 1;
@@ -628,6 +621,11 @@ export class Game {
     const hits = this.ray.intersectObject(this.ground.planet, false);
     const n = hits.length ? hits[0].point.clone().normalize() : null;
     const tap: Tap = { ground: n, time: this.frame.time };
+    // 숨바꼭질 판 동안은 바닥·장소·꽃이 누름에 반응하지 않는다(누를 수 있는 것과 없는 것이 분명히 갈리게) — 놀이기구를 모는 누름만 받는다
+    if (this.hideSeek.isRoundOn) {
+      for (const t of this.rideTaps) t.onTap(tap);
+      return;
+    }
     if (n) this.s.hud.hideHint();
     for (const t of this.tapOrder) t.onTap(tap);
   }

@@ -8,12 +8,22 @@ import type { Terrain } from "../world/terrain";
 import type { Player } from "./player";
 
 // 카메라 — 뒤에서 따라간다. 빨라지거나 높이 뜨면 물러나고, 등대에 닿으면 올라 둘러본다.
-// 놀이기구는 카메라를 직접 옮기지 않고 섞는 정도만 부탁한다: 회오리·깔때기(spin), 고래·혜성(ride), 등대(overlook)
+// 놀이기구는 카메라를 직접 옮기지 않고 섞는 정도만 부탁한다: 회오리·깔때기(spin), 고래·혜성(ride), 등대(overlook),
+// 버섯으로 높이 떠 있는 동안(survey — 나를 보지 않고 앞쪽 아래를 넓게 본다: 나는 화면 아래쪽에 작게)
 
 /** 이만큼 데리고 다니면 카메라가 가장 높고 멀다 */
 const COMPANY_FULL = 3;
 /** 첫 손님 하나로 오르는 몫(0..1) */
 const COMPANY_FIRST = 0.6;
+/**
+ * 높이 떠서 둘러볼 때: 카메라는 내 머리 위(위로·뒤로 m)에서, 앞쪽 아래(앞으로·아래로 m — 45도쯤 숙인다)를 본다 —
+ * 나는 화면 아래쪽에 작게 들고 화면은 발밑 앞부터 먼 곳까지 넓게 담는다 · 넓히는 화각(도)
+ */
+const SURVEY_RISE = 11,
+  SURVEY_BACK = 4,
+  SURVEY_AHEAD = 26,
+  SURVEY_DOWN = 19,
+  SURVEY_FOV = 12;
 /** 가장 많이 데리고 다닐 때 더 오르는 높이·물러나는 거리·보는 곳을 낮추는 정도(m) */
 const COMPANY_RISE = 6,
   COMPANY_BACK = 4.5,
@@ -33,6 +43,8 @@ export class CameraRig {
   /** 데리고 다니는 손님 수(셋까지)만큼 높이·멀리(0..1, 천천히 따라간다) */
   private company = 0;
   private companyWant = 0;
+  /** 높이 떠서 둘러보는 정도(0..1) */
+  private survey = 0;
   /** 몸이 커진 만큼 높이·거리를 늘린다(1 이 그대로, 천천히 따라간다) */
   private zoom = 1;
   private zoomWant = 1;
@@ -56,6 +68,10 @@ export class CameraRig {
   /** 등대에서 둘러보는 정도를 target 쪽으로 */
   easeOverlook(target: number, k: number) {
     this.over += (target - this.over) * k;
+  }
+  /** 높이 떠서 둘러보는 정도를 target 쪽으로(버섯 높이 뛰기 — 앞쪽 아래를 넓게 본다) */
+  easeSurvey(target: number, k: number) {
+    this.survey += (target - this.survey) * k;
   }
   /** 데리고 다니는 손님 수 — 한 명만 와도 내 뒤 줄이 나를 가리지 않을 만큼 오르고, 둘·셋으로 늘면 조금씩 더 높아지고 멀어진다 */
   setCompany(count: number) {
@@ -84,7 +100,8 @@ export class CameraRig {
       P = pl.P,
       over = this.over,
       wB = this.spin,
-      rB = this.ride;
+      rB = this.ride,
+      sv = this.survey;
     const companyStep = f.dt * 2;
     const companyEase = Math.min(1, companyStep);
     this.company += (this.companyWant - this.company) * companyEase;
@@ -107,14 +124,17 @@ export class CameraRig {
     const sp = clamp(pl.tot, 0, 2.2);
     // 빠를수록·높이 뜰수록·회오리(wB)·놀이기구(rB)에 탈수록 위로 올라가고 뒤로 물러난다
     // 손님을 데리고 다니면 높이 올라 내려다본다 — 내 발자취 위에 한 줄로 선 손님들이 나를 가리지 않고 내 아래쪽 화면에 든다
-    const rise = S.camH * zoom + 24 * over + pl.air * 0.22 + 5 * wB + 4 * rB + COMPANY_RISE * folK;
-    const back =
+    const followRise =
+      S.camH * zoom + 24 * over + pl.air * 0.22 + 5 * wB + 4 * rB + COMPANY_RISE * folK;
+    const followBack =
       -S.camD * zoom * (1 + 0.22 * sp) -
       20 * over -
       pl.air * 0.35 -
       9 * wB -
       10 * rB -
       COMPANY_BACK * folK;
+    const rise = followRise + (SURVEY_RISE - followRise) * sv,
+      back = followBack + (-SURVEY_BACK - followBack) * sv;
     want.copy(P).addScaledVector(p, rise).addScaledVector(cdir, back);
     if (pl.takeSnap()) camera.position.copy(want);
     else {
@@ -125,11 +145,14 @@ export class CameraRig {
     const minR = S.R + this.terrain.groundAt(cn) + 1.2;
     if (camera.position.length() < minR) camera.position.setLength(minR);
     camera.up.copy(p);
-    const lookRise = 0.8 + (zoom - 1) * 1.2 - 6 * over - COMPANY_LOOK_DOWN * folK;
-    const lookAhead = 5 + 45 * over;
+    // 둘러볼 때는 나를 보지 않는다: 앞쪽 아래의 먼 곳을 본다
+    const followLook = 0.8 + (zoom - 1) * 1.2 - 6 * over - COMPANY_LOOK_DOWN * folK,
+      followAhead = 5 + 45 * over;
+    const lookRise = followLook + (-SURVEY_DOWN - followLook) * sv,
+      lookAhead = followAhead + (SURVEY_AHEAD - followAhead) * sv;
     look.copy(P).addScaledVector(p, lookRise).addScaledVector(cdir, lookAhead);
     camera.lookAt(look);
-    const fov = S.fov + 9 * Math.min(1.6, sp);
+    const fov = S.fov + 9 * Math.min(1.6, sp) + SURVEY_FOV * sv;
     // 조금씩 바뀔 때마다 투영 행렬을 다시 만들지 않는다
     const fovDelta = camera.fov - fov;
     if (Math.abs(fovDelta) > 0.05) {

@@ -81,6 +81,11 @@ export const CATALOG = {
   // 아닌 척하는 상자가 입는 소품(v7 — 기획 세션이 만들어 teum-handoff/assets/props 에 넣은 것): 안경·화분·토끼 가면, 선물 더미는 1024 텍스처
   ...group("hideseek", 6000, 512, "disguise_glasses flowerpot rabbit_mask"),
   ...group("hideseek", 9000, 1024, "gift_pile"),
+  // 상자가 속에 숨는 후보 물건(v9 — 기획 세션이 teum-handoff/slice-02/props 에 넣은 것, 이미 줄여 온 폴리곤 그대로): 찻잔·바구니·쿠키 단지.
+  // 풍경의 teacup·d_teacup 과 이름이 겹치지 않게 hide_ 를 붙인다
+  ...group("hideseek", 7000, 512, "hide_teacup hide_basket hide_jar"),
+  // 화면 단추 그림(v9 — 옷장 단추. 256px webp)
+  ...images("ui", "ui_wardrobe"),
   // suaci 프로모션 오브젝트(로고·제품 등)는 'brand' 분류로 넣는다. 예: ...group("brand", 5000, 1024, "logo_sign bottle"),
   // 소리(v3 부터): 원본은 raw/snd_<이름>.mp3(시제품 v78 assets16.js 에서 푼 것). 되풀이하는 것은 'audio/bgm', 한 번씩 나는 것은 'audio/sfx'
   ...sounds("audio/bgm", "snd_bgm snd_wind"),
@@ -100,6 +105,12 @@ export const CATALOG = {
   ...sounds(
     "audio/sfx",
     "snd_hide_tap_mist snd_hide_leap snd_hide_ring_on snd_hide_legend snd_help_rabbit snd_help_mushroom snd_help_key snd_help_soldier snd_help_cupcake snd_help_watch",
+  ),
+  // 찾는 손맛 소리(v9 — teum-handoff/slice-02/sounds, 기획이 앞뒤 무음을 자르고 −1dB 에 맞춰 넘긴 것. ffmpeg 로 재 보니 여덟 다 들린다):
+  // 키득 셋(뜨거워 차가워)·바스락·꽝·메롱·이사 폴짝·찾았다 팡파레
+  ...sounds(
+    "audio/sfx",
+    "snd_find_giggle_1 snd_find_giggle_2 snd_find_giggle_3 snd_find_rustle snd_find_wrong snd_find_taunt snd_find_hop snd_find_found",
   ),
 };
 

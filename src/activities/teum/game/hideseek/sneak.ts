@@ -54,11 +54,10 @@ export interface SpotHands {
   ground(spot: BehindSpot): THREE.Vector3;
 }
 
-/** 걸음 빠르기의 위(m/s — 따라붙을 때 멀어졌으면 이만큼까지 서두른다) · 다 온 것으로 치는 거리(m) · 먼지 간격(초) · 땀방울 간격(초)·색 ·
+/** 걸음 빠르기의 위(m/s — 따라붙을 때 멀어졌으면 이만큼까지 서두른다) · 다 온 것으로 치는 거리(m) · 땀방울 간격(초)·색 ·
  * 미끼 앞에서 멈추는 거리(m) · 정신 차리고 달아나는 빠르기(m/s) */
 const CATCH_UP = 16,
   ARRIVE = 0.4,
-  PUFF_EVERY = 0.7,
   SWEAT_EVERY = 0.35,
   SWEAT_COLOR = 0x8fd8ff,
   STROLL_STOP = 3,
@@ -287,11 +286,6 @@ export class Sneak {
     b.a = terrain.groundAt(b.v);
     b.setScurry(1);
     this.s.events.emit("hideBoxSneaked", {});
-    m.puffT -= dt;
-    if (m.puffT <= 0) {
-      m.puffT = PUFF_EVERY;
-      this.overlay.puff((out) => b.center(out));
-    }
     if (left > ARRIVE) return;
     b.setScurry(0);
     const spot = m.goalSpot;

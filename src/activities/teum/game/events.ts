@@ -125,6 +125,22 @@ export interface GameEventMap {
   hideBoxOpened: { content: Content };
   /** 언박싱: 상자 속 상자가 열렸다(empty: 셋째 — 비었다) */
   hideNestedPopped: { empty: boolean };
+  // ---- 숨바꼭질 조각 02 '찾는 손맛' ----
+  /** 뜨거워 차가워의 키득(which: 세 가지 가운데 몇째, pan: 화면에서 본 좌우 -1..1, volume: 거리로 정한 크기 0..1, rate: 음높이 배수) */
+  findGiggled: { which: number; pan: number; volume: number; rate: number };
+  /** 숨은 물건이 바스락거린다(내가 warm.near 안에 있다) */
+  findRustled: { pan: number; volume: number };
+  /** 후보 물건을 눌렀다: 미스트가 날아간다(far: 너무 멀어 아무 일도 없다) */
+  findTapped: { far: boolean };
+  /** 꽝: 물건이 말랑하게 찌그러졌다 */
+  findMissed: Record<string, never>;
+  /** 근처 상자가 빼꼼 나와 메롱 · 다른 물건으로 폴짝 이사 */
+  findTaunted: { pan: number };
+  findHopped: { pan: number };
+  /** 상자를 찾았다 — 물건에서 튀어나온다(count: 찾은 수) */
+  findFound: { count: number };
+  /** 버섯이 나를 쏘아 올렸다 */
+  mushroomJumped: Record<string, never>;
   // ---- 수집·상자·부탁·도장·이동(구조만 — 아직 알리는 곳이 없다. 기획이 정하면 그 흐름이 알린다) ----
   /** 처음 친해진 종이 보관함에 남았다 */
   collected: { kind: string };

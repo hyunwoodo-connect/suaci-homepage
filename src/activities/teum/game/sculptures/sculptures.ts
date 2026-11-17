@@ -52,6 +52,9 @@ interface PlaceStats {
   sky: number;
 }
 
+/** 조형물 몸통이 막는 반지름: 너비 반의 이 몫(둥글지 않은 것도 있어 조금 안쪽까지는 들어간다) */
+const BODY_SHARE = 0.85;
+
 /** 지역 한가운데 쪽으로 이만큼 넘으면 그 지역 종류만 고른다 */
 const REGION_POOL = 0.25;
 
@@ -487,8 +490,8 @@ export class Sculptures implements Thing, HasHeights {
           fx.burst(P, 9, 9);
         }
       } // 도넛·사탕 문: 막지 않는다. 지나가면 휙 빨라진다
-      else if (a < o.H * 0.82 && d < o.r * 0.6) {
-        const blockR = o.r * 0.6;
+      else if (a < o.H * 0.82 && d < o.r * BODY_SHARE) {
+        const blockR = o.r * BODY_SHARE;
         player.blockBody(o.v, blockR);
         if (o.sq < 0.3) this.squash(o, 0.5);
       } // 몸통은 막힌다

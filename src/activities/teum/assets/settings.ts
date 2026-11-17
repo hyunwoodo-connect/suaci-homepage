@@ -250,6 +250,8 @@ export interface SoundCue {
   rate?: number | readonly [number, number];
   gap?: number;
   delay?: number;
+  /** 좌우(-1 왼쪽 … 1 오른쪽 — 없으면 가운데) */
+  pan?: number;
 }
 
 /** 일어난 일 하나에 낼 소리: 늘 같은 소리, 여러 소리, 또는 그 일의 값을 보고 고르는 규칙(null 이면 소리 없음) */
@@ -294,6 +296,13 @@ const HIDE_HELP_SOUND: Readonly<Record<HelpKind, SoundCue>> = {
   cupcake: { key: "snd_help_cupcake", volume: 0.9 },
   watch: { key: "snd_help_watch", volume: 0.95 },
 };
+
+/** 뜨거워 차가워의 키득 셋(번갈아 낸다) — 크기는 잰 평균 음량(-27dB · -19dB · -15dB)을 맞춘 것 */
+const FIND_GIGGLES: readonly { key: string; volume: number }[] = [
+  { key: "snd_find_giggle_1", volume: 1 },
+  { key: "snd_find_giggle_2", volume: 0.6 },
+  { key: "snd_find_giggle_3", volume: 0.45 },
+];
 
 /** 도움 없는 생물이 요란하게 반응할 때(종마다 — 있던 효과음을 빌린다) */
 const POKE_SOUND: Readonly<Record<string, SoundCue>> = {
@@ -420,6 +429,23 @@ export const SOUND_EFFECTS: SoundTable = {
   },
   hideNestedPopped: ({ empty }) =>
     empty ? { key: "snd_blank", volume: 0.5 } : { key: "snd_open", volume: 0.45, rate: 1.4 },
+  // ---- 숨바꼭질 조각 02 — 기획이 넘긴 소리(snd_find_… teum-handoff/slice-02/sounds). 좌우와 크기는 상자가 있는 쪽·거리대로 ----
+  findGiggled: ({ which, pan, volume, rate }) => {
+    const giggle = FIND_GIGGLES[which % FIND_GIGGLES.length];
+    return { key: giggle.key, volume: giggle.volume * volume, rate, pan, gap: 0.3 };
+  },
+  findRustled: ({ pan, volume }) => ({
+    key: "snd_find_rustle",
+    volume: 0.95 * volume,
+    pan,
+    gap: 0.3,
+  }),
+  findTapped: ({ far }) => (far ? null : TAP_MIST),
+  findMissed: { key: "snd_find_wrong", volume: 0.95 },
+  findTaunted: ({ pan }) => ({ key: "snd_find_taunt", volume: 0.7, pan }),
+  findHopped: ({ pan }) => ({ key: "snd_find_hop", volume: 0.5, pan }),
+  findFound: { key: "snd_find_found", volume: 0.9 },
+  mushroomJumped: HIDE_HELP_SOUND.mushroom,
   travelled: { key: "snd_rocket", volume: 0.6 },
 };
 

@@ -25,6 +25,11 @@ export type CatScent = 0 | 1 | 2 | 3;
 /** 고양이 자리(내 몸 기준 옆·뒤, m) */
 const CAT_SIDE = -0.95,
   CAT_BACK = -0.45;
+/** 꼬리: 몸 가운데에서 뒤로·위로(m) · 한 번 반짝이는 시간(초)·가장 클 때의 크기(m) */
+const CAT_TAIL_BACK = -0.34,
+  CAT_TAIL_UP = 0.16,
+  TWINKLE_SECONDS = 0.16,
+  TWINKLE_SIZE = 1.5;
 /** 고개가 상자 쪽에서 흔들리는 폭(rad — hideseek.data.json 의 cat.wobble 도) */
 const CAT_WOBBLE = (HIDE.cat.wobble * Math.PI) / 180;
 /**
@@ -63,12 +68,24 @@ export class Avatar implements Thing {
   private catAhead = 0;
   private catYaw = 0;
   private catNod = 0;
+  /** 꼬리 반짝임: 간격(초 — 0 이면 없음)과 다음 반짝임까지(초) */
+  private twinkleEvery = 0;
+  private twinkleWait = 0;
+  private twinkleLeft = 0;
   private tilt = 0;
   private pose: PoseFn | null = null;
   /** 뼈대 있는 몸(오기 전에는 null) */
   private rig: RigHandle | null = null;
   private readonly rigWaiting: ((rig: RigHandle) => void)[] = [];
-  private readonly poseIn: PoseInput = { dt: 0, tot: 0, vy: 0, air: 0, fx: 0, time: 0 };
+  private readonly poseIn: PoseInput = {
+    dt: 0,
+    tot: 0,
+    vy: 0,
+    air: 0,
+    fx: 0,
+    time: 0,
+    isReaching: false,
+  };
   /** 몸 크기 배수(언박싱의 '4배로 커진다') — 바라는 값과 지금 값 */
   private growWant = 1;
   private growth = 1;
@@ -103,7 +120,7 @@ export class Avatar implements Thing {
     this.shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
     s.scene.add(this.shadow);
     this.cat = {
-      update: () => this.catFrame(),
+      update: (f) => this.catFrame(f.dt),
       dispose: () => {},
     };
   }
@@ -140,10 +157,29 @@ export class Avatar implements Thing {
     if (toward) this.scentToward.copy(toward);
   }
 
+  /**
+   * 고양이 꼬리의 반짝임 간격(초 — 0 이면 반짝이지 않는다). 숨은 상자가 가까울수록 빨라진다(뜨거워 차가워 — 어느 쪽인지는 알리지 않는다)
+   */
+  setCatTwinkle(every: number) {
+    this.twinkleEvery = every;
+    if (every > 0) this.twinkleWait = Math.min(this.twinkleWait, every);
+  }
+
   /** 고양이 머리 위의 세계 자리(냄새 표시가 붙는다) */
   catHead(out: THREE.Vector3): THREE.Vector3 {
     this.catPrim.getWorldPosition(out);
     return out.addScaledVector(this.s.player.p, 0.5);
+  }
+
+  /** 한 팔을 위로 든다(풍선 줄을 잡았다) · 내린다 */
+  reachUp(on: boolean) {
+    this.poseIn.isReaching = on;
+  }
+
+  /** 위로 든 손의 세계 자리(뼈대 있는 몸이 오기 전에는 머리 위쯤) */
+  reachHand(out: THREE.Vector3): THREE.Vector3 {
+    if (this.rig) return this.rig.reachHand(out);
+    return out.copy(this.s.player.P).addScaledVector(this.s.player.p, 1);
   }
 
   /** 몸을 k 배로(1 이 그대로). 천천히 커지고 줄어든다(isInstant 면 바로 — 꾸미기 씬으로 들어갈 때) */
@@ -247,10 +283,24 @@ export class Avatar implements Thing {
     C.rotation.z = this.catNod + sniff;
   }
 
-  // 고양이 모델이 라임 공 고양이를 따라 둥실, 곁의 작은 라임 빛
-  private catFrame() {
+  // 고양이 모델이 라임 공 고양이를 따라 둥실, 곁의 작은 라임 빛. 꼬리(몸 뒤 아래)에서 때마다 빛 방울이 반짝인다
+  private catFrame(dt: number) {
     this.catPrim.getWorldPosition(gp);
     this.s.fx.glow(gp, 1.8, 0.5);
     if (this.catModel) this.catModel.position.copy(this.catPrim.position);
+    if (this.twinkleLeft > 0) {
+      // 반짝: 꼬리 끝에서 작은 빛이 한 번 커졌다 꺼진다
+      this.twinkleLeft -= dt;
+      const pl = this.s.player,
+        left = Math.max(0, this.twinkleLeft) / TWINKLE_SECONDS,
+        size = TWINKLE_SIZE * (0.4 + 0.6 * left);
+      gp.addScaledVector(pl.h, CAT_TAIL_BACK).addScaledVector(pl.p, CAT_TAIL_UP);
+      this.s.fx.glow(gp, size, left);
+    }
+    if (this.twinkleEvery <= 0) return;
+    this.twinkleWait -= dt;
+    if (this.twinkleWait > 0) return;
+    this.twinkleWait = this.twinkleEvery;
+    this.twinkleLeft = TWINKLE_SECONDS;
   }
 }

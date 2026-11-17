@@ -48,6 +48,8 @@ export class HidingScene {
   private readonly hub = new THREE.Vector3();
   /** 이번 판이 첫 판인가(start 가 받는다 — 장면의 시각과 '제일 못 숨은 놈'이 달라진다) · 옆으로 내놓는 몫(어려움 단계) */
   private first = false;
+  /** 숨는 자리가 정해져 있나(없으면 모두 내 등 뒤로 달려 나가고, 눈을 감은 동안 판이 따로 숨긴다 — 조각 02 의 후보 물건) */
+  private hasSpots = true;
   private share = HIDE.difficulty[0].showShare;
   /** 우왕좌왕하는 중 · 흩어져 달려가는 중, 다음 먼지까지(초) */
   private flustering = false;
@@ -65,7 +67,7 @@ export class HidingScene {
   /** 장면을 시작한다: 무대 마을(hub)에 선 내 앞에 상자를 한 줄로 세우고(숨을 자리는 spots), 장면의 시각마다 할 일을 걸어 둔다 */
   start(
     hub: THREE.Vector3,
-    spots: readonly HideSpot[],
+    spots: readonly HideSpot[] | null,
     first: boolean,
     level: Difficulty,
     cues: HidingCues,
@@ -75,6 +77,7 @@ export class HidingScene {
       o = this.overlay,
       tl = this.timeline;
     this.first = first;
+    this.hasSpots = spots !== null;
     this.share = level.showShare;
     this.hub.copy(hub);
     this.flustering = this.scurrying = false;
@@ -83,7 +86,8 @@ export class HidingScene {
     rightV.crossVectors(p, h).normalize();
     const back = tmp.copy(h).negate();
     this.seekers.forEach((k, i) => {
-      resetSeeker(k, spots[i]);
+      const spot = spots ? spots[i] : k.spot;
+      resetSeeker(k, spot);
       this.runTarget(k, i, k.to);
       k.box.visible = true;
       k.box.setLongEars(true);
@@ -179,7 +183,8 @@ export class HidingScene {
     this.scurrying = true;
     this.seekers.forEach((k, i) => {
       const dist = k.box.v.angleTo(k.to) * S.R;
-      k.speed = this.first && i === 0 ? dist / span : SCATTER_SPEED;
+      const isWorst = this.hasSpots && this.first && i === 0;
+      k.speed = isWorst ? dist / span : SCATTER_SPEED;
     });
     this.s.events.emit("hideStarted", {});
   }
@@ -187,13 +192,14 @@ export class HidingScene {
   // 흩어져 달려갈 곳: 숨는 자리 · 놓을 자리가 정해진 아닌 척은 그 자리 · 나머지(내 줄·고양이·병정·가면)는 출발 자리 뒤쪽 멀리(화면 밖으로).
   // 둘째 판부터는 모두 뒤쪽 멀리(어디로 갔는지 안 보이게)
   private runTarget(k: Seeker, i: number, out: THREE.Vector3) {
-    const spot = k.spot;
-    if (this.first && spot.kind !== "disguise") {
+    const spot = k.spot,
+      isShown = this.first && this.hasSpots;
+    if (isShown && spot.kind !== "disguise") {
       const place = this.placeFor(spot, i);
       sphereAt(out, this.hub, place.x, place.y);
       return;
     }
-    if (this.first && spot.kind === "disguise" && PLACED_DISGUISES.includes(spot.as)) {
+    if (isShown && spot.kind === "disguise" && PLACED_DISGUISES.includes(spot.as)) {
       sphereAt(out, this.hub, spot.x, spot.y);
       return;
     }
@@ -211,6 +217,7 @@ export class HidingScene {
 
   // 숨는 자리에 든다(아닌 척은 판이 따로 둔다)
   private hideAll() {
+    if (!this.hasSpots) return;
     this.seekers.forEach((k, i) => {
       if (k.spot.kind === "disguise") return;
       const place = this.placeFor(k.spot, i);

@@ -200,7 +200,7 @@ describe("숨바꼭질 값 파일(hideseek.data.json)", () => {
     expect(HIDE.help).toMatchObject({ markReach: 20, ringMax: 4, tagMax: 2, pokeCooldown: 20 });
     expect(HIDE.legend).toMatchObject({ lift: 36, descendSeconds: 2.5, carryLift: 20 });
     expect(HIDE.rabbit).toMatchObject({ run: 15, trailSeconds: 8, stop: 20 });
-    expect(HIDE.mushroom).toMatchObject({ height: 10, hang: 2, tapReach: 60 });
+    expect(HIDE.mushroom).toMatchObject({ height: 25, hang: 4, drift: 10 });
     expect(HIDE.key).toMatchObject({ reach: 15, seconds: 3 });
     expect(HIDE.cupcake).toMatchObject({ walkSeconds: 6 });
     expect(HIDE.watch).toMatchObject({ addSeconds: 10, minElapsed: 60 });

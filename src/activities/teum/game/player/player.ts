@@ -2,6 +2,8 @@ import * as THREE from "three";
 
 import { ease } from "../core/frame";
 import type { GameEvents, RideName } from "../events";
+import type { Girth } from "../models/extent";
+import { girthAt } from "../models/extent";
 import { FLIGHT, S } from "../settings";
 import { clamp, offset, START } from "../world/sphere";
 import type { Terrain } from "../world/terrain";
@@ -56,6 +58,10 @@ export interface Release {
 /** 출발 자리: 마을 중심에서 이만큼(m)·이 방위(°) 떨어져 중심을 보고 선다(숨바꼭질의 숨는 자리도 이 자리에서 잰다) */
 export const HOME_DIST = 20,
   HOME_BEAR = 200;
+
+/** 내 몸: 가운데에서 위아래로 이만큼(m) · 옆으로 이만큼(m) — 높이마다 굵기가 다른 몸통에 부딪힐 때 쓴다 */
+const BODY_REACH = 0.9,
+  BODY_HALF = 0.5;
 
 /** 이만큼 빠르게 솟으면 '솟구쳤다' · 이만큼 높이 떠 있다가 땅에 닿으면 '내려앉았다' */
 const ROSE_VY = 6,
@@ -510,6 +516,32 @@ export class Player {
     const hit = this.block(v, core, 1);
     this._air = a0;
     return hit;
+  }
+
+  /**
+   * 높이마다 굵기가 다른 몸통(밑동이 넓고 위에 갓이 있는 나무·탑)에 보이는 대로 막힌다: 내 몸이 걸친 높이에서 가장 굵은 곳만큼.
+   * base 는 그 몸통 바닥의 높이(m). 그 높이에 몸통이 없으면(꼭대기보다 위) 막지 않는다
+   */
+  blockShape(v: THREE.Vector3, base: number, girth: Girth): boolean {
+    const mid = this._alt - base,
+      from = mid - BODY_REACH,
+      to = mid + BODY_REACH,
+      widest = girthAt(girth, from, to);
+    if (widest <= 0) return false;
+    const core = widest + BODY_HALF;
+    return this.blockBody(v, core);
+  }
+
+  /** v 둘레 reach(m) 밖으로는 나가지 못한다(버섯으로 떠 있는 동안 — 내려앉을 곳을 조금만 옮길 수 있다) */
+  leash(v: THREE.Vector3, reach: number) {
+    const p = this._p,
+      angle = p.angleTo(v),
+      most = reach / S.R;
+    if (angle <= most) return;
+    axis.crossVectors(v, p).normalize();
+    p.copy(v).applyAxisAngle(axis, most).normalize();
+    const hRadial = this._h.dot(p);
+    this._h.addScaledVector(p, -hRadial).normalize();
   }
 
   // ---- 요청: 붙잡기 ----

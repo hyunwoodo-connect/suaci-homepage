@@ -20,6 +20,18 @@ const POP = 2.6,
 const tmp = new THREE.Vector3(),
   rightV = new THREE.Vector3();
 
+/** redFrom 까지 가는 노을의 몫 */
+const DUSK_EARLY = 0.4;
+
+/** 찾기 시작 뒤 t 초의 노을(0 낮 … 1 해가 졌다): redFrom 까지는 은은하게, 그 뒤로 눈에 띄게 붉어진다 */
+export function duskAt(t: number): number {
+  const { seconds, redFrom } = HIDE.round;
+  if (t <= redFrom) return DUSK_EARLY * (t / redFrom);
+  const share = (t - redFrom) / (seconds - redFrom),
+    late = Math.min(1, share);
+  return DUSK_EARLY + (1 - DUSK_EARLY) * late;
+}
+
 /** 해가 진 뒤 장면 */
 export class Sunset {
   private losers: Seeker[] = [];

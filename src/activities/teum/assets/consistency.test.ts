@@ -6,11 +6,13 @@ import { describe, expect, it } from "vitest";
 import { PRINTS, printKey } from "../game/avatar/outfit";
 import { AVATAR_BODY, AVATAR_COMPANION, PARTS, thumbKey } from "../game/avatar/parts";
 import { PROP_KEYS } from "../game/hideseek/disguise";
+import { FIND } from "../game/hideseek/findTuning";
 import { LIMEBOX } from "../game/hideseek/limebox";
 import { MAPS } from "../game/maps";
+import { WEAR_ICON_KEY } from "../game/studio/closet";
 import { CATALOG, RETIRED } from "../tools/catalog.mjs";
 import { ASSET_VERSION } from "./config";
-import manifestJson from "./manifest.v8.json";
+import manifestJson from "./manifest.v9.json";
 import {
   BIG_FLOWERS,
   CREATURES,
@@ -88,7 +90,10 @@ function referencedKeys(): Set<string> {
     AVATAR_BODY,
     AVATAR_COMPANION,
     LIMEBOX,
+    WEAR_ICON_KEY,
     ...Object.values(PROP_KEYS),
+    // 숨바꼭질 후보 물건의 모델(hideseek.data.json 의 props.kinds)
+    ...Object.values(FIND.kinds).map((k) => k.model),
     ...Object.keys(PARTS),
     ...Object.keys(PARTS).map(thumbKey),
     ...PRINTS.map(printKey),

@@ -37,6 +37,10 @@ const HOP_CROUCH = 0.1,
   HOP_AIR = 0.36,
   HOP_SETTLE = 0.3,
   HOP_TIME = HOP_CROUCH + HOP_AIR + HOP_SETTLE;
+/** 춤: 좌우로 기우는 각·몸을 트는 각(rad) · 박자마다 뛰는 높이(키 반의 몫) */
+const DANCE_LEAN = 0.24,
+  DANCE_TWIST = 0.5,
+  DANCE_HOP = 0.22;
 /** 깜짝: 늘어나는 시간·출렁이며 돌아오는 시간(초) */
 const STARTLE_UP = 0.08,
   STARTLE_BACK = 0.3,
@@ -112,6 +116,7 @@ type Act =
   | "yawn"
   | "knock"
   | "wave"
+  | "dance"
   | "topple"
   | "jiggle";
 
@@ -406,6 +411,14 @@ export class LimeBox {
     this.start("knock", 0.7);
   }
 
+  /** 춤: seconds 동안 좌우로 씰룩씰룩하며 통통, 귀를 흔든다(찾았을 때) */
+  dance(seconds: number) {
+    this.start("dance", seconds);
+  }
+
+  /** 폴짝 한 번에 걸리는 시간(초) */
+  static readonly hopSeconds = HOP_TIME;
+
   /** 리본 귀로 손을 흔든다 */
   wave() {
     this.start("wave", 1);
@@ -669,6 +682,19 @@ export class LimeBox {
         P.pitch += 1.5 * down;
         P.squash *= 1 - 0.12 * down;
         if (u > 0.6) P.lift += arc(rising) * this.hh;
+        break;
+      }
+      case "dance": {
+        // 좌우로 네 번 씰룩(몸이 기울며 엉덩이를 흔든다), 박자마다 통통, 귀는 반대로 팔랑
+        const beat = u * Math.PI * 8,
+          sway = Math.sin(beat),
+          bounce = Math.abs(sway);
+        P.roll += sway * DANCE_LEAN;
+        P.yaw += sway * DANCE_TWIST;
+        P.lift += bounce * DANCE_HOP * this.hh;
+        P.squash *= 1 - 0.08 * (1 - bounce);
+        P.earZ -= sway * 0.55;
+        P.earStretch += 0.2 * bounce;
         break;
       }
       case "wave": {

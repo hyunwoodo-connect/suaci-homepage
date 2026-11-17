@@ -1,5 +1,5 @@
 {
-  "_about": "숨바꼭질 값. 기획이 코드 없이 직접 고친다 — 칸마다 뜻·단위·고치는 법은 teum-handoff/slice-01e/RESULT.md. 고친 뒤 pnpm test 가 모양과 규칙(자리는 무대 반경 안, 한 판 넷은 서로 떨어져 있기, 판에 부르는 생물 수 등)을 확인한다",
+  "_about": "숨바꼭질 값. 기획이 코드 없이 직접 고친다 — 조각 02(찾는 손맛)의 칸(warm·candidate·miss·mushroom·found·hide·trail·props·mushrooms)은 teum-handoff/slice-02/RESULT.md, 그 앞 조각의 칸(생물 도움·아닌 척·몰래 움직이기·해 지기 — 지금은 꺼 둠)은 slice-01e/RESULT.md. 고친 뒤 pnpm test 가 모양과 규칙을 확인한다",
   "copy": {
     "hide": "꼭꼭 숨어라",
     "it": "술래는 너",
@@ -103,10 +103,290 @@
     "run": 15
   },
   "mushroom": {
-    "height": 10,
-    "hang": 2,
+    "note": "버섯 높이 뛰기(이동 수단): 솟는 높이(m)·꼭대기에서 내려오는 시간(초)·떠 있는 동안 옮길 수 있는 수평 거리(m)·눌러서 탈 수 있는 거리(m)·올라서는 것으로 치는 거리(m). tapReach 는 꺼 둔 옛 도움의 값",
+    "height": 25,
+    "hang": 4,
+    "drift": 10,
+    "rideReach": 20,
+    "stepReach": 1.6,
     "tapReach": 60
   },
+  "warm": {
+    "note": "뜨거워 차가워: 가장 가까운 못 찾은 상자까지의 거리(m)로 키득 간격(초)을 정한다 — far 밖은 없음, far~mid 는 every[0], mid~near 는 every[1], near 안은 every[2](+물건이 바스락). volume 은 far 에서·near 에서의 키득 크기, pitch 는 음높이 폭(반음), sparkle 은 고양이 꼬리 반짝임 간격(초: 멀 때·mid 안·near 안), rustle 은 바스락 흔들림(도)과 간격(초)",
+    "far": 40,
+    "mid": 20,
+    "near": 8,
+    "every": [6, 3, 1.2],
+    "volume": [0.3, 1],
+    "pitch": 2,
+    "sparkle": [2.4, 0.6, 0.25],
+    "rustleDegrees": 7,
+    "rustleEvery": 1.2
+  },
+  "candidate": {
+    "note": "후보 물건: 꿈틀하는 거리(m)·누를 수 있는 거리(m)·상자 하나당 후보 수(이보다 적으면 시험이 막는다)·꿈틀 시간(초)과 크기 폭·높은 곳 물건은 내 몸이 그 바닥보다 이만큼(m) 아래까지 올라와야 눌린다",
+    "wiggleReach": 10,
+    "tapReach": 10,
+    "perBox": 5,
+    "wiggleSeconds": 0.3,
+    "wiggleScale": 0.04,
+    "highBelow": 1.5
+  },
+  "miss": {
+    "note": "꽝을 눌렀을 때: 찌그러지는 시간(초) · 이 거리(m) 안의 진짜 상자가 메롱(tauntSeconds 초) 하고 moveRange(m) 안의 같은 갈래 후보로 moveSeconds 초에 폴짝 이사(포물선 높이 moveArc m) · 상자 하나당 cooldown 초에 한 번, 한 판 maxMoves 번까지",
+    "squishSeconds": 0.4,
+    "tauntReach": 15,
+    "tauntSeconds": 1,
+    "moveRange": [8, 15],
+    "moveSeconds": 1.2,
+    "moveArc": 6,
+    "cooldown": 30,
+    "maxMoves": 2
+  },
+  "found": {
+    "note": "찾았을 때: 물건에서 튀어나오는 높이(m)·한 바퀴 도는 시간(초)·춤 시간(초)",
+    "popHeight": 4,
+    "spinSeconds": 0.7,
+    "danceSeconds": 1.2
+  },
+  "hide": {
+    "note": "숨기: 같은 패턴은 patternMax 번까지, 속에 쏙(C)은 insideMax 번까지, 맨 처음 판은 first 그대로. 상자끼리 minApart(m)·출발 자리에서 minFromStart(m) 넘게, 높은 곳은 highNear(m) 안에 버섯이나 통통 구름이 있어야 쓴다",
+    "patternMax": 2,
+    "insideMax": 1,
+    "first": ["A", "A", "B", "D"],
+    "minApart": 16,
+    "minFromStart": 18,
+    "highNear": 15
+  },
+  "trail": {
+    "note": "길 끝(B)의 꽃 길: 꽃 수(이 사이)·간격(m, 이 사이)·크기(m — 시작에서 끝으로 갈수록 커진다)·길 끝 물건에서 첫 꽃까지(m)",
+    "count": [5, 7],
+    "gap": [2, 3],
+    "size": [1.6, 2.6],
+    "fromEnd": 3.5
+  },
+  "props": {
+    "note": "후보 물건. kinds: 모델(에셋 키)·크기(m — by 가 w 면 너비, h 면 키)·쌓을 때 한 칸이 차지하는 키의 몫(nest)·뚜껑(몸통 윗면)의 높이가 키의 몇 몫인가(lid — 바구니는 손잡이가 그 위로 솟는다. 상자는 여기서 내밀고, 찾은 리본도 여기 얹힌다)·속에 든 상자의 크기 배수(fit — 물건 옆으로 삐져나오지 않게. 물건 크기를 바꾸면 같이 바뀐다)·색 없이 온 모델에 칠하는 색(paint — 찻잔은 텍스처가 회색으로 와서 하늘색을 칠한다). clusters: 같은 물건 넷 이상의 무리(패턴 A) — at 은 광장 가운데 기준 [x, y](m). solos: 낱개(패턴 B·C). highs: 높은 곳(패턴 D) — under 는 밑에 쌓는 같은 물건의 크기들(탑), base 는 탑이 아닐 때 바닥 높이(m — 통통 구름 위)",
+    "kinds": {
+      "teacup": {
+        "model": "hide_teacup",
+        "size": 4,
+        "by": "w",
+        "nest": 0.72,
+        "lid": 1.0,
+        "fit": 0.85,
+        "paint": "#63bdf5"
+      },
+      "basket": {
+        "model": "hide_basket",
+        "size": 3.5,
+        "by": "h",
+        "nest": 0.95,
+        "lid": 0.62,
+        "fit": 0.6
+      },
+      "jar": {
+        "model": "hide_jar",
+        "size": 3.5,
+        "by": "h",
+        "nest": 0.9,
+        "lid": 0.84,
+        "fit": 0.72
+      },
+      "pot": {
+        "model": "flowerpot",
+        "size": 3.2,
+        "by": "w",
+        "nest": 0.9,
+        "lid": 0.95,
+        "fit": 0.78
+      },
+      "gifts": {
+        "model": "gift_pile",
+        "size": 4,
+        "by": "w",
+        "nest": 0.94,
+        "lid": 0.92,
+        "fit": 0.8
+      }
+    },
+    "clusters": [
+      {
+        "id": "cups",
+        "kind": "teacup",
+        "note": "찻잔 넷(출발에서 앞 왼쪽)",
+        "at": [
+          [33, 24],
+          [28, 29],
+          [23, 24],
+          [28, 19]
+        ]
+      },
+      {
+        "id": "pots",
+        "kind": "pot",
+        "note": "화분 줄 다섯(출발에서 오른쪽)",
+        "at": [
+          [-13, -40],
+          [-8.5, -40],
+          [-4, -40],
+          [0.5, -40],
+          [5, -40]
+        ]
+      },
+      {
+        "id": "jars",
+        "kind": "jar",
+        "note": "쿠키 단지 넷(앞 오른쪽 멀리)",
+        "at": [
+          [43, -13],
+          [49, -13],
+          [43, -19],
+          [49, -19]
+        ]
+      },
+      {
+        "id": "baskets",
+        "kind": "basket",
+        "note": "바구니 넷(뒤 왼쪽)",
+        "at": [
+          [-41, 18],
+          [-46, 23],
+          [-51, 18],
+          [-46, 13]
+        ]
+      }
+    ],
+    "solos": [
+      {
+        "id": "gifts-s",
+        "kind": "gifts",
+        "x": 8,
+        "y": -24
+      },
+      {
+        "id": "jar-s",
+        "kind": "jar",
+        "x": 18,
+        "y": -30
+      },
+      {
+        "id": "cup-w",
+        "kind": "teacup",
+        "x": -36,
+        "y": -16
+      },
+      {
+        "id": "pot-w",
+        "kind": "pot",
+        "x": -46,
+        "y": -22
+      },
+      {
+        "id": "cup-e",
+        "kind": "teacup",
+        "x": 56,
+        "y": 2
+      },
+      {
+        "id": "basket-e",
+        "kind": "basket",
+        "x": 46,
+        "y": 6
+      }
+    ],
+    "highs": [
+      {
+        "id": "tower-gifts",
+        "kind": "gifts",
+        "x": 40,
+        "y": 34,
+        "size": 3.4,
+        "under": [5.2, 4.2],
+        "note": "선물 탑"
+      },
+      {
+        "id": "tower-jars",
+        "kind": "jar",
+        "x": 29,
+        "y": 42,
+        "size": 3.5,
+        "under": [4.6, 4],
+        "note": "단지 탑"
+      },
+      {
+        "id": "tower-cups",
+        "kind": "teacup",
+        "x": -12,
+        "y": 54,
+        "size": 4,
+        "under": [6.4, 5.6, 4.8],
+        "note": "찻잔 탑"
+      },
+      {
+        "id": "tower-pots",
+        "kind": "pot",
+        "x": -1,
+        "y": 60,
+        "size": 3.2,
+        "under": [5, 4.2],
+        "note": "화분 탑"
+      },
+      {
+        "id": "pad-n",
+        "kind": "basket",
+        "x": -26.2,
+        "y": 40.1,
+        "size": 2.8,
+        "base": 3,
+        "note": "통통 구름(북) 위"
+      },
+      {
+        "id": "pad-s",
+        "kind": "jar",
+        "x": 33.5,
+        "y": -51,
+        "size": 2.8,
+        "base": 3,
+        "note": "통통 구름(남) 위"
+      }
+    ]
+  },
+  "mushrooms": [
+    {
+      "x": 36,
+      "y": 31,
+      "note": "선물 탑·단지 탑 곁"
+    },
+    {
+      "x": -5,
+      "y": 50,
+      "note": "찻잔 탑·바구니 탑 곁"
+    },
+    {
+      "x": -16,
+      "y": 34,
+      "note": "통통 구름(북) 곁"
+    },
+    {
+      "x": 24,
+      "y": -44,
+      "note": "통통 구름(남) 곁"
+    },
+    {
+      "x": -4,
+      "y": -22,
+      "note": "출발 앞 오른쪽"
+    },
+    {
+      "x": -30,
+      "y": -34
+    },
+    {
+      "x": 30,
+      "y": -8
+    }
+  ],
   "key": {
     "reach": 15,
     "seconds": 3,

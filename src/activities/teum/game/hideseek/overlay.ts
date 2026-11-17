@@ -8,7 +8,7 @@ import { HIDE } from "./tuning";
 //   위 가운데(위에서 56) — 상자 칸 넷(40×40, 간격 10). 빈 칸은 어두운 반투명에 점선, 찬 칸은 라임에 먹색 테두리(찰 때 출렁인다)
 //   한가운데 조금 위(위에서 232) — 큰 글자(라임 바탕·먹색 글자와 테두리, 3도 기울임): 꼭꼭 숨어라 · 술래는 너 · 찾았다! · 깔까? · 우리가 이겼다!
 //   아래 가운데 — 판이 끝난 뒤의 '한 판 더'(가장 큰 단추. 해가 졌는데 찾은 것이 있으면 작은 '깔까?'도)
-// 잠깐 뜨는 것: 세계에 붙는 말풍선(상자의 에취! · 점호의 숫자), 화면 밖에서 무언가 지나간 쪽의 먼지 퐁, 가르쳐 주는 손가락,
+// 잠깐 뜨는 것: 세계에 붙는 말풍선(상자의 에취! · 점호의 숫자), 가르쳐 주는 손가락,
 // 전설이 화면 밖에 나타난 쪽 가장자리의 금빛, 회중시계가 해를 되감을 때 가장자리를 반시계로 도는 빛 띠, 눈꺼풀(판 시작·언박싱으로 넘어갈 때),
 // ?debug 의 잰 값과 빌드 표시. 누르는 칸은 44px 넘게, 라임 위 글자는 먹색
 
@@ -31,10 +31,8 @@ const EDGE_SECONDS = 3,
   EDGE_DUST = 7,
   EDGE_FLOW = 140,
   EDGE_CYCLE = 1.1;
-/** 동시에 뜨는 말풍선 수(점호에 넷이 같이 대답한다) · 먼지 퐁퐁 수·떠 있는 시간(초) */
-const BUBBLES = 8,
-  PUFFS = 4,
-  PUFF_TIME = 0.8;
+/** 동시에 뜨는 말풍선 수(점호에 넷이 같이 대답한다) */
+const BUBBLES = 8;
 // 누르기 안내 손가락(먹색 선, 흰 바탕)
 const FINGER_ICON = `<svg width="44" height="44" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10m0-.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15c0 3.3-2.2 6-5.5 6-2.4 0-3.8-1-5.2-3L5.2 15c-.8-1.3.9-2.6 2-1.5L9 15" fill="#fff" stroke="${INK}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 
@@ -96,7 +94,6 @@ export class HideOverlay {
   private readonly stats: HTMLDivElement;
   private readonly stamp: HTMLDivElement;
   private readonly bubbles: Bubble[] = [];
-  private readonly puffs: Bubble[] = [];
   private readonly pointer: HTMLDivElement;
   private pointerWhere: ((out: THREE.Vector3) => void) | null = null;
   /** 전설이 화면 밖에 나타난 쪽: 가장자리 금빛 · 흘러드는 빛가루 · 붙을 세계 자리 · 남은 시간(초) · 흐른 시간 */
@@ -273,12 +270,6 @@ export class HideOverlay {
       this.bubbles.push(bubble);
       parent.append(el);
     }
-    for (let i = 0; i < PUFFS; i++) {
-      const el = puffElement();
-      const puff: Bubble = { el, where: null, left: 0 };
-      this.puffs.push(puff);
-      parent.append(el);
-    }
     this.pointer = styledBox({
       position: "fixed",
       display: "none",
@@ -330,7 +321,7 @@ export class HideOverlay {
     for (const t of this.tags) t.el.dataset.hide = "";
     this.clock.dataset.hide = "";
     this.stats.dataset.hide = "";
-    const floating = [...this.bubbles, ...this.puffs].map((b) => b.el);
+    const floating = this.bubbles.map((b) => b.el);
     for (const el of [...own, ...floating, ...this.edgeDust]) el.dataset.hide = "";
     this.resetSlots();
   }
@@ -455,14 +446,6 @@ export class HideOverlay {
     pop(free.el, 1.2);
   }
 
-  /** 화면 밖에서 무언가 지나갔다: where 쪽 화면 가장자리에 먼지가 퐁 오른다 */
-  puff(where: (out: THREE.Vector3) => void) {
-    const free = this.puffs.find((b) => b.left <= 0) ?? this.puffs[0];
-    free.where = where;
-    free.left = PUFF_TIME;
-    pop(free.el, 1.4);
-  }
-
   /** 누르기 안내 손가락: where 위에서 톡톡(null 이면 숨긴다) */
   setPointer(where: ((out: THREE.Vector3) => void) | null) {
     const isNew = where !== null && this.pointerWhere === null;
@@ -549,7 +532,7 @@ export class HideOverlay {
     this.setTags([]);
     this.bigLeft = 0;
     this.big.style.opacity = "0";
-    for (const b of [...this.bubbles, ...this.puffs]) {
+    for (const b of this.bubbles) {
       b.left = 0;
       b.el.style.display = "none";
     }
@@ -588,14 +571,6 @@ export class HideOverlay {
       b.where(at);
       const isLive = b.left > 0;
       pin(b.el, at, camera, isLive, true);
-    }
-    for (const b of this.puffs) {
-      if (b.left <= 0 || !b.where) continue;
-      b.left -= dt;
-      b.where(at);
-      const isLive = b.left > 0;
-      pin(b.el, at, camera, isLive, true);
-      b.el.style.opacity = `${Math.max(0, b.left / PUFF_TIME)}`;
     }
     if (this.pointerWhere) {
       this.pointerWhere(at);
@@ -697,7 +672,7 @@ export class HideOverlay {
 
   dispose() {
     this.style.remove();
-    for (const b of [...this.bubbles, ...this.puffs]) b.el.remove();
+    for (const b of this.bubbles) b.el.remove();
     this.pointer.remove();
     const own = [
       this.slots,
@@ -785,23 +760,6 @@ function bubbleElement(): HTMLDivElement {
     transform: "rotate(45deg)",
   });
   el.append(label, tail);
-  return el;
-}
-
-// 먼지 퐁(화면 밖에서 무언가 지나갔다): 흰 구름 세 덩이
-function puffElement(): HTMLDivElement {
-  const el = styledBox({
-    position: "fixed",
-    width: "34px",
-    height: "22px",
-    transform: "translate(-50%, -50%)",
-    background:
-      "radial-gradient(circle at 25% 65%, #fff 0 30%, transparent 32%), radial-gradient(circle at 55% 40%, #fff 0 36%, transparent 38%), radial-gradient(circle at 80% 68%, #fff 0 28%, transparent 30%)",
-    filter: "drop-shadow(0 1px 2px rgba(20,20,20,.45))",
-    display: "none",
-    zIndex: "3",
-    pointerEvents: "none",
-  });
   return el;
 }
 

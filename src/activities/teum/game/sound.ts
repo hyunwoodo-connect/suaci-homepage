@@ -9,6 +9,7 @@ import type { GameEventMap, GameEventName, GameEvents } from "./events";
 //   소리 단추로). 재생 세션은 다른 앱의 음악을 멈추므로, 끄거나 탭이 숨으면 세션을 기본으로 돌려 그 음악이 다시 돌 수 있게 한다.
 //   이 창구(navigator.audioSession)가 없는 브라우저(안드로이드·옛 사파리)는 그대로
 // - 채널 둘: 배경 음악(bgm)·효과음(sfx), 크기를 따로 둔다
+// - 효과음에는 좌우를 줄 수 있다(pan — 숨바꼭질의 키득이 상자가 있는 쪽에서 난다). 좌우 창구가 없는 브라우저는 가운데에서 난다
 // - 소리 파일은 첫 화면과 같이 받지 않는다: 소리를 연 뒤에 받는다
 
 /** 소리판이 받는 것 */
@@ -186,7 +187,12 @@ export class SoundManager {
     const gain = ctx.createGain();
     gain.gain.value = cue.volume ?? DEFAULT_VOLUME;
     const out = this.channels.get(channel)!;
-    source.connect(gain).connect(out);
+    const side =
+      cue.pan !== undefined && "createStereoPanner" in ctx ? ctx.createStereoPanner() : null;
+    if (side) {
+      side.pan.value = cue.pan ?? 0;
+      source.connect(gain).connect(side).connect(out);
+    } else source.connect(gain).connect(out);
     const when = ctx.currentTime + (cue.delay ?? 0);
     source.start(when);
   }

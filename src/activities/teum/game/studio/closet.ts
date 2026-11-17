@@ -49,8 +49,11 @@ const OPTION_LABEL: Readonly<Record<string, string>> = {
   board: "스케이트보드",
 };
 
-/** 옷 단추 그림(티셔츠) */
-const SHIRT_ICON = `<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 4 4 6.5 5.6 10.4 7.5 9.6V20h9V9.6l1.9.8L20 6.5 15.5 4a3.5 3.5 0 0 1-7 0z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>`;
+/** 옷장 단추 그림(옷걸이에 걸린 라임 티셔츠 — 에셋 키) */
+export const WEAR_ICON_KEY = "ui_wardrobe";
+/** 옷장 단추 지름·그림 한 변(px) */
+const WEAR_BUTTON = 56,
+  WEAR_ICON = 36;
 
 /** 눌린 것을 알리는 곳 */
 export interface ClosetHandlers {
@@ -85,8 +88,19 @@ export class Closet {
     private readonly urlOf: (key: string) => string | null,
     private readonly on: ClosetHandlers,
   ) {
-    this.wearButton = roundButton("옷장", SHIRT_ICON);
+    this.wearButton = roundButton("옷장", "");
+    const icon = document.createElement("img");
+    icon.alt = "";
+    icon.width = icon.height = WEAR_ICON;
+    icon.src = urlOf(WEAR_ICON_KEY) ?? "";
+    icon.draggable = false;
+    icon.style.display = "block";
+    icon.style.margin = "auto";
+    this.wearButton.append(icon);
     Object.assign(this.wearButton.style, {
+      width: `${WEAR_BUTTON}px`,
+      height: `${WEAR_BUTTON}px`,
+      background: "#fff",
       position: "fixed",
       left: "calc(14px + env(safe-area-inset-left))",
       bottom: "calc(14px + env(safe-area-inset-bottom))",

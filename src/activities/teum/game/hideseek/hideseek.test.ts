@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { duskAt } from "./hideseek";
+import { duskAt } from "./sunset";
 import { HIDE } from "./tuning";
 
 describe("duskAt", () => {
