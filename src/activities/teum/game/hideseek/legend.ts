@@ -38,6 +38,7 @@ export interface LegendWhale {
   board(): void;
   roll(seconds: number): void;
   endParade(): void;
+  dismount(): void;
   keepOff(): void;
   attach(o: THREE.Object3D): void;
 }

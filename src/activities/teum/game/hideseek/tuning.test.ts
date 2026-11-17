@@ -138,12 +138,12 @@ describe("숨바꼭질 값 파일(hideseek.data.json)", () => {
     expect(() => readTuning(sky)).toThrow("guests[0].row: 하늘 무리는 줄 서지 않는다");
   });
 
-  it("도움을 주는 무리가 종류마다 하나가 아니면 → 멈춘다", () => {
-    const twice = edited((c) => {
+  it("도움을 주는 무리가 없는 종류가 있거나 모르는 도움이면 → 멈춘다", () => {
+    const none = edited((c) => {
       const guests = c.guests as Record<string, unknown>[];
-      guests[6] = { ...guests[6], help: "rabbit" };
+      c.guests = guests.filter((g) => g.help !== "watch");
     });
-    expect(() => readTuning(twice)).toThrow('도움 "rabbit" 를 주는 무리가 하나여야 한다(지금 2)');
+    expect(() => readTuning(none)).toThrow('도움 "watch" 를 주는 무리가 적어도 하나여야 한다');
     const unknown = edited((c) => {
       const guests = c.guests as Record<string, unknown>[];
       guests[0] = { ...guests[0], help: "map" };
@@ -194,46 +194,56 @@ describe("숨바꼭질 값 파일(hideseek.data.json)", () => {
     expect(() => readTuning(wide)).toThrow("cat.wobble: 0~90 도여야 한다");
   });
 
-  it("이 조각의 값 → 톡 30m·넉넉한 자리, 상자는 늘 3m, 생물 고리 20m·둘까지, 전설은 하늘 36m", () => {
+  it("이 조각의 값 → 생물은 작게 돕고(토끼 15m·버섯 10m 2초·열쇠 15m 3초·시계 10초), 이름표는 둘, 어려움 단계 셋", () => {
     expect(HIDE.find).toMatchObject({ tapReach: 30, tapPad: 24, tapMin: 96, tapMove: 10 });
-    expect(HIDE.find).toMatchObject({ leapMin: 0.6, leapMax: 1 });
     expect(HIDE.box).toMatchObject({ height: 3, earScale: 2, outlinePx: 2 });
-    expect(HIDE.help).toMatchObject({
-      markReach: 20,
-      ringScale: 1.4,
-      ringMax: 2,
-      lockSeconds: 0.5,
-    });
+    expect(HIDE.help).toMatchObject({ markReach: 20, ringMax: 4, tagMax: 2, pokeCooldown: 20 });
     expect(HIDE.legend).toMatchObject({ lift: 36, descendSeconds: 2.5, carryLift: 20 });
-    expect(HIDE.rabbit).toMatchObject({
-      speedShare: 0.9,
-      waitGap: 12,
-      resumeGap: 8,
-      stepGap: 2,
-      stop: 20,
-    });
-    expect(HIDE.mushroom).toMatchObject({ height: 18, hang: 3, tapReach: 60, walkReach: 2.5 });
-    expect(HIDE.key).toMatchObject({ reach: 25, seconds: 5, alpha: 0.4, warnSeconds: 1 });
-    expect(HIDE.soldier).toMatchObject({ gap: 0.4, pointSeconds: 3 });
-    expect(HIDE.cupcake).toMatchObject({ seconds: 30, reach: 60, tellReach: [20, 10, 5] });
-    expect(HIDE.watch).toMatchObject({ addSeconds: 20, minElapsed: 60 });
-    expect(HIDE.line).toMatchObject({ scale: 0.4, side: 1.2 });
+    expect(HIDE.rabbit).toMatchObject({ run: 15, trailSeconds: 8, stop: 20 });
+    expect(HIDE.mushroom).toMatchObject({ height: 10, hang: 2, tapReach: 60 });
+    expect(HIDE.key).toMatchObject({ reach: 15, seconds: 3 });
+    expect(HIDE.cupcake).toMatchObject({ walkSeconds: 6 });
+    expect(HIDE.watch).toMatchObject({ addSeconds: 10, minElapsed: 60 });
+    expect(HIDE.screen).toMatchObject({ helpLineSeconds: 2.5, helpLineQuietAfter: 3 });
+    expect(HIDE.difficulty.map((d) => d.showShare)).toEqual([0.4, 0.25, 0.15]);
+    expect(HIDE.difficulty.map((d) => [d.pretend, d.sneak])).toEqual([
+      [1, 1],
+      [2, 2],
+      [2, 2],
+    ]);
+    expect(HIDE.difficulty[1]).toMatchObject({ minFromStart: 30, minApart: 25, peekEvery: [5, 8] });
     expect(HIDE.copy.counts).toEqual(["1", "2", "3", "4"]);
-    expect(HIDE.sneak).toMatchObject({ firstRound: 1, later: 2, resumeAfter: 0.5, sweatAfter: 2 });
+    expect(HIDE.copy.help).toMatchObject({
+      rabbit: "길 안내",
+      legend: "타기",
+      watch: "시간 +10초",
+    });
   });
 
-  it("화면 글 → 큰 글자·단추·에취!·숫자 말고는 없다(칙이라는 낱말은 어디에도 없다)", () => {
-    const texts = Object.values(HIDE.copy).flat();
+  it("화면 글 → 큰 글자·단추·에취!·숫자·생물 이름표와 한 줄 말고는 없다(칙이라는 낱말은 어디에도 없다)", () => {
     expect(Object.keys(HIDE.copy).sort()).toEqual(
-      ["again", "boxesWin", "counts", "found", "hide", "it", "open", "sneeze"].sort(),
+      [
+        "again",
+        "boxesWin",
+        "counts",
+        "found",
+        "help",
+        "helpLine",
+        "hide",
+        "it",
+        "open",
+        "sneeze",
+        "teach",
+      ].sort(),
     );
-    for (const t of texts) expect(t).not.toContain("칙");
+    const texts = JSON.stringify(HIDE.copy);
+    expect(texts).not.toContain("칙");
   });
 
-  it("컵케이크 알림 거리 → 멀리서 가까이로 줄지 않으면 멈춘다", () => {
+  it("이름표 수가 고리 수보다 많으면 → 멈춘다", () => {
     const raw = JSON.parse(JSON.stringify(data)) as Record<string, Record<string, unknown>>;
-    raw.cupcake.tellReach = [5, 10, 20];
-    expect(() => readTuning(raw)).toThrow(/cupcake.tellReach/);
+    raw.help.tagMax = 9;
+    expect(() => readTuning(raw)).toThrow(/help.tagMax/);
   });
 
   it("토끼 다시 뛰는 거리 → 기다리는 거리보다 작지 않으면 멈춘다", () => {

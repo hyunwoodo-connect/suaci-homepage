@@ -195,7 +195,8 @@ export class Disguises {
         // 카메라 바로 앞이라 줄 선 상자 크기로 웅크린다(그래도 고양이보다 세 배는 크다)
         b.setSize(HIDE.line.scale, true);
         b.setLongEars(false);
-        this.followCat(e);
+        b.visible = false;
+        e.since = null;
         continue;
       }
       if (spot.as === "soldier") {
@@ -225,7 +226,7 @@ export class Disguises {
     for (const e of this.entries) {
       if (e.k.state !== "hidden" || e.blownAt !== null) continue;
       if (e.as === "line") this.lineUp(e, dt, found);
-      else if (e.as === "cat") this.followCat(e);
+      else if (e.as === "cat") this.followCat(e, found);
       else if (e.as === "statue") this.pose(e, dt);
       else if (e.as === "soldier") this.waddle(e, dt);
       else if (e.as === "balloon") this.float(e, dt);
@@ -391,15 +392,23 @@ export class Disguises {
   }
 
   // 고양이 뒤에 웅크리고 따라온다
-  private followCat(e: Entry) {
+  // 하나 이상 찾은 뒤에만 나타난다(시작하자마자 곁에 보이지 않게)
+  private followCat(e: Entry, found: number) {
     const b = e.k.box,
       { player, terrain } = this.s;
+    if (found < 1) {
+      b.visible = false;
+      return;
+    }
     this.links.cat.catHead(at);
     at.normalize();
     const back = -CAT_BEHIND / S.R;
     at.addScaledVector(player.h, back).normalize();
     const ground = terrain.groundAt(at);
-    if (!b.visible) b.visible = true;
+    if (!b.visible) {
+      b.visible = true;
+      e.since = this.time;
+    }
     b.v.copy(at);
     b.a = ground;
     b.f.copy(player.h);

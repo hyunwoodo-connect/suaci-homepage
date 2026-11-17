@@ -352,6 +352,16 @@ export class Whale implements Thing, Holder {
     if (this.visitT >= 0) this.visitTotal = this.visitT * this.visitSpeed;
   }
 
+  /** 등에 탄 나를 그 자리에 살짝 띄워 내려 준다(꾸미기 씬으로 들어가거나 '한 판 더'를 눌렀다) */
+  dismount() {
+    this.endParade();
+    if (!this.on) return;
+    this.on = false;
+    this.armed = false;
+    this.cool = 4;
+    this.s.player.release(this, { vy: 1.5, boost: 0 });
+  }
+
   /** 지금 나를 등에 태우고 있나 */
   get isRiding(): boolean {
     return this.on;

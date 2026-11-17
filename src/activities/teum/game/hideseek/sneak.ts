@@ -12,7 +12,7 @@ import { HIDE } from "./tuning";
 // 움직이는 상자는 판 시작 때 하는 짓 하나를 받는다:
 //   relocate — sneak.moveEvery 초마다 가까운 다른 숨는 자리로 종종걸음(탁 트인 데를 가로지른다)
 //   follow   — 내 등 뒤 sneak.followGap(m)를 몰래 따라온다. 내가 멈추면 같이 멈춘다
-// 컵케이크 냄새에 끌린 상자(lure)도 같은 규칙으로 다가온다.
+// 컵케이크 냄새에 홀린 상자(walkOut)는 이 규칙 밖이다 — 내가 보고 있어도 뒤뚱뒤뚱 걸어 나왔다가, 정신 차리면 도로 달려가 숨는다.
 // 화면에 잡히면 그 자세 그대로 굳는다. 오래 보고 있으면 부들부들 떨며 땀을 흘린다. 화면에서 벗어나고 잠깐 뒤 다시 움직인다.
 // 움직이다 화면에 잡힌 적이 있는 상자는 가장 가까운 숨는 자리로 가서 그 판에는 더 안 움직인다(계속 도망 다니지 않게).
 // 화면 밖에서 움직이면 그쪽 화면 가장자리에 먼지가 퐁퐁 오르고 발소리가 난다(화살표가 아니라 "저쪽에서 뭐가 지나갔다" 정도)
@@ -39,19 +39,30 @@ interface Mover {
   isSettled: boolean;
 }
 
+/** 냄새에 홀려 걸어 나온 상자: 걸어 나오는 중·돌아가는 중 · 걸어 나와 있을 남은 시간(초) · 냄새가 나는 곳 · 돌아가 숨을 자리 */
+interface Stroll {
+  k: Seeker;
+  phase: "out" | "back";
+  left: number;
+  readonly at: THREE.Vector3;
+  home: BehindSpot | null;
+}
+
 /** 숨는 자리를 다루는 법(숨는 장면이 쓰는 것과 같다): 상자를 그 자리에 숨기기 · 그 자리의 땅 위 자리(단위 벡터) */
 export interface SpotHands {
   place(k: Seeker, spot: BehindSpot): void;
   ground(spot: BehindSpot): THREE.Vector3;
 }
 
-/** 걸음 빠르기의 위(m/s — 따라붙을 때 멀어졌으면 이만큼까지 서두른다) · 다 온 것으로 치는 거리(m) · 먼지 간격(초) · 땀방울 간격(초)·색 · 미끼 앞에서 멈추는 거리(m) */
+/** 걸음 빠르기의 위(m/s — 따라붙을 때 멀어졌으면 이만큼까지 서두른다) · 다 온 것으로 치는 거리(m) · 먼지 간격(초) · 땀방울 간격(초)·색 ·
+ * 미끼 앞에서 멈추는 거리(m) · 정신 차리고 달아나는 빠르기(m/s) */
 const CATCH_UP = 16,
   ARRIVE = 0.4,
   PUFF_EVERY = 0.7,
   SWEAT_EVERY = 0.35,
   SWEAT_COLOR = 0x8fd8ff,
-  LURE_STOP = 3;
+  STROLL_STOP = 3,
+  STROLL_RUN = 9;
 /** 자리를 옮길 때 고르는 숨는 자리의 거리(m) */
 const RELOCATE_REACH = 70;
 
@@ -61,8 +72,7 @@ const tmp = new THREE.Vector3(),
 /** 안 볼 때만 움직이는 상자들 */
 export class Sneak {
   private movers: Mover[] = [];
-  private readonly lureAt = new THREE.Vector3();
-  private lured: Mover | null = null;
+  private stroll: Stroll | null = null;
   /** 움직이다 들킨 수(잰 값) */
   spotted = 0;
 
@@ -74,13 +84,11 @@ export class Sneak {
     private readonly rand: () => number,
   ) {}
 
-  /** 판 시작: 움직일 상자를 고르고 하는 짓을 준다(첫 판은 따라붙기 하나, 그다음부터 sneak.later 개). candidates 는 숨은(뒤·높이) 상자 */
-  begin(candidates: readonly Seeker[], first: boolean) {
+  /** 판 시작: 움직일 상자 count 개를 고르고 하는 짓을 준다(첫 판은 따라붙기만). candidates 는 숨은(뒤·높이) 상자 */
+  begin(candidates: readonly Seeker[], count: number, first: boolean) {
     this.stop();
     this.spotted = 0;
-    const N = HIDE.sneak,
-      count = first ? N.firstRound : N.later,
-      pool = [...candidates];
+    const pool = [...candidates];
     for (let i = 0; i < count && pool.length; i++) {
       const roll = this.rand() * pool.length,
         pickAt = Math.floor(roll),
@@ -92,34 +100,37 @@ export class Sneak {
     }
   }
 
-  /** k 가 at(단위 벡터) 쪽으로 다가온다(컵케이크 냄새). null 이면 그친다 */
-  lure(k: Seeker | null, at: THREE.Vector3 | null) {
-    const was = this.lured;
-    // 냄새가 그쳤는데 못 찾았으면 가까운 물건 뒤로 숨는다(내가 안 볼 때 — 들킨 상자처럼 그 판엔 거기 머문다)
-    if (was && was.goal === this.lureAt) was.goal = null;
-    if (was && was.k.state === "hidden") {
-      was.wasSpotted = true;
-      was.goalSpot = null;
-      if (!this.movers.includes(was)) this.movers.push(was);
+  /** k 가 냄새에 홀려 at(단위 벡터) 쪽으로 seconds 동안 뒤뚱뒤뚱 걸어 나온다(내가 보고 있어도). 그 뒤 정신 차리고 제자리로 달려가 숨는다 */
+  walkOut(k: Seeker, at: THREE.Vector3, seconds: number) {
+    // 다른 상자가 걸어 나와 있었으면 제자리에 돌려놓는다(트인 데 버려지지 않게)
+    const prev = this.stroll;
+    if (prev && prev.k !== k && prev.k.state === "hidden") {
+      prev.k.box.setScurry(0);
+      if (prev.home) this.spots.place(prev.k, prev.home);
     }
-    this.lured = null;
-    if (!k || !at) return;
-    this.lureAt.copy(at);
-    this.lured = this.movers.find((m) => m.k === k) ?? this.newMover(k, "relocate");
+    const home = k.spot.kind === "behind" ? k.spot : null;
+    this.stroll = { k, phase: "out", left: seconds, at: at.clone(), home };
+    k.box.setFrozen(false);
+    k.box.setPeek(null);
+  }
+
+  /** k 가 냄새에 홀려 걸어 나와 있나(돌아가는 중까지) */
+  isOut(k: Seeker): boolean {
+    return this.stroll?.k === k;
   }
 
   /** 지금 움직이는(또는 굳은) 상자인가 — 숨은 자리에서 빼꼼하지 않는다 */
   isMoving(k: Seeker): boolean {
+    if (this.isOut(k)) return true;
     const m = this.find(k);
     return m !== null && m.goal !== null;
   }
 
   /** 한 프레임(찾는 중 — k.seen 은 이번 프레임 화면 안인가) */
   update(dt: number, occupied: (spot: BehindSpot) => boolean) {
-    const list =
-      this.lured && !this.movers.includes(this.lured) ? [...this.movers, this.lured] : this.movers;
-    for (const m of list) {
-      if (m.k.state !== "hidden") continue;
+    this.strollStep(dt);
+    for (const m of this.movers) {
+      if (m.k.state !== "hidden" || this.isOut(m.k)) continue;
       if (m.k.seen) this.watched(m, dt);
       else this.unwatched(m, dt, occupied);
     }
@@ -128,9 +139,8 @@ export class Sneak {
   /** 거둔다(판이 끝났다·상자를 찾았다): 굳은 것을 푼다 */
   stop() {
     for (const m of this.movers) m.k.box.setFrozen(false);
-    this.lured?.k.box.setFrozen(false);
     this.movers = [];
-    this.lured = null;
+    this.stroll = null;
   }
 
   /* ─── 내부 ─────────────────────────── */
@@ -157,8 +167,45 @@ export class Sneak {
   }
 
   private find(k: Seeker): Mover | null {
-    if (this.lured?.k === k) return this.lured;
     return this.movers.find((m) => m.k === k) ?? null;
+  }
+
+  // 냄새에 홀린 상자: 걸어 나오는 동안은 뒤뚱뒤뚱(보고 있어도), 시간이 다 되면 깜짝 놀라 제자리로 달려가 숨는다. 찾히면 그친다
+  private strollStep(dt: number) {
+    const w = this.stroll;
+    if (!w) return;
+    const b = w.k.box;
+    if (w.k.state !== "hidden") {
+      this.stroll = null;
+      return;
+    }
+    if (w.phase === "out") {
+      w.left -= dt;
+      const far = b.v.angleTo(w.at) * S.R;
+      if (far > STROLL_STOP) {
+        b.stepToward(w.at, HIDE.cupcake.walkSpeed, dt);
+        b.setScurry(1);
+      } else b.setScurry(0);
+      b.a = this.s.terrain.groundAt(b.v);
+      if (w.left > 0) return;
+      w.phase = "back";
+      b.startle();
+      return;
+    }
+    const home = w.home;
+    if (!home) {
+      this.stroll = null;
+      b.setScurry(0);
+      return;
+    }
+    const goal = this.spotGround(home),
+      left = b.stepToward(goal, STROLL_RUN, dt);
+    b.a = this.s.terrain.groundAt(b.v);
+    b.setScurry(1);
+    if (left > ARRIVE) return;
+    b.setScurry(0);
+    this.spots.place(w.k, home);
+    this.stroll = null;
   }
 
   // 화면에 잡혔다: 움직이던 중이면 그 자세 그대로 굳는다(들킨 것). 오래 보면 부들부들 땀
@@ -196,7 +243,7 @@ export class Sneak {
     if (m.goal) this.walk(m, dt);
   }
 
-  // 갈 곳: 들켰으면 가장 가까운 숨는 자리, 미끼면 컵케이크 앞, 따라붙기면 내 등 뒤, 자리 옮기기면 때가 됐을 때 다른 숨는 자리
+  // 갈 곳: 들켰으면 가장 가까운 숨는 자리, 따라붙기면 내 등 뒤, 자리 옮기기면 때가 됐을 때 다른 숨는 자리
   private pickGoal(m: Mover, dt: number, occupied: (spot: BehindSpot) => boolean) {
     const { player } = this.s;
     if (m.wasSpotted && !m.goalSpot) {
@@ -206,11 +253,6 @@ export class Sneak {
       return;
     }
     if (m.wasSpotted) return;
-    if (m === this.lured) {
-      const left = m.k.box.v.angleTo(this.lureAt) * S.R;
-      m.goal = left > LURE_STOP ? this.lureAt : null;
-      return;
-    }
     if (m.mode === "follow") {
       const isMoving = player.tot > 0.15,
         back = -m.gap / S.R;

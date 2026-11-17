@@ -41,8 +41,8 @@ const GIANT_SIZE = HIDE.unbox.giantSize,
 
 /** 언박싱이 쓰는 것 */
 export interface UnboxLinks {
-  /** 아바타 크기를 바꾼다(1 이 그대로) */
-  grow(k: number): void;
+  /** 아바타 크기를 바꾼다(1 이 그대로, isInstant 면 바로) */
+  grow(k: number, isInstant?: boolean): void;
   /** 고래를 부른다(over: 지나갈 자리, dir: 지나갈 쪽) */
   callWhale(over: THREE.Vector3, dir: THREE.Vector3): void;
   /** 언박싱 동안 고래가 나를 태우지 않게 */
@@ -237,11 +237,11 @@ export class Unboxing {
     }
   }
 
-  /** 커진 몸을 되돌린다(한 판 더 — 꼭꼭 숨어라 줄을 큰 몸이 가리지 않게). 지나가는 고래는 그대로 간다 */
-  resetHappenings() {
+  /** 커진 몸을 되돌린다(한 판 더 — 꼭꼭 숨어라 줄을 큰 몸이 가리지 않게. isInstant: 꾸미기 씬으로 들어갈 때 바로). 지나가는 고래는 그대로 간다 */
+  resetHappenings(isInstant = false) {
     if (this.giantT <= 0) return;
     this.giantT = 0;
-    this.links.grow(1);
+    this.links.grow(1, isInstant);
   }
 
   /** 카메라를 바로 놓는다(꾸미기 씬이 열리면 씬이 카메라를 쓴다) */

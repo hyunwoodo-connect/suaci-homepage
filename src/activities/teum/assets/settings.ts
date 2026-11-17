@@ -295,6 +295,19 @@ const HIDE_HELP_SOUND: Readonly<Record<HelpKind, SoundCue>> = {
   watch: { key: "snd_help_watch", volume: 0.95 },
 };
 
+/** 도움 없는 생물이 요란하게 반응할 때(종마다 — 있던 효과음을 빌린다) */
+const POKE_SOUND: Readonly<Record<string, SoundCue>> = {
+  teapot: { key: "snd_splash", volume: 0.45, rate: 1.3 },
+  c_dice: { key: "snd_boing", volume: 0.45, rate: 1.4 },
+  c_wletter: { key: "snd_wing", volume: 0.5, rate: 1.2 },
+  c_wheart: { key: "snd_ring", volume: 0.45, rate: 1.5 },
+  c_wcup: { key: "snd_splash", volume: 0.4, rate: 1.6 },
+  c_wbell: { key: "snd_ring", volume: 0.55, rate: 0.9 },
+  c_hat: { key: "snd_pick", volume: 0.5, rate: 1.1 },
+  c_rose: { key: "snd_up", volume: 0.45, rate: 1.3 },
+};
+const POKE_DEFAULT: SoundCue = { key: "snd_boing", volume: 0.4 };
+
 /** 상자·생물·전설을 눌렀을 때 미스트 줄기가 날아가는 소리 */
 const TAP_MIST: SoundCue = { key: "snd_hide_tap_mist", volume: 0.55 };
 
@@ -387,6 +400,7 @@ export const SOUND_EFFECTS: SoundTable = {
   // 고리는 자주 켜지니 다른 소리의 절반으로
   hideRingOn: { key: "snd_hide_ring_on", volume: 0.14, gap: 0.6 },
   hideCreatureTapped: TAP_MIST,
+  hideCreaturePoked: ({ species }) => POKE_SOUND[species] ?? POKE_DEFAULT,
   hideHelpUsed: ({ kind }) => HIDE_HELP_SOUND[kind],
   hideBoxAnswered: { key: "snd_box_giggle_b", volume: 0.35, rate: [1.2, 1.5], gap: 0.05 },
   hidePrintStomped: { key: "snd_ring", volume: 0.2, rate: [1.6, 2], gap: 0.08 },

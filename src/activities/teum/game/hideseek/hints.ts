@@ -26,11 +26,12 @@ export interface HelpRound {
   /** 지금 찾는 중인가 · 찾기 시작 뒤 흐른 시간(초) */
   isSeeking(): boolean;
   roundT(): number;
-  /** 지금 숨어 있는(눌러 찾을 수 있는) 상자들 · 그중 컵케이크 냄새에 끌려올 수 있는 것(내 곁을 따라오는 아닌 척은 빼고) */
+  /** 지금 숨어 있는(눌러 찾을 수 있는) 상자들 · 그중 컵케이크 냄새에 걸어 나올 수 있는 것(물건 뒤에 숨은 것만) */
   hidden(): Seeker[];
   lurable(): Seeker[];
-  /** k 상자가 at 쪽으로 내가 안 볼 때만 다가온다(미끼). null 이면 그친다 — 못 찾은 상자는 가까운 물건 뒤로 숨는다 */
-  lure(k: Seeker | null, at: THREE.Vector3 | null): void;
+  /** k 상자가 냄새에 홀려 at 쪽으로 seconds 동안 걸어 나왔다가(내가 보고 있어도) 도로 달려가 숨는다(미끼) · 지금 걸어 나와 있나(돌아가는 중까지) */
+  walkOut(k: Seeker, at: THREE.Vector3, seconds: number): void;
+  isOut(k: Seeker): boolean;
   /** 해를 seconds 초만큼 over 초에 걸쳐 되돌린다 */
   rewind(seconds: number, over: number): void;
   /** 투시: center 둘레 radius(m) 안의 물건을 alpha 몫만 남기고 비춘다(radius 0 이면 끈다) */
@@ -102,14 +103,14 @@ const ATTENTION = 0.15,
   ROLL_FROM = 0.35,
   COVER_AFTER = 0.6,
   COVER_FOR = 0.5;
-/** 컵케이크: 몸 꼬기·풀썩(초) · 김 줄기가 나오는 간격(초)·흘러가는 빠르기(m/s)·가는 거리(m) · 깜짝 뒤 다시 깜짝하기까지(초) */
+/** 컵케이크: 몸 꼬기·풀썩(초) · 김 줄기가 흘러가는 빠르기(m/s)·가는 거리(m)·색 */
 const TWIST = 0.4,
   PLOP = 0.15,
-  PLUME_EVERY = 0.22,
   PLUME_SPEED = 4,
   PLUME_REACH = 10,
-  STEAM_COLOR = 0xff9ad2,
-  CHERRY_COLOR = 0xff3b5c;
+  STEAM_COLOR = 0xff9ad2;
+/** 회중시계: 하늘의 큰 시계가 떠 있는 시간(초) */
+const SKY_CLOCK = 1.6;
 /** 회중시계: 바늘이 거꾸로 도는 시간(초)·바퀴 · 뚜껑을 닫고 인사하는 시간(초) */
 const HANDS = 0.8,
   HANDS_TURNS = 2,
@@ -254,12 +255,14 @@ export class Shiver implements Hint {
 
 type RabbitStep = "startle" | "come" | "nod" | "run" | "wait" | "look" | "burrow" | "done";
 
-/** 토끼(길): 깜짝 뛰었다가 내 앞에 와서 고갯짓 → 가장 가까운 숨은 상자 쪽으로 뛰며 라임 발자국 → 상자 앞에서 두리번 → 굴로 쏙 */
+/** 토끼(길): 깜짝 뛰었다가 내 앞에 와서 고갯짓 → 가장 가까운 숨은 상자 쪽으로 rabbit.run 만큼만 뛰며 라임 발자국(방향만 알려 준다 — 상자가 더 가까우면 그 앞에서) → 두리번 → 굴로 쏙 */
 export class RabbitHint implements Hint {
   private step: RabbitStep = "startle";
   private t = 0;
   private stepT = 0;
   private walked = 0;
+  /** 뛴 거리(m — rabbit.run 을 넘으면 거기서 굴로: 방향만 알려 준다) */
+  private ran = 0;
   private readonly burrowAt: number;
   private readonly lookFrom = new THREE.Vector3();
 
@@ -348,6 +351,11 @@ export class RabbitHint implements Hint {
         stride = speed * dt;
       moveToward(c, this.box.box.v, speed, dt);
       this.walked += stride;
+      this.ran += stride;
+      if (this.ran >= R.run) {
+        this.goLook();
+        return true;
+      }
       if (this.walked >= R.stepGap) {
         this.walked = 0;
         this.ctx.prints.stamp(c.v, ground, c.f, R.trailSeconds);
@@ -673,12 +681,12 @@ export class KeyHint implements Hint {
 
 /* ─── 카드 병정 ─────────────────────────── */
 
-/** 카드 병정(점호): 착 차렷하고 맨 앞 병정이 창을 쿵 → 숨은 상자가 가까운 것부터 귀를 번쩍 들고 "1" "2" … → 아차 눈 가림 → 병정 셋이 1번 상자 쪽으로 창을 겨눈다 */
+/** 카드 병정(점호): 착 차렷하고 가운데 병정이 창을 쿵 → 숨은 상자가 모두 가까운 것부터 귀를 번쩍 들고 "1" "2" … → 아차 눈 가림. 가리키지는 않는다(소리 나는 쪽을 보는 것은 내 몫) */
 export class SoldierHint implements Hint {
   private t = 0;
   private readonly boxes: Seeker[];
   private readonly front: Creature;
-  private readonly pointFrom: number;
+  private readonly end: number;
 
   constructor(
     private readonly ctx: HintCtx,
@@ -716,34 +724,25 @@ export class SoldierHint implements Hint {
       });
     });
     const answered = ROLL_FROM + this.boxes.length * L.gap;
-    this.pointFrom = answered + COVER_AFTER;
+    this.end = answered + COVER_AFTER + COVER_FOR;
   }
 
-  aim(out: THREE.Vector3): boolean {
-    const first = this.boxes[0];
-    if (!first) return false;
-    out.copy(first.box.v).multiplyScalar(S.R);
-    return true;
+  aim(): boolean {
+    return false;
   }
 
   update(dt: number): boolean {
     this.t += dt;
     const t = this.t,
-      me = this.ctx.s.player.p as THREE.Vector3,
-      first = this.boxes[0],
-      end = this.pointFrom + HIDE.soldier.pointSeconds;
+      me = this.ctx.s.player.p as THREE.Vector3;
     for (const c of this.members) {
       c.hop = t < ATTENTION ? 0.25 : 0;
       c.pitch = 0;
-      const isPointing = t >= this.pointFrom && first && first.state === "hidden";
-      if (isPointing) {
-        faceToward(c, first.box.v);
-        c.pitch = 0.22;
-      } else faceToward(c, me);
+      faceToward(c, me);
     }
-    // 맨 앞 병정이 창을 땅에 쿵
+    // 가운데 병정이 창을 땅에 쿵
     if (t >= ATTENTION && t < ATTENTION + 0.15) this.front.pitch = 0.35;
-    if (t < end) return true;
+    if (t < this.end) return true;
     this.stop();
     return false;
   }
@@ -759,23 +758,13 @@ export class SoldierHint implements Hint {
 
 /* ─── 컵케이크 ─────────────────────────── */
 
-/** 냄새 줄기 하나(컵케이크에서 상자 쪽으로 흘러간다) */
-interface Plume {
-  p: THREE.Vector3;
-  t: number;
-  dotT: number;
-}
-
-/** 컵케이크(미끼): 부끄러워 몸을 꼬다 풀썩 앉는다 → 분홍 김 한 줄기가 가장 가까운 숨은 상자 쪽으로 흘러가고, 그 상자가 안 볼 때 살금살금 온다 →
- * 컵케이크가 알려 준다(20m 힐끔·10m 부들부들·5m 깜짝, 체리가 튄다) → 30초가 지나거나 찾으면 일어나 인사하고 간다 */
+/** 컵케이크(미끼): 부끄러워 몸을 꼬다 풀썩 앉는다 → 분홍 김 한 줄기가 가장 가까운 숨은 상자 쪽으로 흘러가고, 그 상자가 냄새에 홀려
+ * 내가 보고 있어도 뒤뚱뒤뚱 걸어 나온다(cupcake.walkSeconds) — 그동안 누르면 찾는다. 정신 차리면 도로 달려가 숨는다. 다 끝나면 일어나 꾸벅 하고 간다 */
 export class CupcakeHint implements Hint {
   private t = 0;
-  private plumeT = 0;
-  private readonly plumes: Plume[] = [];
+  private puffT = 0;
   private readonly lured: Seeker | null;
   private readonly dir = new THREE.Vector3();
-  private tell = 0;
-  private hasJumped = false;
   private endT = -1;
 
   constructor(
@@ -787,7 +776,6 @@ export class CupcakeHint implements Hint {
       near = nearestTo(lurable, c.v),
       far = near ? near.box.v.angleTo(c.v) * S.R : Infinity;
     this.lured = near && far <= HIDE.cupcake.reach ? near : null;
-    if (this.lured) ctx.round.lure(this.lured, c.v);
   }
 
   aim(out: THREE.Vector3): boolean {
@@ -810,29 +798,37 @@ export class CupcakeHint implements Hint {
       return true;
     }
     if (t < TWIST + PLOP) {
-      if (c.sink === 0) this.ctx.s.events.emit("hideHelpUsed", { kind: "cupcake" });
+      if (c.sink === 0) this.plop();
       const u = (t - TWIST) / PLOP;
       c.sink = 0.3 * u + 0.001;
       return true;
     }
     c.sink = 0.3;
-    const isFound = this.lured !== null && this.lured.state !== "hidden";
-    if (t >= HIDE.cupcake.seconds || isFound || !this.ctx.round.isSeeking()) {
-      this.ctx.round.lure(null, null);
+    const k = this.lured,
+      isWalking = k !== null && this.ctx.round.isOut(k);
+    if (!isWalking || !this.ctx.round.isSeeking()) {
       this.endT = 0;
       return true;
     }
-    this.flow(dt);
-    this.tellHow(t, me);
+    // 걸어 나오는 상자를 힐끔힐끔, 김 줄기는 그 상자 쪽으로
+    if (t % 1.6 < 0.7) faceToward(c, k.box.v);
+    else faceToward(c, me);
+    this.steam(dt, k);
     return true;
   }
 
   stop() {
-    this.ctx.round.lure(null, null);
     this.c.sink = 0;
     this.c.pitch = 0;
     this.c.roll = 0;
     this.ctx.creatures.dismiss(this.c);
+  }
+
+  // 풀썩: 앉으며 소리, 냄새에 홀린 상자가 걸어 나오기 시작한다
+  private plop() {
+    this.ctx.s.events.emit("hideHelpUsed", { kind: "cupcake" });
+    const k = this.lured;
+    if (k) this.ctx.round.walkOut(k, this.c.v, HIDE.cupcake.walkSeconds);
   }
 
   // 일어나 꾸벅 인사하고 간다
@@ -850,78 +846,28 @@ export class CupcakeHint implements Hint {
     return false;
   }
 
-  // 분홍 김 한 줄기: 상자 쪽으로 바람에 실려 10m 쯤 가다 흩어진다(방향만 알려 준다)
-  private flow(dt: number) {
-    const c = this.c,
-      k = this.lured;
-    if (k) {
-      this.dir.copy(k.box.v).sub(c.v);
-      const up = this.dir.dot(c.v);
-      this.dir.addScaledVector(c.v, -up).normalize();
-    }
-    this.plumeT -= dt;
-    if (this.plumeT <= 0 && k) {
-      this.plumeT = PLUME_EVERY;
-      const top = c.batch.hh * 2;
-      const p = c.pos.clone().addScaledVector(c.v, top);
-      this.plumes.push({ p, t: 0, dotT: 0 });
-    }
-    const travel = PLUME_SPEED * dt,
-      life = PLUME_REACH / PLUME_SPEED;
-    for (let i = this.plumes.length - 1; i >= 0; i--) {
-      const pl = this.plumes[i];
-      pl.t += dt;
-      if (pl.t >= life) {
-        this.plumes.splice(i, 1);
-        continue;
-      }
-      pl.p.addScaledVector(this.dir, travel);
-      const lift = 0.35 * dt;
-      tmp.copy(pl.p).normalize();
-      pl.p.addScaledVector(tmp, lift);
-      pl.dotT -= dt;
-      if (pl.dotT > 0) continue;
-      pl.dotT = 0.1;
-      const fade = 1 - pl.t / life,
-        size = 0.5 + 0.7 * fade;
-      this.ctx.fx.dot(pl.p, size, 0.9, STEAM_COLOR);
-    }
-  }
-
-  // 상자가 얼마나 왔나: 20m 안 힐끔 · 10m 안 부들부들 · 5m 안 깜짝(체리가 튄다)
-  private tellHow(t: number, me: THREE.Vector3) {
-    const c = this.c,
-      k = this.lured,
-      [glance, shake, jump] = HIDE.cupcake.tellReach;
-    faceToward(c, me);
-    if (!k) return;
-    const d = k.box.v.angleTo(c.v) * S.R;
-    this.tell = d <= jump ? 3 : d <= shake ? 2 : d <= glance ? 1 : 0;
-    if (this.tell >= 1 && t % 1.8 < 0.6) faceToward(c, k.box.v);
-    if (this.tell >= 2) {
-      const jitter = t * 60;
-      c.roll = 0.07 * Math.sin(jitter);
-    }
-    if (this.tell >= 3 && !this.hasJumped) {
-      this.hasJumped = true;
-      this.cherry();
-    }
-    if (this.tell >= 3) {
-      const since = (t * 3) % 1,
-        arc = bump(since);
-      c.hop = 0.6 * arc * (since < 0.5 ? 1 : 0);
-    } else c.hop = 0;
-  }
-
-  // 체리가 튄다
-  private cherry() {
+  // 분홍 김: 컵케이크에서 상자 쪽으로 점이 이어진다(방향이 보이게)
+  private steam(dt: number, k: Seeker) {
+    this.puffT -= dt;
+    if (this.puffT > 0) return;
+    this.puffT = 0.12;
     const c = this.c;
-    for (let i = 0; i < 4; i++) {
-      const rise = c.batch.hh * 2 + 0.4 + i * 0.45;
-      at.copy(c.pos).addScaledVector(c.v, rise);
-      const life = 0.5 + i * 0.1;
-      this.ctx.fx.dot(at, 0.5, life, CHERRY_COLOR);
-    }
+    this.dir.copy(k.box.v).sub(c.v);
+    const up = this.dir.dot(c.v);
+    this.dir.addScaledVector(c.v, -up);
+    const gap = this.dir.length() * S.R;
+    if (gap < 1e-3) return;
+    this.dir.normalize();
+    const reach = Math.min(PLUME_REACH, gap),
+      run = this.t * PLUME_SPEED,
+      along = run % reach,
+      top = c.batch.hh * 2 + 0.6,
+      arc = along / S.R;
+    at.copy(c.v).addScaledVector(this.dir, arc).normalize();
+    const ground = this.ctx.s.terrain.groundAt(at),
+      lift = S.R + ground + top;
+    at.multiplyScalar(lift);
+    this.ctx.fx.dot(at, 0.9, 1.1, STEAM_COLOR);
   }
 }
 
@@ -938,6 +884,7 @@ export class WatchHint implements Hint {
     ctx.creatures.escort(c, false);
     ctx.round.rewind(HIDE.watch.addSeconds, HANDS);
     ctx.overlay.rewindBand(HANDS);
+    ctx.overlay.skyClock(SKY_CLOCK);
     ctx.s.events.emit("hideHelpUsed", { kind: "watch" });
     const top = c.batch.hh * 2;
     at.copy(c.pos).addScaledVector(c.v, top);
@@ -971,6 +918,215 @@ export class WatchHint implements Hint {
   stop() {
     this.c.pitch = 0;
     this.ctx.creatures.dismiss(this.c);
+  }
+}
+
+/* ─── 도움 없는 생물: 요란한 반응 ─────────────────────────── */
+
+/** 요란한 반응의 길이(초) · 달아나는 거리(m) · 하트·종이·김 같은 알갱이 색 */
+const POKE_SECONDS = 2.4,
+  FLEE = 7,
+  HEART_COLOR = 0xff7eb6,
+  TEA_COLOR = 0xc89b6d;
+
+/**
+ * 도움 없는 생물을 눌렀다: 미스트를 맞고(부르르·반짝은 helpers 가) 종마다 요란하게 — 달아나는 놈(주사위·편지), 제자리에서 터지는 놈(찻주전자·하트·찻잔·종·모자),
+ * 숨는 놈(장미). 뼈대가 없어 통째 움직임(돌기·튀기·커지기·가라앉기)과 알갱이(김·종이·하트)로 한다. 다 하면 제 할 일로
+ */
+export class PokeReaction implements Hint {
+  private t = 0;
+  private dotT = 0;
+  private readonly from = new THREE.Vector3();
+  private readonly away = new THREE.Vector3();
+  private readonly baseA: number;
+  private readonly isHappy: boolean;
+
+  constructor(
+    private readonly ctx: HintCtx,
+    private readonly c: Creature,
+  ) {
+    ctx.creatures.escort(c, false);
+    this.from.copy(c.v);
+    this.baseA = c.a;
+    const me = ctx.s.player.p as THREE.Vector3;
+    this.away.copy(c.v).sub(me);
+    const up = this.away.dot(c.v);
+    this.away.addScaledVector(c.v, -up).normalize();
+    this.isHappy = Math.random() < 0.5;
+    ctx.s.events.emit("hideCreaturePoked", { species: c.k });
+  }
+
+  aim(): boolean {
+    return false;
+  }
+
+  update(dt: number): boolean {
+    this.t += dt;
+    const c = this.c,
+      u = progress(this.t, POKE_SECONDS);
+    c.hop = 0;
+    c.roll = 0;
+    c.pitch = 0;
+    this.dotT -= dt;
+    const isPuff = this.dotT <= 0;
+    if (isPuff) this.dotT = 0.12;
+    if (c.k === "teapot") this.teapot(dt, u, isPuff);
+    else if (c.k === "c_dice") this.dice(dt, u);
+    else if (c.k === "c_wletter") this.letter(dt, u, isPuff);
+    else if (c.k === "c_wheart") this.heart(u);
+    else if (c.k === "c_wcup") this.cup(dt, u, isPuff);
+    else if (c.k === "c_wbell") this.bell(u);
+    else if (c.k === "c_hat") this.hat(u);
+    else if (c.k === "c_rose") this.rose(u);
+    else this.spin(dt, u);
+    if (u < 1) return true;
+    this.stop();
+    return false;
+  }
+
+  stop() {
+    const c = this.c;
+    c.hop = c.roll = c.pitch = c.sink = 0;
+    c.want = 1;
+    c.a = this.baseA;
+    this.ctx.creatures.dismiss(c);
+  }
+
+  // 찻주전자: 뚜껑이 들썩들썩(통통), 김을 뿜으며 팽이처럼 돌고, 주둥이로 차를 한 줄기
+  private teapot(dt: number, u: number, isPuff: boolean) {
+    const c = this.c,
+      turn = dt * Math.PI * 6 * bump(u);
+    c.f.applyAxisAngle(c.v, turn);
+    const rattle = wave(this.t, 9);
+    c.hop = 0.08 * Math.abs(rattle);
+    const steamAt = c.batch.hh * 2.2;
+    if (isPuff) this.puffAt(steamAt, 0.8, 0xffffff);
+    if (u > 0.45 && u < 0.7 && isPuff) this.stream(TEA_COLOR);
+  }
+
+  // 주사위: 깜짝 뛰어 데굴데굴 굴러 달아난다 → 멈추면 나온 눈을 보고 좋아하거나(폴짝) 실망한다(납작)
+  private dice(dt: number, u: number) {
+    const c = this.c;
+    if (u < 0.6) {
+      const speed = FLEE / (POKE_SECONDS * 0.6),
+        arc = (speed * dt) / S.R;
+      c.v.addScaledVector(this.away, arc).normalize();
+      c.a = this.ctx.s.terrain.groundAt(c.v);
+      const rolled = this.t * 12;
+      c.pitch = rolled;
+      c.f.copy(this.away);
+      return;
+    }
+    faceToward(c, this.ctx.s.player.p as THREE.Vector3);
+    const after = (u - 0.6) / 0.4;
+    const joy = wave(after, 2);
+    if (this.isHappy) c.hop = 0.5 * Math.abs(joy);
+    else c.sink = 0.25 * bump(after);
+  }
+
+  // 날개 편지: 봉투가 펑 열리며 하트 종이가 쏟아지고, 부끄러워 지그재그로 날아 달아난다
+  private letter(dt: number, u: number, isPuff: boolean) {
+    const c = this.c;
+    if (this.t < 0.15 && isPuff)
+      for (let i = 0; i < 5; i++) this.puffAt(c.batch.hh, 0.6, HEART_COLOR);
+    const zig = wave(this.t, 2.5) * 0.9,
+      speed = FLEE / POKE_SECONDS,
+      arc = (speed * dt) / S.R;
+    const zigArc = (zig * dt) / S.R;
+    side.crossVectors(c.v, this.away).normalize();
+    c.v.addScaledVector(this.away, arc).addScaledVector(side, zigArc).normalize();
+    c.a = this.baseA + 2 * u;
+    c.f.copy(this.away);
+  }
+
+  // 날개 하트: 두근두근 부풀다 두 배로 커졌다가 퐁 — 작은 하트 셋으로 흩어졌다 다시 모인다
+  private heart(u: number) {
+    const c = this.c;
+    if (u < 0.4) {
+      const pulse = wave(this.t, 3),
+        beat = Math.abs(pulse);
+      c.want = 1 + u * 2.5 + 0.15 * beat;
+      return;
+    }
+    if (u < 0.45) {
+      c.want = 0;
+      for (let i = 0; i < 3; i++) this.puffAt(c.batch.hh, 0.9, HEART_COLOR);
+      return;
+    }
+    c.want = u > 0.8 ? 1 : 0;
+  }
+
+  // 날개 찻잔: 차를 엎지르고 허둥지둥 빙빙
+  private cup(dt: number, u: number, isPuff: boolean) {
+    const c = this.c,
+      turn = dt * Math.PI * 4;
+    c.f.applyAxisAngle(c.v, turn);
+    c.roll = 0.5 * bump(u);
+    const radius = 1.5 / S.R,
+      angle = this.t * Math.PI * 2;
+    side.crossVectors(c.v, this.away).normalize();
+    const cos = Math.cos(angle) * radius,
+      sin = Math.sin(angle) * radius;
+    c.v.copy(this.from).addScaledVector(this.away, cos).addScaledVector(side, sin).normalize();
+    if (isPuff && u < 0.5) this.puffAt(-0.4, 0.5, TEA_COLOR);
+  }
+
+  // 날개 종: 딸랑딸랑 흔들리며 위로 솟구쳤다 내려온다
+  private bell(u: number) {
+    const c = this.c,
+      ring = wave(this.t, 6);
+    c.roll = 0.5 * ring * (1 - u);
+    c.a = this.baseA + 3 * bump(u);
+  }
+
+  // 모자: 뒤집혀서 안에서 작은 것(꽃·리본·꼬마 라임)이 하나 튀어나온다
+  private hat(u: number) {
+    const c = this.c;
+    c.roll = Math.PI * bump(u);
+    const popAt = c.batch.hh * 2.5;
+    if (u > 0.45 && u < 0.5) this.puffAt(popAt, 1.2, 0xa9ff39);
+  }
+
+  // 장미: 꽃잎을 확 펼쳤다가(커짐) 부끄러워 오므리고 땅속으로 반쯤 숨는다
+  private rose(u: number) {
+    const c = this.c;
+    if (u < 0.3) {
+      const open = u / 0.3;
+      c.want = 1 + bump(open) * 0.4;
+      return;
+    }
+    c.want = 1;
+    const shy = (u - 0.3) / 0.7;
+    c.sink = 0.6 * bump(shy);
+  }
+
+  // 그 밖: 제자리에서 빙글 돌며 폴짝
+  private spin(dt: number, u: number) {
+    const c = this.c,
+      turn = dt * Math.PI * 4;
+    c.f.applyAxisAngle(c.v, turn);
+    c.hop = 0.6 * bump(u);
+  }
+
+  // 몸 위 lift(m)에 알갱이 하나
+  private puffAt(lift: number, size: number, color: number) {
+    const c = this.c,
+      jitter = (Math.random() - 0.5) * 1.2,
+      up = c.batch.hh + lift;
+    side.crossVectors(c.v, c.f).normalize();
+    at.copy(c.pos).addScaledVector(c.v, up).addScaledVector(side, jitter);
+    this.ctx.fx.dot(at, size, 0.8, color);
+  }
+
+  // 주둥이 쪽으로 한 줄기(앞으로 이어진 점)
+  private stream(color: number) {
+    const c = this.c;
+    for (let i = 1; i <= 4; i++) {
+      const ahead = c.batch.hh + i * 0.5,
+        up = c.batch.hh * 1.2;
+      at.copy(c.pos).addScaledVector(c.f, ahead).addScaledVector(c.v, up);
+      this.ctx.fx.dot(at, 0.45, 0.5, color);
+    }
   }
 }
 

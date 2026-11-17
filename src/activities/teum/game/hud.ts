@@ -183,21 +183,12 @@ export class Hud {
   }
 
   /**
-   * 꾸미기 씬 동안은 안내 줄·말풍선을 숨기고(씬을 닫으면 돌아온다), 소리 단추는 무대 위 오른쪽 위 단추(아무거나) 왼쪽으로 옮긴다 —
-   * 배경 음악이 도는 동안 끌 수 있어야 한다
+   * 꾸미기 씬 동안은 게임 화면의 것(안내 줄·말풍선·소리 단추)을 모두 숨긴다 — 씬의 단추만 보인다(겹치지 않게). 씬을 닫으면 돌아온다
    */
   setStudio(on: boolean) {
     const display = on || this.quiet ? "none" : "";
     for (const el of [this.hint, this.talk]) el.style.display = display;
-    const mute = this.mute;
-    if (!mute) return;
-    Object.assign(mute.style, {
-      top: on ? "calc(15px + env(safe-area-inset-top))" : "calc(8px + env(safe-area-inset-top))",
-      right: on
-        ? "calc(66px + env(safe-area-inset-right))"
-        : "calc(8px + env(safe-area-inset-right))",
-      zIndex: on ? "4" : "",
-    });
+    if (this.mute) this.mute.style.display = on ? "none" : "";
   }
 
   /** 숨바꼭질 판 동안은 안내 줄·말풍선을 숨긴다(글 설명 없이 한다) */

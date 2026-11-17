@@ -99,9 +99,10 @@ export interface GameEventMap {
   hideBoxGiggled: Record<string, never>;
   /** 넷을 다 찾았다(칸 넷이 번쩍인다) */
   hideAllFound: Record<string, never>;
-  /** 생물 발밑 고리가 켜졌다(누를 수 있다) · 생물을 눌렀다(미스트가 날아간다) */
+  /** 생물 발밑 고리가 켜졌다(누를 수 있다) · 생물을 눌렀다(미스트가 날아간다 — 도움 없는 생물이면 kind 가 null) · 도움 없는 생물이 요란하게 반응한다(종) */
   hideRingOn: Record<string, never>;
-  hideCreatureTapped: { kind: HelpKind };
+  hideCreatureTapped: { kind: HelpKind | null };
+  hideCreaturePoked: { species: string };
   /** 생물의 도움이 시작됐다 — 그 생물의 몸짓(토끼 깜짝·버섯 쏘아 올림·열쇠 찰칵·병정 창 쿵·컵케이크 풀썩·시계 바늘 거꾸로) · 숨은 상자가 점호에 번호를 댔다 */
   hideHelpUsed: { kind: HelpKind };
   hideBoxAnswered: Record<string, never>;

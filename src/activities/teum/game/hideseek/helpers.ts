@@ -17,6 +17,7 @@ import {
   MushroomHint,
   nearestTo,
   noticePose,
+  PokeReaction,
   RabbitHint,
   Shiver,
   SoldierHint,
@@ -24,7 +25,7 @@ import {
   WaveHello,
 } from "./hints";
 import { Leap } from "./leap";
-import type { HideOverlay } from "./overlay";
+import type { HideOverlay, TagSpec } from "./overlay";
 import { Pawprints } from "./pawprints";
 import type { PickTarget } from "./picker";
 import { FootRing } from "./rings";
@@ -63,8 +64,9 @@ const CALL_SPEED = 11,
 const SPARKLE_EVERY = 3,
   HELLO_REACH = 8,
   HELLO_AGAIN = 14;
-/** 화면 안으로 치는 범위(화면 좌표) */
-const SEEN_EDGE = 0.92;
+/** 화면 안으로 치는 범위(화면 좌표) · 이름표를 머리 위로 띄우는 높이(m) */
+const SEEN_EDGE = 0.92,
+  TAG_OVER = 0.4;
 
 const tmp = new THREE.Vector3(),
   at = new THREE.Vector3(),
@@ -84,7 +86,8 @@ interface Group {
   /** 도움을 주는 중(누른 뒤 힌트가 끝날 때까지) · 누른 뒤 힌트가 아직 시작되지 않았다(그 사이에도 바쁘다) */
   isBusy: boolean;
   isPending: boolean;
-  /** 다 쓴 생물: 다음 반짝이까지(초) · 인사했나 */
+  /** 이 판에 썼다(한 마리는 한 번 — 같은 종류가 여럿이다) · 다 쓴 생물: 다음 반짝이까지(초) · 인사했나 */
+  isUsed: boolean;
   sparkleT: number;
   hasWaved: boolean;
 }
@@ -92,7 +95,11 @@ interface Group {
 /** 생물 도움 */
 export class CreatureHelp {
   private readonly groups: Group[];
-  private readonly used = new Set<HelpKind>();
+  /** 도움 없는 생물을 마지막으로 누른 때(초 — help.pokeCooldown 안에는 다시 반응하지 않는다) */
+  private readonly pokedAt = new Map<Creature, number>();
+  /** 이번 프레임에 이름표를 단 무리(이름표 열쇠 → 무리)와 그 이름표들(판이 전설 것을 더해 화면에 단다) */
+  private readonly tagged = new Map<string, Group>();
+  private tagList: TagSpec[] = [];
   private readonly hints: { hint: Hint; group: Group | null }[] = [];
   private readonly ctx: HintCtx;
   /** 오래 못 찾아 부르러 온 무리 · 와서 기다릴 자리 · 남은 시간(초) */
@@ -135,6 +142,7 @@ export class CreatureHelp {
         base: members.map((c) => ({ a: c.a, v: c.v.clone() })),
         isBusy: false,
         isPending: false,
+        isUsed: false,
         sparkleT: 0,
         hasWaved: false,
       };
@@ -149,7 +157,8 @@ export class CreatureHelp {
   /** 판 시작(눈을 감은 동안): 하던 도움을 거두고, 손님 무리를 섞은 자리에 앉힌다. 첫 판이면 토끼를 시작 자리 곁에 */
   reset(hub: THREE.Vector3, first: boolean) {
     this.stop();
-    this.used.clear();
+    for (const g of this.groups) g.isUsed = false;
+    this.pokedAt.clear();
     this.hasTaught = !first;
     this.ctx.prints.clear();
     const order = this.seatOrder(first);
@@ -184,10 +193,21 @@ export class CreatureHelp {
     return true;
   }
 
-  /** 누를 수 있는 생물(고리가 켜진 무리): 몸 하나하나와 고리 안쪽을 targets 에 더한다 */
+  /**
+   * 누를 수 있는 생물: 고리가 켜진 무리(몸 하나하나와 고리 안쪽)와, 도움 없는 생물 가운데 markReach 안이고 화면 안이며 반응할 수 있는 것(몸).
+   * 이름표는 화면 위 단추라 판이 따로 받는다
+   */
   targets(out: PickTarget<Creature>[]) {
     for (const g of this.groups) {
       const lead = g.lead;
+      if (!g.spec.help) {
+        for (const c of g.members) {
+          if (!this.isPokeable(c)) continue;
+          const body = bodyOf(c);
+          out.push(body);
+        }
+        continue;
+      }
       if (!lead || !g.ring?.on) continue;
       for (const c of g.members) {
         const hh = c.batch.hh,
@@ -204,13 +224,21 @@ export class CreatureHelp {
     }
   }
 
-  /** c 를 눌렀다(고리가 켜진 무리만 누를 수 있다). 쓴 도움 종류(못 쓰면 null) */
-  use(c: Creature): HelpKind | null {
+  /** c 를 눌렀다: 도움 주는 무리(고리가 켜진 것)면 그 도움 종류, 도움 없는 생물이면 "poke"(요란한 반응), 아무것도 안 되면 null */
+  use(c: Creature): HelpKind | "poke" | null {
     const g = this.groups.find((x) => x.members.includes(c));
-    const kind = g?.spec.help ?? null;
-    if (!g || !kind || !g.ring?.on || g.isBusy || this.used.has(kind)) return null;
-    this.begin(g, kind, false);
+    if (!g) return null;
+    const kind = g.spec.help;
+    if (!kind) return this.poke(c) ? "poke" : null;
+    if (!g.ring?.on || g.isBusy || g.isUsed) return null;
+    this.begin(g, kind);
     return kind;
+  }
+
+  /** 이름표(열쇠)를 눌렀다 — 그 무리의 생물을 누른 것과 같다 */
+  useTag(key: string): HelpKind | "poke" | null {
+    const c = this.tagged.get(key)?.lead;
+    return c ? this.use(c) : null;
   }
 
   /** 오래 못 찾았다: 가장 가까운 쓸 수 있는 생물이 내 화면 안으로 온다. 부를 생물이 없으면 false */
@@ -256,20 +284,9 @@ export class CreatureHelp {
     return true;
   }
 
-  /** 처음 배우기의 손가락이 가리킬 곳(토끼 몸) — 없으면 null */
-  pointer(): ((out: THREE.Vector3) => void) | null {
-    const c = this.teacher?.lead;
-    if (!c || !this.teacher?.ring?.on) return null;
-    return (out) => {
-      const lift = c.batch.hh * 1.6;
-      out.copy(c.pos).addScaledVector(c.v, lift);
-    };
-  }
-
   /** 한 프레임(찾는 중) */
   update(dt: number) {
     this.time += dt;
-    this.walkInMushroom();
     this.moveCaller(dt);
     this.moveTeacher(dt);
     this.pickRings(dt);
@@ -297,8 +314,10 @@ export class CreatureHelp {
     this.hang = null;
     this.caller = null;
     this.teacher = null;
-    // 판 밖에서는 고리·발자국을 그리지 않는다(이 둘은 찾는 동안에만 돈다 — 켜진 채 남으면 그대로 굳는다)
+    // 판 밖에서는 고리·발자국·이름표를 그리지 않는다(이 셋은 찾는 동안에만 돈다 — 켜진 채 남으면 그대로 굳는다)
     this.ctx.prints.clear();
+    this.tagged.clear();
+    this.tagList = [];
     for (const g of this.groups) {
       g.ring?.hide();
       g.isNoticing = false;
@@ -320,9 +339,17 @@ export class CreatureHelp {
   private isUsable(g: Group): boolean {
     const kind = g.spec.help,
       c = g.lead;
-    if (!kind || !c || this.used.has(kind) || c.gone || c.vis < 0.5) return false;
+    if (!kind || !c || g.isUsed || c.gone || c.vis < 0.5) return false;
     if (kind === "watch" && this.ctx.round.roundT() < HIDE.watch.minElapsed) return false;
+    // 컵케이크는 냄새에 걸어 나올 상자(물건 뒤에 숨은 것)가 닿는 곳에 있을 때만 — 없으면 이름표를 띄우지 않는다(눌러도 아무 일이 없으니)
+    if (kind === "cupcake") return this.hasLurable(c);
     return true;
+  }
+
+  // c(컵케이크) 둘레 cupcake.reach 안에 걸어 나올 수 있는 상자가 있나
+  private hasLurable(c: Creature): boolean {
+    const reach = HIDE.cupcake.reach / S.R;
+    return this.ctx.round.lurable().some((k) => k.box.v.angleTo(c.v) <= reach);
   }
 
   // 고리를 켤 무리: 쓸 수 있고 markReach 안이고 화면 안인 것 가운데 가까운 ringMax 마리(부르러 온 생물·처음 배우기 토끼는 늘)
@@ -343,6 +370,7 @@ export class CreatureHelp {
     }
     picks.sort((a, b) => a.d - b.d);
     const chosen = new Set(picks.slice(0, H.ringMax).map((x) => x.g));
+    this.showTags(picks.slice(0, H.tagMax).map((x) => x.g));
     for (const g of this.groups) {
       const ring = g.ring,
         lead = g.lead;
@@ -393,7 +421,7 @@ export class CreatureHelp {
     const kind = g.spec.help,
       c = g.lead;
     const isAway = c?.want === 0;
-    if (!kind || !c || !this.used.has(kind) || g.isBusy || c.gone || !c.visible || isAway) return;
+    if (!kind || !c || !g.isUsed || g.isBusy || c.gone || !c.visible || isAway) return;
     g.sparkleT -= dt;
     if (g.sparkleT <= 0) {
       g.sparkleT = SPARKLE_EVERY;
@@ -413,11 +441,11 @@ export class CreatureHelp {
   /* ─── 내부: 누르기 ─────────────────────────── */
 
   // 도움을 시작한다: 고리가 터지고 미스트 → 부르르·반짝 → 카메라 → 힌트(0.65초부터)
-  private begin(g: Group, kind: HelpKind, walkedIn: boolean) {
+  private begin(g: Group, kind: HelpKind) {
     const { round, timeline, s } = this.ctx,
       H = HIDE.help,
       lead = g.lead ?? g.members[0];
-    this.used.add(kind);
+    g.isUsed = true;
     g.isBusy = true;
     g.isPending = true;
     g.isNoticing = false;
@@ -429,18 +457,15 @@ export class CreatureHelp {
     }
     this.burstRing(g);
     s.events.emit("hideCreatureTapped", { kind });
-    if (!walkedIn) {
-      this.mist(lead);
-      round.hold(true);
-      timeline.after(H.lockSeconds, () => round.hold(false));
-    }
+    this.mist(lead);
+    round.hold(true);
+    timeline.after(H.lockSeconds, () => round.hold(false));
     // 버섯은 아바타가 올라타고(카메라는 꼭대기에서 내려다본다), 나머지는 부르르 떤 뒤 힌트
     if (kind === "mushroom") {
-      const delay = walkedIn ? 0 : SHIVER_AT;
-      timeline.after(delay, () => {
+      timeline.after(SHIVER_AT, () => {
         g.isPending = false;
         if (!round.isSeeking()) return;
-        this.hang = new MushroomHint(this.ctx, lead, walkedIn);
+        this.hang = new MushroomHint(this.ctx, lead, false);
         this.hints.push({ hint: this.hang, group: g });
       });
       return;
@@ -493,6 +518,63 @@ export class CreatureHelp {
     return null;
   }
 
+  // 도움 없는 생물을 눌렀다: 미스트 → 부르르·반짝 → 종마다 요란한 반응(help.pokeCooldown 안에는 다시 안 한다). 했으면 true
+  private poke(c: Creature): boolean {
+    if (!this.isPokeable(c)) return false;
+    this.pokedAt.set(c, this.time);
+    const { timeline, round } = this.ctx;
+    this.mist(c);
+    this.s.events.emit("hideCreatureTapped", { kind: null });
+    timeline.after(SHIVER_AT, () => {
+      if (!round.isSeeking()) return;
+      const shiver = new Shiver(this.ctx, [c]);
+      this.hints.push({ hint: shiver, group: null });
+    });
+    timeline.after(HINT_AT, () => {
+      if (!round.isSeeking()) return;
+      const act = new PokeReaction(this.ctx, c);
+      this.hints.push({ hint: act, group: null });
+    });
+    return true;
+  }
+
+  // 도움 없는 생물을 누를 수 있나: markReach 안이고 화면 안이고, 다른 일을 하는 중이 아니고, 쉬는 시간이 지났다
+  private isPokeable(c: Creature): boolean {
+    if (c.gone || c.vis < 0.5 || c.st === "guide") return false;
+    const last = this.pokedAt.get(c) ?? -Infinity,
+      rest = this.time - last,
+      d = c.v.angleTo(this.s.player.p) * S.R;
+    return rest >= HIDE.help.pokeCooldown && d <= HIDE.help.markReach && this.isOnScreen(c);
+  }
+
+  // 이름표: 고리가 켜진 무리 가운데 가까운 것부터 help.tagMax 마리(처음 배우기 토끼는 크게)
+  private showTags(groups: readonly Group[]) {
+    this.tagged.clear();
+    const specs: TagSpec[] = [];
+    groups.forEach((g, i) => {
+      const kind = g.spec.help,
+        lead = g.lead;
+      if (!kind || !lead) return;
+      const key = `c${i}`;
+      this.tagged.set(key, g);
+      specs.push({
+        key,
+        text: HIDE.copy.help[kind],
+        where: (out) => {
+          const lift = lead.batch.hh * 2 + TAG_OVER;
+          out.copy(lead.pos).addScaledVector(lead.v, lift);
+        },
+        isBig: g === this.teacher,
+      });
+    });
+    this.tagList = specs;
+  }
+
+  /** 이번 프레임의 생물 이름표 */
+  get tags(): readonly TagSpec[] {
+    return this.tagList;
+  }
+
   // 고리가 안으로 조여들며 팟: 라임 반짝 여섯
   private burstRing(g: Group) {
     const lead = g.lead,
@@ -526,17 +608,6 @@ export class CreatureHelp {
         this.ctx.fx.dot(mote, 0.7, 0.35);
       });
     }
-  }
-
-  // 버섯: 누르지 않고 걸어 들어와도(수평 walkReach 안, 땅 가까이) 튕겨 준다
-  private walkInMushroom() {
-    const g = this.groups.find((x) => x.spec.help === "mushroom");
-    const c = g?.lead,
-      { player } = this.s;
-    if (!g || !c || g.isBusy || !this.isUsable(g) || player.isHeld) return;
-    const d = c.v.angleTo(player.p) * S.R;
-    if (d > HIDE.mushroom.walkReach || player.air > 1.5) return;
-    this.begin(g, "mushroom", true);
   }
 
   // 부르러 오는 생물: 내 앞까지 와서 고리를 밝게 뛰며 기다린다. 오래 안 누르면 돌아간다
@@ -621,4 +692,12 @@ export class CreatureHelp {
     [order[rabbit], order[pos]] = [order[pos], order[rabbit]];
     return order;
   }
+}
+
+// 생물 몸을 누르는 자리
+function bodyOf(c: Creature): PickTarget<Creature> {
+  const hh = c.batch.hh,
+    center = c.pos.clone().addScaledVector(c.v, hh),
+    halfW = Math.max(hh, c.batch.rw);
+  return { item: c, center, halfH: hh, halfW };
 }

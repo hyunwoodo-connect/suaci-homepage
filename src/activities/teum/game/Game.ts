@@ -355,8 +355,8 @@ export class Game {
         studio: this.studio,
         unbox: {
           // 커지면 카메라도 그만큼 물러난다(4배 몸이 다 들게)
-          grow: (k) => {
-            avatar.grow(k);
+          grow: (k, isInstant) => {
+            avatar.grow(k, isInstant);
             const zoom = 1 + (k - 1) * 0.5;
             s.camera.setZoom(zoom);
           },

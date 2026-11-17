@@ -10,12 +10,13 @@ import { resetSeeker } from "./seeker";
 import type { SpotPlace } from "./spots";
 import { placeOf, sphereAt } from "./spots";
 import type { Timeline } from "./timeline";
-import type { BehindSpot, HideSpot, HighSpot } from "./tuning";
+import type { BehindSpot, Difficulty, HideSpot, HighSpot } from "./tuning";
 import { HIDE, PLACED_DISGUISES } from "./tuning";
 
 // '꼭꼭 숨어라': 상자 넷이 내 앞에 한 줄로 서서 차례로 폴짝 → 큰 글자 → 깜짝 놀라 우왕좌왕(하나는 넘어지고 하나는 버둥) →
 // 제각각 숨을 곳 쪽으로 종종걸음(발밑 먼지) → 눈꺼풀이 감긴 동안 숨는 자리에 든다 → 눈을 뜬다. 찾기는 판이 시작한다.
 // 첫 판의 첫 상자는 '제일 못 숨은 놈' — 정면 물건 뒤로 가는 것이 다 보이고, 리본과 귀를 다 내놓는다.
+// 둘째 판부터는 어디로 가는지 안 보이게 모두 내 등 뒤로 달려 나가고, 눈꺼풀이 감긴 뒤에 숨는 자리에 든다.
 // 장면의 시각은 hideseek.data.json 의 start. 둘째 판부터는 놀라서 흩어지는 대목을 줄인다
 
 /** 숨는 장면이 판에 알리는 때: 상자가 숨는 자리에 들었다(눈을 감은 동안) · 눈을 떴다(찾기 시작) */
@@ -45,8 +46,9 @@ const at = new THREE.Vector3(),
 export class HidingScene {
   /** 무대 마을 중심(start 가 받는다) */
   private readonly hub = new THREE.Vector3();
-  /** 이번 판이 첫 판인가(start 가 받는다 — 장면의 시각과 '제일 못 숨은 놈'이 달라진다) */
+  /** 이번 판이 첫 판인가(start 가 받는다 — 장면의 시각과 '제일 못 숨은 놈'이 달라진다) · 옆으로 내놓는 몫(어려움 단계) */
   private first = false;
+  private share = HIDE.difficulty[0].showShare;
   /** 우왕좌왕하는 중 · 흩어져 달려가는 중, 다음 먼지까지(초) */
   private flustering = false;
   private scurrying = false;
@@ -61,12 +63,19 @@ export class HidingScene {
   ) {}
 
   /** 장면을 시작한다: 무대 마을(hub)에 선 내 앞에 상자를 한 줄로 세우고(숨을 자리는 spots), 장면의 시각마다 할 일을 걸어 둔다 */
-  start(hub: THREE.Vector3, spots: readonly HideSpot[], first: boolean, cues: HidingCues) {
+  start(
+    hub: THREE.Vector3,
+    spots: readonly HideSpot[],
+    first: boolean,
+    level: Difficulty,
+    cues: HidingCues,
+  ) {
     const { player, terrain } = this.s,
       T = HIDE.start,
       o = this.overlay,
       tl = this.timeline;
     this.first = first;
+    this.share = level.showShare;
     this.hub.copy(hub);
     this.flustering = this.scurrying = false;
     const p = player.p as THREE.Vector3,
@@ -84,6 +93,7 @@ export class HidingScene {
       ahead.copy(p).addScaledVector(h, aheadArc).addScaledVector(rightV, acrossArc).normalize();
       const ground = terrain.groundAt(ahead);
       k.box.setSize(1, true);
+      k.box.setPeekEvery(level.peekEvery);
       k.box.put(ahead, ground, back);
       k.box.setPeek(null);
       tl.after(i * WAVE_GAP, () => k.box.hop());
@@ -174,15 +184,16 @@ export class HidingScene {
     this.s.events.emit("hideStarted", {});
   }
 
-  // 흩어져 달려갈 곳: 숨는 자리 · 놓을 자리가 정해진 아닌 척은 그 자리 · 나머지(내 줄·고양이·병정·가면)는 출발 자리 뒤쪽 멀리(화면 밖으로)
+  // 흩어져 달려갈 곳: 숨는 자리 · 놓을 자리가 정해진 아닌 척은 그 자리 · 나머지(내 줄·고양이·병정·가면)는 출발 자리 뒤쪽 멀리(화면 밖으로).
+  // 둘째 판부터는 모두 뒤쪽 멀리(어디로 갔는지 안 보이게)
   private runTarget(k: Seeker, i: number, out: THREE.Vector3) {
     const spot = k.spot;
-    if (spot.kind !== "disguise") {
+    if (this.first && spot.kind !== "disguise") {
       const place = this.placeFor(spot, i);
       sphereAt(out, this.hub, place.x, place.y);
       return;
     }
-    if (PLACED_DISGUISES.includes(spot.as)) {
+    if (this.first && spot.kind === "disguise" && PLACED_DISGUISES.includes(spot.as)) {
       sphereAt(out, this.hub, spot.x, spot.y);
       return;
     }
@@ -193,8 +204,9 @@ export class HidingScene {
 
   // 숨는 자리: 첫 판의 첫 상자만 '제일 못 숨은 놈' — 리본과 귀를 다 내놓는다
   private placeFor(spot: BehindSpot | HighSpot, i: number) {
-    const isWorst = this.first && i === 0;
-    return isWorst ? placeOf(spot, HIDE.start.firstShowShare) : placeOf(spot);
+    const isWorst = this.first && i === 0,
+      share = isWorst ? HIDE.start.firstShowShare : this.share;
+    return placeOf(spot, share);
   }
 
   // 숨는 자리에 든다(아닌 척은 판이 따로 둔다)
@@ -208,13 +220,13 @@ export class HidingScene {
 
   /** k 를 숨는 자리 spot 에 숨긴다(자리를 옮긴 상자 — 안 볼 때 움직인다) */
   placeAt(k: Seeker, spot: BehindSpot | HighSpot) {
-    const place = placeOf(spot);
+    const place = placeOf(spot, this.share);
     this.putAt(k, place);
   }
 
   /** 숨는 자리 spot 에 숨은 상자가 서는 땅 위 자리(단위 벡터) */
   groundOf(spot: BehindSpot | HighSpot): THREE.Vector3 {
-    const place = placeOf(spot);
+    const place = placeOf(spot, this.share);
     const out = new THREE.Vector3();
     return sphereAt(out, this.hub, place.x, place.y);
   }

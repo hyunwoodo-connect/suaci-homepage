@@ -146,9 +146,10 @@ export class Avatar implements Thing {
     return out.addScaledVector(this.s.player.p, 0.5);
   }
 
-  /** 몸을 k 배로(1 이 그대로). 천천히 커지고 줄어든다 */
-  grow(k: number) {
+  /** 몸을 k 배로(1 이 그대로). 천천히 커지고 줄어든다(isInstant 면 바로 — 꾸미기 씬으로 들어갈 때) */
+  grow(k: number, isInstant = false) {
     this.growWant = k;
+    if (isInstant) this.growth = k;
   }
 
   /** 나를 이번 프레임 자리에 놓는다: 둥실(자리는 Player.place), 앞을 보고, 빠를수록 눕고, 대포·구멍에선 작아진다. 그림자도 */

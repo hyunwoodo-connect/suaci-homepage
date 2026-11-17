@@ -8,7 +8,26 @@
     "boxesWin": "우리가 이겼다!",
     "again": "한 판 더",
     "sneeze": "에취!",
-    "counts": ["1", "2", "3", "4"]
+    "counts": ["1", "2", "3", "4"],
+    "help": {
+      "rabbit": "길 안내",
+      "mushroom": "높이 뛰기",
+      "key": "투시",
+      "soldier": "점호",
+      "cupcake": "미끼",
+      "watch": "시간 +10초",
+      "legend": "타기"
+    },
+    "helpLine": {
+      "rabbit": "발자국 쪽에 상자가 있어",
+      "mushroom": "위에서 찾아봐. 보이면 눌러!",
+      "key": "잠깐 물건 뒤가 보여",
+      "soldier": "상자들이 대답해. 어디서 나는지 봐",
+      "cupcake": "상자가 냄새 맡고 나와!",
+      "watch": "해가 뒤로 갔어",
+      "legend": "상자한테 데려다줄게"
+    },
+    "teach": "생물을 누르면 도와줘"
   },
   "colors": {
     "lime": "#A9FF39",
@@ -37,7 +56,9 @@
     "firstSneezeEvery": 5
   },
   "screen": {
-    "bigSeconds": 1.5
+    "bigSeconds": 1.5,
+    "helpLineSeconds": 2.5,
+    "helpLineQuietAfter": 3
   },
   "chik": {
     "reach": 35,
@@ -66,9 +87,11 @@
   "help": {
     "markReach": 20,
     "ringScale": 1.4,
-    "ringMax": 2,
+    "ringMax": 4,
     "focusSeconds": 1,
-    "lockSeconds": 0.5
+    "lockSeconds": 0.5,
+    "tagMax": 2,
+    "pokeCooldown": 20
   },
   "rabbit": {
     "speedShare": 0.9,
@@ -76,31 +99,30 @@
     "resumeGap": 8,
     "stepGap": 2,
     "stop": 20,
-    "trailSeconds": 12
+    "trailSeconds": 8,
+    "run": 15
   },
   "mushroom": {
-    "height": 18,
-    "hang": 3,
-    "tapReach": 60,
-    "walkReach": 2.5
+    "height": 10,
+    "hang": 2,
+    "tapReach": 60
   },
   "key": {
-    "reach": 25,
-    "seconds": 5,
+    "reach": 15,
+    "seconds": 3,
     "alpha": 0.4,
     "warnSeconds": 1
   },
   "soldier": {
-    "gap": 0.4,
-    "pointSeconds": 3
+    "gap": 0.4
   },
   "cupcake": {
-    "seconds": 30,
-    "reach": 60,
-    "tellReach": [20, 10, 5]
+    "walkSeconds": 6,
+    "reach": 30,
+    "walkSpeed": 1.6
   },
   "watch": {
-    "addSeconds": 20,
+    "addSeconds": 10,
     "minElapsed": 60
   },
   "cat": {
@@ -120,8 +142,6 @@
     "followGap": [8, 12],
     "resumeAfter": 0.5,
     "sweatAfter": 2,
-    "firstRound": 1,
-    "later": 2,
     "speed": 3.2
   },
   "legend": {
@@ -162,11 +182,9 @@
   },
   "box": {
     "height": 3,
-    "showShare": 0.4,
     "breathSeconds": 2.2,
     "breathSquash": 0.03,
     "sneezeHop": 0.45,
-    "peekEvery": [3, 5],
     "peekReach": 0.6,
     "earScale": 2,
     "outlinePx": 2,
@@ -193,119 +211,301 @@
   },
   "guests": [
     {
-      "note": "카드 병정 셋 — 점호(숨은 상자가 번호를 댄다)",
-      "species": "card",
-      "count": 3,
-      "row": true,
-      "help": "soldier"
-    },
-    {
-      "note": "토끼 — 길(가장 가까운 숨은 상자 쪽으로 빛나는 발자국)",
+      "note": "토끼 — 길 안내(상자 쪽으로 15m 뛰며 발자국)",
       "species": "brabbit",
       "count": 1,
       "help": "rabbit"
     },
     {
-      "note": "버섯 — 높이(밟으면 높이 튕겨 올라 내려다본다)",
+      "species": "brabbit",
+      "count": 1,
+      "help": "rabbit"
+    },
+    {
+      "species": "brabbit",
+      "count": 1,
+      "help": "rabbit"
+    },
+    {
+      "species": "brabbit",
+      "count": 1,
+      "help": "rabbit"
+    },
+    {
+      "note": "버섯 — 높이 뛰기(눌러서 올라타 10m)",
       "species": "mushroom",
       "count": 1,
       "help": "mushroom"
     },
     {
-      "note": "열쇠 — 투시(둘레의 가리는 물건이 잠깐 비친다)",
-      "species": "key",
+      "species": "mushroom",
       "count": 1,
-      "orbit": 4,
-      "alt": 3,
-      "help": "key"
+      "help": "mushroom"
     },
     {
-      "note": "컵케이크 — 미끼(가장 가까운 숨은 상자가 안 볼 때 다가온다)",
+      "species": "mushroom",
+      "count": 1,
+      "help": "mushroom"
+    },
+    {
+      "species": "mushroom",
+      "count": 1,
+      "help": "mushroom"
+    },
+    {
+      "note": "열쇠 — 투시(15m 안 3초)",
+      "species": "key",
+      "count": 1,
+      "help": "key",
+      "orbit": 4,
+      "alt": 3
+    },
+    {
+      "species": "key",
+      "count": 1,
+      "help": "key",
+      "orbit": 4,
+      "alt": 3
+    },
+    {
+      "species": "key",
+      "count": 1,
+      "help": "key",
+      "orbit": 4,
+      "alt": 3
+    },
+    {
+      "note": "카드 병정 셋 — 점호",
+      "species": "card",
+      "count": 3,
+      "help": "soldier",
+      "row": true
+    },
+    {
+      "species": "card",
+      "count": 3,
+      "help": "soldier",
+      "row": true
+    },
+    {
+      "note": "컵케이크 — 미끼(가장 가까운 숨은 상자가 눈앞에 걸어 나온다)",
       "species": "c_cupcake",
       "count": 1,
       "help": "cupcake"
     },
     {
-      "note": "회중시계 — 시간(해가 되돌아간다)",
+      "species": "c_cupcake",
+      "count": 1,
+      "help": "cupcake"
+    },
+    {
+      "species": "c_cupcake",
+      "count": 1,
+      "help": "cupcake"
+    },
+    {
+      "species": "c_cupcake",
+      "count": 1,
+      "help": "cupcake"
+    },
+    {
+      "note": "회중시계 — 시간 +10초",
       "species": "c_watch",
       "count": 1,
       "help": "watch"
     },
     {
-      "note": "찻주전자(이번에는 도움 없음)",
+      "species": "c_watch",
+      "count": 1,
+      "help": "watch"
+    },
+    {
+      "note": "찻주전자 — 도움 없음(누르면 팽이처럼 돌며 김)",
       "species": "teapot",
       "count": 1
     },
     {
-      "note": "주사위(이번에는 도움 없음)",
+      "note": "주사위 — 도움 없음(데굴데굴 달아난다)",
       "species": "c_dice",
       "count": 1
     },
     {
-      "note": "날개 편지 둘(이번에는 도움 없음)",
+      "species": "c_dice",
+      "count": 1
+    },
+    {
+      "note": "날개 편지 — 도움 없음(하트 종이를 쏟고 지그재그로 달아난다)",
       "species": "c_wletter",
-      "count": 2,
+      "count": 1,
       "orbit": 6,
       "alt": 3
     },
     {
-      "note": "날개 하트(이번에는 도움 없음)",
+      "note": "날개 하트 — 도움 없음(부풀다 퐁 갈라졌다 모인다)",
       "species": "c_wheart",
       "count": 1,
       "orbit": 5,
       "alt": 3
+    },
+    {
+      "note": "날개 찻잔 — 도움 없음(차를 엎지르고 빙빙)",
+      "species": "c_wcup",
+      "count": 1,
+      "orbit": 5,
+      "alt": 3
+    },
+    {
+      "note": "날개 종 — 도움 없음(딸랑딸랑 솟구치고 곁의 생물이 까딱)",
+      "species": "c_wbell",
+      "count": 1,
+      "orbit": 5,
+      "alt": 3
+    },
+    {
+      "note": "모자 — 도움 없음(뒤집혀 작은 것이 튀어나온다)",
+      "species": "c_hat",
+      "count": 1
+    },
+    {
+      "species": "c_hat",
+      "count": 1
+    },
+    {
+      "note": "장미 — 도움 없음(꽃잎을 펼쳤다 부끄러워 반쯤 숨는다)",
+      "species": "c_rose",
+      "count": 1
     }
   ],
   "seats": [
     {
-      "note": "시작 앞 오른쪽",
-      "x": -2,
-      "y": -17
+      "x": -6,
+      "y": -12,
+      "note": "출발 앞 — 첫 판에는 토끼"
     },
     {
-      "note": "시작 앞 오른쪽 아래",
-      "x": -12,
-      "y": -22
-    },
-    {
-      "note": "시작 앞 왼쪽",
       "x": -14,
-      "y": 8
+      "y": 6,
+      "note": "출발 앞 왼쪽"
     },
     {
-      "note": "광장 오른쪽",
-      "x": 22,
-      "y": -22
+      "x": 58,
+      "y": 24
     },
     {
-      "note": "광장 건너편",
-      "x": 20,
-      "y": 26
+      "x": 50,
+      "y": -38
     },
     {
-      "note": "광장 왼쪽",
+      "x": 10,
+      "y": 62
+    },
+    {
+      "x": 4,
+      "y": -62
+    },
+    {
+      "x": -62,
+      "y": -10
+    },
+    {
       "x": -38,
-      "y": 20
+      "y": 50
     },
     {
-      "note": "광장 건너 오른쪽",
-      "x": 40,
-      "y": -8
+      "x": -38,
+      "y": -48
     },
     {
-      "note": "광장 왼쪽 위",
-      "x": -8,
+      "x": 32,
+      "y": -4
+    },
+    {
+      "x": 18,
+      "y": 28
+    },
+    {
+      "x": -58,
+      "y": 24
+    },
+    {
+      "x": 62,
+      "y": -10
+    },
+    {
+      "x": -10,
       "y": 38
     },
     {
-      "note": "시작 뒤",
-      "x": -45,
-      "y": -25
+      "x": 38,
+      "y": 50
     },
     {
-      "note": "광장 건너 왼쪽",
-      "x": 12,
-      "y": 42
+      "x": -34,
+      "y": -18
+    },
+    {
+      "x": 22,
+      "y": -40
+    },
+    {
+      "x": -40,
+      "y": 6
+    },
+    {
+      "x": -16,
+      "y": 60
+    },
+    {
+      "x": 0,
+      "y": -34
+    },
+    {
+      "x": -18,
+      "y": -58
+    },
+    {
+      "x": 16,
+      "y": -18
+    },
+    {
+      "x": 38,
+      "y": 16
+    },
+    {
+      "x": -20,
+      "y": -38
+    },
+    {
+      "x": 36,
+      "y": -24
+    },
+    {
+      "x": 0,
+      "y": 20
+    },
+    {
+      "x": -40,
+      "y": 30
+    },
+    {
+      "x": -22,
+      "y": 24
+    },
+    {
+      "x": 18,
+      "y": 8
+    },
+    {
+      "x": 8,
+      "y": 44
+    },
+    {
+      "x": 24,
+      "y": -58
+    },
+    {
+      "x": 54,
+      "y": 6
     }
   ],
   "spots": [
@@ -404,9 +604,9 @@
     {
       "id": "statue",
       "as": "statue",
-      "x": -34,
-      "y": -12,
-      "note": "받침대 위에서 포즈를 잡고 굳어 있다"
+      "x": -56,
+      "y": -21,
+      "note": "출발 자리 뒤쪽(시작에서 40m) 받침대 위에서 포즈"
     },
     {
       "id": "glasses",
@@ -418,16 +618,16 @@
     {
       "id": "flowerpot",
       "as": "flowerpot",
-      "x": -22,
-      "y": 22,
-      "note": "화분에 들어가 귀를 꽃잎처럼 펼친다"
+      "x": -30,
+      "y": 30,
+      "note": "출발에서 볼 때 왼쪽 화분"
     },
     {
       "id": "gifts",
       "as": "gifts",
-      "x": 44,
-      "y": 28,
-      "note": "선물 상자 더미 속에 섞여 있다"
+      "x": 25.5,
+      "y": -14.6,
+      "note": "출발에서 볼 때 앞 오른쪽(30도) 선물 상자 더미 속"
     },
     {
       "id": "mask",
@@ -438,9 +638,9 @@
     {
       "id": "balloon",
       "as": "balloon",
-      "x": 30,
-      "y": 10,
-      "note": "풍선 다발 사이에 귀를 끈처럼 늘어뜨리고 둥둥(광장 70m 안에 풍선 다발이 없어 같이 놓는다)"
+      "x": -52,
+      "y": -12,
+      "note": "출발 자리 뒤쪽 풍선 다발 사이(광장 70m 안에 풍선 다발이 없어 같이 놓는다)"
     },
     {
       "id": "cake",
@@ -461,5 +661,34 @@
   "teach": {
     "creatureAhead": 8,
     "creatureKeep": 10
-  }
+  },
+  "difficulty": [
+    {
+      "note": "맨 처음 판(이 기기에서 처음) — 시작 30m 안에 '제일 못 숨은 놈' 하나, 묶음은 rounds[0]",
+      "showShare": 0.4,
+      "peekEvery": [3, 5],
+      "pretend": 1,
+      "sneak": 1,
+      "minFromStart": 0,
+      "minApart": 6
+    },
+    {
+      "note": "둘째·셋째 판 — 네 방향에 하나씩, 시작 30m 밖, 서로 25m 밖",
+      "showShare": 0.25,
+      "peekEvery": [5, 8],
+      "pretend": 2,
+      "sneak": 2,
+      "minFromStart": 30,
+      "minApart": 25
+    },
+    {
+      "note": "넷째 판부터",
+      "showShare": 0.15,
+      "peekEvery": [7, 11],
+      "pretend": 2,
+      "sneak": 2,
+      "minFromStart": 30,
+      "minApart": 25
+    }
+  ]
 }

@@ -40,6 +40,41 @@ const FINGER_ICON = `<svg width="44" height="44" viewBox="0 0 24 24" aria-hidden
 
 // 칸에 들어가는 상자 그림(먹색 선 — 리본과 귀)
 const BOX_ICON = `<svg width="${ICON}" height="${ICON}" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="9.5" width="16" height="10.5" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 9.5v10.5M4 13.5h16M12 9.5c-2-4.5-6.5-4.5-6.5-1.5S10 9.5 12 9.5c2 0 6.5 1.5 6.5-1.5S14 5 12 9.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`;
+/** 생물 이름표 하나: 열쇠(누르면 판이 이것으로 무리를 찾는다) · 글 · 붙을 세계 자리(머리 위) · 처음 배우기라 손가락을 크게 */
+export interface TagSpec {
+  key: string;
+  text: string;
+  where: (out: THREE.Vector3) => void;
+  isBig: boolean;
+}
+
+/** 이름표 칸 수(생물 둘 + 전설) · 눌리는 자리의 가장 작은 네모(px) · 위 칸 아래로 내리는 선(px, 위에서) · 톡 눌리는 시늉 간격(ms) */
+const TAGS = 3,
+  TAG_MIN = 96,
+  TAG_BELOW_SLOTS = 108,
+  TAG_PRESS_MS = 1200;
+/** 위 칸 밑 한 줄의 자리(위에서 px) */
+const LINE_TOP = 108;
+// 이름표 글 왼쪽의 작은 손가락(먹색 선)
+const TAG_FINGER = (size: number) =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true" style="flex:none"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10m0-.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15c0 3.3-2.2 6-5.5 6-2.4 0-3.8-1-5.2-3L5.2 15c-.8-1.3.9-2.6 2-1.5L9 15" fill="#fff" stroke="${INK}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+// 하늘의 큰 시계(흰 선 — 바늘 둘, 눈금 넷)
+const SKY_CLOCK_SVG = `<svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true"><circle cx="50" cy="50" r="46" fill="rgba(255,255,255,.12)" stroke="rgba(255,255,255,.85)" stroke-width="3"/><g stroke="rgba(255,255,255,.85)" stroke-width="3" stroke-linecap="round"><path d="M50 8v8M92 50h-8M50 92v-8M8 50h8"/></g><g class="hands" style="transform-origin:50px 50px"><path d="M50 50V18" stroke="#fff" stroke-width="4" stroke-linecap="round"/><path d="M50 50h22" stroke="#fff" stroke-width="4" stroke-linecap="round"/></g></svg>`;
+
+/** 이름표 칸: 그 요소와 지금 붙은 것 */
+interface Tag {
+  el: HTMLDivElement;
+  label: HTMLSpanElement;
+  finger: HTMLSpanElement;
+  spec: TagSpec | null;
+  /** 지금 화면 자리(px, 가운데)와 크기 — 누른 자리를 맞춘다 */
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  isShown: boolean;
+}
+
 /** 말풍선 하나: 세계의 어느 자리에 붙는지(프레임마다 묻는다)와 남은 시간 */
 interface Bubble {
   el: HTMLDivElement;
@@ -75,10 +110,21 @@ export class HideOverlay {
   private readonly bandSpin: HTMLDivElement;
   private onOpen: () => void = () => {};
   private onAgain: () => void = () => {};
-  private endingAway = false;
+  private readonly style: HTMLStyleElement;
+  private readonly tags: Tag[] = [];
+  private readonly line: HTMLDivElement;
+  private lineLeft = 0;
+  private readonly clock: HTMLDivElement;
+  private isSmall = false;
+  private isHidden = false;
   private bigLeft = 0;
 
   constructor(private readonly parent: HTMLElement) {
+    // 꾸미기 씬 동안 숨바꼭질 표시를 통째로 숨기는 규칙(이 표시들만 data-hide 를 단다)
+    const style = document.createElement("style");
+    style.textContent = ".teum-hide-off [data-hide] { display: none !important; }";
+    this.style = style;
+    parent.append(style);
     // 눈꺼풀: 화면 위아래에서 어두운 띠가 내려오고 올라와 맞닿는다(맞닿는 가장자리는 둥글다)
     for (const isUpper of [true, false]) {
       const lid = fixedBox({
@@ -244,7 +290,48 @@ export class HideOverlay {
     parent.append(this.pointer);
     parent.append(this.edge, ...this.edgeDust, this.band);
     parent.append(this.slots, this.big, this.ending);
+    this.line = fixedBox({
+      top: `max(${LINE_TOP}px, calc(env(safe-area-inset-top) + ${LINE_TOP - SLOTS_TOP + 12}px))`,
+      left: "50%",
+      transform: "translateX(-50%)",
+      maxWidth: "calc(100vw - 32px)",
+      padding: "8px 16px",
+      borderRadius: "999px",
+      background: "rgba(20,20,20,.78)",
+      color: "#fff",
+      fontFamily: HUD_FONT,
+      fontSize: "16px",
+      fontWeight: "700",
+      lineHeight: "1.3",
+      textAlign: "center",
+      display: "none",
+      zIndex: "3",
+      pointerEvents: "none",
+    });
+    this.clock = fixedBox({
+      left: "50%",
+      top: "13%",
+      width: "min(56vw, 240px)",
+      aspectRatio: "1",
+      transform: "translateX(-50%)",
+      opacity: "0",
+      filter: "drop-shadow(0 0 12px rgba(255,236,170,.9))",
+      zIndex: "2",
+      pointerEvents: "none",
+    });
+    this.clock.innerHTML = SKY_CLOCK_SVG;
+    for (let i = 0; i < TAGS; i++) {
+      const tag = tagElement();
+      this.tags.push(tag);
+    }
+    parent.append(this.line, this.clock, ...this.tags.map((t) => t.el));
     parent.append(this.stats, this.stamp, ...this.lids);
+    const own = [this.slots, this.big, this.ending, this.edge, this.band, this.pointer, this.line];
+    for (const t of this.tags) t.el.dataset.hide = "";
+    this.clock.dataset.hide = "";
+    this.stats.dataset.hide = "";
+    const floating = [...this.bubbles, ...this.puffs].map((b) => b.el);
+    for (const el of [...own, ...floating, ...this.edgeDust]) el.dataset.hide = "";
     this.resetSlots();
   }
 
@@ -337,11 +424,20 @@ export class HideOverlay {
     this.open.style.display = onOpen ? "block" : "none";
   }
 
-  /** 끝 단추를 잠깐 감춘다(놀이기구에 실려 있는 동안 — 실린 채 광장으로 옮기면 그 놀이기구가 나를 놓지 못한다) */
-  setEndingAway(away: boolean) {
-    if (away === this.endingAway) return;
-    this.endingAway = away;
-    this.ending.style.visibility = away ? "hidden" : "visible";
+  /** 끝 단추를 작게(판 끝에서 돌아다니기 시작했다 — 자유 놀이) · 원래대로 */
+  setEndingSmall(small: boolean) {
+    if (small === this.isSmall) return;
+    this.isSmall = small;
+    const scale = small ? "0.62" : "1";
+    this.ending.style.transform = `translateX(-50%) scale(${scale})`;
+    this.ending.style.transformOrigin = "50% 100%";
+  }
+
+  /** 숨바꼭질 화면을 통째로 숨긴다(꾸미기 씬 동안 — 씬의 단추만 보이게) · 다시 보인다 */
+  setHidden(hidden: boolean) {
+    if (hidden === this.isHidden) return;
+    this.isHidden = hidden;
+    this.parent.classList.toggle("teum-hide-off", hidden);
   }
 
   /** ?debug 의 빌드 표시(커밋 앞 7자와 빌드 시각) — 왼쪽 아래 구석에 작게 */
@@ -378,6 +474,87 @@ export class HideOverlay {
       duration: 700,
       iterations: Infinity,
     });
+  }
+
+  /**
+   * 생물 이름표를 단다(프레임마다 지금 보일 것 전부 — 없는 것은 숨긴다). 흰 알약 단추에 먹색 테두리, 글 왼쪽에 작은 손가락,
+   * 1.2초마다 톡 눌리는 시늉. 머리 위에 붙고, 위 칸과 겹치면 아래로 내린다
+   */
+  setTags(specs: readonly TagSpec[]) {
+    this.tags.forEach((t, i) => {
+      const spec = specs[i] ?? null,
+        wasKey = t.spec?.key ?? null,
+        isChanged = spec?.key !== wasKey || spec?.text !== t.spec?.text;
+      t.spec = spec;
+      if (!spec) {
+        t.el.style.display = "none";
+        t.isShown = false;
+        return;
+      }
+      if (!isChanged) return;
+      t.label.textContent = spec.text;
+      const size = spec.isBig ? 27 : 18;
+      t.finger.innerHTML = TAG_FINGER(size);
+      pressLoop(t.el);
+    });
+  }
+
+  /** 화면 (x, y)에 걸린 이름표의 열쇠(넉넉하게 — 적어도 TAG_MIN 네모). 없으면 null */
+  tagAt(x: number, y: number): string | null {
+    for (const t of this.tags) {
+      if (!t.spec || !t.isShown) continue;
+      const padW = t.w + 16,
+        padH = t.h + 16,
+        halfW = Math.max(TAG_MIN, padW) / 2,
+        halfH = Math.max(TAG_MIN, padH) / 2,
+        dx = x - t.x,
+        dy = y - t.y,
+        offX = Math.abs(dx),
+        offY = Math.abs(dy);
+      if (offX <= halfW && offY <= halfH) return t.spec.key;
+    }
+    return null;
+  }
+
+  /** 위 칸 밑 한 줄(seconds 초 — null 이면 숨길 때까지). text 가 null 이면 숨긴다 */
+  showLine(text: string | null, seconds: number | null = null) {
+    this.line.style.display = text ? "block" : "none";
+    this.lineLeft = seconds ?? Infinity;
+    if (!text) return;
+    this.line.textContent = text;
+    pop(this.line, 1.06);
+  }
+
+  /** 하늘에 큰 시계가 나타나 바늘이 거꾸로 돈다(회중시계 — seconds 초) */
+  skyClock(seconds: number) {
+    const el = this.clock,
+      hands = el.querySelector<SVGGElement>(".hands"),
+      ms = seconds * 1000;
+    if (typeof el.animate !== "function") return;
+    el.animate(
+      [{ opacity: 0 }, { opacity: 1, offset: 0.15 }, { opacity: 1, offset: 0.75 }, { opacity: 0 }],
+      {
+        duration: ms,
+      },
+    );
+    hands?.animate([{ transform: "rotate(0deg)" }, { transform: "rotate(-720deg)" }], {
+      duration: ms,
+      easing: "ease-in-out",
+    });
+  }
+
+  /** 떠 있는 큰 글자·말풍선·먼지·손가락을 모두 지운다(꾸미기 씬으로 들어갈 때) */
+  clearFloating() {
+    this.showLine(null);
+    this.setTags([]);
+    this.bigLeft = 0;
+    this.big.style.opacity = "0";
+    for (const b of [...this.bubbles, ...this.puffs]) {
+      b.left = 0;
+      b.el.style.display = "none";
+    }
+    this.setPointer(null);
+    this.edgeWhere = null;
   }
 
   /** 화면이 살짝 흔들린다(금색 상자가 쿵) */
@@ -424,7 +601,39 @@ export class HideOverlay {
       this.pointerWhere(at);
       pin(this.pointer, at, camera, true, false);
     }
+    this.placeTags(camera);
+    if (this.lineLeft !== Infinity && this.lineLeft > 0) {
+      this.lineLeft -= dt;
+      if (this.lineLeft <= 0) this.line.style.display = "none";
+    }
     this.showEdge(camera, dt);
+  }
+
+  // 이름표를 머리 위에 붙인다(카메라 뒤·화면 밖이면 숨긴다). 위 칸(과 그 밑 한 줄)과 겹치면 그 밑으로
+  private placeTags(camera: THREE.Camera) {
+    const isLine = this.line.style.display !== "none",
+      lineBottom = isLine ? this.line.getBoundingClientRect().bottom + 6 : 0,
+      ceiling = Math.max(TAG_BELOW_SLOTS, lineBottom);
+    for (const t of this.tags) {
+      if (!t.spec) continue;
+      t.spec.where(at);
+      at.project(camera);
+      const isInside = at.z < 1 && Math.abs(at.x) < 1 && Math.abs(at.y) < 1;
+      t.isShown = isInside;
+      t.el.style.display = isInside ? "flex" : "none";
+      if (!isInside) continue;
+      const x = (at.x + 1) * 0.5 * innerWidth,
+        rawY = (1 - at.y) * 0.5 * innerHeight;
+      t.w = t.el.offsetWidth;
+      t.h = t.el.offsetHeight;
+      const lowest = ceiling + t.h / 2,
+        above = rawY - t.h / 2,
+        y = Math.max(lowest, above);
+      t.x = x;
+      t.y = y;
+      t.el.style.left = `${x}px`;
+      t.el.style.top = `${y}px`;
+    }
   }
 
   // 전설이 화면 밖이면 그쪽 가장자리가 금빛(남은 시간 동안 옅어진다), 빛가루가 그쪽에서 화면 안으로 흘러든다
@@ -487,10 +696,21 @@ export class HideOverlay {
   }
 
   dispose() {
+    this.style.remove();
     for (const b of [...this.bubbles, ...this.puffs]) b.el.remove();
     this.pointer.remove();
-    const own = [this.slots, this.big, this.ending, this.stats, this.edge, this.band];
-    for (const el of [...own, ...this.edgeDust, this.stamp, ...this.lids]) el.remove();
+    const own = [
+      this.slots,
+      this.big,
+      this.ending,
+      this.stats,
+      this.edge,
+      this.band,
+      this.line,
+      this.clock,
+    ];
+    const tagEls = this.tags.map((t) => t.el);
+    for (const el of [...own, ...tagEls, ...this.edgeDust, this.stamp, ...this.lids]) el.remove();
   }
 }
 
@@ -633,4 +853,47 @@ function pop(el: HTMLElement, peak: number) {
     duration: 320,
     easing: "ease-out",
   });
+}
+
+// 이름표 칸: 흰 알약 단추(먹색 테두리 2px, 굵은 15px), 글 왼쪽에 손가락. 살짝 떠 있다(그림자)
+function tagElement(): Tag {
+  const el = styledBox({
+    position: "fixed",
+    display: "none",
+    alignItems: "center",
+    gap: "4px",
+    padding: "6px 14px 6px 9px",
+    borderRadius: "999px",
+    border: `2px solid ${INK}`,
+    background: "#fff",
+    color: INK,
+    fontFamily: HUD_FONT,
+    fontSize: "15px",
+    fontWeight: "800",
+    whiteSpace: "nowrap",
+    boxShadow: "0 4px 0 rgba(20,20,20,.28)",
+    transform: "translate(-50%, -50%)",
+    zIndex: "3",
+    pointerEvents: "none",
+  });
+  const finger = document.createElement("span"),
+    label = document.createElement("span");
+  finger.style.display = "flex";
+  el.append(finger, label);
+  return { el, label, finger, spec: null, x: 0, y: 0, w: 0, h: 0, isShown: false };
+}
+
+// 1.2초마다 한 번 톡 눌리는 시늉(그림자가 줄며 살짝 내려앉았다 돌아온다)
+function pressLoop(el: HTMLElement) {
+  if (typeof el.animate !== "function") return;
+  for (const a of el.getAnimations?.() ?? []) a.cancel();
+  el.animate(
+    [
+      { boxShadow: "0 4px 0 rgba(20,20,20,.28)", translate: "0 0" },
+      { boxShadow: "0 4px 0 rgba(20,20,20,.28)", translate: "0 0", offset: 0.7 },
+      { boxShadow: "0 1px 0 rgba(20,20,20,.28)", translate: "0 3px", offset: 0.8 },
+      { boxShadow: "0 4px 0 rgba(20,20,20,.28)", translate: "0 0" },
+    ],
+    { duration: TAG_PRESS_MS, iterations: Infinity },
+  );
 }

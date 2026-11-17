@@ -9,7 +9,7 @@ import { HIDE, ROUND_BOXES } from "./tuning";
 /** 이 기기의 기록 칸(판마다 한 줄, 최근 것만) */
 export const HIDE_LOG_KEY = "suaci.teum.hideseek";
 /** 지금 규칙의 이름. 기록마다 같이 남겨, 규칙이 다른 판과 섞어 세지 않는다(규칙을 바꾸면 이름도 바꾼다) */
-export const RULES = "01d";
+export const RULES = "01f";
 /** 남기는 판 수 */
 const KEEP = 30;
 /** 한국 시간(UTC+9, ms) */
@@ -46,6 +46,12 @@ export interface RoundRecord {
   set: number;
   look: boolean;
   screen: string;
+  /** 이 기기에서 몇째 판(1 부터)·어려움 단계(0~2)·숨은 자리 넷 */
+  roundNo: number;
+  level: number;
+  spots: string[];
+  /** 도움 없이 눌러 본 생물 수(요란한 반응) */
+  pokes: number;
   /** 이 기기에서 처음 하는 판인가(남은 기록이 없었다) — 목표 '처음 하는 사람 열에 일곱'은 이 판들로 센다 */
   firstOnDevice: boolean;
   /** 첫 상자까지(초, 못 찾았으면 null) */
@@ -108,6 +114,10 @@ export class RoundLog {
       set,
       look,
       screen,
+      roundNo: 0,
+      level: 0,
+      spots: [],
+      pokes: 0,
       firstOnDevice: before.length === 0,
       firstFound: null,
       found: [],
@@ -124,6 +134,20 @@ export class RoundLog {
       total: null,
       again: false,
     };
+  }
+
+  /** 판의 조건: 이 기기에서 몇째 판인가 · 어려움 단계 · 숨은 자리 넷 */
+  roundInfo(roundNo: number, level: number, spots: readonly string[]) {
+    const r = this.rec;
+    if (!r) return;
+    r.roundNo = roundNo;
+    r.level = level;
+    r.spots = [...spots];
+  }
+
+  /** 도움 없는 생물을 눌렀다(요란한 반응) */
+  poked() {
+    if (this.rec) this.rec.pokes++;
   }
 
   /** 가림이 걷혀 찾기 시작했다 */
@@ -225,14 +249,17 @@ export class RoundLog {
     const end = r.endedBy ? END_NAME[r.endedBy] : "-",
       legend = r.legend.ridden ? "탔다" : r.legend.appeared ? "나왔다(안 탐)" : "안 나옴";
     const saved = readList(this.store),
-      { played, won } = winShare(saved);
+      { played, won } = winShare(saved),
+      helpless = noHelpShare(saved);
     return [
+      `${r.roundNo}째 판 · 단계 ${r.level} · 자리 ${r.spots.join(", ")}`,
       `묶음 ${r.set}${r.look ? " · 둘러보기" : ""}${r.firstOnDevice ? " · 이 기기 첫 판" : ""} · 끝: ${end}`,
       `첫 상자 ${r.firstFound ?? "-"}초 · 넷 다 ${r.foundAll ?? "-"}초 · 판 전체 ${r.total ?? "-"}초`,
       ...boxes,
       `빈 데 칙 ${r.chiks}번(재채기 ${r.sneezeChiks}) · 끌다 나간 칙 ${r.dragChiks} · 너무 먼 톡 ${r.tooFar}`,
       `상자를 친 거리 ${r.tapDistances.join(", ") || "-"}m`,
-      `생물 도움 ${helps || "없음"} · 움직이다 들킴 ${r.spotted} · 전설 ${legend}`,
+      `생물 도움 ${helps || "없음"} · 그냥 눌러 본 생물 ${r.pokes} · 움직이다 들킴 ${r.spotted} · 전설 ${legend}`,
+      `생물을 하나도 안 쓴 판 ${helpless.none}/${helpless.played}`,
       `한 판 더 ${r.again ? "누름" : "아직"}`,
       `이 기기 ${played}판(지금 규칙) 중 3분 안에 넷 다 찾은 판 ${won}`,
     ];
@@ -269,6 +296,13 @@ export function winShare(list: readonly RoundRecord[]): { played: number; won: n
   const ended = list.filter((r) => r.rules === RULES && r.endedBy),
     won = ended.filter((r) => r.endedBy === "all").length;
   return { played: ended.length, won };
+}
+
+/** 지금 규칙으로 끝난 판 가운데 생물 도움을 하나도 안 쓴 판 수 */
+export function noHelpShare(list: readonly RoundRecord[]): { played: number; none: number } {
+  const ended = list.filter((r) => r.rules === RULES && r.endedBy),
+    none = ended.filter((r) => Object.keys(r.helps ?? {}).length === 0).length;
+  return { played: ended.length, none };
 }
 
 /* ─── 내부 ─────────────────────────── */

@@ -209,6 +209,8 @@ export class LimeBox {
   private readonly frozenAt = new THREE.Vector3();
   /** 입은 소품(변장) */
   private worn: THREE.Object3D | null = null;
+  /** 고개 내미는 간격(초, 이 둘 사이 아무 때나 — 판의 어려움 단계가 정한다) */
+  private peekEvery: readonly [number, number] = HIDE.difficulty[0].peekEvery;
   /** 흰 테두리(숨어 있는 동안 — 모델이 오면 만든다)와 켜 달라는 값 */
   private hull: Hull | null = null;
   private wantsOutline = false;
@@ -251,6 +253,12 @@ export class LimeBox {
   /** 숨어 있는 동안 귀를 길게(box.earScale) · 원래대로 */
   setLongEars(on: boolean) {
     this.earLong.value = on ? HIDE.box.earScale : 1;
+  }
+
+  /** 고개 내미는 간격(초, 이 둘 사이 — 판이 어려울수록 뜸하다) */
+  setPeekEvery(range: readonly [number, number]) {
+    this.peekEvery = range;
+    this.peekWait = this.nextPeek();
   }
 
   /** 몸과 귀 둘레의 흰 테두리(숨어 있는 동안 — 배경이 무슨 색이든 떠 보이게) */
@@ -922,9 +930,10 @@ export class LimeBox {
   }
 
   private nextPeek(): number {
-    const roll = this.rand(),
-      span = box.peekEvery[1] - box.peekEvery[0],
-      wait = box.peekEvery[0] + roll * span;
+    const [least, most] = this.peekEvery,
+      roll = this.rand(),
+      span = most - least,
+      wait = least + roll * span;
     return this.restless ? wait * HIDE.stuck.restlessPeek : wait;
   }
 }

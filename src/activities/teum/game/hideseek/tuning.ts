@@ -124,6 +124,10 @@ export interface HideTuning {
     again: string;
     sneeze: string;
     counts: readonly string[];
+    /** 생물 이름표(누르면 무엇이 되는지 — 기능 이름) · 누른 뒤 위 칸 밑 한 줄(지금 일어난 일과 내가 할 일) · 처음 배우기의 한 줄 */
+    help: Readonly<Record<HelpTag, string>>;
+    helpLine: Readonly<Record<HelpTag, string>>;
+    teach: string;
   };
   /** 화면 색: 찬 칸의 라임·글자와 테두리의 먹색 */
   colors: { lime: string; ink: string };
@@ -153,7 +157,8 @@ export interface HideTuning {
     firstSneezeEvery: number;
   };
   /** 화면: 큰 글자가 떠 있는 시간(초) */
-  screen: { bigSeconds: number };
+  /** 화면: 큰 글자가 떠 있는 시간(초) · 누른 뒤 한 줄이 떠 있는 시간(초) · 같은 종류를 이만큼 쓰면 그 한 줄을 더 띄우지 않는다(기기에 기억) */
+  screen: { bigSeconds: number; helpLineSeconds: number; helpLineQuietAfter: number };
   /** 칙: 닿는 거리(m)·같은 상자가 다시 재채기하기까지(초) */
   chik: { reach: number; sneezeCooldown: number };
   /**
@@ -178,19 +183,22 @@ export interface HideTuning {
   /** 높이 숨은 상자: 땅에서 이만큼(m) 넘게 위면 찾았을 때 굴러떨어지는 연출 */
   drop: { minAbove: number };
   /**
-   * 생물: 이 거리(m) 안이고 화면 안이면 발밑 고리가 켜지고 나를 본다(누를 수 있다) · 고리 지름(몸 폭의 배수) · 한 번에 고리가 켜지는 생물 수 ·
-   * 힌트가 시작되고 카메라가 생물을 잡고 있는 시간 · 누른 뒤 조작이 잠기는 시간(초)
+   * 생물: 이 거리(m) 안이고 화면 안이면 발밑 고리가 켜지고 나를 본다(누를 수 있다 — 도움 없는 생물도 이 거리에서 눌린다) · 고리 지름(몸 폭의 배수) ·
+   * 한 번에 고리가 켜지는 생물 수 · 그중 이름표가 뜨는 수(가까운 것부터) · 힌트가 시작되고 카메라가 생물을 잡고 있는 시간 · 누른 뒤 조작이 잠기는 시간(초) ·
+   * 도움 없는 생물이 다시 반응하기까지(초)
    */
   help: {
     markReach: number;
     ringScale: number;
     ringMax: number;
+    tagMax: number;
     focusSeconds: number;
     lockSeconds: number;
+    pokeCooldown: number;
   };
   /**
    * 토끼(길): 내 평소 빠르기의 몫으로 뛴다 · 나와 이만큼(m) 넘게 벌어지면 기다렸다가 이 안(m)으로 오면 다시 뛴다 · 발자국 사이(m) ·
-   * 상자 이만큼(m) 앞에서 굴로 사라진다 · 발자국이 남는 시간(초)
+   * 상자 이만큼(m) 앞이면 거기서 굴로 사라진다 · 그보다 멀면 이만큼(m)만 뛰고 사라진다(방향만 알려 준다) · 발자국이 남는 시간(초)
    */
   rabbit: {
     speedShare: number;
@@ -198,16 +206,17 @@ export interface HideTuning {
     resumeGap: number;
     stepGap: number;
     stop: number;
+    run: number;
     trailSeconds: number;
   };
-  /** 버섯(높이): 튕겨 오르는 높이(m) · 꼭대기에 떠 있는 시간(초) · 떠 있는 동안 상자를 눌러 찾는 거리(m) · 걸어 들어가도 튕겨 주는 거리(수평 m) */
-  mushroom: { height: number; hang: number; tapReach: number; walkReach: number };
+  /** 버섯(높이): 튕겨 오르는 높이(m) · 꼭대기에 떠 있는 시간(초) · 떠 있는 동안 상자를 눌러 찾는 거리(m). 눌러야 올라탄다 */
+  mushroom: { height: number; hang: number; tapReach: number };
   /** 열쇠(투시): 파동이 퍼지는 거리(m) · 비치는 시간(초) · 이 몫만 남기고 비친다 · 끝나기 이만큼(초) 전에 깜빡여 알린다 */
   key: { reach: number; seconds: number; alpha: number; warnSeconds: number };
-  /** 카드 병정(점호): 상자들이 대답하는 사이(초) · 점호 뒤 1번 상자 쪽을 창으로 가리키는 시간(초) */
-  soldier: { gap: number; pointSeconds: number };
-  /** 컵케이크(미끼): 냄새를 풍기는 시간(초) · 이 안(m)의 가장 가까운 숨은 상자가 다가온다 · 다가오는 상자가 이 안(m)이면 힐끔·떨기·깜짝 */
-  cupcake: { seconds: number; reach: number; tellReach: readonly [number, number, number] };
+  /** 카드 병정(점호): 상자들이 대답하는 사이(초) */
+  soldier: { gap: number };
+  /** 컵케이크(미끼): 이 안(m)의 가장 가까운 숨은 상자가 냄새에 홀려 내가 보고 있어도 걸어 나온다 — 이만큼(초) 이 빠르기(m/s)로 뒤뚱뒤뚱 걷다가 도로 달려가 숨는다 */
+  cupcake: { walkSeconds: number; reach: number; walkSpeed: number };
   /** 회중시계(시간): 해가 되돌아가는 시간(초) · 판 시작 뒤 이만큼(초)이 지나야 쓸 수 있다(고리가 켜진다) */
   watch: { addSeconds: number; minElapsed: number };
   /** 고양이가 냄새를 맡는 거리(가장 가까운 숨은 상자까지 m): far 안이면 킁킁, mid 안이면 통통, near 안이면 폴짝폴짝. wobble: 고개가 흔들리는 폭(도) */
@@ -221,17 +230,20 @@ export interface HideTuning {
   teach: { creatureAhead: number; creatureKeep: number };
   /**
    * 상자는 내가 안 볼 때만 움직인다: 자리 옮기는 간격(초, 이 사이 아무 때나) · 내 등 뒤로 따라붙는 거리(m, 이 사이) ·
-   * 화면에서 벗어나고 다시 움직이기까지(초) · 이만큼(초) 넘게 보고 있으면 땀을 흘리며 떤다 · 움직이는 상자 수(첫 판·둘째 판부터) · 걷는 빠르기(m/s)
+   * 화면에서 벗어나고 다시 움직이기까지(초) · 이만큼(초) 넘게 보고 있으면 땀을 흘리며 떤다 · 걷는 빠르기(m/s). 움직이는 상자 수는 difficulty
    */
   sneak: {
     moveEvery: readonly [number, number];
     followGap: readonly [number, number];
     resumeAfter: number;
     sweatAfter: number;
-    firstRound: number;
-    later: number;
     speed: number;
   };
+  /**
+   * 어려움 단계(이 기기에서 한 판 수로 — 0 맨 처음 판, 1 둘째·셋째 판, 2 넷째 판부터): 옆으로 내놓는 몫, 빼꼼 주기(초), 아닌 척하는 상자 수,
+   * 움직이는 상자 수, 시작 지점에서 떨어질 거리(m), 넷끼리 떨어질 거리(m)
+   */
+  difficulty: readonly Difficulty[];
   /** 판마다 무대에 부르는 생물 무리 */
   guests: readonly GuestGroup[];
   /** 생물 무리가 앉는 자리(판마다 섞는다 — 첫 판에는 토끼가 시작 자리에서 가장 가까운 땅 위 자리) */
@@ -287,12 +299,9 @@ export interface HideTuning {
     outlinePx: number;
     outlineHighPx: number;
     height: number;
-    showShare: number;
     breathSeconds: number;
     breathSquash: number;
     sneezeHop: number;
-    /** 고개 내미는 간격(초, 이 둘 사이 아무 때나) */
-    peekEvery: readonly [number, number];
     peekReach: number;
   };
   /** 보너스 상자: 다 찾고 떨어지기까지(초)·떨어지는 높이(m)·크기 배수·내 앞 거리(m) */
@@ -317,6 +326,22 @@ export interface HideTuning {
 
 /** 한 판의 상자 수(보너스 빼고) */
 export const ROUND_BOXES = 4;
+
+/** 이름표·한 줄이 붙는 것: 도움 여섯과 전설 */
+export type HelpTag = HelpKind | "legend";
+
+/** 어려움 단계 수(맨 처음 판 · 둘째·셋째 판 · 넷째 판부터) */
+export const LEVELS = 3;
+
+/** 어려움 단계 하나 */
+export interface Difficulty {
+  showShare: number;
+  peekEvery: readonly [number, number];
+  pretend: number;
+  sneak: number;
+  minFromStart: number;
+  minApart: number;
+}
 
 /** 해가 진 뒤 상자들이 몰려오는 데 드는 가장 짧은 시간(초 — lost.climbAt 은 gatherAt 보다 이만큼 넘게 늦어야 한다) */
 export const LOST_RUN_MIN = 0.5;
@@ -364,7 +389,7 @@ export function readTuning(raw: unknown): HideTuning {
   const guests = list(r.guests, "guests").map((g, i) => guestOf(g, `guests[${i}]`));
   for (const kind of HELPS) {
     const n = guests.filter((g) => g.help === kind).length;
-    if (n !== 1) fail(`guests: 도움 "${kind}" 를 주는 무리가 하나여야 한다(지금 ${n})`);
+    if (n < 1) fail(`guests: 도움 "${kind}" 를 주는 무리가 적어도 하나여야 한다`);
   }
   const groundSpecies = guests.filter((g) => g.orbit === null).map((g) => g.species);
   const hides = list(r.spots, "spots").map((v, i) => spotOf(v, `spots[${i}]`));
@@ -392,8 +417,7 @@ export function readTuning(raw: unknown): HideTuning {
     if (happenings.includes(c)) fail(`unbox: "${c}" 가 꽝과 일어나는 일에 같이 있다`);
   const dudCount = count(unbox.dudCount, "unbox.dudCount");
   if (dudCount > ROUND_BOXES) fail(`unbox.dudCount: 0~${ROUND_BOXES} 이어야 한다`);
-  const peek = pair(box.peekEvery, "box.peekEvery"),
-    moveEvery = pair(sneak.moveEvery, "sneak.moveEvery"),
+  const moveEvery = pair(sneak.moveEvery, "sneak.moveEvery"),
     followGap = pair(sneak.followGap, "sneak.followGap");
   const from = positive(legend.from, "legend.from"),
     to = positive(legend.to, "legend.to"),
@@ -428,16 +452,14 @@ export function readTuning(raw: unknown): HideTuning {
   const waitGap = positive(rabbit.waitGap, "rabbit.waitGap"),
     resumeGap = positive(rabbit.resumeGap, "rabbit.resumeGap");
   if (resumeGap >= waitGap) fail("rabbit: resumeGap 이 waitGap 보다 작아야 한다");
-  const tells = list(cupcake.tellReach, "cupcake.tellReach").map((v, i) =>
-    positive(v, `cupcake.tellReach[${i}]`),
+  const helpCopy = record(copy.help, "copy.help"),
+    lineCopy = record(copy.helpLine, "copy.helpLine");
+  const tagMax = count(help.tagMax, "help.tagMax");
+  if (tagMax > ringMax) fail("help.tagMax: ringMax 보다 클 수 없다(이름표는 고리가 켜진 생물에만)");
+  const difficulty = list(r.difficulty, "difficulty").map((v, i) =>
+    difficultyOf(v, `difficulty[${i}]`),
   );
-  if (tells.length !== 3 || tells[0] <= tells[1] || tells[1] <= tells[2])
-    fail("cupcake.tellReach: 멀리서 가까이로 줄어드는 셋이어야 한다(예: [20, 10, 5])");
-  const tellReach = [tells[0], tells[1], tells[2]] as const;
-  const firstRound = count(sneak.firstRound, "sneak.firstRound"),
-    later = count(sneak.later, "sneak.later");
-  if (firstRound > ROUND_BOXES || later > ROUND_BOXES)
-    fail(`sneak: 움직이는 상자 수는 0~${ROUND_BOXES} 이어야 한다`);
+  if (difficulty.length !== LEVELS) fail(`difficulty: 단계가 ${LEVELS}개여야 한다`);
   return {
     copy: {
       hide: text(copy.hide, "copy.hide"),
@@ -448,6 +470,9 @@ export function readTuning(raw: unknown): HideTuning {
       again: text(copy.again, "copy.again"),
       sneeze: text(copy.sneeze, "copy.sneeze"),
       counts,
+      help: helpTexts(helpCopy, "copy.help"),
+      helpLine: helpTexts(lineCopy, "copy.helpLine"),
+      teach: text(copy.teach, "copy.teach"),
     },
     colors: {
       lime: text(colors.lime, "colors.lime"),
@@ -463,7 +488,11 @@ export function readTuning(raw: unknown): HideTuning {
       firstShowShare: share(start.firstShowShare, "start.firstShowShare"),
       firstSneezeEvery: positive(start.firstSneezeEvery, "start.firstSneezeEvery"),
     },
-    screen: { bigSeconds: positive(screen.bigSeconds, "screen.bigSeconds") },
+    screen: {
+      bigSeconds: positive(screen.bigSeconds, "screen.bigSeconds"),
+      helpLineSeconds: positive(screen.helpLineSeconds, "screen.helpLineSeconds"),
+      helpLineQuietAfter: count(screen.helpLineQuietAfter, "screen.helpLineQuietAfter"),
+    },
     chik: {
       reach: positive(chik.reach, "chik.reach"),
       sneezeCooldown: positive(chik.sneezeCooldown, "chik.sneezeCooldown"),
@@ -490,8 +519,10 @@ export function readTuning(raw: unknown): HideTuning {
       markReach: positive(help.markReach, "help.markReach"),
       ringScale: positive(help.ringScale, "help.ringScale"),
       ringMax,
+      tagMax,
       focusSeconds: positive(help.focusSeconds, "help.focusSeconds"),
       lockSeconds: positive(help.lockSeconds, "help.lockSeconds"),
+      pokeCooldown: positive(help.pokeCooldown, "help.pokeCooldown"),
     },
     rabbit: {
       speedShare: positive(rabbit.speedShare, "rabbit.speedShare"),
@@ -499,13 +530,13 @@ export function readTuning(raw: unknown): HideTuning {
       resumeGap,
       stepGap: positive(rabbit.stepGap, "rabbit.stepGap"),
       stop: positive(rabbit.stop, "rabbit.stop"),
+      run: positive(rabbit.run, "rabbit.run"),
       trailSeconds: positive(rabbit.trailSeconds, "rabbit.trailSeconds"),
     },
     mushroom: {
       height: positive(mushroom.height, "mushroom.height"),
       hang: positive(mushroom.hang, "mushroom.hang"),
       tapReach: positive(mushroom.tapReach, "mushroom.tapReach"),
-      walkReach: positive(mushroom.walkReach, "mushroom.walkReach"),
     },
     key: {
       reach: positive(key.reach, "key.reach"),
@@ -515,12 +546,11 @@ export function readTuning(raw: unknown): HideTuning {
     },
     soldier: {
       gap: positive(soldier.gap, "soldier.gap"),
-      pointSeconds: positive(soldier.pointSeconds, "soldier.pointSeconds"),
     },
     cupcake: {
-      seconds: positive(cupcake.seconds, "cupcake.seconds"),
+      walkSeconds: positive(cupcake.walkSeconds, "cupcake.walkSeconds"),
       reach: positive(cupcake.reach, "cupcake.reach"),
-      tellReach,
+      walkSpeed: positive(cupcake.walkSpeed, "cupcake.walkSpeed"),
     },
     watch: {
       addSeconds: positive(watch.addSeconds, "watch.addSeconds"),
@@ -542,10 +572,9 @@ export function readTuning(raw: unknown): HideTuning {
       followGap,
       resumeAfter: positive(sneak.resumeAfter, "sneak.resumeAfter"),
       sweatAfter: positive(sneak.sweatAfter, "sneak.sweatAfter"),
-      firstRound,
-      later,
       speed: positive(sneak.speed, "sneak.speed"),
     },
+    difficulty,
     guests,
     seats,
     legend: {
@@ -584,11 +613,9 @@ export function readTuning(raw: unknown): HideTuning {
       outlinePx: positive(box.outlinePx, "box.outlinePx"),
       outlineHighPx: positive(box.outlineHighPx, "box.outlineHighPx"),
       height: positive(box.height, "box.height"),
-      showShare: share(box.showShare, "box.showShare"),
       breathSeconds: positive(box.breathSeconds, "box.breathSeconds"),
       breathSquash: share(box.breathSquash, "box.breathSquash"),
       sneezeHop: positive(box.sneezeHop, "box.sneezeHop"),
-      peekEvery: peek,
       peekReach: positive(box.peekReach, "box.peekReach"),
     },
     bonus: {
@@ -773,6 +800,30 @@ function roundOf(v: unknown, i: number, byId: ReadonlyMap<string, HideSpot>): st
 }
 
 // [가장 짧게, 가장 길게] 두 수
+function helpTexts(r: Record<string, unknown>, path: string): Record<HelpTag, string> {
+  const tags: HelpTag[] = [...HELPS, "legend"];
+  const entries = tags.map((t) => [t, text(r[t], `${path}.${t}`)] as const);
+  return Object.fromEntries(entries) as Record<HelpTag, string>;
+}
+
+function difficultyOf(v: unknown, path: string): Difficulty {
+  const d = record(v, path);
+  const pretend = count(d.pretend, `${path}.pretend`),
+    sneak = count(d.sneak, `${path}.sneak`);
+  if (pretend > ROUND_BOXES) fail(`${path}.pretend: 0~${ROUND_BOXES} 이어야 한다`);
+  if (sneak > ROUND_BOXES) fail(`${path}.sneak: 0~${ROUND_BOXES} 이어야 한다`);
+  const minFromStart = finite(d.minFromStart, `${path}.minFromStart`);
+  if (minFromStart < 0) fail(`${path}.minFromStart: 0 이상이어야 한다`);
+  return {
+    showShare: share(d.showShare, `${path}.showShare`),
+    peekEvery: pair(d.peekEvery, `${path}.peekEvery`),
+    pretend,
+    sneak,
+    minFromStart,
+    minApart: positive(d.minApart, `${path}.minApart`),
+  };
+}
+
 function pair(v: unknown, path: string): readonly [number, number] {
   const n = list(v, path).map((x, i) => positive(x, `${path}[${i}]`));
   if (n.length !== 2 || n[0] > n[1]) fail(`${path}: [가장 짧게, 가장 길게] 두 수여야 한다`);

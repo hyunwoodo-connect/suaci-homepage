@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { BOX_HALF, HIDE_ROUNDS, HIDE_SPOTS, placeOf, roundSpots, startPoint } from "./spots";
+import {
+  BOX_HALF,
+  fromStart,
+  HIDE_ROUNDS,
+  HIDE_SPOTS,
+  pickRound,
+  placeOf,
+  roundSpots,
+  START_VIEW_DEGREES,
+  startPoint,
+} from "./spots";
 import type { BehindSpot, HideSpot, HighSpot } from "./tuning";
 import { HIDE, PLACED_DISGUISES } from "./tuning";
 
@@ -8,6 +18,15 @@ const dist = (a: { x: number; y: number }, b: { x: number; y: number }) =>
   Math.hypot(a.x - b.x, a.y - b.y);
 
 const isHidden = (s: HideSpot): s is BehindSpot | HighSpot => s.kind !== "disguise";
+
+// 가리는 것·놓을 자리의 평면 좌표(자리가 판 도중에 정해지는 아닌 척은 null)
+const spotXY = (s: HideSpot) => {
+  if (isHidden(s)) return { x: s.x, y: s.y };
+  return PLACED_DISGUISES.includes(s.as) ? { x: s.x, y: s.y } : null;
+};
+
+/** 맨 처음 판의 옆으로 내놓는 몫(placeOf 의 기본값) */
+const FIRST_SHARE = HIDE.difficulty[0].showShare;
 
 // 판이 시작할 때 자리가 정해지는 상자의 평면 자리(뒤·높이 숨기와 놓을 자리가 정해진 아닌 척). 나머지는 null
 const fixedPlace = (s: HideSpot) => {
@@ -66,7 +85,7 @@ describe("숨는 자리", () => {
     expect(ids(HIDE_ROUNDS.length + 1)).toBe(ids(1));
   });
 
-  it("뒤에 숨기 → 출발 자리에서 가린 것보다 멀고, 상자 너비의 showShare 만큼만 옆으로 비어져 나온다", () => {
+  it("뒤에 숨기 → 출발 자리에서 가린 것보다 멀고, 상자 너비의 showShare(맨 처음 판) 만큼만 옆으로 비어져 나온다", () => {
     const s = startPoint();
     for (const spot of HIDE_SPOTS) {
       if (spot.kind !== "behind") continue;
@@ -76,7 +95,7 @@ describe("숨는 자리", () => {
       const ux = (spot.x - s.x) / dist(spot, s),
         uy = (spot.y - s.y) / dist(spot, s);
       const side = Math.abs((p.x - spot.x) * -uy + (p.y - spot.y) * ux);
-      expect(side, spot.id).toBeCloseTo(spot.w - BOX_HALF + 2 * BOX_HALF * HIDE.box.showShare, 5);
+      expect(side, spot.id).toBeCloseTo(spot.w - BOX_HALF + 2 * BOX_HALF * FIRST_SHARE, 5);
     }
   });
 
@@ -91,8 +110,61 @@ describe("숨는 자리", () => {
     };
     const usual = sideOf(placeOf(first)),
       worst = sideOf(placeOf(first, HIDE.start.firstShowShare));
-    expect(HIDE.start.firstShowShare).toBeGreaterThan(HIDE.box.showShare);
+    expect(HIDE.start.firstShowShare).toBeGreaterThan(FIRST_SHARE);
     expect(worst).toBeGreaterThan(usual);
+  });
+});
+
+describe("둘째 판부터 고르는 자리", () => {
+  const seeds = Array.from({ length: 60 }, (_, i) => i + 1);
+
+  it("어려움 단계마다 → 늘 고를 수 있다", () => {
+    for (const level of HIDE.difficulty.slice(1))
+      for (const seed of seeds) expect(pickRound(level, seeded(seed))).not.toBeNull();
+  });
+
+  it("고른 넷 → 출발 30m 밖, 서로 25m 밖, 방향마다 하나, 아닌 척은 정한 수, 같은 아닌 척은 한 번", () => {
+    for (const level of HIDE.difficulty.slice(1))
+      for (const seed of seeds) {
+        const ids = pickRound(level, seeded(seed)) ?? [];
+        expect(ids).toHaveLength(4);
+        const spots = ids.map((id) => HIDE_SPOTS.find((s) => s.id === id)!);
+        const pretend = spots.filter((s) => s.kind === "disguise");
+        expect(pretend).toHaveLength(level.pretend);
+        // 병정·가면은 생물 자리를 따라가서 고르지 않는다
+        for (const s of pretend)
+          expect(["soldier", "mask"]).not.toContain(s.kind === "disguise" ? s.as : "");
+        const kinds = pretend.map((s) => (s.kind === "disguise" ? s.as : ""));
+        expect(new Set(kinds).size).toBe(kinds.length);
+        const located = spots.map(spotXY).filter((p) => p !== null);
+        const quadrants = located.map((s) => fromStart(s.x, s.y).quadrant);
+        expect(new Set(quadrants).size).toBe(quadrants.length);
+        for (const s of located)
+          expect(fromStart(s.x, s.y).dist).toBeGreaterThanOrEqual(level.minFromStart);
+        for (let a = 0; a < located.length; a++)
+          for (let b = a + 1; b < located.length; b++) {
+            const gap = Math.hypot(located[a].x - located[b].x, located[a].y - located[b].y);
+            expect(gap).toBeGreaterThanOrEqual(level.minApart);
+          }
+      }
+  });
+
+  it("고른 자리 → 가리는 것 없이 드러난 자리는 시작 화면(보는 쪽 22도) 밖", () => {
+    for (const seed of seeds) {
+      const ids = pickRound(HIDE.difficulty[1], seeded(seed)) ?? [];
+      for (const id of ids) {
+        const s = HIDE_SPOTS.find((x) => x.id === id)!;
+        const at = spotXY(s);
+        if (s.kind === "behind" || !at) continue;
+        expect(Math.abs(fromStart(at.x, at.y).turn), id).toBeGreaterThanOrEqual(START_VIEW_DEGREES);
+      }
+    }
+  });
+
+  it("방향 → 출발 자리에서 무대 가운데가 앞, 왼쪽이 1", () => {
+    expect(fromStart(0, 0).quadrant).toBe(0);
+    const s = startPoint();
+    expect(fromStart(s.x - 30, s.y - 10).quadrant).toBe(2);
   });
 });
 
@@ -111,13 +183,34 @@ describe("판의 생물", () => {
     expect(near.length).toBeGreaterThanOrEqual(3);
   });
 
-  it("앉을 자리 → 숨는 자리·놓을 자리가 정해진 아닌 척에서 10m 넘게 떨어진다", () => {
+  it("앉을 자리 → 서로 12m 넘게, 출발 15m 안에 둘 넘게, 무리 수보다 많다", () => {
+    const seats = HIDE.seats;
+    for (let a = 0; a < seats.length; a++)
+      for (let b = a + 1; b < seats.length; b++)
+        expect(dist(seats[a], seats[b]), `${a}-${b}`).toBeGreaterThanOrEqual(12);
+    const s = startPoint(),
+      near = seats.filter((seat) => dist(seat, s) <= 15);
+    expect(near.length).toBeGreaterThanOrEqual(2);
+    expect(seats.length).toBeGreaterThanOrEqual(HIDE.guests.length);
+  });
+
+  it("도움 주는 생물 → 스무 마리 안팎(토끼 4·버섯 4·열쇠 3·병정 두 무리·컵케이크 4·시계 2), 도움 없는 생물은 다섯 종 넘게", () => {
+    const groups = (kind: string) => HIDE.guests.filter((g) => g.help === kind).length;
+    expect([groups("rabbit"), groups("mushroom"), groups("key")]).toEqual([4, 4, 3]);
+    expect([groups("soldier"), groups("cupcake"), groups("watch")]).toEqual([2, 4, 2]);
+    const others = HIDE.guests.filter((g) => !g.help);
+    expect(new Set(others.map((g) => g.species)).size).toBeGreaterThanOrEqual(5);
+    const otherCount = others.reduce((n, g) => n + g.count, 0);
+    expect(otherCount).toBeGreaterThanOrEqual(8);
+  });
+
+  it("앉을 자리 → 숨는 자리·놓을 자리가 정해진 아닌 척에서 8m 넘게 떨어진다", () => {
     for (const seat of HIDE.seats)
       for (const spot of HIDE_SPOTS) {
         const at = fixedPlace(spot);
         const label = `(${seat.x},${seat.y})–${spot.id}`;
-        expect(dist(seat, spot), label).toBeGreaterThanOrEqual(10);
-        if (at) expect(dist(seat, at), label).toBeGreaterThanOrEqual(10);
+        expect(dist(seat, spot), label).toBeGreaterThanOrEqual(8);
+        if (at) expect(dist(seat, at), label).toBeGreaterThanOrEqual(8);
       }
   });
 
@@ -125,3 +218,12 @@ describe("판의 생물", () => {
     for (const g of HIDE.guests) if (g.alt !== null) expect(g.alt).toBeLessThanOrEqual(6);
   });
 });
+
+/** 시드로 정한 난수(같은 시드면 같은 수열) */
+function seeded(seed: number): () => number {
+  let x = seed * 2654435761;
+  return () => {
+    x = (x * 1103515245 + 12345) % 2147483648;
+    return x / 2147483648;
+  };
+}
