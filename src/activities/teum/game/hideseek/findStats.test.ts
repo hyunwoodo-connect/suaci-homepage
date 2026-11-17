@@ -19,11 +19,13 @@ describe("FindLog", () => {
   it("상자를 찾으면 → 패턴·걸린 시간·이사·곁을 지나친 횟수가 남고, 넷이면 다 찾은 판", () => {
     const store = memoryStore(),
       log = new FindLog(store);
-    log.begin(1, "390x844", Date.UTC(2026, 10, 17, 6, 0, 0), 10);
+    log.begin("390x844", Date.UTC(2026, 10, 17, 6, 0, 0), 10);
+    expect(log.isFirstOnDevice).toBe(true);
     log.dealt(["A", "A", "B", "D"], ["cups-1", "pots-2", "jar-s", "pad-n"]);
     log.seekStarted(14);
     log.wrong();
-    log.taunted(true);
+    log.taunted();
+    log.moved();
     log.nearMiss();
     log.found({ prop: "cups-1", pattern: "A", moves: 1, nearMisses: 1 }, 74);
     log.found({ prop: "pots-2", pattern: "A", moves: 0, nearMisses: 0 }, 104);
@@ -50,10 +52,26 @@ describe("FindLog", () => {
     const old = JSON.stringify([{ startedAtUtc: "2026-11-16T00:00:00.000Z", rules: "01f" }]),
       store = memoryStore(old),
       log = new FindLog(store);
-    log.begin(4, "390x844", Date.UTC(2026, 10, 17), 0);
+    log.begin("390x844", Date.UTC(2026, 10, 17), 0);
+    expect(log.isFirstOnDevice).toBe(true);
     log.finish(5);
     const all = JSON.parse(store.text ?? "[]") as { rules: string }[];
     expect(all.map((x) => x.rules)).toEqual(["01f", FIND_RULES]);
     expect(readFindList(store)).toHaveLength(1);
+  });
+
+  it("하나도 못 찾고 닫은 판도 남는다 — 다음 판은 둘째 판이고 처음이 아니다", () => {
+    const store = memoryStore(),
+      first = new FindLog(store);
+    first.begin("390x844", Date.UTC(2026, 10, 17, 1), 0);
+    first.seekStarted(4);
+    first.wrong();
+    const [saved] = readFindList(store);
+    expect(saved).toMatchObject({ roundNo: 1, wrongTaps: 1, isAllFound: false });
+    const second = new FindLog(store);
+    second.begin("390x844", Date.UTC(2026, 10, 17, 2), 0);
+    expect(second.isFirstOnDevice).toBe(false);
+    second.seekStarted(4);
+    expect(readFindList(store).map((r) => r.roundNo)).toEqual([1, 2]);
   });
 });

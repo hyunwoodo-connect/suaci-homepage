@@ -23,6 +23,8 @@ interface Shroom {
   /** 다음 통통까지(초) · 다시 탈 수 있을 때까지(초) */
   hopWait: number;
   cool: number;
+  /** 방금 탔다 — 내가 한 번 떠났다 와야 올라서는 것으로 다시 태운다(갓 위에 내려앉은 채 되풀이해 튀지 않게) */
+  mustLeave: boolean;
 }
 
 /** 뛰는 단계: 뛰어 올라타는 중 · 납작 눌림 · 솟구침 · 꼭대기에서 내려옴 */
@@ -41,8 +43,9 @@ const SQUASH = 0.18,
 const HOP_POWER = 5.2,
   HOP_EVERY = 1.1,
   COOLDOWN = 1.5;
-/** 올라선 것으로 치는 높이(m, 땅에서 이 아래로 떠 있을 때) · 카메라가 둘러보기로 넘어가는·돌아오는 빠르기 */
+/** 올라선 것으로 치는 높이(m, 갓에서 이 위로는 아니다) · 떠난 것으로 치는 거리(mushroom.stepReach 에 더한다, m) · 카메라가 둘러보기로 넘어가는·돌아오는 빠르기 */
 const STEP_AIR = 2.5,
+  LEAVE_GAP = 1.5,
   SURVEY_IN = 4,
   SURVEY_OUT = 5;
 /** 누르는 자리: 몸의 반높이·반너비에 곱하는 배수 */
@@ -73,7 +76,7 @@ export class Mushrooms {
     for (let i = 0; i < FIND.mushrooms.length; i++) {
       const [c] = creatures.invite("mushroom", 1),
         hopWait = rand() * HOP_EVERY;
-      if (c) this.list.push({ c, hopWait, cool: 0 });
+      if (c) this.list.push({ c, hopWait, cool: 0, mustLeave: false });
     }
   }
 
@@ -96,6 +99,7 @@ export class Mushrooms {
       sphereAt(at, hub, spot.x, spot.y);
       this.creatures.seat([m.c], at, null, null, true);
       m.cool = 0;
+      m.mustLeave = false;
     });
   }
 
@@ -132,13 +136,20 @@ export class Mushrooms {
     for (const m of this.list) {
       if (m.cool > 0) m.cool -= dt;
       this.idleHop(m, dt);
+      const flat = player.p.angleTo(m.c.v) * S.R,
+        cap = m.c.batch.hh * 2;
+      if (flat > HIDE.mushroom.stepReach + LEAVE_GAP) m.mustLeave = false;
+      // 갓 위에 내려앉으면 거기 선다(갓 속으로 가라앉지 않게)
+      const isOver = m !== this.riding && flat < m.c.batch.rw && player.air >= cap - 1;
+      if (isOver && !player.isHeld) player.keepAbove(cap);
       const isOn =
         canRide &&
         !this.riding &&
+        !m.mustLeave &&
         m.cool <= 0 &&
         !player.isHeld &&
-        player.air < STEP_AIR &&
-        player.p.angleTo(m.c.v) * S.R < HIDE.mushroom.stepReach;
+        player.air < cap + STEP_AIR &&
+        flat < HIDE.mushroom.stepReach;
       if (!isOn) continue;
       this.start(m);
       this.squashNow();
@@ -158,6 +169,7 @@ export class Mushrooms {
     if (!m) return;
     m.c.sink = 0;
     m.cool = COOLDOWN;
+    m.mustLeave = true;
     this.creatures.dismiss(m.c);
   }
 
@@ -235,8 +247,11 @@ export class Mushrooms {
     const part = this.stepT / M.hang,
       u = Math.min(1, part),
       air = M.height * (1 - u * u),
-      floor = this.floors.floorUnder();
-    // 물건 꼭대기 위로 내려왔으면 거기 올라선다
+      isOverCap = player.p.angleTo(c.v) * S.R < c.batch.rw,
+      capFloor = isOverCap ? this.top : 0,
+      propFloor = this.floors.floorUnder(),
+      floor = Math.max(propFloor, capFloor);
+    // 물건 꼭대기(또는 타고 올라온 버섯의 갓) 위로 내려왔으면 거기 올라선다
     if (air <= floor || u >= 1) {
       this.stop();
       return;

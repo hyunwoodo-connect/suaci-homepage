@@ -67,12 +67,19 @@ export class FindLog {
     this.store = store ?? localLogStore();
   }
 
-  /** 판을 시작한다(now: 지금 시각 ms, t: 게임 시각 초) */
-  begin(roundNo: number, screen: string, now: number, t: number) {
+  /** 이 규칙으로 이 기기에서 처음 하는 판인가(판을 시작한 뒤에 읽는다) */
+  get isFirstOnDevice(): boolean {
+    return this.rec?.firstOnDevice ?? false;
+  }
+
+  /** 판을 시작한다(now: 지금 시각 ms, t: 게임 시각 초). 몇째 판인지는 이 기기에 남은 지금 규칙의 기록으로 센다 */
+  begin(screen: string, now: number, t: number) {
     const at = new Date(now),
       kstMs = now + KST_MS,
       kst = new Date(kstMs),
-      before = readFindList(this.store);
+      before = readFindList(this.store),
+      played = before.map((r) => r.roundNo),
+      roundNo = Math.max(0, ...played) + 1;
     this.startedAt = t;
     this.seekFrom = t;
     this.lastFoundAt = t;
@@ -108,10 +115,11 @@ export class FindLog {
     r.props = [...props];
   }
 
-  /** 눈을 떠 찾기 시작했다 */
+  /** 눈을 떠 찾기 시작했다 — 여기서 한 번 남긴다(하나도 못 찾고 닫아도 판이 남게) */
   seekStarted(t: number) {
     this.seekFrom = t;
     this.lastFoundAt = t;
+    this.save();
   }
 
   /** 상자를 찾았다(그 물건·패턴, 이 상자가 이사한 횟수와 곁에 왔다가 놓친 횟수) */
@@ -134,30 +142,44 @@ export class FindLog {
 
   /** 꽝을 눌렀다 */
   wrong() {
-    if (this.rec) this.rec.wrongTaps++;
+    if (!this.rec) return;
+    this.rec.wrongTaps++;
+    this.save();
   }
 
   /** 너무 멀어(또는 높은 곳을 밑에서 눌러) 닿지 않았다 */
   far() {
-    if (this.rec) this.rec.farTaps++;
+    if (!this.rec) return;
+    this.rec.farTaps++;
+    this.save();
   }
 
-  /** 근처 상자가 메롱 했다(moved: 이사까지 갔나) */
-  taunted(moved: boolean) {
-    const r = this.rec;
-    if (!r) return;
-    r.taunts++;
-    if (moved) r.moves++;
+  /** 근처 상자가 메롱 했다 */
+  taunted() {
+    if (!this.rec) return;
+    this.rec.taunts++;
+    this.save();
+  }
+
+  /** 메롱 한 상자가 다른 물건으로 이사했다(폴짝 뛰는 순간) */
+  moved() {
+    if (!this.rec) return;
+    this.rec.moves++;
+    this.save();
   }
 
   /** 상자 곁에 왔다가 못 찾고 나갔다 */
   nearMiss() {
-    if (this.rec) this.rec.nearMisses++;
+    if (!this.rec) return;
+    this.rec.nearMisses++;
+    this.save();
   }
 
-  /** 버섯을 쓴 횟수(판이 끝날 때) */
+  /** 버섯을 쓴 횟수(쓸 때마다) */
   mushrooms(n: number) {
-    if (this.rec) this.rec.mushrooms = n;
+    if (!this.rec) return;
+    this.rec.mushrooms = n;
+    this.save();
   }
 
   /** 마지막 상자까지 열었다 — 기록을 남긴다 */

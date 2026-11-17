@@ -379,11 +379,11 @@ export class Game {
           babyLimes.setFollowing(on);
           stars.setFollowing(on);
         },
-        // 판 동안은 랜드마크가 인사하지 않고, 장소가 반응하지 않고, 생물이 놀라 달아나지 않는다(꿈틀하는 것은 후보 물건뿐)
+        // 판 동안은 랜드마크가 인사하지 않고, 장소가 반응하지 않고, 생물이 나를 본체만체한다(꿈틀하는 것은 후보 물건뿐)
         setReactions: (on) => {
           this.sites.setGreeting(on);
           places.setReacting(on);
-          creatures.setSkittish(on);
+          creatures.setReactive(on);
         },
       },
       hudParent,

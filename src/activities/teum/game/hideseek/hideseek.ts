@@ -22,12 +22,11 @@ import { buildStamp, forcedLevel, hideSet, isLookAround, isStatsShown } from "./
 import { dealPatterns, dealRound, moveTargets } from "./patterns";
 import type { PickTarget } from "./picker";
 import { pickAt } from "./picker";
-import { HideProgress } from "./progress";
 import type { Candidate } from "./props";
 import { Props } from "./props";
 import type { Seeker } from "./seeker";
 import { createSeeker } from "./seeker";
-import { levelOf, roundSpots, STAGE_HUB } from "./spots";
+import { roundSpots, STAGE_HUB } from "./spots";
 import { Timeline } from "./timeline";
 import { FlowerTrail } from "./trail";
 import { HIDE } from "./tuning";
@@ -75,6 +74,8 @@ interface Hider {
   /** 다음 몸짓(리본 빼꼼·혼자 떨기)까지(초) · 리본을 내밀고 있는 남은 시간(초 — 패턴 B) */
   fidgetWait: number;
   peekLeft: number;
+  /** 이 상자의 꽃 길(패턴 B 만 — 상자가 이사 가면 따라 옮기고, 찾으면 거둔다) */
+  trail: FlowerTrail | null;
 }
 
 /** 숨바꼭질이 쓰는 것(Game 이 만들 때 넘긴다) */
@@ -129,6 +130,9 @@ const TAUNT_OUT = 0.8,
   TAUNT_RISE = 12;
 /** 곁을 떠난 것으로 치는 거리(candidate.tapReach 에 더한다, m) */
 const LEAVE_GAP = 3;
+/** 밖으로 나와 보이는 상자를 누르는 자리: 귀까지 넣은 키의 몫·너비의 몫(상자 키의 반 기준) */
+const BOX_PICK_TALL = 1.3,
+  BOX_PICK_WIDE = 0.75;
 
 const tmp = new THREE.Vector3(),
   at = new THREE.Vector3(),
@@ -154,7 +158,11 @@ export class HideSeek implements Thing, Tappable {
   private readonly line: BoxLine;
   private readonly unboxing: Unboxing;
   private readonly props: Props;
-  private readonly trail: FlowerTrail;
+  /** 꽃 길(길 끝 상자마다 하나 — 필요한 만큼 만들어 다시 쓴다) */
+  private readonly trails: FlowerTrail[] = [];
+  private readonly hub: THREE.Vector3;
+  /** 버섯을 쓴 횟수 가운데 기록에 남긴 것 */
+  private loggedJumps = 0;
   private readonly warm: Warm;
   private readonly mushrooms: Mushrooms;
   private readonly bystanders: Bystanders;
@@ -164,8 +172,7 @@ export class HideSeek implements Thing, Tappable {
   private time = 0;
   /** 찾기 시작 뒤 흐른 시간(초) */
   private roundT = 0;
-  /** 이 기기에서의 기억(한 판 수) · 맨 처음 판인가(쉬운 패턴) · 주소로 고른 단계·자리 씨앗(없으면 null) */
-  private readonly progress = new HideProgress();
+  /** 맨 처음 판인가(이 규칙으로 이 기기에서 처음 — 쉬운 패턴) · 주소로 고른 단계·자리 씨앗(없으면 null) */
   private first = false;
   private readonly pickedLevel: number | null;
   private readonly pickedSet: number | null;
@@ -204,7 +211,7 @@ export class HideSeek implements Thing, Tappable {
     this.line = new BoxLine(s);
     this.unboxing = new Unboxing(s, links.unbox, this.fx, this.rand);
     this.props = new Props(s, hub, this.rand);
-    this.trail = new FlowerTrail(s, hub);
+    this.hub = hub;
     this.warm = new Warm(s, links.cat, this.rand);
     this.mushrooms = new Mushrooms(s, links.creatures, this.props, this.rand);
     this.bystanders = new Bystanders(links.creatures, this.rand);
@@ -235,8 +242,9 @@ export class HideSeek implements Thing, Tappable {
       view = { w: innerWidth, h: innerHeight };
     const hit = pickAt(x, y, targets, this.s.camera.camera, view, TAP_PAD, TAP_MIN);
     if (!hit) return false;
-    if (hit.kind === "prop") this.tapProp(hit.c);
-    else this.mushrooms.ride(hit.c);
+    // 닿지 않는 물건을 누른 것은 누름으로 치지 않는다 — 날갯짓·풍선 놓기 같은 놀이기구 누름이 그 물건에 가려 먹히지 않게
+    if (hit.kind === "prop") return this.tapProp(hit.c);
+    this.mushrooms.ride(hit.c);
     return true;
   }
 
@@ -261,7 +269,7 @@ export class HideSeek implements Thing, Tappable {
     for (const k of this.seekers) k.box.update(dt, f.time);
     this.bonus.update(dt, f.time);
     this.fx.update(dt);
-    this.trail.update(dt);
+    for (const trail of this.trails) trail.update(dt);
     this.unboxing.update(dt, f.time);
     const canLook = this.phase === "seek" || this.phase === "prompt" || this.phase === "end";
     if (!studioOpen) this.looker?.update(dt, canLook);
@@ -273,7 +281,7 @@ export class HideSeek implements Thing, Tappable {
     this.fx.dispose();
     this.unboxing.dispose();
     this.props.dispose();
-    this.trail.dispose();
+    for (const trail of this.trails) trail.dispose();
     for (const k of this.seekers) k.box.dispose();
     this.bonus.dispose();
   }
@@ -362,18 +370,19 @@ export class HideSeek implements Thing, Tappable {
     this.caught.length = 0;
     this.hiders.length = 0;
     this.line.clear();
-    this.trail.clear();
+    for (const trail of this.trails) trail.clear();
+    // 지난 판에 찾은 물건의 리본도 여기서 거둔다(꼭꼭 숨어라 장면에 남아 있지 않게)
+    this.props.reset();
     this.warm.stop();
     this.mushrooms.stop();
+    this.loggedJumps = 0;
     this.hasBonus = false;
     this.bonus.visible = false;
-    const rounds = this.progress.rounds,
-      level = this.pickedLevel ?? levelOf(rounds);
-    this.first = level === 0;
     const screen = `${innerWidth}x${innerHeight}`,
-      now = Date.now(),
-      roundNo = rounds + 1;
-    this.log.begin(roundNo, screen, now, this.time);
+      now = Date.now();
+    this.log.begin(screen, now, this.time);
+    // 맨 처음 판: 이 규칙(조각 02)으로 이 기기에서 처음 하는 판 — 앞 조각을 해 본 기기도 처음은 쉽게. 주소로 단계를 골랐으면 그대로
+    this.first = this.pickedLevel === null ? this.log.isFirstOnDevice : this.pickedLevel === 0;
     this.hiding.start(hub, null, this.first, HIDE.difficulty[0], {
       // 눈을 감은 동안: 상자들이 물건 속에 들고, 꽃 길이 놓이고, 버섯과 구경꾼이 제자리에 앉는다
       settled: () => this.settle(hub),
@@ -384,7 +393,6 @@ export class HideSeek implements Thing, Tappable {
 
   // 눈을 감은 동안: 패턴 넷을 섞어 물건을 고르고 상자를 숨긴다
   private settle(hub: THREE.Vector3) {
-    this.props.reset();
     this.mushrooms.begin(hub);
     this.bystanders.seat(hub);
     const rand = this.dealRand(),
@@ -410,13 +418,26 @@ export class HideSeek implements Thing, Tappable {
         nearMisses: 0,
         fidgetWait: this.nextFidget(),
         peekLeft: 0,
+        trail: null,
       };
       this.hiders.push(h);
       this.tuck(h);
-      if (d.pattern === "B") this.trail.show(host, this.props.list, this.rand);
+      if (d.pattern !== "B") return;
+      h.trail = this.takeTrail();
+      h.trail.show(host, this.props.list, this.rand);
     });
     const ids = dealt.map((d) => d.prop.id);
     this.log.dealt(patterns, ids);
+  }
+
+  // 아직 쓰지 않은 꽃 길 하나(모자라면 만든다 — 길 끝 상자가 둘이면 길도 둘이다)
+  private takeTrail(): FlowerTrail {
+    const used = this.hiders.flatMap((h) => (h.trail ? [h.trail] : [])),
+      free = this.trails.find((t) => !used.includes(t));
+    if (free) return free;
+    const made = new FlowerTrail(this.s, this.hub);
+    this.trails.push(made);
+    return made;
   }
 
   // 자리를 고르는 난수: 주소로 자리 씨앗(?hide=N)을 골랐으면 그 씨앗(판마다 하나씩 더한다), 아니면 놀이 난수
@@ -435,8 +456,6 @@ export class HideSeek implements Thing, Tappable {
     this.links.input.hold(false);
     this.log.seekStarted(this.time);
     this.roundT = 0;
-    // 주소로 단계를 골라 본 판은 세지 않는다(시험이 이 기기의 단계를 올리지 않게)
-    if (this.pickedLevel === null) this.progress.countRound();
     this.goTo("seek");
   }
 
@@ -449,7 +468,8 @@ export class HideSeek implements Thing, Tappable {
       if (h.k.state !== "hidden") continue;
       this.stepHider(h, dt);
       const dist = this.distanceTo(h);
-      this.watchNear(h, dist);
+      // 곁을 지나쳤는지는 물건 속에 있을 때만 센다(메롱·이사 중에는 상자가 제 발로 멀어진다)
+      if (h.mode === "in") this.watchNear(h, dist);
       if (dist < nearestD) {
         nearestD = dist;
         nearest = h;
@@ -457,6 +477,10 @@ export class HideSeek implements Thing, Tappable {
     }
     const target = nearest ? this.warmTarget(nearest, nearestD) : null;
     this.warm.update(dt, target);
+    if (this.mushrooms.uses !== this.loggedJumps) {
+      this.loggedJumps = this.mushrooms.uses;
+      this.log.mushrooms(this.loggedJumps);
+    }
     const isAllCaught = this.caught.length === this.seekers.length;
     if (isAllCaught && this.caught.every((k) => k.state === "line")) this.endSeek();
   }
@@ -584,7 +608,7 @@ export class HideSeek implements Thing, Tappable {
     const where = this.props.center(h.host, at),
       pan = this.panOf(where);
     this.s.events.emit("findTaunted", { pan });
-    this.log.taunted(next !== null);
+    this.log.taunted();
   }
 
   private whileTaunting(h: Hider, dt: number) {
@@ -607,6 +631,7 @@ export class HideSeek implements Thing, Tappable {
     h.hopBase = b.a;
     h.moves++;
     h.movedAt = this.roundT;
+    this.log.moved();
     b.hop(0, true);
     const where = b.center(at),
       pan = this.panOf(where);
@@ -639,7 +664,7 @@ export class HideSeek implements Thing, Tappable {
     h.isNear = false;
     this.props.bump(to);
     this.tuck(h);
-    if (h.pattern === "B") this.trail.show(to, this.props.list, this.rand);
+    h.trail?.show(to, this.props.list, this.rand);
   }
 
   /* ─── 내부: 누르기 ─────────────────────────── */
@@ -648,31 +673,43 @@ export class HideSeek implements Thing, Tappable {
   private pickTargets(): PickTarget<Picked>[] {
     const targets: PickTarget<Picked>[] = [];
     for (const t of this.props.targets()) targets.push({ ...t, item: { kind: "prop", c: t.item } });
+    // 물건 밖으로 나와 보이는 상자(높은 곳의 빼꼼·리본 끝·메롱)를 눌러도 그 물건을 누른 것이다
+    for (const h of this.hiders) {
+      const b = h.k.box;
+      if (h.k.state !== "hidden" || h.mode === "hop" || !b.visible) continue;
+      const half = b.hh * b.size,
+        spot = new THREE.Vector3(),
+        center = b.center(spot),
+        halfH = half * BOX_PICK_TALL,
+        halfW = half * BOX_PICK_WIDE;
+      targets.push({ item: { kind: "prop", c: h.host }, center, halfH, halfW });
+    }
     const mushrooms: PickTarget<Creature>[] = [];
     this.mushrooms.targets(mushrooms);
     for (const t of mushrooms) targets.push({ ...t, item: { kind: "mushroom", c: t.item } });
     return targets;
   }
 
-  // 물건을 눌렀다: 닿지 않으면(멀거나, 높은 곳을 밑에서) 아무 일도 없다. 닿으면 미스트가 날아가고 — 상자가 들었으면 찾은 것, 아니면 꽝
-  private tapProp(c: Candidate) {
+  // 물건을 눌렀다: 닿지 않으면(멀거나, 높은 곳을 밑에서) 아무 일도 없다(false). 닿으면 미스트가 날아가고 — 상자가 들었으면 찾은 것, 아니면 꽝
+  private tapProp(c: Candidate): boolean {
     const { events } = this.s;
     if (!this.props.canReach(c)) {
       this.log.far();
       events.emit("findTapped", { far: true });
-      return;
+      return false;
     }
     this.pullMist(c);
     events.emit("findTapped", { far: false });
     const h = this.hiders.find((x) => x.host === c && x.k.state === "hidden" && x.mode !== "hop");
     if (h) {
       this.catchBox(h);
-      return;
+      return true;
     }
     this.props.squish(c);
     this.log.wrong();
     events.emit("findMissed", {});
     this.tauntNear(c);
+    return true;
   }
 
   // 꽝 곁(miss.tauntReach)의 진짜 상자가 메롱 한다: 가장 가까운 하나. 이사는 상자 하나당 miss.cooldown 초에 한 번, 한 판 miss.maxMoves 번까지
@@ -725,7 +762,8 @@ export class HideSeek implements Thing, Tappable {
       { prop: c.spec.id, pattern: h.pattern, moves: h.moves, nearMisses: h.nearMisses },
       this.time,
     );
-    if (h.pattern === "B") this.trail.clear();
+    h.trail?.clear();
+    h.trail = null;
     this.props.bump(c);
     this.props.markFound(c);
     const top = c.base + c.lid,
@@ -781,7 +819,6 @@ export class HideSeek implements Thing, Tappable {
     this.warm.stop();
     this.mushrooms.stop();
     this.s.camera.setZoom(1);
-    this.log.mushrooms(this.mushrooms.uses);
     this.links.input.hold(false);
     this.overlay.flashSlots();
     this.s.events.emit("hideAllFound", {});
