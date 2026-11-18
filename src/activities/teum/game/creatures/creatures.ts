@@ -21,6 +21,7 @@ import type { Habit, HabitCtx } from "./habits";
 import { HABITS } from "./habits";
 import { away, face, go } from "./moves";
 import { Puffs } from "./puffs";
+import { roamPlan } from "./roaming";
 import type { Circle } from "./resident";
 import { BREATH, BREATH_SECONDS, createResident, LOOK_SECONDS, LOOK_SWING } from "./resident";
 import { Town } from "./town";
@@ -45,6 +46,10 @@ interface RoamGroup {
   mem: Creature[];
   kind: "herd" | "flock" | "jelly";
   ctr: THREE.Vector3;
+  /** 사는 지역(마을 차례) — 이 지역 안에서만 옮겨 다닌다 */
+  home: number;
+  /** 옮길 자리를 못 찾았을 때 다시 찾아보기까지(초) */
+  wait: number;
 }
 
 /** 지나온 자리 하나 */
@@ -236,10 +241,14 @@ export class Creatures implements Thing {
       rush = !held && this.pspd > 7;
     if (x.visit.t > 0) x.visit.t -= dt;
     for (const grp of this.roam) {
+      if (grp.wait > 0) {
+        grp.wait -= dt;
+        continue;
+      }
       const d = grp.ctr.angleTo(p) * S.R;
       cw.copy(grp.ctr).sub(p);
       const behind = cw.dot(player.h) < 0;
-      if (d > 250 || (d > 150 && behind)) this.placeRoam(grp, false);
+      if (d > ROAM.far || (d > ROAM.behind && behind)) this.placeRoam(grp, false);
     }
     if (player.isHeldBy(this.links.whale)) this.met.add("whale");
     this.town.begin(dt, f.time, this.pspd, this.isReactive);
@@ -1137,7 +1146,6 @@ export class Creatures implements Thing {
       HV = occ.hubs,
       FLK = skySpecies(),
       LAKE = lakeSpecies();
-    const mkHerd = (hv: THREE.Vector3, n: number) => this.mkHerd(hv, n);
     // 땅 위의 손님: 첫 무리는 출발하자마자 눈앞에 — 그날 축제 지역에 사는 첫 종
     const festival = s.today.festival;
     const startStep = plan.firstHerdAhead / S.R;
@@ -1154,35 +1162,42 @@ export class Creatures implements Thing {
       const extra = own * plan.festival;
       if (hk === festival) this.festivalHerds = this.placeHerds(hk, own, extra);
     }
-    // 어디로 가든 앞길에 손님이 있게: 떠도는 무리는 내가 멀어지면 내 앞쪽 먼 곳으로 조용히 옮겨 간다
-    for (let i = 0; i < plan.roaming.herds; i++) {
-      const herdN = i + 1;
-      const here = p.clone();
-      const mem = mkHerd(here, herdN);
-      this.roam.push({ mem, kind: "herd", ctr: here });
-    }
-    for (let i = 0; i < plan.roaming.flocks; i++) {
-      const grp: RoamGroup = { mem: [], kind: "flock", ctr: p.clone() },
-        rad = 14 + 16 * fr(i, 243),
-        dir = i % 2 ? 1 : -1,
-        alt = 4 + 6 * fr(i, 244),
-        a0 = 360 * fr(i, 245);
-      const kind = FLK[i % FLK.length];
-      for (let j = 0; j < 3; j++) {
-        const ang = a0 - dir * j * 14;
-        const o = { ctr: grp.ctr, rad, dir, alt, ang, slot: j, st: "fly", g0: 0 };
-        const c = this.crit(kind.key, "flock", grp.ctr, o);
+    // 어디로 가든 앞길에 손님이 있게: 지역마다 그 지역에 사는 종으로 떠도는 무리를 몇씩 둔다(땅 무리·하늘 무리·해파리 — 그 지역에 사는 갈래만).
+    // 떠도는 무리는 제 지역 안에서만, 내가 멀어지면 내 앞쪽으로 조용히 옮겨 간다 — 마을에서 멀리 나와도 그 지역다운 손님을 만난다
+    const skyKeys = FLK.map((q) => q.key);
+    for (let hk = 0; hk < HV.length; hk++) {
+      const hub = HV[hk],
+        region = s.map.regions[hk],
+        roaming = roamPlan(region, plan.roaming, skyKeys);
+      roaming.herds.forEach(({ key, count }) => {
+        const mem = this.mkHerd(hub, this.herdN, key, count),
+          ctr = hub.clone();
+        this.herdN++;
+        this.roam.push({ mem, kind: "herd", ctr, home: hk, wait: 0 });
+      });
+      roaming.flocks.forEach((key, i) => {
+        const grp: RoamGroup = { mem: [], kind: "flock", ctr: hub.clone(), home: hk, wait: 0 },
+          j0 = hk * FLOCK_STRIDE + i,
+          rad = 14 + 16 * fr(j0, 243),
+          dir = i % 2 ? 1 : -1,
+          alt = 4 + 6 * fr(j0, 244),
+          a0 = 360 * fr(j0, 245);
+        for (let j = 0; j < 3; j++) {
+          const ang = a0 - dir * j * 14;
+          const o = { ctr: grp.ctr, rad, dir, alt, ang, slot: j, st: "fly", g0: 0 };
+          const c = this.crit(key, "flock", grp.ctr, o);
+          if (c) grp.mem.push(c);
+        }
+        this.roam.push(grp);
+      });
+      for (let i = 0; i < roaming.jellies; i++) {
+        const grp: RoamGroup = { mem: [], kind: "jelly", ctr: hub.clone(), home: hk, wait: 0 };
+        const c = this.crit("umbrella", "jelly", grp.ctr, { base: 6 });
         if (c) grp.mem.push(c);
+        this.roam.push(grp);
       }
-      this.roam.push(grp);
     }
-    for (let i = 0; i < plan.roaming.jellies; i++) {
-      const grp: RoamGroup = { mem: [], kind: "jelly", ctr: p.clone() };
-      const c = this.crit("umbrella", "jelly", grp.ctr, { base: 6 });
-      if (c) grp.mem.push(c);
-      this.roam.push(grp);
-    }
-    for (const grp of this.roam) this.placeRoam(grp, true); // 빈자리를 못 찾아도 어딘가에는 놓는다
+    for (const grp of this.roam) this.placeRoam(grp, true);
     // 하늘 무리: 마을 하늘을 셋씩 낮게 돈다(마을마다 몇 무리, 하늘 종을 돌려 가며)
     for (let hk = 0; hk < HV.length; hk++)
       for (let q0 = 0; q0 < s.map.regions[hk].flocks; q0++) {
@@ -1377,24 +1392,38 @@ export class Creatures implements Thing {
     return sp;
   }
 
-  // 떠도는 무리를 옮긴다: 처음엔 내 둘레 아무 데나, 그 뒤엔 내 앞쪽 먼 곳(가는 방향 쪽으로 좁혔다)
+  // 떠도는 무리를 옮긴다. 처음에는 제 마을 둘레 아무 데나, 그다음부터는 내 앞쪽(ROAM.ahead m)에 — 제 지역 안이고, 판 영역 밖이고,
+  // (땅 무리면) 빈 자리인 데로만. 내가 제 지역에서 멀리 있거나 그런 자리가 없으면 그 자리에 둔 채 ROAM.retry 초 뒤에 다시 본다
   private placeRoam(grp: RoamGroup, first: boolean) {
-    const { player, occ } = this.s,
-      p = player.p,
+    const { player, occ, regions } = this.s,
+      hub = occ.hubs[grp.home],
       r = this.rng;
-    for (let k = 0; k < 24; k++) {
-      if (first) {
-        // 난수 순서: 거리 → 방향
-        const dist = r.range(25, 210);
-        const bearing = 360 * r.next();
-        offsetInto(cv, p, dist, bearing);
-      } else this.ahead(110, 190, 0.6);
-      if (grp.kind !== "herd" || occ.isFree(cv, 6)) break;
+    if (!first && player.p.angleTo(hub) * S.R > ROAM.homeReach) {
+      grp.wait = ROAM.retry;
+      return;
     }
-    // 떠도는 무리도 판 영역에는 들어가지 않는다(하늘 무리는 도는 원까지, 해파리는 떠다니는 데까지 밖에)
     const flockRoom = (grp.mem[0]?.rad ?? 0) + STAGE_FLOCK_ROOM,
       room =
         grp.kind === "herd" ? STAGE_HERD_ROOM : grp.kind === "flock" ? flockRoom : STAGE_JELLY_ROOM;
+    let isFound = false;
+    for (let k = 0; k < ROAM.tries && !isFound; k++) {
+      if (first) {
+        // 난수 순서: 거리 → 방향. 넓이에 고르게(멀수록 드물지 않게)
+        const roll = r.next(),
+          spread = Math.sqrt(roll),
+          dist = ROAM.around[0] + (ROAM.around[1] - ROAM.around[0]) * spread,
+          bearing = 360 * r.next();
+        offsetInto(cv, hub, dist, bearing);
+      } else this.ahead(ROAM.ahead[0], ROAM.ahead[1], ROAM.spread);
+      const isHome = regions.nearest(cv) === grp.home,
+        isOpen = grp.kind !== "herd" || occ.isFree(cv, 6);
+      isFound = isHome && isOpen && !this.isInStage(cv, room);
+    }
+    if (!isFound && !first) {
+      grp.wait = ROAM.retry;
+      return;
+    }
+    // 처음 놓을 때는 못 찾았어도 어딘가에는 둔다(판 영역 밖으로만 밀어낸다)
     this.leaveStage(cv, room);
     this.setGroup(grp, cv);
     if (!first) this.activate(grp);
@@ -1443,6 +1472,8 @@ export class Creatures implements Thing {
       if (c.st === "follow" || c.st === "lead" || c.st === "beckon") return;
       c.led = false;
       c.bowed = false;
+      // 새 자리에서는 작게 시작해 자란다(눈앞에 툭 나타나지 않게)
+      c.vis = 0;
       if (c.role === "herd") {
         c.hv = ctr;
         const bearing = (j * 360) / grp.mem.length + 20;
@@ -1475,6 +1506,21 @@ export class Creatures implements Thing {
 
 /** 종마다 그리는 묶음 하나의 칸 수(가장 많은 종도 이 안에 든다) */
 const CAPACITY = 128;
+/**
+ * 떠도는 무리: 이보다 멀어지면(m) · 내 뒤로 이보다 멀어지면(m) 앞으로 옮긴다 · 옮겨 가는 자리(내 앞 m, 이 사이)와 좌우 폭(rad) —
+ * 앞자리를 넓게 펼쳐야 무리들이 한꺼번에 지나가 버리지 않는다(좁으면 다 같이 뒤로 가는 빈 구간이 생긴다) ·
+ * 처음 놓는 자리(제 마을에서 m, 이 사이) · 내가 제 마을에서 이보다 멀면(m) 따라오지 않는다 · 자리를 찾아보는 횟수 · 다시 찾아보기까지(초)
+ */
+const ROAM = {
+  far: 260,
+  behind: 60,
+  ahead: [70, 240],
+  spread: 0.35,
+  around: [40, 300],
+  homeReach: 620,
+  tries: 24,
+  retry: 1.5,
+} as const;
 /** 마을마다 자리를 찾는 고정 난수 번호의 간격(땅 무리·하늘 무리·해파리 — 지도의 tries·perHub 는 이보다 작다) */
 const HERD_STRIDE = 70,
   FLOCK_STRIDE = 9,

@@ -115,7 +115,10 @@ export interface CreatureMap {
   /** 마을마다 땅 위 무리를 놓는 자리 찾기(수는 지역의 herds — 축제 지역은 festival 배) */
   herds: Omit<HubScatter, "perHub">;
   festival: number;
-  /** 떠도는 무리(내가 멀어지면 내 앞쪽 먼 곳으로 옮겨 간다): 땅 위·하늘·해파리 */
+  /**
+   * 떠도는 무리 — 지역마다 이만큼(그 지역에 사는 갈래만: 땅 무리가 사는 지역은 herds, 하늘 무리는 flocks, 해파리는 jellies).
+   * 제 지역 안에서 내가 멀어지면 내 앞쪽으로 옮겨 간다(마을에서 멀리 나와도 그 지역다운 손님을 만나게)
+   */
   roaming: { herds: number; flocks: number; jellies: number };
   /** 마을 하늘을 셋씩 도는 무리(수는 지역의 flocks): 마을 중심에서 거리(자리표 거리) */
   townFlocks: { dist: Span };
