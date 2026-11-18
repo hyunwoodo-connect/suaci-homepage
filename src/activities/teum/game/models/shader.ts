@@ -35,15 +35,6 @@ export interface ModelLookOptions {
 const PART_KEYS = Object.keys(PARTS);
 const REGION_FREE = new Set([AVATAR_BODY, ...PART_KEYS, "whale", "limebox"]);
 
-/** 투시(숨바꼭질의 열쇠)에 비치지 않는 모델: 옆의 고양이와 상자가 입는 변장 소품 */
-const XRAY_FREE = new Set([
-  "cat_lime",
-  "disguise_glasses",
-  "flowerpot",
-  "gift_pile",
-  "rabbit_mask",
-]);
-
 /** 같은 묶음 셰이더(인스턴스 속성)를 쓰는지 */
 const BATCH_DEFINE = "TEUM_BATCH";
 
@@ -74,9 +65,6 @@ export function styleModel(mat: THREE.MeshStandardMaterial, o: ModelLookOptions)
   const isBody = o.key === AVATAR_BODY;
   // 지역 색: 물건이 선 자리의 지역 색으로 색상을 돌린다(나·고래는 돌리지 않는다, 생물은 몸 휘기 uAk 로 셰이더가 뺀다)
   const uRegK = { value: REGION_FREE.has(o.key) ? 0 : 1 };
-  // 투시는 세계의 물건만(나·고래·상자·옆의 고양이·상자의 변장 소품은 빼고, 생물은 셰이더가 몸 휘기 uAk 로 뺀다)
-  const isSolid = REGION_FREE.has(o.key) || XRAY_FREE.has(o.key),
-    uXrayK = { value: isSolid ? 0 : 1 };
   // 지역 수는 셰이더를 만들 때 센다(그 전에 지도가 마을을 채운다)
   const regionCount = () => o.lookU.regionHub.value.length;
   mat.onBeforeCompile = (sh) => {
@@ -95,9 +83,6 @@ export function styleModel(mat: THREE.MeshStandardMaterial, o: ModelLookOptions)
     sh.uniforms.uRegH = o.lookU.regionHue;
     sh.uniforms.uRegE = o.lookU.regionEdge;
     sh.uniforms.uRegK = uRegK;
-    sh.uniforms.uXray = o.lookU.xray;
-    sh.uniforms.uXrayA = o.lookU.xrayAlpha;
-    sh.uniforms.uXrayK = uXrayK;
     if (isBody) Object.assign(sh.uniforms, o.lookU.outfit);
     const regions = regionCount();
     const regionHead = `#define TEUM_REGIONS ${regions}\n`;
@@ -108,7 +93,7 @@ export function styleModel(mat: THREE.MeshStandardMaterial, o: ModelLookOptions)
     // 몸은 톤을 칠하기 전의 텍스처 색(rawC)으로 옷 자리를 가린다
     const tone = isBody
       ? TONE_GLSL.replace("#include <map_fragment>", BODY_RAW) + OUTFIT_GLSL + REGION_GLSL
-      : TONE_GLSL + REGION_GLSL + XRAY_GLSL;
+      : TONE_GLSL + REGION_GLSL;
     const fragmentHead = FRAGMENT_HEAD + (isBody ? BODY_FRAGMENT_HEAD : "");
     sh.fragmentShader =
       regionHead + fragmentHead + sh.fragmentShader.replace("#include <map_fragment>", tone);
@@ -118,22 +103,6 @@ export function styleModel(mat: THREE.MeshStandardMaterial, o: ModelLookOptions)
     const kind = isBody ? "teum-look12-body-r" : o.batch ? "teum-look12-batch-r" : "teum-look12-r";
     return kind + regions;
   };
-  mat.needsUpdate = true;
-}
-
-/**
- * 숨바꼭질 열쇠의 투시를 모델이 아닌 재질(코드로 그린 통통 구름 등)에도 입힌다 — 물건 하나(인스턴스)의 원점이 둘레 안이면 비친다
- */
-export function seeThrough(mat: THREE.MeshStandardMaterial, lookU: LookUniforms) {
-  mat.onBeforeCompile = (sh) => {
-    sh.uniforms.uXray = lookU.xray;
-    sh.uniforms.uXrayA = lookU.xrayAlpha;
-    const vertex = sh.vertexShader.replace("#include <begin_vertex>", ORIGIN_GLSL);
-    sh.vertexShader = "varying vec3 vRo;\n" + vertex;
-    const fragment = sh.fragmentShader.replace("#include <map_fragment>", PLAIN_XRAY_GLSL);
-    sh.fragmentShader = PLAIN_XRAY_HEAD + fragment;
-  };
-  mat.customProgramCacheKey = () => "teum-xray-plain2";
   mat.needsUpdate = true;
 }
 
@@ -188,7 +157,7 @@ const BEND_GLSL = `#include <begin_vertex>
     transformed.y += dY;
   }`;
 
-const FRAGMENT_HEAD = `uniform vec4 uXray; uniform float uXrayA; uniform float uXrayK; uniform float uSat; uniform float uWash; uniform vec3 uTint; uniform float uTK; uniform float uPat; uniform float uPY; uniform vec3 uTint2; varying vec3 vOp; varying vec3 vRo; uniform float uAk;
+const FRAGMENT_HEAD = `uniform float uSat; uniform float uWash; uniform vec3 uTint; uniform float uTK; uniform float uPat; uniform float uPY; uniform vec3 uTint2; varying vec3 vOp; varying vec3 vRo; uniform float uAk;
 #if TEUM_REGIONS > 0
 uniform vec3 uHubV[TEUM_REGIONS]; uniform float uRegH[TEUM_REGIONS]; uniform vec2 uRegE; uniform float uRegK;
 #endif
@@ -232,33 +201,6 @@ const BODY_VERTEX_HEAD = `varying vec3 vOn;
 
 const BODY_VERTEX = `
   vOn = normal;`;
-
-// 투시: 물건의 원점이 둘레 안이면 화면 점 무늬로 uXrayA 몫만 남기고 지운다(투명 정렬 없이 비친다 — 유리처럼).
-// 시선과 비스듬한 가장자리는 남겨 흰 윤곽선으로(다 비칠수록 하얗게, 원래대로 돌아오면 제 색)
-const XRAY_GLSL = `
-  #ifndef FLAT_SHADED
-  if (uXrayK > 0.5 && uAk < 0.5 && uXray.w > 0.0 && distance(vRo, uXray.xyz) < uXray.w) {
-    float xrRim = 1.0 - abs(dot(normalize(vNormal), normalize(vViewPosition)));
-    float xrNoise = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
-    if (xrRim < 0.7) { if (xrNoise > uXrayA) discard; }
-    else diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), clamp((1.0 - uXrayA) * 1.6, 0.0, 1.0));
-  }
-  #endif
-`;
-
-// 모델이 아닌 재질의 투시: 물건(인스턴스)의 원점을 넘기고, 모델 셰이더에만 있는 값(uXrayK·uAk)은 상수로 둔다
-const ORIGIN_GLSL = `#include <begin_vertex>
-  #ifdef USE_INSTANCING
-  vRo = (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
-  #else
-  vRo = (modelMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
-  #endif`;
-const PLAIN_XRAY_HEAD = `uniform vec4 uXray; uniform float uXrayA; varying vec3 vRo;
-const float uXrayK = 1.0; const float uAk = 0.0;
-`;
-const PLAIN_XRAY_GLSL =
-  `#include <map_fragment>
-` + XRAY_GLSL;
 
 const BODY_FRAGMENT_HEAD = `varying vec3 vOn; uniform sampler2D uPrT; uniform sampler2D uPrB; uniform float uPrTon; uniform float uPrBon; uniform float uPrS; uniform vec3 uSkC; uniform float uSkOn; uniform vec3 uShC; uniform float uShOn;
 `;

@@ -31,16 +31,11 @@ describe("Input", () => {
     input.dispose();
   });
 
-  it("끌기가 막 시작된 톡 → 톡을 받을 때 그 끌기는 이미 끝난 것으로 센다", () => {
-    const { canvas, input } = setup();
-    let sinceDrag = -1;
-    input.dispose();
-    const watched = new Input(canvas, hudStub(), RULE, () => {
-      sinceDrag = watched.msSinceDragEnd();
-    });
+  it("끌기가 막 시작됐어도(DRAG_PX 넘게) tap.movePx 안 → 톡 좌표를 넘긴다", () => {
+    const { canvas, taps, input } = setup();
     press(canvas, [0, 0, 0], [9, 0, 60], [9, 0, 120]);
-    expect(sinceDrag).toBe(0);
-    watched.dispose();
+    expect(taps).toEqual([[9, 0]]);
+    input.dispose();
   });
 });
 

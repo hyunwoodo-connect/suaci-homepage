@@ -80,11 +80,6 @@ export class Warm {
     private readonly rand: () => number,
   ) {}
 
-  /** 지금 단계(잰 값·시험이 본다) */
-  get now(): Warmth {
-    return this.level;
-  }
-
   /** 판 시작·끝: 조용히 */
   stop() {
     this.level = 0;

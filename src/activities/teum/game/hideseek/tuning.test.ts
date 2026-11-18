@@ -13,37 +13,14 @@ function edited(change: (copy: Record<string, unknown>) => void): unknown {
 describe("숨바꼭질 값 파일(hideseek.data.json)", () => {
   it("지금 파일 → 그대로 읽힌다", () => {
     expect(readTuning(data)).toEqual(HIDE);
-    expect(HIDE.spots).toHaveLength(18);
     expect(HIDE.copy.hide).toBe("꼭꼭 숨어라");
-  });
-
-  it("묶음에 없는 자리 id → 어느 묶음의 어느 id 인지 알리며 멈춘다", () => {
-    const bad = edited((c) => {
-      c.rounds = [["wishtree", "tree-e", "pad-n", "nowhere"]];
-    });
-    expect(() => readTuning(bad)).toThrow('rounds[0]: spots 에 없는 id "nowhere"');
-  });
-
-  it("묶음의 자리가 넷이 아니면 → 멈춘다", () => {
-    const bad = edited((c) => {
-      c.rounds = [["wishtree", "tree-e"]];
-    });
-    expect(() => readTuning(bad)).toThrow("rounds[0]: 자리 4개여야 한다");
-  });
-
-  it("같은 id 가 두 번 → 멈춘다", () => {
-    const bad = edited((c) => {
-      const spots = c.spots as unknown[];
-      c.spots = [...spots, spots[0]];
-    });
-    expect(() => readTuning(bad)).toThrow('id "wishtree" 가 두 번');
   });
 
   it("수가 글로 들어가면 → 그 칸 이름을 알리며 멈춘다", () => {
     const bad = edited((c) => {
-      (c.chik as Record<string, unknown>).reach = "40m";
+      (c.find as Record<string, unknown>).tapPad = "24px";
     });
-    expect(() => readTuning(bad)).toThrow("chik.reach: 수여야 한다");
+    expect(() => readTuning(bad)).toThrow("find.tapPad: 수여야 한다");
   });
 
   it("모르는 내용물·꽝과 일어나는 일에 같이 있는 내용물 → 멈춘다", () => {
@@ -64,33 +41,11 @@ describe("숨바꼭질 값 파일(hideseek.data.json)", () => {
     expect(() => readTuning(bad)).toThrow("unbox.dudCount: 0~4");
   });
 
-  it("숨는 자리가 무대 반경 밖이면 → 어느 자리인지 알리며 멈춘다", () => {
-    const bad = edited((c) => {
-      (c.stage as Record<string, unknown>).radius = 50;
-    });
-    expect(() => readTuning(bad)).toThrow('"tree-e" 가 무대 반경(stage.radius 50m) 밖이다');
-  });
-
   it("판 시작 장면의 시각이 차례대로가 아니면 → 멈춘다", () => {
     const bad = edited((c) => {
       (c.start as Record<string, unknown>).openAt = 1;
     });
     expect(() => readTuning(bad)).toThrow("start.openAt: closeAt 보다 이르다");
-  });
-
-  it("해가 진 뒤 장면·노을·전설의 시각이 판 길이와 어긋나면 → 멈춘다", () => {
-    const noRun = edited((c) => {
-      (c.lost as Record<string, unknown>).climbAt = 1.3;
-    });
-    expect(() => readTuning(noRun)).toThrow("lost.climbAt");
-    const lateRed = edited((c) => {
-      (c.round as Record<string, unknown>).redFrom = 200;
-    });
-    expect(() => readTuning(lateRed)).toThrow("round.redFrom");
-    const lateLegend = edited((c) => {
-      (c.legend as Record<string, unknown>).to = 240;
-    });
-    expect(() => readTuning(lateLegend)).toThrow("legend.to");
   });
 
   it("판에 부르는 생물이 설정표에 없는 종이거나, 하늘 무리에 도는 반지름이 없으면 → 멈춘다", () => {
@@ -104,25 +59,6 @@ describe("숨바꼭질 값 파일(hideseek.data.json)", () => {
       guests[0] = { species: "c_wletter", count: 3, x: 0, y: 10 };
     });
     expect(() => readTuning(flat)).toThrow("guests[0].orbit");
-  });
-
-  it("뒤에 숨기의 side 가 1·-1 이 아니면 → 멈춘다", () => {
-    const bad = edited((c) => {
-      const spots = c.spots as Record<string, unknown>[];
-      spots[0] = { ...spots[0], side: 0 };
-    });
-    expect(() => readTuning(bad)).toThrow("spots[0].side");
-  });
-
-  it("뛰어가는 시간·고양이가 냄새 맡는 거리가 차례대로가 아니면 → 멈춘다", () => {
-    const slow = edited((c) => {
-      (c.find as Record<string, unknown>).leapMin = 2;
-    });
-    expect(() => readTuning(slow)).toThrow("find: leapMin 이 leapMax 보다 길다");
-    const mixed = edited((c) => {
-      (c.cat as Record<string, unknown>).near = 30;
-    });
-    expect(() => readTuning(mixed)).toThrow("cat: near ≤ mid ≤ far");
   });
 
   it("무리가 사는 자리(home)가 [x, y] 두 수가 아니거나 무대 밖이면 → 멈춘다", () => {
@@ -160,19 +96,6 @@ describe("숨바꼭질 값 파일(hideseek.data.json)", () => {
     expect(() => readTuning(sky)).toThrow("guests[0].row: 하늘 무리는 줄 서지 않는다");
   });
 
-  it("도움을 주는 무리가 없는 종류가 있거나 모르는 도움이면 → 멈춘다", () => {
-    const none = edited((c) => {
-      const guests = c.guests as Record<string, unknown>[];
-      c.guests = guests.filter((g) => g.help !== "watch");
-    });
-    expect(() => readTuning(none)).toThrow('도움 "watch" 를 주는 무리가 적어도 하나여야 한다');
-    const unknown = edited((c) => {
-      const guests = c.guests as Record<string, unknown>[];
-      guests[0] = { ...guests[0], help: "map" };
-    });
-    expect(() => readTuning(unknown)).toThrow("guests[0].help");
-  });
-
   it("앉을 자리가 무리보다 적거나 무대 밖이면 → 멈춘다", () => {
     const few = edited((c) => {
       c.seats = (c.seats as unknown[]).slice(0, 3);
@@ -185,92 +108,22 @@ describe("숨바꼭질 값 파일(hideseek.data.json)", () => {
     expect(() => readTuning(far)).toThrow("seats[0]: 무대 반경");
   });
 
-  it("묶음의 아닌 척 수가 틀리거나 첫 묶음에 내 줄에 끼기가 있으면 → 멈춘다", () => {
-    const many = edited((c) => {
-      c.rounds = [["wishtree", "glasses", "flowerpot", "pad-n"]];
-    });
-    expect(() => readTuning(many)).toThrow("rounds[0]: 아닌 척하기가 1개여야 한다");
-    const line = edited((c) => {
-      c.rounds = [["wishtree", "wishtree-fruit", "pad-n", "line"]];
-    });
-    expect(() => readTuning(line)).toThrow("rounds[0]: 첫 묶음에는 내 줄에 끼기를 쓰지 않는다");
-  });
-
-  it("가면이 섞여 들 무리가 땅 위 손님이 아니면 → 멈춘다", () => {
-    const bad = edited((c) => {
-      const list = c.disguises as Record<string, unknown>[];
-      const at = list.findIndex((d) => d.as === "mask");
-      list[at] = { ...list[at], group: "c_wletter" };
-    });
-    expect(() => readTuning(bad)).toThrow('"c_wletter" 는 guests 의 땅 위 무리가 아니다');
-  });
-
-  it("줄 선 상자의 배수가 1 을 넘거나 고양이 고개 폭이 0~90 도 밖이면 → 멈춘다", () => {
+  it("줄 선 상자의 배수가 1 을 넘으면 → 멈춘다", () => {
     const big = edited((c) => {
       (c.line as Record<string, unknown>).scale = 1.2;
     });
     expect(() => readTuning(big)).toThrow("line.scale: 1 이하여야 한다");
-    const wide = edited((c) => {
-      (c.cat as Record<string, unknown>).wobble = 120;
-    });
-    expect(() => readTuning(wide)).toThrow("cat.wobble: 0~90 도여야 한다");
   });
 
-  it("이 조각의 값 → 생물은 작게 돕고(토끼 15m·버섯 10m 2초·열쇠 15m 3초·시계 10초), 이름표는 둘, 어려움 단계 셋", () => {
-    expect(HIDE.find).toMatchObject({ tapReach: 30, tapPad: 24, tapMin: 96, tapMove: 10 });
+  it("값 → 누르기·상자·버섯 높이 뛰기가 명세대로", () => {
+    expect(HIDE.find).toEqual({ tapPad: 24, tapMin: 96, tapMove: 10 });
     expect(HIDE.box).toMatchObject({ height: 3, earScale: 2, outlinePx: 2 });
-    expect(HIDE.help).toMatchObject({ markReach: 20, ringMax: 4, tagMax: 2, pokeCooldown: 20 });
-    expect(HIDE.legend).toMatchObject({ lift: 36, descendSeconds: 2.5, carryLift: 20 });
-    expect(HIDE.rabbit).toMatchObject({ run: 15, trailSeconds: 8, stop: 20 });
     expect(HIDE.mushroom).toMatchObject({ height: 25, hang: 4, drift: 10 });
-    expect(HIDE.key).toMatchObject({ reach: 15, seconds: 3 });
-    expect(HIDE.cupcake).toMatchObject({ walkSeconds: 6 });
-    expect(HIDE.watch).toMatchObject({ addSeconds: 10, minElapsed: 60 });
-    expect(HIDE.screen).toMatchObject({ helpLineSeconds: 2.5, helpLineQuietAfter: 3 });
-    expect(HIDE.difficulty.map((d) => d.showShare)).toEqual([0.4, 0.25, 0.15]);
-    expect(HIDE.difficulty.map((d) => [d.pretend, d.sneak])).toEqual([
-      [1, 1],
-      [2, 2],
-      [2, 2],
-    ]);
-    expect(HIDE.difficulty[1]).toMatchObject({ minFromStart: 30, minApart: 25, peekEvery: [5, 8] });
-    expect(HIDE.copy.counts).toEqual(["1", "2", "3", "4"]);
-    expect(HIDE.copy.help).toMatchObject({
-      rabbit: "길 안내",
-      legend: "타기",
-      watch: "시간 +10초",
-    });
   });
 
-  it("화면 글 → 큰 글자·단추·에취!·숫자·생물 이름표와 한 줄 말고는 없다(칙이라는 낱말은 어디에도 없다)", () => {
-    expect(Object.keys(HIDE.copy).sort()).toEqual(
-      [
-        "again",
-        "boxesWin",
-        "counts",
-        "found",
-        "help",
-        "helpLine",
-        "hide",
-        "it",
-        "open",
-        "sneeze",
-        "teach",
-      ].sort(),
-    );
+  it("화면 글 → 큰 글자와 단추 말고는 없다(칙이라는 낱말은 어디에도 없다)", () => {
+    expect(Object.keys(HIDE.copy).sort()).toEqual(["again", "found", "hide", "it", "open"]);
     const texts = JSON.stringify(HIDE.copy);
     expect(texts).not.toContain("칙");
-  });
-
-  it("이름표 수가 고리 수보다 많으면 → 멈춘다", () => {
-    const raw = JSON.parse(JSON.stringify(data)) as Record<string, Record<string, unknown>>;
-    raw.help.tagMax = 9;
-    expect(() => readTuning(raw)).toThrow(/help.tagMax/);
-  });
-
-  it("토끼 다시 뛰는 거리 → 기다리는 거리보다 작지 않으면 멈춘다", () => {
-    const raw = JSON.parse(JSON.stringify(data)) as Record<string, Record<string, unknown>>;
-    raw.rabbit.resumeGap = 12;
-    expect(() => readTuning(raw)).toThrow(/rabbit/);
   });
 });

@@ -28,11 +28,11 @@ import type { Candidate } from "./props";
 import { Props } from "./props";
 import type { Seeker } from "./seeker";
 import { createSeeker } from "./seeker";
-import { roundSpots, STAGE_HUB } from "./spots";
+import { STAGE_HUB } from "./spots";
 import { Timeline } from "./timeline";
 import type { BloomSpot } from "./trail";
 import { FlowerTrail, longestTrail } from "./trail";
-import { HIDE } from "./tuning";
+import { HIDE, ROUND_BOXES } from "./tuning";
 import type { UnboxLinks } from "./unbox";
 import { dealContents, Unboxing } from "./unbox";
 import type { WarmCat, WarmTarget } from "./warmth";
@@ -48,7 +48,6 @@ import { Warm } from "./warmth";
 //   버섯(mushrooms)은 높이 올라가 둘러보고 높은 곳에 닿는 이동 수단이다. 생물은 구경꾼(bystanders) — 눌러도 반응하지 않고 달아나지도 않는다
 // 흐름: 꼭꼭 숨어라(hiding — 상자들이 등 뒤로 달려 나가고, 눈을 감은 동안 물건 속에 든다) → 찾기(해는 지지 않는다 — 넷을 다 찾아야 끝난다) →
 //   금색 상자 → '깔까?' → 언박싱(unbox) → '한 판 더'.
-// 앞 조각의 생물 도움·전설·해 지기·몰래 움직이기·아닌 척하기는 꺼 두었다(파일은 남아 있다 — helpers·hints·legend·sunset·sneak·disguise·coach·focus).
 // 값은 hideseek.data.json(FIND·HIDE), 정한 때에 할 일은 timeline. 유영 조작 값과 맵은 건드리지 않는다
 
 /** 판 흐름 */
@@ -111,8 +110,6 @@ export interface HideSeekLinks {
   creatures: BystanderCreatures;
   /** 고래: 타고 있으면 내려 준다 */
   whale: { dismount(): void };
-  /** 하늘: 노을이 진 정도(0 낮 — 이 판은 해가 지지 않는다) */
-  sky: { setDusk(k: number): void };
   /** 옆을 따라다니는 고양이(꼬리 반짝임) */
   cat: WarmCat;
   /** 장소(소원 나무 …)가 반응할 때 라임빛으로 물드나 — 판 동안은 끈다(라임색은 상자의 것) */
@@ -245,11 +242,10 @@ export class HideSeek implements Thing, Tappable {
     const hub = s.occ.hubs[STAGE_HUB];
     if (!hub)
       throw new Error(`[teum] hideseek.data.json — stage.hub: 지도에 없는 마을(${STAGE_HUB})`);
-    // 상자 넷(숨는 자리는 판마다 물건으로 정한다 — 옛 자리표의 첫 묶음은 자리만 채워 둔다)
-    const spots = roundSpots(1);
-    for (const spot of spots) {
+    // 상자 넷(숨는 자리는 판마다 물건으로 정한다)
+    for (let i = 0; i < ROUND_BOXES; i++) {
       const box = new LimeBox(s.models, s.scene, 1, false, this.rand),
-        seeker = createSeeker(box, spot);
+        seeker = createSeeker(box);
       this.seekers.push(seeker);
     }
     this.bonus = new LimeBox(s.models, s.scene, HIDE.bonus.scale, true, this.rand);
@@ -335,7 +331,7 @@ export class HideSeek implements Thing, Tappable {
     this.unboxing.update(dt, f.time);
     const canLook = this.phase === "seek" || this.phase === "prompt" || this.phase === "end";
     if (!studioOpen) this.looker?.update(dt, canLook);
-    this.overlay.update(this.s.camera.camera, dt);
+    this.overlay.update(dt);
   }
 
   dispose() {
@@ -420,7 +416,6 @@ export class HideSeek implements Thing, Tappable {
     const L = this.links;
     L.input.hold(true);
     L.studio.setWearHidden(true);
-    L.sky.setDusk(0);
     L.setPlaceGlow(false);
     L.setLabels(false);
     L.setCompany(false);
@@ -462,7 +457,7 @@ export class HideSeek implements Thing, Tappable {
     }
     this.isSeated = true;
     this.bystanders.turnAway(true);
-    this.hiding.start(hub, null, this.first, HIDE.difficulty[0], {
+    this.hiding.start(this.first, {
       // 눈을 감은 동안: 상자들이 물건 속에 들고, 꽃 길이 놓이고, 버섯과 구경꾼이 제자리에 앉는다
       settled: () => this.settle(hub),
       go: () => this.startSeek(),
@@ -635,7 +630,6 @@ export class HideSeek implements Thing, Tappable {
     b.setSize(scale, true);
     const face = this.faceFrom(c.v);
     b.put(c.v, base, face);
-    b.setPeek(null);
     b.setLongEars(true);
     b.setOutline(false);
     b.visible = h.pattern === "A" || h.pattern === "D";

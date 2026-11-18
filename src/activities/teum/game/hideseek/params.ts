@@ -1,15 +1,16 @@
 // 숨바꼭질 시험판의 주소 인자. 오너가 미리 보기(운영 빌드)에서 폰으로 바꿔 가며 보므로 debug.ts 와 달리 운영에서도 읽는다.
-//   ?hide=1·2·3 숨는 자리 묶음을 골라 본다(없으면 어려움 단계대로 고른다) · ?level=0·1·2 어려움 단계를 골라 본다(없으면 이 기기에서 한 판 수대로) ·
+//   ?hide=1·2·3… 상자를 숨길 물건을 고르는 씨앗(같은 수면 같은 물건, 판마다 하나씩 더한다 — 없으면 놀이 난수) ·
+//   ?level=0 맨 처음 판처럼(쉬운 패턴) · 1·2 그 뒤 판처럼(없으면 이 기기에서 처음 하는 판인지로 정한다) ·
 //   ?look=1 멈춰서 둘러보기 · ?debug 끝 화면에 잰 값
 
-/** 골라 본 숨는 자리 묶음(1 부터). 없거나 잘못된 값이면 null */
+/** 골라 본 숨길 물건 씨앗(1 부터). 없거나 잘못된 값이면 null */
 export function hideSet(search: string = location.search): number | null {
   const raw = new URLSearchParams(search).get("hide");
   const n = Number(raw);
   return Number.isInteger(n) && n >= 1 ? n : null;
 }
 
-/** 골라 본 어려움 단계(0·1·2). 없거나 잘못된 값이면 null */
+/** 골라 본 판 단계(0 맨 처음 판 · 1·2 그 뒤). 없거나 잘못된 값이면 null */
 export function forcedLevel(search: string = location.search): number | null {
   const raw = new URLSearchParams(search).get("level");
   if (raw === null) return null;

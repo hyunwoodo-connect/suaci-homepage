@@ -47,8 +47,6 @@ export const FLIGHT = Object.freeze({
 
 /** 키컬러 라임 */
 export const LIME = 0xa9ff39;
-/** 톤을 칠하기 전 바탕색 */
-export const BG = 0xe6e9e8;
 /** 톤을 칠하기 전 놀이기구 색 */
 export const GREY_TOY = 0xb9bdbc;
 /** 흰색(바꾸지 않는다) */

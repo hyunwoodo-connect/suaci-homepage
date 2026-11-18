@@ -1,11 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import type { SoundCue } from "./settings";
 import {
   CREATURES,
   MODEL_BAKE,
   MODEL_TINT,
-  SOUND_EFFECTS,
   herdSpecies,
   lakeSpecies,
   sculptureKeys,
@@ -95,35 +93,5 @@ describe("설정 표", () => {
   it("일각고래·물개 → 앞이 -z 라 받을 때 y 축으로 -90도", () => {
     expect(MODEL_BAKE.c_narwhal).toEqual([0, -Math.PI / 2, 0]);
     expect(MODEL_BAKE.c_seal).toEqual([0, -Math.PI / 2, 0]);
-  });
-});
-
-describe("숨바꼭질 소리(두 벌)", () => {
-  const keyOf = (rule: unknown): string => {
-    const cue = (rule as () => SoundCue)();
-    return cue.key;
-  };
-
-  it("킥킥 → a·b 를 번갈아 낸다", () => {
-    const rule = SOUND_EFFECTS.hideBoxGiggled;
-    const first = keyOf(rule),
-      second = keyOf(rule),
-      third = keyOf(rule);
-    expect(new Set([first, second])).toEqual(new Set(["snd_box_giggle_a", "snd_box_giggle_b"]));
-    expect(third).toBe(first);
-  });
-
-  it("찾았다 → a 를 먼저 쓰고, 4초 안에 또 나면 b 를 섞는다", () => {
-    const clock = vi.spyOn(performance, "now");
-    const rule = SOUND_EFFECTS.hideBoxFound;
-    clock.mockReturnValue(100_000);
-    expect(keyOf(rule)).toBe("snd_box_found_a");
-    clock.mockReturnValue(102_000);
-    expect(keyOf(rule)).toBe("snd_box_found_b");
-    clock.mockReturnValue(103_000);
-    expect(keyOf(rule)).toBe("snd_box_found_a");
-    clock.mockReturnValue(120_000);
-    expect(keyOf(rule)).toBe("snd_box_found_a");
-    vi.restoreAllMocks();
   });
 });

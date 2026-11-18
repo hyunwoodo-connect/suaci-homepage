@@ -555,15 +555,6 @@ export class Sculptures implements Thing, HasHeights {
     }
   }
 
-  /** at 둘레 reach(m) 안의 조형물이 꿀렁인다(숨바꼭질: 칙이 헛나가도 안개가 닿은 것은 반응한다) */
-  shakeNear(at: THREE.Vector3, reach: number) {
-    for (const o of this.list) {
-      if (o.v.dot(at) < 0.99 || o.v.angleTo(at) * S.R > reach + o.r) continue;
-      const pressed = Math.max(o.sq, 0.6);
-      this.squash(o, pressed);
-    }
-  }
-
   /** 찍어 둔 묶음은 모델 자리(ModelLibrary)가 치운다 */
   dispose() {}
 

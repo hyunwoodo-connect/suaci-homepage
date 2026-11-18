@@ -1,5 +1,5 @@
 import type { GameEventMap, GameEventName, RideName } from "../game/events";
-import type { Content, HelpKind } from "../game/hideseek/tuning";
+import type { Content } from "../game/hideseek/tuning";
 
 // 에셋 종류마다의 설정. 시제품 곳곳에 있던 표(KIND·BAKE·SP·색조 tint·줄무늬 pat·조형물 목록)를 한곳에 모았다.
 // 생물·조형물을 늘릴 때: 파일을 raw/ 에 넣고 → tools/catalog.mjs 에 한 줄 → 여기 표에 한 줄.
@@ -302,19 +302,6 @@ const HIDE_CONTENT_SOUND: Readonly<Partial<Record<Content, SoundCue>>> = {
   whale: { key: "snd_whale", volume: 0.6, delay: 0.3, gap: 0.01 },
 };
 
-/**
- * 생물의 도움이 시작되는 몸짓마다(토끼가 깜짝 뛸 때·버섯이 쏘아 올릴 때·열쇠가 돌아갈 때·병정이 창을 찍을 때·컵케이크가 풀썩 앉을 때·바늘이 거꾸로 돌 때) —
- * 기획이 넘긴 소리(teum-handoff/assets/sounds-01e). 크기는 잰 평균 음량(rabbit -8.6dB … watch -27.9dB)을 맞춘 것
- */
-const HIDE_HELP_SOUND: Readonly<Record<HelpKind, SoundCue>> = {
-  rabbit: { key: "snd_help_rabbit", volume: 0.3 },
-  mushroom: { key: "snd_help_mushroom", volume: 0.65 },
-  key: { key: "snd_help_key", volume: 0.6 },
-  soldier: { key: "snd_help_soldier", volume: 0.55 },
-  cupcake: { key: "snd_help_cupcake", volume: 0.9 },
-  watch: { key: "snd_help_watch", volume: 0.95 },
-};
-
 /** 뜨거워 차가워의 키득 셋(번갈아 낸다) — 크기는 잰 평균 음량(-27dB · -19dB · -15dB)을 맞춘 것 */
 const FIND_GIGGLES: readonly { key: string; volume: number }[] = [
   { key: "snd_find_giggle_1", volume: 1 },
@@ -322,20 +309,7 @@ const FIND_GIGGLES: readonly { key: string; volume: number }[] = [
   { key: "snd_find_giggle_3", volume: 0.45 },
 ];
 
-/** 도움 없는 생물이 요란하게 반응할 때(종마다 — 있던 효과음을 빌린다) */
-const POKE_SOUND: Readonly<Record<string, SoundCue>> = {
-  teapot: { key: "snd_splash", volume: 0.45, rate: 1.3 },
-  c_dice: { key: "snd_boing", volume: 0.45, rate: 1.4 },
-  c_wletter: { key: "snd_wing", volume: 0.5, rate: 1.2 },
-  c_wheart: { key: "snd_ring", volume: 0.45, rate: 1.5 },
-  c_wcup: { key: "snd_splash", volume: 0.4, rate: 1.6 },
-  c_wbell: { key: "snd_ring", volume: 0.55, rate: 0.9 },
-  c_hat: { key: "snd_pick", volume: 0.5, rate: 1.1 },
-  c_rose: { key: "snd_up", volume: 0.45, rate: 1.3 },
-};
-const POKE_DEFAULT: SoundCue = { key: "snd_boing", volume: 0.4 };
-
-/** 상자·생물·전설을 눌렀을 때 미스트 줄기가 날아가는 소리 */
+/** 후보 물건을 눌렀을 때 미스트 줄기가 날아가는 소리 */
 const TAP_MIST: SoundCue = { key: "snd_hide_tap_mist", volume: 0.55 };
 
 /** 생물 인사: 몸 휘는 방식(motion)마다 소리, 두 발(5)은 통통 튀는 소리. 종마다 음높이가 조금씩 다르다 */
@@ -391,51 +365,8 @@ export const SOUND_EFFECTS: SoundTable = {
         : { key: "snd_ring", volume: 0.5, delay: 0.35, gap: 0.01 },
   ],
   questDone: { key: "snd_win", volume: 0.7 },
-  // ---- 숨바꼭질 — 기획이 넘긴 소리(snd_box_… 01b, snd_hide_…·snd_help_… 01e). 소리가 없는 순간(빈 데 톡·언박싱)은 있던 효과음을 빌려 쓴다 ----
+  // ---- 숨바꼭질 — 기획이 넘긴 소리(snd_box_…). 소리가 없는 순간(금색 상자가 떨어질 때·언박싱)은 있던 효과음을 빌려 쓴다 ----
   hideStarted: { key: "snd_box_steps_a", volume: 0.7, rate: [0.95, 1.1] },
-  hideChik: ({ sneezed }) =>
-    sneezed ? null : { key: "snd_ring", volume: 0.16, rate: 0.55, gap: 0.2 },
-  hideBoxSneezed: inTurn(
-    { key: "snd_box_sneeze_a", volume: 0.7, rate: [0.9, 1.15], gap: 0.08 },
-    { key: "snd_box_sneeze_b", volume: 0.62, rate: [0.9, 1.15], gap: 0.08 },
-  ),
-  // 높은 상자: 놓치는 순간 떨어지는 소리, 바닥에 꽂힐 때 쿵
-  hideBoxDropped: [
-    { key: "snd_box_fall_a", volume: 0.7, delay: 0.9, gap: 0.01 },
-    { key: "snd_box_thud_small", volume: 0.7, delay: 1.3, gap: 0.01 },
-  ],
-  hideBoxFound: mixWhenRepeated(
-    { key: "snd_box_found_a", volume: 0.75 },
-    { key: "snd_box_found_b", volume: 0.75 },
-    4,
-  ),
-  hideBoxSighed: inTurn(
-    { key: "snd_box_phew_a", volume: 0.42, rate: [0.95, 1.1], gap: 0.5 },
-    { key: "snd_box_phew_b", volume: 0.5, rate: [0.95, 1.1], gap: 0.5 },
-  ),
-  hideBoxGiggled: inTurn(
-    { key: "snd_box_giggle_a", volume: 0.5, gap: 0.5 },
-    { key: "snd_box_giggle_b", volume: 0.6, gap: 0.5 },
-  ),
-  hideBoxTapped: ({ far }) => (far ? { key: "snd_box_giggle_b", volume: 0.5, gap: 0.3 } : TAP_MIST),
-  hideLeapt: { key: "snd_hide_leap", volume: 0.65 },
-  hideBoxSneaked: inTurn(
-    { key: "snd_box_steps_a", volume: 0.35, rate: [1.1, 1.3], gap: 0.9 },
-    { key: "snd_box_steps_b", volume: 0.18, rate: [1.1, 1.3], gap: 0.9 },
-  ),
-  hideDisguiseBlown: { key: "snd_box_giggle_a", volume: 0.55 },
-  // 고리는 자주 켜지니 다른 소리의 절반으로
-  hideRingOn: { key: "snd_hide_ring_on", volume: 0.14, gap: 0.6 },
-  hideCreatureTapped: TAP_MIST,
-  hideCreaturePoked: ({ species }) => POKE_SOUND[species] ?? POKE_DEFAULT,
-  hideHelpUsed: ({ kind }) => HIDE_HELP_SOUND[kind],
-  hideBoxAnswered: { key: "snd_box_giggle_b", volume: 0.35, rate: [1.2, 1.5], gap: 0.05 },
-  hidePrintStomped: { key: "snd_ring", volume: 0.2, rate: [1.6, 2], gap: 0.08 },
-  hideLegendCame: { key: "snd_box_legend", volume: 0.7 },
-  hideLegendTapped: TAP_MIST,
-  hideLegendCried: { key: "snd_hide_legend", volume: 0.6 },
-  hideLegendBoarded: { key: "snd_legend", volume: 0.6 },
-  hideBoxesWon: { key: "snd_box_steps_a", volume: 0.7, rate: 1.15 },
   hideAllFound: { key: "snd_box_allfound", volume: 0.7 },
   hideBonusFalling: { key: "snd_up", volume: 0.5, rate: 1.8 },
   hideBonusLanded: { key: "snd_box_thud_big", volume: 0.9 },
@@ -477,7 +408,8 @@ export const SOUND_EFFECTS: SoundTable = {
   openRolled: ({ pan }) => ({ key: "snd_open_drum", volume: 0.4, pan, ...OPEN_ROLL }),
   openPopped: ({ pan }) => ({ key: "snd_open_pop", volume: 1, pan }),
   openFizzled: ({ pan }) => ({ key: "snd_open_fizzle", volume: 0.85, pan }),
-  mushroomJumped: HIDE_HELP_SOUND.mushroom,
+  // 기획이 넘긴 소리(teum-handoff/assets/sounds-01e) — 크기는 잰 평균 음량에 맞춘 것
+  mushroomJumped: { key: "snd_help_mushroom", volume: 0.65 },
   travelled: { key: "snd_rocket", volume: 0.6 },
 };
 
@@ -488,25 +420,6 @@ export const BACKGROUND_MUSIC: SoundCue | null = { key: "snd_bgm", volume: 0.3 }
 export const SOUND_VOLUME: Readonly<Record<SoundChannel, number>> = { bgm: 1, sfx: 1 };
 
 /* ─── 내부 ─────────────────────────── */
-
-// 두 벌(a·b)인 소리를 번갈아 낸다(킥킥처럼 자주 나는 소리가 덜 물리게)
-function inTurn(a: SoundCue, b: SoundCue): () => SoundCue {
-  let count = 0;
-  return () => (count++ % 2 === 0 ? a : b);
-}
-
-// 두 벌인 소리: a 를 먼저 쓰고, 같은 소리가 within 초 안에 또 나면 b 를 섞는다
-function mixWhenRepeated(a: SoundCue, b: SoundCue, within: number): () => SoundCue {
-  let lastAt = -Infinity,
-    wasA = false;
-  return () => {
-    const now = performance.now() / 1000,
-      isRepeat = now - lastAt < within;
-    lastAt = now;
-    wasA = !(isRepeat && wasA);
-    return wasA ? a : b;
-  };
-}
 
 // 종 키마다 고정된 음높이 칸(0..7) — 시제품의 글자 해시
 function speciesPitch(kind: string): number {

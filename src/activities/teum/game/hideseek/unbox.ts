@@ -181,7 +181,6 @@ export class Unboxing {
       this.slotOf(i, boxes.length, slot);
       const ground = this.s.terrain.groundAt(slot);
       box.put(slot, ground, h);
-      box.setPeek(null);
     });
   }
 
@@ -195,7 +194,6 @@ export class Unboxing {
     this.endWait = -1;
     this.active = true;
     this.onDone = onDone;
-    for (const b of boxes) b.setPeek(null);
   }
 
   /** 화면을 눌렀다: 지금 상자가 한 번에 들썩, 두 번에 열린다 */

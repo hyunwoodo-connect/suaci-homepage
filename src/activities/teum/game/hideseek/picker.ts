@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-// 손가락으로 톡 친 것 고르기: 세계의 것(상자·생물·전설)을 화면에 비춰 그려진 네모를 구하고, 사방 pad(px) 넓히고
+// 손가락으로 톡 친 것 고르기: 세계의 것(리본 달린 물건·물건 밖으로 나온 상자)을 화면에 비춰 그려진 네모를 구하고, 사방 pad(px) 넓히고
 // 적어도 min(px) 네모로 받는다 — 귀만 삐져나와 있어도 그 귀를 누르면 된다. 여러 개가 겹치면 카메라에서 가까운 것.
 // 높이나 물건 너머는 따지지 않는다(보인 것을 누르는 놀이다). 카메라 뒤와 화면 밖은 고르지 않는다
 
@@ -56,16 +56,4 @@ export function pickAt<T>(
     best = t.item;
   }
   return best;
-}
-
-/** 세계 키 h(m)가 거리 dist(m)에서 화면에 그려지는 키(px) */
-export function screenHeight(
-  h: number,
-  dist: number,
-  camera: THREE.PerspectiveCamera,
-  viewH: number,
-) {
-  const halfFov = (camera.fov * Math.PI) / 360,
-    span = 2 * Math.tan(halfFov) * dist;
-  return (h / span) * viewH;
 }

@@ -27,7 +27,7 @@ export interface BystanderCreatures {
     row: boolean,
   ): void;
   /** 숨바꼭질이 맡는다(자리와 몸짓을 숨바꼭질이 정한다) · 돌려보낸다 */
-  escort(c: Creature, run?: boolean): void;
+  escort(c: Creature): void;
   dismiss(c: Creature): void;
   /** 올라선 것을 튕겨 낸 버섯: 갓이 한참 출렁인다 */
   wobble(c: Creature): void;

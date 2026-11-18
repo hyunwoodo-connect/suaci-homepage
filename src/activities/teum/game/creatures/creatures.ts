@@ -27,7 +27,7 @@ import { BREATH, BREATH_SECONDS, createResident, LOOK_SECONDS, LOOK_SWING } from
 import { Town } from "./town";
 
 /** 숨바꼭질 판에 부른 땅 위 무리가 서는 모양(m): 둘러설 때의 반지름 · 한 줄로 설 때의 간격 */
-export const GUEST_RING = 2.8,
+const GUEST_RING = 2.8,
   GUEST_ROW_GAP = 2.6;
 
 // 생물: 놀이기구가 아니라 손님이다. 저마다 제 할 일을 하다가 나를 알아채고, 동작이 끊기지 않고 이어진다. 이름은 없다.
@@ -258,10 +258,8 @@ export class Creatures implements Thing {
     for (const i of this.active) {
       const c = this.list[i];
       if (c.st === "guide") {
-        // 숨바꼭질이 맡은 동안: 자리는 숨바꼭질이 정한다 — 달리면 달리는(나는) 몸짓, 서 있으면 선 몸짓
-        const stride = c.isRunning ? 1 : 0;
-        if (c.isRunning) c.ph += dt * 12;
-        c.amt += (stride - c.amt) * ease(7, dt);
+        // 숨바꼭질이 맡은 동안: 자리는 숨바꼭질이 정한다 — 선 몸짓으로 그린다
+        c.amt -= c.amt * ease(7, dt);
         this.put(c, dt);
         continue;
       }
@@ -379,12 +377,11 @@ export class Creatures implements Thing {
   }
 
   /**
-   * 숨바꼭질에 맡긴다(도움을 주는 동안): 이 생물은 제 할 일을 멈추고, 자리(v·a)와 보는 쪽(f)을 숨바꼭질이 프레임마다 정한다 —
-   * 여기서는 그리기만 한다(run 이면 달리는 몸짓). 다 하면 dismiss
+   * 숨바꼭질에 맡긴다(버섯에 올라탈 때처럼): 이 생물은 제 할 일을 멈추고, 자리(v·a)와 보는 쪽(f)을 숨바꼭질이 프레임마다 정한다 —
+   * 여기서는 선 몸짓으로 그리기만 한다. 다 하면 dismiss
    */
-  escort(c: Creature, run = true) {
+  escort(c: Creature) {
     c.st = "guide";
-    c.isRunning = run;
     c.hop = 0;
     c.hopV = 0;
     c.sink = 0;
@@ -396,7 +393,7 @@ export class Creatures implements Thing {
     this.lastTime = -1e9;
   }
 
-  /** 도움을 마쳤다: 제 갈 길을 간다(주민은 제 하루로, 땅 위 무리는 집으로 걸어가고, 하늘 무리는 제 궤도로 돌아간다) */
+  /** 맡긴 일이 끝났다: 제 갈 길을 간다(주민은 제 하루로, 땅 위 무리는 집으로 걸어가고, 하늘 무리는 제 궤도로 돌아간다) */
   dismiss(c: Creature) {
     if (c.st !== "guide") return;
     c.vt = 0;
@@ -1336,7 +1333,6 @@ export class Creatures implements Thing {
       legend: 0,
       calm: false,
       inRow: false,
-      isRunning: false,
       ctr: null,
       rad: 0,
       dir: 0,

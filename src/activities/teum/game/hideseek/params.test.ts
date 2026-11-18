@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buildStamp, forcedLevel, hideSet, isLookAround, isStatsShown } from "./params";
 
 describe("숨바꼭질 주소 인자", () => {
-  it("?hide → 1 이상의 정수면 그 묶음, 없거나 잘못되면 null(어려움 단계대로 고른다)", () => {
+  it("?hide → 1 이상의 정수면 그 씨앗, 없거나 잘못되면 null(놀이 난수로 고른다)", () => {
     expect(hideSet("?hide=3")).toBe(3);
     expect(hideSet("")).toBeNull();
     expect(hideSet("?hide=0")).toBeNull();

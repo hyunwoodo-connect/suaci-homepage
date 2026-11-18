@@ -28,7 +28,6 @@ describe("조각 02 의 값(hideseek.data.json 의 warm·candidate·miss·hide·
       maxMoves: 2,
     });
     expect(FIND.hide.first).toEqual(["A", "A", "B", "D"]);
-    expect(FIND.found.danceSeconds).toBe(1.2);
   });
 
   it("뜨거워 차가워의 거리·간격이 차례대로가 아니면 → 멈춘다", () => {

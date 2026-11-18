@@ -1,6 +1,4 @@
 import type { Pattern } from "./findTuning";
-import type { LogStore } from "./stats";
-import { HIDE_LOG_KEY, localLogStore } from "./stats";
 import { ROUND_BOXES } from "./tuning";
 
 // 조각 02 '찾는 손맛'에서 재는 것(가까워지는 게 느껴지나, 누르기 전에 의심하나, 메롱 이사가 재밌나, 상자 하나에 1~2분쯤 걸리나에 답할 숫자):
@@ -9,9 +7,17 @@ import { ROUND_BOXES } from "./tuning";
 
 /** 지금 규칙의 이름(기록마다 남겨 규칙이 다른 판과 섞어 세지 않는다) */
 export const FIND_RULES = "02";
+/** 이 기기의 기록 칸(판마다 한 줄, 최근 것만) */
+const HIDE_LOG_KEY = "suaci.teum.hideseek";
 /** 남기는 판 수 · 한국 시간(UTC+9, ms) */
 const KEEP = 30,
   KST_MS = 9 * 3600e3;
+
+/** 기록을 두는 곳(시험이 바꾼다) */
+export interface LogStore {
+  read(): string | null;
+  write(text: string): void;
+}
 
 /** 상자 하나를 찾은 기록 */
 export interface FoundBox {
@@ -237,10 +243,25 @@ export function readFindList(store: LogStore): FindRecord[] {
   );
 }
 
-/** 기록 칸 이름(앞 조각들과 같은 칸) */
-export const FIND_LOG_KEY = HIDE_LOG_KEY;
-
 /* ─── 내부 ─────────────────────────── */
+
+// 이 기기의 기록 칸(사생활 모드·꽉 참으로 못 쓰면 남기지 않고 지나간다)
+function localLogStore(): LogStore {
+  return {
+    read: () => {
+      try {
+        return localStorage.getItem(HIDE_LOG_KEY);
+      } catch {
+        return null;
+      }
+    },
+    write: (text) => {
+      try {
+        localStorage.setItem(HIDE_LOG_KEY, text);
+      } catch {}
+    },
+  };
+}
 
 // 칸에 남은 것 모두(앞 조각의 기록도 섞여 있다 — 지우지 않고 같이 둔다). 깨졌으면 빈 목록
 function readAll(store: LogStore): unknown[] {

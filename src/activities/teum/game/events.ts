@@ -1,5 +1,4 @@
-import type { FoundHow } from "./hideseek/stats";
-import type { Content, HelpKind } from "./hideseek/tuning";
+import type { Content } from "./hideseek/tuning";
 import type { BoxSource, Prize, QuestType } from "./progress/save";
 
 // 게임에서 일어나는 일을 알리는 작은 알림판. 놀이기구·생물·만남이 알리기만 하고, 소리(sound/)가 듣는다.
@@ -17,8 +16,7 @@ export type RideName =
   | "hole"
   | "whale"
   | "comet"
-  | "slide"
-  | "leap";
+  | "slide";
 
 /** 알리는 일과 그때 함께 오는 값 */
 export interface GameEventMap {
@@ -77,44 +75,8 @@ export interface GameEventMap {
   // ---- 숨바꼭질 ----
   /** 꼭꼭 숨어라: 상자들이 숨을 곳으로 흩어져 달려간다 */
   hideStarted: Record<string, never>;
-  /** 칙 안개가 퍼졌다(sneezed: 그 칙에 재채기하거나 떨어진 상자 수) */
-  hideChik: { sneezed: number };
-  /** 숨은 상자가 재채기했다 */
-  hideBoxSneezed: Record<string, never>;
-  /** 높이 숨은 상자를 찾아 굴러떨어진다 */
-  hideBoxDropped: Record<string, never>;
-  /** 상자를 톡 쳤다: 미스트가 날아간다(far: 너무 멀어 힘없이 떨어진다 — 상자는 메롱) */
-  hideBoxTapped: { far: boolean };
-  /** 아바타가 상자까지 뛰어간다 */
-  hideLeapt: Record<string, never>;
-  /** 숨은 상자가 내가 안 볼 때 살금살금 움직였다 */
-  hideBoxSneaked: Record<string, never>;
-  /** 아닌 척하던 상자가 들통났다 */
-  hideDisguiseBlown: Record<string, never>;
-  /** 상자를 찾았다(count: 찾은 수, how: 톡 쳐서·전설이 데려다줘서) */
-  hideBoxFound: { count: number; how: FoundHow };
-  /** 숨은 상자가 '휴' 했다(내가 못 보고 지나쳤다) */
-  hideBoxSighed: Record<string, never>;
-  /** 킥킥: 오래 못 찾아 숨은 상자가 웃는다 · 해가 저물 무렵 */
-  hideBoxGiggled: Record<string, never>;
   /** 넷을 다 찾았다(칸 넷이 번쩍인다) */
   hideAllFound: Record<string, never>;
-  /** 생물 발밑 고리가 켜졌다(누를 수 있다) · 생물을 눌렀다(미스트가 날아간다 — 도움 없는 생물이면 kind 가 null) · 도움 없는 생물이 요란하게 반응한다(종) */
-  hideRingOn: Record<string, never>;
-  hideCreatureTapped: { kind: HelpKind | null };
-  hideCreaturePoked: { species: string };
-  /** 생물의 도움이 시작됐다 — 그 생물의 몸짓(토끼 깜짝·버섯 쏘아 올림·열쇠 찰칵·병정 창 쿵·컵케이크 풀썩·시계 바늘 거꾸로) · 숨은 상자가 점호에 번호를 댔다 */
-  hideHelpUsed: { kind: HelpKind };
-  hideBoxAnswered: Record<string, never>;
-  /** 토끼 발자국을 밟았다 */
-  hidePrintStomped: Record<string, never>;
-  /** 전설의 생물이 하늘에 나타났다 · 눌렀다(미스트가 하늘로) · 크게 울며 내려온다 · 나를 태웠다 */
-  hideLegendCame: Record<string, never>;
-  hideLegendTapped: Record<string, never>;
-  hideLegendCried: Record<string, never>;
-  hideLegendBoarded: Record<string, never>;
-  /** 해가 져서 남은 상자들이 튀어나와 이겼다고 뛴다 */
-  hideBoxesWon: Record<string, never>;
   /** 금색 상자가 하늘에서 떨어지기 시작했다(휘파람) */
   hideBonusFalling: Record<string, never>;
   /** 보너스 상자가 하늘에서 떨어져 내려앉았다 */

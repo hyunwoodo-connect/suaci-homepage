@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 
-import { pickAt, screenHeight } from "./picker";
+import { pickAt } from "./picker";
 
 // 원점에서 -z 를 보는 카메라(화면 390×844)
 function camera(): THREE.PerspectiveCamera {
@@ -14,6 +14,13 @@ function camera(): THREE.PerspectiveCamera {
 
 const VIEW = { w: 390, h: 844 };
 const at = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
+
+// 세계 키 h(m)가 거리 dist(m)에서 화면에 그려지는 키(px)
+function screenHeight(h: number, dist: number, cam: THREE.PerspectiveCamera, viewH: number) {
+  const halfFov = (cam.fov * Math.PI) / 360,
+    span = 2 * Math.tan(halfFov) * dist;
+  return (h / span) * viewH;
+}
 
 describe("pickAt", () => {
   it("화면 가운데의 것을 가운데에서 누르면 → 그것", () => {

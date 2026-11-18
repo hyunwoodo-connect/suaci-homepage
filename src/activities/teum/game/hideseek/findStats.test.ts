@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import type { LogStore } from "./findStats";
 import { FIND_RULES, FindLog, readFindList } from "./findStats";
-import type { LogStore } from "./stats";
 
 /** 기억에만 두는 기록 칸 */
 function memoryStore(initial: string | null = null): LogStore & { text: string | null } {

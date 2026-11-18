@@ -1,8 +1,8 @@
 import data from "./hideseek.data.json";
 import { HIDE, ROUND_BOXES } from "./tuning";
 
-// 조각 02 '찾는 손맛'의 값: hideseek.data.json 의 warm·candidate·miss·found·hide·trail·props·mushrooms 칸을 읽고 모양과 규칙을 확인한다
-// (틀리면 어느 칸인지 알리며 멈춘다). 앞 조각의 칸은 tuning.ts 가 읽는다
+// 조각 02 '찾는 손맛'의 값: hideseek.data.json 의 warm·candidate·miss·hide·trail·props·mushrooms 칸을 읽고 모양과 규칙을 확인한다
+// (틀리면 어느 칸인지 알리며 멈춘다). 열어 보기·주민의 칸은 openTuning.ts, 나머지 칸은 tuning.ts 가 읽는다
 
 /** 숨는 패턴: A 혼자 튀는 애(같은 물건 무리 가운데 하나) · B 길 끝(꽃 길의 끝) · C 속에 쏙(낱개 물건 안) · D 높은 곳 */
 export const PATTERNS = ["A", "B", "C", "D"] as const;
@@ -66,7 +66,6 @@ export interface FindTuning {
     highBelow: number;
   };
   miss: {
-    squishSeconds: number;
     tauntReach: number;
     tauntSeconds: number;
     moveRange: readonly [number, number];
@@ -75,7 +74,6 @@ export interface FindTuning {
     cooldown: number;
     maxMoves: number;
   };
-  found: { popHeight: number; spinSeconds: number; danceSeconds: number };
   hide: {
     patternMax: number;
     insideMax: number;
@@ -105,7 +103,6 @@ export function readFindTuning(raw: unknown): FindTuning {
     warm = record(r.warm, "warm"),
     candidate = record(r.candidate, "candidate"),
     miss = record(r.miss, "miss"),
-    found = record(r.found, "found"),
     hide = record(r.hide, "hide"),
     trail = record(r.trail, "trail"),
     props = record(r.props, "props");
@@ -227,7 +224,6 @@ export function readFindTuning(raw: unknown): FindTuning {
       highBelow: finite(candidate.highBelow, "candidate.highBelow"),
     },
     miss: {
-      squishSeconds: positive(miss.squishSeconds, "miss.squishSeconds"),
       tauntReach: positive(miss.tauntReach, "miss.tauntReach"),
       tauntSeconds: positive(miss.tauntSeconds, "miss.tauntSeconds"),
       moveRange: [moveRange[0], moveRange[1]],
@@ -235,11 +231,6 @@ export function readFindTuning(raw: unknown): FindTuning {
       moveArc: positive(miss.moveArc, "miss.moveArc"),
       cooldown: positive(miss.cooldown, "miss.cooldown"),
       maxMoves: whole(miss.maxMoves, "miss.maxMoves"),
-    },
-    found: {
-      popHeight: positive(found.popHeight, "found.popHeight"),
-      spinSeconds: positive(found.spinSeconds, "found.spinSeconds"),
-      danceSeconds: positive(found.danceSeconds, "found.danceSeconds"),
     },
     hide: {
       patternMax: whole(hide.patternMax, "hide.patternMax"),

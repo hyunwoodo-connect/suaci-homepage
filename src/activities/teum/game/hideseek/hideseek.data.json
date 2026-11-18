@@ -1,33 +1,11 @@
 {
-  "_about": "숨바꼭질 값. 기획이 코드 없이 직접 고친다 — 조각 02(찾는 손맛)의 칸(warm·candidate·miss·mushroom·found·hide·trail·props·mushrooms)은 teum-handoff/slice-02/RESULT.md, 그 앞 조각의 칸(생물 도움·아닌 척·몰래 움직이기·해 지기 — 지금은 꺼 둠)은 slice-01e/RESULT.md. 고친 뒤 pnpm test 가 모양과 규칙을 확인한다",
+  "_about": "숨바꼭질 값. 기획이 코드 없이 직접 고친다 — 찾기의 칸(warm·candidate·miss·mushroom·hide·trail·props·mushrooms)은 teum-handoff/slice-02/RESULT.md, 리본·열어 보기·주민의 칸(ribbon·open·npc, guests 의 home)은 slice-03/RESULT.md. 나머지 칸은 화면 글(copy)·색·무대(stage)·꼭꼭 숨어라 장면(start)·큰 글자(screen)·누르기(find)·상자의 몸짓(moves·box)·찾은 상자의 줄(line)·금색 상자(bonus)·언박싱(unbox)·둘러보기(look)·잰 값(measure)·주민 무리와 빈자리(guests·seats). 고친 뒤 pnpm test 가 모양과 규칙을 확인한다",
   "copy": {
     "hide": "꼭꼭 숨어라",
     "it": "술래는 너",
     "found": "찾았다!",
     "open": "깔까?",
-    "boxesWin": "우리가 이겼다!",
-    "again": "한 판 더",
-    "sneeze": "에취!",
-    "counts": ["1", "2", "3", "4"],
-    "help": {
-      "rabbit": "길 안내",
-      "mushroom": "높이 뛰기",
-      "key": "투시",
-      "soldier": "점호",
-      "cupcake": "미끼",
-      "watch": "시간 +10초",
-      "legend": "타기"
-    },
-    "helpLine": {
-      "rabbit": "발자국 쪽에 상자가 있어",
-      "mushroom": "위에서 찾아봐. 보이면 눌러!",
-      "key": "잠깐 물건 뒤가 보여",
-      "soldier": "상자들이 대답해. 어디서 나는지 봐",
-      "cupcake": "상자가 냄새 맡고 나와!",
-      "watch": "해가 뒤로 갔어",
-      "legend": "상자한테 데려다줄게"
-    },
-    "teach": "생물을 누르면 도와줘"
+    "again": "한 판 더"
   },
   "colors": {
     "lime": "#A9FF39",
@@ -36,10 +14,6 @@
   "stage": {
     "hub": 0,
     "radius": 70
-  },
-  "round": {
-    "seconds": 180,
-    "redFrom": 150
   },
   "start": {
     "lineAhead": 8,
@@ -51,65 +25,22 @@
     "closeAt": 2.8,
     "openAt": 3.3,
     "goAt": 3.6,
-    "laterShare": 0.5,
-    "firstShowShare": 0.6,
-    "firstSneezeEvery": 5
+    "laterShare": 0.5
   },
   "screen": {
-    "bigSeconds": 1.5,
-    "helpLineSeconds": 2.5,
-    "helpLineQuietAfter": 3
-  },
-  "chik": {
-    "reach": 35,
-    "sneezeCooldown": 3
+    "bigSeconds": 1.5
   },
   "find": {
-    "tapReach": 30,
     "tapPad": 24,
     "tapMin": 96,
-    "tapMove": 10,
-    "mistSeconds": 0.25,
-    "leapMin": 0.6,
-    "leapMax": 1,
-    "pauseSeconds": 0.3,
-    "coverSeconds": 0.3,
-    "hopSeconds": 0.3
-  },
-  "nearby": {
-    "holdBreathReach": 15,
-    "passReach": 6,
-    "watchShare": 0.4
-  },
-  "drop": {
-    "minAbove": 2
-  },
-  "help": {
-    "markReach": 20,
-    "ringScale": 1.4,
-    "ringMax": 4,
-    "focusSeconds": 1,
-    "lockSeconds": 0.5,
-    "tagMax": 2,
-    "pokeCooldown": 20
-  },
-  "rabbit": {
-    "speedShare": 0.9,
-    "waitGap": 12,
-    "resumeGap": 8,
-    "stepGap": 2,
-    "stop": 20,
-    "trailSeconds": 8,
-    "run": 15
+    "tapMove": 10
   },
   "mushroom": {
-    "note": "버섯 높이 뛰기(이동 수단): 솟는 높이(m)·꼭대기에서 내려오는 시간(초)·떠 있는 동안 옮길 수 있는 수평 거리(m)·눌러서 탈 수 있는 거리(m)·올라서는 것으로 치는 거리(m). tapReach 는 꺼 둔 옛 도움의 값",
+    "note": "버섯 높이 뛰기(이동 수단): 솟는 높이(m)·꼭대기에서 내려오는 시간(초)·떠 있는 동안 옮길 수 있는 수평 거리(m)·올라서는 것으로 치는 거리(m)",
     "height": 25,
     "hang": 4,
     "drift": 10,
-    "rideReach": 20,
-    "stepReach": 1.6,
-    "tapReach": 60
+    "stepReach": 1.6
   },
   "warm": {
     "note": "뜨거워 차가워: 가장 가까운 못 찾은 상자까지의 거리(m)로 키득 간격(초)을 정한다 — far 밖은 없음, far~mid 는 every[0], mid~near 는 every[1], near 안은 every[2](+물건이 바스락). volume 은 far 에서·near 에서의 키득 크기, pitch 는 음높이 폭(반음), sparkle 은 고양이 꼬리 반짝임 간격(초: 멀 때·mid 안·near 안), rustle 은 바스락 흔들림(도)과 간격(초)",
@@ -197,8 +128,7 @@
     "perSpecies": 5
   },
   "miss": {
-    "note": "꽝을 눌렀을 때: 찌그러지는 시간(초) · 이 거리(m) 안의 진짜 상자가 메롱(tauntSeconds 초) 하고 moveRange(m) 안의 같은 갈래 후보로 moveSeconds 초에 폴짝 이사(포물선 높이 moveArc m) · 상자 하나당 cooldown 초에 한 번, 한 판 maxMoves 번까지",
-    "squishSeconds": 0.4,
+    "note": "꽝을 눌렀을 때: 이 거리(m) 안의 진짜 상자가 메롱(tauntSeconds 초) 하고 moveRange(m) 안의 같은 갈래 후보로 moveSeconds 초에 폴짝 이사(포물선 높이 moveArc m) · 상자 하나당 cooldown 초에 한 번, 한 판 maxMoves 번까지",
     "tauntReach": 15,
     "tauntSeconds": 1,
     "moveRange": [8, 15],
@@ -206,12 +136,6 @@
     "moveArc": 6,
     "cooldown": 30,
     "maxMoves": 2
-  },
-  "found": {
-    "note": "찾았을 때: 물건에서 튀어나오는 높이(m)·한 바퀴 도는 시간(초)·춤 시간(초)",
-    "popHeight": 4,
-    "spinSeconds": 0.7,
-    "danceSeconds": 1.2
   },
   "hide": {
     "note": "숨기: 같은 패턴은 patternMax 번까지, 속에 쏙(C)은 insideMax 번까지, 맨 처음 판은 first 그대로. 상자끼리 minApart(m)·출발 자리에서 minFromStart(m) 넘게, 높은 곳은 highNear(m) 안에 버섯이나 통통 구름이 있어야 쓴다",
@@ -451,68 +375,11 @@
       "y": -8
     }
   ],
-  "key": {
-    "reach": 15,
-    "seconds": 3,
-    "alpha": 0.4,
-    "warnSeconds": 1
-  },
-  "soldier": {
-    "gap": 0.4
-  },
-  "cupcake": {
-    "walkSeconds": 6,
-    "reach": 30,
-    "walkSpeed": 1.6
-  },
-  "watch": {
-    "addSeconds": 10,
-    "minElapsed": 60
-  },
-  "cat": {
-    "far": 50,
-    "mid": 25,
-    "near": 10,
-    "wobble": 20
-  },
   "line": {
     "gap": 1.1,
     "first": 2.2,
     "scale": 0.4,
     "side": 1.2
-  },
-  "sneak": {
-    "moveEvery": [20, 40],
-    "followGap": [8, 12],
-    "resumeAfter": 0.5,
-    "sweatAfter": 2,
-    "speed": 3.2
-  },
-  "legend": {
-    "chance": 0.5,
-    "from": 40,
-    "to": 100,
-    "staySeconds": 25,
-    "rideSeconds": 6,
-    "lift": 36,
-    "span": 110,
-    "aside": 30,
-    "flinchReach": 18,
-    "descendSeconds": 2.5,
-    "carryLift": 20
-  },
-  "stuck": {
-    "restlessAfter": 30,
-    "callAfter": 40,
-    "restlessPeek": 0.4,
-    "callAhead": 10,
-    "callBright": 1.5
-  },
-  "lost": {
-    "popAt": 0.5,
-    "gatherAt": 1.2,
-    "climbAt": 2.5,
-    "buttonsAt": 3.5
   },
   "moves": {
     "stepSeconds": 0.12,
@@ -520,19 +387,14 @@
     "hopSquash": 0.8,
     "hopStretch": 1.15,
     "startleStretch": 1.3,
-    "sneezeLeanDegrees": 15,
-    "flinchDegrees": 3,
     "flailDegrees": 25
   },
   "box": {
     "height": 3,
     "breathSeconds": 2.2,
     "breathSquash": 0.03,
-    "sneezeHop": 0.45,
-    "peekReach": 0.6,
     "earScale": 2,
-    "outlinePx": 2,
-    "outlineHighPx": 4
+    "outlinePx": 2
   },
   "bonus": {
     "waitSeconds": 1,
@@ -558,33 +420,28 @@
       "note": "컵케이크 — 느긋한 먹보. 광장에 가장 많다(다섯). 출발 앞 한가운데의 둘은 시작 화면에 든다. home: 사는 자리(거기가 리본 달린 물건에 막혔으면 가장 가까운 빈 seats 에 앉는다)",
       "species": "c_cupcake",
       "count": 2,
-      "help": "cupcake",
       "home": [-8, -3.2]
     },
     {
       "species": "c_cupcake",
       "count": 1,
-      "help": "cupcake",
       "home": [-10, -16]
     },
     {
       "note": "케이크(판 영역 바로 밖 북동쪽) 곁에 사는 둘 — 케이크를 올려다보러 간다",
       "species": "c_cupcake",
       "count": 1,
-      "help": "cupcake",
       "home": [43, 54]
     },
     {
       "species": "c_cupcake",
       "count": 1,
-      "help": "cupcake",
       "home": [52, 42]
     },
     {
       "note": "카드 병정 셋 — 소원 나무 앞에서 행진·보초·쉬어",
       "species": "card",
       "count": 3,
-      "help": "soldier",
       "row": true,
       "home": [-15, 7.5]
     },
@@ -592,7 +449,6 @@
       "note": "카드 병정 둘 — 소원 나무 뒤쪽",
       "species": "card",
       "count": 2,
-      "help": "soldier",
       "row": true,
       "home": [18, -4]
     },
@@ -600,59 +456,49 @@
       "note": "토끼 — 둘씩 가까이 살며 술래잡기를 한다",
       "species": "brabbit",
       "count": 1,
-      "help": "rabbit",
       "home": [8, 44]
     },
     {
       "species": "brabbit",
       "count": 1,
-      "help": "rabbit",
       "home": [9, 57]
     },
     {
       "species": "brabbit",
       "count": 1,
-      "help": "rabbit",
       "home": [-20, -38]
     },
     {
       "species": "brabbit",
       "count": 1,
-      "help": "rabbit",
       "home": [-22, -52]
     },
     {
       "note": "버섯 — 자리는 mushrooms 칸이 정한다(여기 줄은 종이 판에 나온다는 표시)",
       "species": "mushroom",
-      "count": 1,
-      "help": "mushroom"
+      "count": 1
     },
     {
       "species": "mushroom",
-      "count": 1,
-      "help": "mushroom"
+      "count": 1
     },
     {
       "species": "mushroom",
-      "count": 1,
-      "help": "mushroom"
+      "count": 1
     },
     {
       "species": "mushroom",
-      "count": 1,
-      "help": "mushroom"
+      "count": 1
     },
     {
       "note": "회중시계 — 토끼 곁에 산다(토끼를 만나면 같이 달린다)",
       "species": "c_watch",
       "count": 1,
-      "help": "watch",
       "home": [16, 30]
     },
     {
       "species": "c_watch",
       "count": 1,
-      "help": "watch",
       "home": [-38, -48]
     },
     {
@@ -696,7 +542,6 @@
       "note": "열쇠 — 리본 달린 물건이 모인 데 곁에 살며 하나씩 살펴본다",
       "species": "key",
       "count": 1,
-      "help": "key",
       "orbit": 4,
       "alt": 3,
       "home": [38, 16]
@@ -704,7 +549,6 @@
     {
       "species": "key",
       "count": 1,
-      "help": "key",
       "orbit": 4,
       "alt": 3,
       "home": [54, 22]
@@ -712,7 +556,6 @@
     {
       "species": "key",
       "count": 1,
-      "help": "key",
       "orbit": 4,
       "alt": 3,
       "home": [36, -24]
@@ -746,7 +589,7 @@
     {
       "x": -6,
       "y": -12,
-      "note": "출발 앞 — 첫 판에는 토끼"
+      "note": "출발 앞"
     },
     {
       "x": -14,
@@ -872,189 +715,6 @@
     {
       "x": 54,
       "y": 6
-    }
-  ],
-  "spots": [
-    {
-      "id": "wishtree",
-      "note": "소원 나무 줄기 뒤 — 첫 판의 '제일 못 숨은 놈'",
-      "kind": "behind",
-      "x": 0,
-      "y": 0,
-      "w": 3,
-      "side": 1
-    },
-    {
-      "id": "wishtree-fruit",
-      "note": "소원 나무 라임 열매 사이에 매달림",
-      "kind": "high",
-      "x": 0,
-      "y": 0,
-      "top": 4.6,
-      "edge": 6.6,
-      "slide": 0.6
-    },
-    {
-      "id": "tree-e",
-      "note": "줄무늬 나무 B 줄기 뒤",
-      "kind": "behind",
-      "x": 31,
-      "y": 58.3,
-      "w": 3.3,
-      "side": -1
-    },
-    {
-      "id": "pad-n",
-      "note": "통통 구름(북) 뒤",
-      "kind": "behind",
-      "x": -26.2,
-      "y": 40.1,
-      "w": 4.3,
-      "side": 1
-    },
-    {
-      "id": "pad-n-top",
-      "note": "통통 구름(북) 위",
-      "kind": "high",
-      "x": -26.2,
-      "y": 40.1,
-      "top": 3,
-      "edge": 0,
-      "slide": 5.5
-    },
-    {
-      "id": "pad-s",
-      "note": "통통 구름(남) 뒤",
-      "kind": "behind",
-      "x": 33.5,
-      "y": -51,
-      "w": 4.3,
-      "side": -1
-    },
-    {
-      "id": "pad-s-top",
-      "note": "통통 구름(남) 위",
-      "kind": "high",
-      "x": 33.5,
-      "y": -51,
-      "top": 3,
-      "edge": 0,
-      "slide": 5.5
-    },
-    {
-      "id": "pad-e",
-      "note": "징검 구름 첫 칸(동) 뒤",
-      "kind": "behind",
-      "x": 64.6,
-      "y": 13.3,
-      "w": 3,
-      "side": 1
-    }
-  ],
-  "disguises": [
-    {
-      "id": "line",
-      "as": "line",
-      "note": "이미 찾은 상자들 줄 맨 끝에 슬쩍 붙는다(하나 이상 찾은 뒤)"
-    },
-    {
-      "id": "soldier",
-      "as": "soldier",
-      "note": "카드 병정 줄 맨 끝에 낀다"
-    },
-    {
-      "id": "cat",
-      "as": "cat",
-      "note": "내 옆 고양이 뒤에 웅크리고 따라온다"
-    },
-    {
-      "id": "statue",
-      "as": "statue",
-      "x": -56,
-      "y": -21,
-      "note": "출발 자리 뒤쪽(시작에서 40m) 받침대 위에서 포즈"
-    },
-    {
-      "id": "glasses",
-      "as": "glasses",
-      "x": 14,
-      "y": -34,
-      "note": "콧수염 안경을 쓰고 당당히 서 있다"
-    },
-    {
-      "id": "flowerpot",
-      "as": "flowerpot",
-      "x": -30,
-      "y": 30,
-      "note": "출발에서 볼 때 왼쪽 화분"
-    },
-    {
-      "id": "gifts",
-      "as": "gifts",
-      "x": 25.5,
-      "y": -14.6,
-      "note": "출발에서 볼 때 앞 오른쪽(30도) 선물 상자 더미 속"
-    },
-    {
-      "id": "mask",
-      "as": "mask",
-      "group": "c_dice",
-      "note": "토끼 가면을 쓰고 주사위 곁에 섞여 있다"
-    },
-    {
-      "id": "balloon",
-      "as": "balloon",
-      "x": -52,
-      "y": -12,
-      "note": "출발 자리 뒤쪽 풍선 다발 사이(광장 70m 안에 풍선 다발이 없어 같이 놓는다)"
-    },
-    {
-      "id": "cake",
-      "as": "cake",
-      "x": -10,
-      "y": -40,
-      "note": "큰 케이크 꼭대기에 체리처럼(광장 70m 안에 케이크가 없어 같이 놓는다)"
-    }
-  ],
-  "rounds": [
-    ["wishtree", "wishtree-fruit", "pad-n", "glasses"],
-    ["wishtree", "pad-s", "line", "flowerpot"],
-    ["wishtree", "pad-n-top", "soldier", "gifts"],
-    ["wishtree", "tree-e", "cat", "statue"],
-    ["wishtree", "pad-s-top", "mask", "line"],
-    ["wishtree", "pad-n", "balloon", "cake"]
-  ],
-  "teach": {
-    "creatureAhead": 8,
-    "creatureKeep": 10
-  },
-  "difficulty": [
-    {
-      "note": "맨 처음 판(이 기기에서 처음) — 시작 30m 안에 '제일 못 숨은 놈' 하나, 묶음은 rounds[0]",
-      "showShare": 0.4,
-      "peekEvery": [3, 5],
-      "pretend": 1,
-      "sneak": 1,
-      "minFromStart": 0,
-      "minApart": 6
-    },
-    {
-      "note": "둘째·셋째 판 — 네 방향에 하나씩, 시작 30m 밖, 서로 25m 밖",
-      "showShare": 0.25,
-      "peekEvery": [5, 8],
-      "pretend": 2,
-      "sneak": 2,
-      "minFromStart": 30,
-      "minApart": 25
-    },
-    {
-      "note": "넷째 판부터",
-      "showShare": 0.15,
-      "peekEvery": [7, 11],
-      "pretend": 2,
-      "sneak": 2,
-      "minFromStart": 30,
-      "minApart": 25
     }
   ]
 }

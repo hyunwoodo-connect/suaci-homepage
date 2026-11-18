@@ -379,7 +379,6 @@ export class Game {
         },
         creatures,
         whale,
-        sky: this.sky,
         cat: avatar,
         setPlaceGlow: (on) => places.setLimeGlow(on),
         // 판 동안 화면에 글자를 띄우지 않는다(장소 이름표·쉬는 곳 말풍선)

@@ -32,8 +32,6 @@ export class Input {
   private held = false;
   /** 끌기 동그라미를 숨긴다 */
   private readonly hideStick: () => void;
-  /** 마지막으로 끌기가 끝난 시각(performance.now, ms) */
-  private dragEndAt = -1e9;
   /** 이번 누름에서 처음 자리로부터 가장 멀리 움직인 거리(px) */
   private moved = 0;
 
@@ -89,8 +87,6 @@ export class Input {
       if (e.pointerId !== this.id) return;
       const now = performance.now(),
         held = now - this.t0;
-      // 끌기가 막 끝난 톡이면 끝난 때를 먼저 적는다(끌다 나간 칙을 셀 때 이번 끌기와 비교하게)
-      if (this.drag) this.dragEndAt = now;
       // 끌기가 막 시작됐어도(DRAG_PX 넘게) tap.movePx 안이면 톡이다 — 끌다가 손가락 밑으로 지나간 것은 톡이 아니다
       const isTap = held <= tap.ms && this.moved <= tap.movePx;
       if (isTap) onTap(e.clientX, e.clientY);
@@ -135,17 +131,6 @@ export class Input {
     this.dm = 0;
     this.keys.clear();
     this.hideStick();
-  }
-
-  /** 지금 끌고 있나(막은 동안은 아니다) — 잠깐 빌린 카메라가 끌면 바로 돌려준다 */
-  isDragging(): boolean {
-    return this.drag && !this.held;
-  }
-
-  /** 마지막 끌기가 끝나고 지난 시간(ms) — 끌다가 칙이 나간 것을 센다 */
-  msSinceDragEnd(): number {
-    const now = performance.now();
-    return now - this.dragEndAt;
   }
 
   /** 끌지 않고 손가락을 대고 있는 시간(초, 떼었거나 끌고 있으면 0) — 멈춰서 둘러보기가 본다 */

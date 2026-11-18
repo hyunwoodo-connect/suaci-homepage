@@ -45,7 +45,6 @@ export class RegionLook implements Thing {
       background = scene.background as THREE.Color;
     const fogMix = FOG_MIX * this.w;
     fog.color.copy(background).lerp(SKY.uReg.value, fogMix);
-    this.sky.tintFog(fog.color);
     if (w > ENTER_AT && bi !== this.current) {
       const was = this.current;
       this.current = bi;

@@ -5,7 +5,6 @@ import type { Frame, Thing } from "../core/frame";
 import type { Echoing, Tap, Tappable } from "../core/tap";
 import { ECHO_REACH, echoTime } from "../core/tap";
 import { LOOK } from "../look";
-import { seeThrough } from "../models/shader";
 import type { LayoutHop } from "../maps/layout";
 import type { Services } from "../services";
 import { S } from "../settings";
@@ -62,8 +61,6 @@ export class Pads implements Thing, Tappable, Echoing {
       emissive: 0xffffff,
       emissiveIntensity: 0.12,
     });
-    // 숨바꼭질 열쇠의 투시에 같이 비친다(구름 뒤에 숨은 상자가 보이게)
-    seeThrough(this.mat, s.mats.lookU);
     for (const { dist, bear } of s.layout.pad) {
       const pad = newPad({ dist, bear });
       this.list.push(pad);
@@ -123,14 +120,6 @@ export class Pads implements Thing, Tappable, Echoing {
     for (const pd of this.list) {
       const dist = n.angleTo(pd.v) * S.R;
       if (dist < ECHO_REACH) pd.ringAt = echoTime(tap, dist);
-    }
-  }
-
-  /** at 둘레 reach(m) 안의 방석이 꿀렁인다(숨바꼭질: 뒤에 숨은 상자가 재채기하거나 칙이 닿았을 때) */
-  shakeNear(at: THREE.Vector3, reach: number) {
-    for (const pd of this.list) {
-      if (pd.v.dot(at) < 0.99 || pd.v.angleTo(at) * S.R > reach + 4) continue;
-      pd.sq = 1;
     }
   }
 

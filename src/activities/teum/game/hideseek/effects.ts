@@ -3,35 +3,21 @@ import * as THREE from "three";
 import { LIME, S } from "../settings";
 import { FWD } from "../world/sphere";
 
-// 숨바꼭질의 눈에 보이는 신호(소리를 꺼도 알 수 있게). 모두 미리 만들어 두고 돌려 쓴다:
-//   칙 안개 — 내 둘레로 칙이 닿는 거리까지 퍼지는 라임 고리(금색 상자가 쿵 할 때의 먼지 고리도 이 고리다)
-//   재채기 연기 — 상자 자리에서 터지는 라임 연기. 찾았을 때의 종이 꽃가루는 더 잘고 멀리 튄다
-//   라임 점 — 달려가는 상자 발밑의 먼지, 칙 안개가 상자로 흘러가는 알갱이, 전설의 생물이 지나간 자리의 빛가루
-//   파동 — 한 번 퍼지는 가는 고리(열쇠가 찰칵 돌 때의 투시 파동, 전설이 울 때 하늘의 금빛 고리). 여럿이 같이 돈다
+// 숨바꼭질의 눈에 보이는 신호. 모두 미리 만들어 두고 돌려 쓴다:
+//   먼지 고리 — 금색 상자가 쿵 할 때 발밑에서 퍼지는 라임 고리
+//   연기 — 언박싱에서 빈 상자 속 상자가 터질 때의 라임 연기
+//   점 — 달려가는 상자 발밑의 먼지, 누른 물건으로 날아가는 미스트 알갱이
 
-/** 칙 안개가 다 퍼지는 시간(초) */
+/** 먼지 고리가 다 퍼지는 시간(초) */
 const SONAR_TIME = 0.9;
 /** 동시에 피어오르는 연기 수 */
 const PUFF_N = 48;
-/** 재채기 한 번의 연기 수·피는 시간(초)·가장 클 때 크기(m) */
+/** 연기 한 번의 덩이 수·피는 시간(초)·가장 클 때 크기(m) */
 const PUFF_PER = 7,
   PUFF_LIFE = 1.1,
   PUFF_SIZE = 2.6;
-/** 종이 꽃가루 한 번의 조각 수·크기(m) */
-const CONFETTI_PER = 12,
-  CONFETTI_SIZE = 0.7;
-/** 점 수(발자국 한 줄이 다 들어가게) */
+/** 점 수(다 쓰면 가장 먼저 남긴 것부터 다시 쓴다) */
 const DOT_N = 240;
-/** 동시에 퍼지는 파동 수 */
-const WAVE_N = 4;
-
-/** 파동 하나 */
-interface Wave {
-  mesh: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>;
-  t: number;
-  seconds: number;
-  radius: number;
-}
 
 /** 연기 하나 */
 interface Puff {
@@ -53,7 +39,7 @@ interface Dot {
 const tmp = new THREE.Vector3(),
   side = new THREE.Vector3();
 
-/** 칙 안개·재채기 연기·라임 점 */
+/** 먼지 고리·연기·라임 점 */
 export class HideFx {
   private readonly ring: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>;
   private readonly fog: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
@@ -65,8 +51,6 @@ export class HideFx {
   private nextDot = 0;
   private readonly tex: THREE.CanvasTexture;
   private readonly mats: THREE.Material[] = [];
-  private readonly waves: Wave[] = [];
-  private readonly waveGeo = new THREE.RingGeometry(0.97, 1, 128);
 
   constructor(scene: THREE.Scene) {
     this.tex = softDot();
@@ -92,58 +76,9 @@ export class HideFx {
       const dot: Dot = { sp, t: 0, life: 0, size: 1 };
       this.dots.push(dot);
     }
-    for (let i = 0; i < WAVE_N; i++) {
-      const mat = flatLime();
-      mat.side = THREE.DoubleSide;
-      this.mats.push(mat);
-      const mesh = new THREE.Mesh(this.waveGeo, mat);
-      mesh.visible = false;
-      mesh.renderOrder = 5;
-      scene.add(mesh);
-      this.waves.push({ mesh, t: 0, seconds: 1, radius: 1 });
-    }
   }
 
-  /** 파동: n(단위 벡터) 위 땅에서 alt(m) 높이에 seconds 동안 radius(m) 까지 퍼지는 가는 고리(color) */
-  wave(
-    n: THREE.Vector3,
-    alt: number,
-    radius: number,
-    seconds: number,
-    color: THREE.ColorRepresentation,
-  ) {
-    const w = this.waves.find((x) => !x.mesh.visible) ?? this.waves[0];
-    const lift = S.R + alt + 0.2;
-    w.mesh.position.copy(n).normalize().multiplyScalar(lift);
-    tmp.copy(n).normalize();
-    w.mesh.quaternion.setFromUnitVectors(FWD, tmp);
-    w.mesh.material.color.set(color);
-    w.mesh.visible = true;
-    w.t = 0;
-    w.seconds = seconds;
-    w.radius = radius;
-  }
-
-  /** 부드러운 라임 빛 한 덩이(전설의 생물 몸에 붙이는 빛) — 치우는 것은 여기서 한다 */
-  glowSprite(size: number): THREE.Sprite {
-    const mat = new THREE.SpriteMaterial({
-      map: this.tex,
-      color: LIME,
-      transparent: true,
-      depthWrite: false,
-      depthTest: false,
-      fog: false,
-      opacity: 0,
-      blending: THREE.AdditiveBlending,
-    });
-    this.mats.push(mat);
-    const sp = new THREE.Sprite(mat);
-    sp.scale.setScalar(size);
-    sp.renderOrder = 3;
-    return sp;
-  }
-
-  /** 칙 안개: 발밑(n 단위 벡터, 땅 높이 ground)에서 radius 까지 seconds 동안 라임 고리가 퍼지고 사라진다 */
+  /** 먼지 고리: 발밑(n 단위 벡터, 땅 높이 ground)에서 radius 까지 seconds 동안 라임 고리가 퍼지고 사라진다 */
   sonar(n: THREE.Vector3, ground: number, radius: number, seconds = SONAR_TIME) {
     this.sonarT = 0;
     this.sonarR = radius;
@@ -156,12 +91,7 @@ export class HideFx {
     }
   }
 
-  /** 종이 꽃가루: 상자 가운데(at)에서 잔 라임 조각이 사방으로 퐁 튄다(찾았다!) */
-  confetti(at: THREE.Vector3, rand: () => number) {
-    this.burst(at, rand, CONFETTI_PER, CONFETTI_SIZE, 2.4);
-  }
-
-  /** 재채기 연기: 상자 가운데(at)에서 라임 연기가 위로 터진다 */
+  /** 연기: 상자 가운데(at)에서 라임 연기가 위로 터진다 */
   sneeze(at: THREE.Vector3, rand: () => number) {
     this.burst(at, rand, PUFF_PER, PUFF_SIZE, 1);
   }
@@ -209,7 +139,6 @@ export class HideFx {
       d.life = 0;
       d.sp.visible = false;
     }
-    for (const w of this.waves) w.mesh.visible = false;
   }
 
   /** 고리는 퍼지며 옅어지고, 연기는 부풀며 사라지고, 점은 제자리에서 옅어진다 */
@@ -246,20 +175,6 @@ export class HideFx {
       p.sp.scale.setScalar(scale);
       p.sp.material.opacity = 0.85 * (1 - u);
     }
-    for (const w of this.waves) {
-      if (!w.mesh.visible) continue;
-      w.t += dt;
-      const u = w.t / w.seconds;
-      if (u >= 1) {
-        w.mesh.visible = false;
-        continue;
-      }
-      const rest = 1 - u,
-        out = 1 - rest * rest,
-        r = 1 + out * (w.radius - 1);
-      w.mesh.scale.setScalar(r);
-      w.mesh.material.opacity = 0.9 * rest;
-    }
     for (const d of this.dots) {
       if (d.life <= 0) continue;
       d.t += dt;
@@ -283,8 +198,6 @@ export class HideFx {
       m.geometry.dispose();
     }
     for (const p of this.puffs) p.sp.removeFromParent();
-    for (const w of this.waves) w.mesh.removeFromParent();
-    this.waveGeo.dispose();
     for (const d of this.dots) d.sp.removeFromParent();
     for (const m of this.mats) m.dispose();
     this.tex.dispose();
@@ -310,7 +223,7 @@ export class HideFx {
 
 /* ─── 내부 ─────────────────────────── */
 
-// 안개에 묻히지 않는 납작한 라임 면(고리·안개·기둥)
+// 안개에 묻히지 않는 납작한 라임 면(고리·안쪽 면)
 function flatLime(): THREE.MeshBasicMaterial {
   return new THREE.MeshBasicMaterial({
     color: LIME,

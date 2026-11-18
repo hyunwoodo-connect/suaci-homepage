@@ -82,6 +82,15 @@ describe("판 영역의 주민 수(조각 03 — 3-4)", () => {
     expect(openSeats().length).toBeGreaterThanOrEqual(residents.length - 4);
   });
 
+  it("옮겨 앉을 빈자리(seats)는 서로 12m 넘게 떨어져 있다(옮겨 앉은 무리끼리 겹쳐 서지 않게)", () => {
+    const seats = HIDE.seats;
+    for (let a = 0; a < seats.length; a++)
+      for (let b = a + 1; b < seats.length; b++) {
+        const gap = Math.hypot(seats[a].x - seats[b].x, seats[a].y - seats[b].y);
+        expect(gap, `${a}-${b}`).toBeGreaterThanOrEqual(12);
+      }
+  });
+
   it("시작 화면(출발 자리 앞 가운데)에 셋 넘게 산다", () => {
     // 출발 자리에서 광장 가운데를 보는 줄에서 옆으로 6m 안, 앞으로 4~19m
     const start = { x: -18.8, y: -6.8 },

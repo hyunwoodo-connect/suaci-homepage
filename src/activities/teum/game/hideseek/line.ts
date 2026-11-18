@@ -11,11 +11,6 @@ import { HIDE } from "./tuning";
 // 첫 줄이 line.first(m) 뒤라 서 있을 때 폰 화면 아래 4분의 1 안에 든다. 나를 가리면 더 바깥으로 벌린다. 줄에 서면 line.scale 로 작아지고 귀도 원래 길이다. 종종걸음으로 따라오고, 멈추면 앞에서부터 차례로 폴짝.
 // 높이는 지금의 나를 따른다 — 땅에 붙고, 내가 뜨면 같이 뜬다
 
-/** 지나온 자리(줄 대신 이제는 아닌 척 '내 줄에 끼기'가 뒤에서 다가올 때 쓴다) */
-export interface LineTrail {
-  behind(meters: number, out: THREE.Vector3): void;
-}
-
 /**
  * 따라붙는 빠르기(거리의 몇 배 m/s)와 가장 빠르게 · 서 있다가 이만큼(m) 벌어지면 다시 걷고, 걷다가 이만큼(m) 안에 들면 선다 ·
  * 멈춘 뒤 폴짝까지(초)와 차례 사이(초) · 내가 이만큼(m) 넘게 솟으면 같이 뜬다 · 높이를 따라붙는 빠르기
@@ -72,28 +67,6 @@ export class BoxLine {
     this.members.length = 0;
   }
 
-  /** slot 번째 자리(땅 위 단위 벡터) — 아닌 척 '내 줄에 끼기'가 줄 끝에 선다. spread: 더 벌린 거리(m) */
-  spotFor(slot: number, out: THREE.Vector3, spread = 0): THREE.Vector3 {
-    const { player, camera } = this.s,
-      L = HIDE.line,
-      p = player.p as THREE.Vector3;
-    // 카메라에서 나를 보는 쪽(땅에 붙인)이 앞, 그 오른쪽
-    fwd.copy(player.P).sub(camera.camera.position);
-    const up = fwd.dot(p);
-    fwd.addScaledVector(p, -up);
-    if (fwd.lengthSq() < 1e-8) fwd.copy(player.h);
-    fwd.normalize();
-    right.crossVectors(fwd, p).normalize();
-    const pairs = slot / 2,
-      rank = Math.floor(pairs),
-      sign = slot % 2 === 0 ? -1 : 1,
-      back = L.first + L.gap * rank,
-      side = L.side + RANK_SPREAD * rank + spread,
-      backArc = -back / S.R,
-      sideArc = (sign * side) / S.R;
-    return out.copy(p).addScaledVector(fwd, backArc).addScaledVector(right, sideArc).normalize();
-  }
-
   /** 한 프레임 */
   update(dt: number) {
     const { terrain, player } = this.s,
@@ -128,6 +101,28 @@ export class BoxLine {
       b.a = terrain.groundAt(b.v) + m.lift;
       this.keepClear(m, dt);
     }
+  }
+
+  // slot 번째 자리(땅 위 단위 벡터). spread: 더 벌린 거리(m)
+  private spotFor(slot: number, out: THREE.Vector3, spread: number): THREE.Vector3 {
+    const { player, camera } = this.s,
+      L = HIDE.line,
+      p = player.p as THREE.Vector3;
+    // 카메라에서 나를 보는 쪽(땅에 붙인)이 앞, 그 오른쪽
+    fwd.copy(player.P).sub(camera.camera.position);
+    const up = fwd.dot(p);
+    fwd.addScaledVector(p, -up);
+    if (fwd.lengthSq() < 1e-8) fwd.copy(player.h);
+    fwd.normalize();
+    right.crossVectors(fwd, p).normalize();
+    const pairs = slot / 2,
+      rank = Math.floor(pairs),
+      sign = slot % 2 === 0 ? -1 : 1,
+      back = L.first + L.gap * rank,
+      side = L.side + RANK_SPREAD * rank + spread,
+      backArc = -back / S.R,
+      sideArc = (sign * side) / S.R;
+    return out.copy(p).addScaledVector(fwd, backArc).addScaledVector(right, sideArc).normalize();
   }
 
   // 화면에서 나를 가리면 더 바깥으로 벌리고, 아니면 천천히 돌아온다

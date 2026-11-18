@@ -5,7 +5,6 @@ import { describe, expect, it } from "vitest";
 
 import { PRINTS, printKey } from "../game/avatar/outfit";
 import { AVATAR_BODY, AVATAR_COMPANION, PARTS, thumbKey } from "../game/avatar/parts";
-import { PROP_KEYS } from "../game/hideseek/disguise";
 import { FIND } from "../game/hideseek/findTuning";
 import { LIMEBOX } from "../game/hideseek/limebox";
 import { RIBBON_KEY } from "../game/hideseek/ribbons";
@@ -31,6 +30,22 @@ const INTENTIONALLY_UNUSED: Record<string, string> = {
     "관람차 자리는 이 키가 있는지만 보고, 모양은 받침(ferris_stand)과 바퀴(ferris_wheel)로 따로 세운다",
   lime_half: "라임 반쪽은 놓는 자리가 없다(빛나는 라임 규칙에만 이름이 있다)",
   snd_wind: "바람 반복음은 '숨소리 같다'는 지적으로 꺼 두었다(시제품 v67 — 자리만)",
+  ...retired(
+    "disguise_glasses rabbit_mask",
+    "숨바꼭질 조각 01d 의 '아닌 척하는 상자'가 쓰던 소품 — 조각 02 에서 그 규칙을 지웠다. 다음 에셋 버전에서 뺀다",
+  ),
+  ...retired(
+    "snd_box_sneeze_a snd_box_sneeze_b snd_box_phew_a snd_box_phew_b snd_box_giggle_a snd_box_giggle_b snd_box_steps_b snd_box_fall_a snd_box_thud_small snd_box_found_a snd_box_found_b",
+    "숨바꼭질 조각 01 의 숨은 상자 소리(재채기·휴·킥킥·몰래 걷기·높은 곳에서 굴러떨어짐·톡 쳐서 찾음) — 조각 02 에서 그 규칙을 지웠다(찾음은 snd_find_found). 다음 에셋 버전에서 뺀다",
+  ),
+  ...retired(
+    "snd_help_rabbit snd_help_key snd_help_soldier snd_help_cupcake snd_help_watch snd_hide_ring_on snd_hide_leap",
+    "숨바꼭질 조각 01e 의 생물 도움 소리(토끼·열쇠·병정·컵케이크·시계)와 발밑 고리·뛰어가기 — 조각 02 에서 생물 도움을 지웠다(버섯은 높이 뛰기로 남아 snd_help_mushroom 을 쓴다). 다음 에셋 버전에서 뺀다",
+  ),
+  ...retired(
+    "snd_box_legend snd_hide_legend",
+    "숨바꼭질의 전설(하늘에 나타남·울며 내려옴) 소리 — 조각 02 에서 전설을 지웠다. 다음 에셋 버전에서 뺀다",
+  ),
 };
 
 const assets: Record<string, { category: string; box?: number[] }> = manifestJson.assets;
@@ -84,6 +99,11 @@ describe("코드가 쓰는 에셋 키", () => {
 
 /* ─── 내부 ─────────────────────────── */
 
+// 같은 까닭으로 받지 않는 키 여럿(띄어 쓴 목록)
+function retired(keys: string, why: string): Record<string, string> {
+  return Object.fromEntries(keys.split(" ").map((k) => [k, why]));
+}
+
 // 설정 표·지도(모든 지도의 자리표·브랜드 오브젝트)·코드의 호출(fit·inst·crit 등에 글자 그대로 넘긴 키)에서 모은다
 function referencedKeys(): Set<string> {
   const maps = Object.values(MAPS);
@@ -93,7 +113,6 @@ function referencedKeys(): Set<string> {
     LIMEBOX,
     WEAR_ICON_KEY,
     RIBBON_KEY,
-    ...Object.values(PROP_KEYS),
     // 숨바꼭질 후보 물건의 모델(hideseek.data.json 의 props.kinds)
     ...Object.values(FIND.kinds).map((k) => k.model),
     ...Object.keys(PARTS),

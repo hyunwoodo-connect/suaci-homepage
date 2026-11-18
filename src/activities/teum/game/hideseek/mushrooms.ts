@@ -144,7 +144,7 @@ export class Mushrooms {
   private start(m: Shroom) {
     this.riding = m;
     this.top = m.c.batch.hh * 2;
-    this.creatures.escort(m.c, false);
+    this.creatures.escort(m.c);
   }
 
   private goTo(step: Step) {

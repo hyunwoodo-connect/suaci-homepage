@@ -66,14 +66,13 @@ export class Places implements Thing, Tappable {
   readonly spots: Thing;
   private readonly list: Place[];
   private readonly PLZ: PlaceReaction[];
-  /** 흔들리는 정도(장소마다 — 숨바꼭질이 흔든다)와 반응할 때 라임빛으로 물드나 */
-  private readonly shaking = [0, 0, 0];
   /** 속으로 못 들어가는 장소: 소원 나무·뽑기 기계·등대 */
   private readonly solids: Solid[] = [
     { i: 0, core: 6, top: 20, girth: null },
     { i: 2, core: 4, top: 11, girth: null },
     { i: 3, core: 12, top: 40, girth: null },
   ];
+  /** 반응할 때 라임빛으로 물드나 */
   private isLimeGlowOn = true;
   /** 닿거나 누르면 반응하나(숨바꼭질 판 동안은 끈다) */
   private isReacting = true;
@@ -237,14 +236,6 @@ export class Places implements Thing, Tappable {
     for (let i = 0; i < 3; i++) if (n.angleTo(this.PV[i]) * S.R < 13) this.react(i);
   }
 
-  /** at 둘레 reach(m) 안의 장소(소원 나무·분수·뽑기 기계)가 흔들린다(숨바꼭질: 뒤에 숨은 상자가 재채기할 때) — 불은 켜지 않고 흔들리기만 한다 */
-  shakeNear(at: THREE.Vector3, reach: number) {
-    for (let i = 0; i < 3; i++) {
-      if (at.angleTo(this.PV[i]) * S.R > reach + 3) continue;
-      this.shaking[i] = 1;
-    }
-  }
-
   /** 닿거나 누르면 반응하나(숨바꼭질 판 동안은 끈다 — 꿈틀하는 것은 후보 물건뿐이다. 분수의 물기둥은 그대로 밀어 올린다) */
   setReacting(on: boolean) {
     this.isReacting = on;
@@ -269,10 +260,8 @@ export class Places implements Thing, Tappable {
       if (this.isReacting && z.cool <= 0 && player.air < 9 && dz < z.r) this.react(i);
       const faded = z.lit - dt * 0.45;
       z.lit = Math.max(0, faded);
-      const nudged = this.shaking[i] - dt * 1.2;
-      this.shaking[i] = Math.max(0, nudged);
       const glow = this.isLimeGlowOn ? z.lit : 0,
-        sway = Math.max(z.lit, this.shaking[i]);
+        sway = z.lit;
       const md = items[i].model;
       if (md) {
         const shakePhase = f.time * 11;
