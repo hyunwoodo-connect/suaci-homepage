@@ -1,5 +1,5 @@
 {
-  "version": "v9",
+  "version": "v10",
   "assets": {
     "snd_bgm": {
       "file": "audio/bgm/bgm.mp3",
@@ -200,6 +200,26 @@
       "file": "audio/sfx/legend.mp3",
       "category": "audio/sfx",
       "bytes": 24703
+    },
+    "snd_open_drum": {
+      "file": "audio/sfx/open-drum.mp3",
+      "category": "audio/sfx",
+      "bytes": 12897
+    },
+    "snd_open_fizzle": {
+      "file": "audio/sfx/open-fizzle.mp3",
+      "category": "audio/sfx",
+      "bytes": 12897
+    },
+    "snd_open_knock": {
+      "file": "audio/sfx/open-knock.mp3",
+      "category": "audio/sfx",
+      "bytes": 10076
+    },
+    "snd_open_pop": {
+      "file": "audio/sfx/open-pop.mp3",
+      "category": "audio/sfx",
+      "bytes": 2239
     },
     "snd_open": {
       "file": "audio/sfx/open.mp3",
@@ -688,6 +708,16 @@
       "box": [
         -0.4262060225009918, -0.4999302327632904, -0.4270797073841095, 0.42628273367881775,
         0.49980872869491577, 0.4264684021472931
+      ]
+    },
+    "hide_ribbon": {
+      "file": "hideseek/hide-ribbon.glb",
+      "category": "hideseek",
+      "bytes": 31364,
+      "tris": 1498,
+      "box": [
+        -0.1607849895954132, -0.3921334743499756, -0.4999277889728546, 0.16099020838737488,
+        0.3922935426235199, 0.49981337785720825
       ]
     },
     "hide_teacup": {

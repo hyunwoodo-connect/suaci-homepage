@@ -125,6 +125,28 @@ describe("숨바꼭질 값 파일(hideseek.data.json)", () => {
     expect(() => readTuning(mixed)).toThrow("cat: near ≤ mid ≤ far");
   });
 
+  it("무리가 사는 자리(home)가 [x, y] 두 수가 아니거나 무대 밖이면 → 멈춘다", () => {
+    const flat = edited((c) => {
+      const guests = c.guests as Record<string, unknown>[];
+      guests[0] = { ...guests[0], home: [3] };
+    });
+    expect(() => readTuning(flat)).toThrow("guests[0].home: [x, y] 두 수여야 한다");
+    const far = edited((c) => {
+      const guests = c.guests as Record<string, unknown>[];
+      guests[0] = { ...guests[0], home: [69, 69] };
+    });
+    expect(() => readTuning(far)).toThrow("guests[0].home: 무대 반경");
+  });
+
+  it("사는 자리를 적지 않은 무리 → home 은 null(판마다 아무 빈자리)", () => {
+    const loose = edited((c) => {
+      const guests = c.guests as Record<string, unknown>[];
+      guests[0] = { ...guests[0], home: undefined };
+    });
+    expect(readTuning(loose).guests[0].home).toBeNull();
+    expect(HIDE.guests.find((g) => g.species === "teapot")?.home).toEqual({ x: 0, y: 20 });
+  });
+
   it("한 줄로 서는 무리(row)가 참·거짓이 아니거나 하늘 무리면 → 멈춘다", () => {
     const bad = edited((c) => {
       const guests = c.guests as Record<string, unknown>[];

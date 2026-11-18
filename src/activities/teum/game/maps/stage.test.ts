@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import manifest from "../../assets/manifest.v9.json";
+import manifest from "../../assets/manifest.v10.json";
 import { STAGE_HUB } from "../hideseek/spots";
 import { halfWidthFromBoxes } from "../hideseek/stageZones";
 import { from } from "../world/sphere";

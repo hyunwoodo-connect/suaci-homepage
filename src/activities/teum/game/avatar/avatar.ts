@@ -7,6 +7,8 @@ import type { Hold } from "../models/library";
 import type { Services } from "../services";
 import { LIME, S } from "../settings";
 import { clamp, FWD } from "../world/sphere";
+import type { CatIdle } from "./catIdle";
+import { createCatIdle, stepCatIdle } from "./catIdle";
 import { AVATAR_COMPANION } from "./parts";
 import type { PoseFn, PoseInput, RigHandle } from "./rig";
 import { setupRig } from "./rig";
@@ -21,6 +23,18 @@ interface BackWings {
 
 /** 고양이가 맡은 냄새: 0 멀다 · 1 킁킁 · 2 통통 · 3 폴짝폴짝 */
 export type CatScent = 0 | 1 | 2 | 3;
+
+/** 고양이의 한 자세 */
+interface CatStance {
+  height: number;
+  ahead: number;
+  nod: number;
+  roll: number;
+  tall: number;
+  turn: number;
+  wag: number;
+  bob: number;
+}
 
 /** 고양이 자리(내 몸 기준 옆·뒤, m) */
 const CAT_SIDE = -0.95,
@@ -42,6 +56,25 @@ const CAT_MOODS = [
   { height: 0.48, bob: 0.3, rate: 8, hops: true, ahead: 0.7, nod: 0.18, sniff: 0 },
   { height: 0.48, bob: 0.55, rate: 11, hops: true, ahead: 0.25, nod: 0, sniff: 0 },
 ] as const;
+
+/**
+ * 한가한 몸짓마다의 고양이 자세: 떠 있는 높이(m — 0 이면 냄새의 몸짓 그대로)·앞서 나가는 거리(m)·고개 숙임(rad)·옆으로 기울임(rad)·
+ * 세로로 늘임(1 이 그대로)·뒤돌아보는 각(rad)·꼬리를 흔드는(몸을 살랑이는) 폭(rad)·까딱이는 폭(rad)
+ */
+const CAT_IDLES: Readonly<Record<CatIdle, CatStance>> = {
+  follow: { height: 0, ahead: 0, nod: 0, roll: 0, tall: 1, turn: 0, wag: 0, bob: 0 },
+  sit: { height: 0.27, ahead: 0, nod: 0.1, roll: 0, tall: 0.92, turn: 0, wag: 0.3, bob: 0 },
+  lick: { height: 0.27, ahead: 0, nod: -0.55, roll: 0.5, tall: 0.92, turn: 0, wag: 0, bob: 0.09 },
+  yawn: { height: 0.32, ahead: 0, nod: 0.45, roll: 0, tall: 1.28, turn: 0, wag: 0, bob: 0 },
+  ahead: { height: 0, ahead: 2.3, nod: 0.15, roll: 0, tall: 1, turn: Math.PI, wag: 0, bob: 0 },
+};
+/** 내가 움직인다고 치는 빠르기(Player.tot) */
+const MOVING = 0.06;
+/** 꽝의 한숨: 납작해지는 시간(초)과 세로 몫 · 찾았을 때 한 바퀴: 도는 시간(초)과 뛰는 높이(m) */
+const SIGH_SECONDS = 1,
+  SIGH_FLAT = 0.55,
+  CHEER_SECONDS = 0.7,
+  CHEER_HOP = 0.5;
 
 const bx = new THREE.Vector3(),
   m4 = new THREE.Matrix4(),
@@ -68,6 +101,16 @@ export class Avatar implements Thing {
   private catAhead = 0;
   private catYaw = 0;
   private catNod = 0;
+  /** 한가한 몸짓(앉기·핥기·하품·앞질러 가기)과 그 자세(천천히 따라간다) */
+  private readonly catIdle = createCatIdle();
+  private readonly catRand: () => number;
+  private catRoll = 0;
+  private catTall = 1;
+  private catTurn = 0;
+  private catWag = 0;
+  /** 한숨(꽝)·한 바퀴(찾음)가 남은 시간(초) */
+  private sighLeft = 0;
+  private cheerLeft = 0;
   /** 꼬리 반짝임: 간격(초 — 0 이면 없음)과 다음 반짝임까지(초) */
   private twinkleEvery = 0;
   private twinkleWait = 0;
@@ -123,6 +166,8 @@ export class Avatar implements Thing {
       update: (f) => this.catFrame(f.dt),
       dispose: () => {},
     };
+    const catRng = s.rng.fork("cat");
+    this.catRand = () => catRng.next();
   }
 
   /** 뼈대 있는 몸과 고양이 모델 자리(받기 전에 끼울 틀을 둔다) */
@@ -155,6 +200,18 @@ export class Avatar implements Thing {
   setCatScent(level: CatScent, toward: THREE.Vector3 | null) {
     this.scent = toward ? level : 0;
     if (toward) this.scentToward.copy(toward);
+  }
+
+  /** 꽝을 열었다: 고양이가 한숨(납작) */
+  catSigh() {
+    this.sighLeft = SIGH_SECONDS;
+    this.cheerLeft = 0;
+  }
+
+  /** 상자를 찾았다: 고양이가 한 바퀴 */
+  catCheer() {
+    this.cheerLeft = CHEER_SECONDS;
+    this.sighLeft = 0;
   }
 
   /**
@@ -243,19 +300,39 @@ export class Avatar implements Thing {
   }
 
   // 고양이의 몸짓: 냄새가 짙을수록 높이 빨리 뛰고, 앞서 나가고, 고개를 상자 쪽으로 돌린다. 멀면 낮게 축 늘어진다.
-  // 고양이 모델에는 뼈대가 없어 귀·꼬리는 따로 못 움직인다 — 뛰는 빠르기·기울기·방향으로 대신한다
+  // 한가하면 딴짓을 한다(내가 멈추면 앉아 꼬리를 흔들고, 오래 서 있으면 제 몸을 핥다 하품하고, 걷다가 가끔 앞질러 가서 돌아본다).
+  // 고양이 모델에는 뼈대가 없어 귀·꼬리는 따로 못 움직인다 — 뛰는 빠르기·기울기·방향·납작함으로 대신한다
   private poseCat(time: number, dt: number) {
     const mood = CAT_MOODS[this.scent],
       pl = this.s.player,
-      k = ease(5, dt);
-    this.catHeight += (mood.height - this.catHeight) * k;
-    this.catBob += (mood.bob - this.catBob) * k;
-    this.catAhead += (mood.ahead - this.catAhead) * k;
-    this.catNod += (mood.nod - this.catNod) * k;
+      k = ease(5, dt),
+      isMoving = pl.tot > MOVING || pl.isHeld,
+      isBusy = this.scent >= 2 || this.sighLeft > 0 || this.cheerLeft > 0,
+      roll = this.catRand(),
+      idle = CAT_IDLES[stepCatIdle(this.catIdle, dt, isMoving, isBusy, roll)],
+      height = idle.height || mood.height,
+      bob = idle.height ? 0.015 : mood.bob;
+    if (this.sighLeft > 0) this.sighLeft -= dt;
+    if (this.cheerLeft > 0) this.cheerLeft -= dt;
+    // 꽝이면 한숨(납작하게 축), 찾으면 폴짝 뛰며 한 바퀴
+    const isSighing = this.sighLeft > 0,
+      cheered = this.cheerLeft > 0 ? 1 - this.cheerLeft / CHEER_SECONDS : 0,
+      cheerTurn = cheered * Math.PI,
+      cheerArc = Math.sin(cheerTurn),
+      tall = isSighing ? SIGH_FLAT : idle.tall,
+      nod = isSighing ? -0.35 : mood.nod + idle.nod;
+    this.catHeight += (height - this.catHeight) * k;
+    this.catBob += (bob - this.catBob) * k;
+    this.catAhead += (mood.ahead + idle.ahead - this.catAhead) * k;
+    this.catNod += (nod - this.catNod) * k;
+    this.catRoll += (idle.roll - this.catRoll) * k;
+    this.catTall += (tall - this.catTall) * ease(9, dt);
+    this.catTurn += (idle.turn - this.catTurn) * k;
+    this.catWag += (idle.wag - this.catWag) * k;
     this.catPhase += dt * mood.rate;
     const wave = Math.sin(this.catPhase),
       hop = mood.hops ? Math.abs(wave) : wave;
-    const y = this.catHeight + hop * this.catBob,
+    const y = this.catHeight + hop * this.catBob + CHEER_HOP * cheerArc,
       z = CAT_BACK + this.catAhead;
     this.catPrim.position.set(CAT_SIDE, y, z);
     // 상자 쪽(내 몸 기준 왼쪽·앞쪽으로 나눠 잰다)에서 ±wobble 만큼 천천히 흔들린다
@@ -278,9 +355,19 @@ export class Avatar implements Thing {
     const C = this.catModel;
     if (!C) return;
     const sniffPhase = time * 13,
-      sniff = Math.sin(sniffPhase) * mood.sniff;
-    C.rotation.y = -Math.PI / 2 + this.catYaw;
-    C.rotation.z = this.catNod + sniff;
+      sniff = Math.sin(sniffPhase) * mood.sniff,
+      wagPhase = time * 7,
+      wag = Math.sin(wagPhase) * this.catWag,
+      lickPhase = time * 10,
+      lick = Math.sin(lickPhase) * idle.bob,
+      spin = cheered * Math.PI * 2,
+      base: number = C.userData.k,
+      wide = base / Math.sqrt(this.catTall),
+      tallScale = base * this.catTall;
+    C.rotation.y = -Math.PI / 2 + this.catYaw + this.catTurn + wag + spin;
+    C.rotation.z = this.catNod + sniff + lick;
+    C.rotation.x = this.catRoll;
+    C.scale.set(wide, tallScale, wide);
   }
 
   // 고양이 모델이 라임 공 고양이를 따라 둥실, 곁의 작은 라임 빛. 꼬리(몸 뒤 아래)에서 때마다 빛 방울이 반짝인다

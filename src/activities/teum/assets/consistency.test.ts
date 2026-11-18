@@ -8,11 +8,12 @@ import { AVATAR_BODY, AVATAR_COMPANION, PARTS, thumbKey } from "../game/avatar/p
 import { PROP_KEYS } from "../game/hideseek/disguise";
 import { FIND } from "../game/hideseek/findTuning";
 import { LIMEBOX } from "../game/hideseek/limebox";
+import { RIBBON_KEY } from "../game/hideseek/ribbons";
 import { MAPS } from "../game/maps";
 import { WEAR_ICON_KEY } from "../game/studio/closet";
 import { CATALOG, RETIRED } from "../tools/catalog.mjs";
 import { ASSET_VERSION } from "./config";
-import manifestJson from "./manifest.v9.json";
+import manifestJson from "./manifest.v10.json";
 import {
   BIG_FLOWERS,
   CREATURES,
@@ -91,6 +92,7 @@ function referencedKeys(): Set<string> {
     AVATAR_COMPANION,
     LIMEBOX,
     WEAR_ICON_KEY,
+    RIBBON_KEY,
     ...Object.values(PROP_KEYS),
     // 숨바꼭질 후보 물건의 모델(hideseek.data.json 의 props.kinds)
     ...Object.values(FIND.kinds).map((k) => k.model),

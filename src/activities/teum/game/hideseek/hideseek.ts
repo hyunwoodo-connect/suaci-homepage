@@ -2,10 +2,9 @@ import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
 import type { Tappable } from "../core/tap";
-import type { Creature } from "../creatures/creature";
 import type { Services } from "../services";
 import { S } from "../settings";
-import type { BystanderCreatures } from "./bystanders";
+import type { BystanderCreatures, KeepOff } from "./bystanders";
 import { Bystanders } from "./bystanders";
 import { HideFx } from "./effects";
 import { FindLog } from "./findStats";
@@ -16,6 +15,9 @@ import { LimeBox } from "./limebox";
 import { BoxLine } from "./line";
 import { LookAround } from "./lookAround";
 import { Mushrooms } from "./mushrooms";
+import { JUNKS, OpenFx } from "./openFx";
+import { shakeStarts } from "./opening";
+import { splitAt, STAGE } from "./openTuning";
 import { OUTLINE_VIEW } from "./outline";
 import { HideOverlay, LIDS_MOVE } from "./overlay";
 import { buildStamp, forcedLevel, hideSet, isLookAround, isStatsShown } from "./params";
@@ -53,7 +55,25 @@ import { Warm } from "./warmth";
 type Phase = "wait" | "hiding" | "seek" | "bonus" | "prompt" | "wipe" | "unbox" | "end";
 
 /** 누른 것: 후보 물건 · 버섯 */
-type Picked = { kind: "prop"; c: Candidate } | { kind: "mushroom"; c: Creature };
+/**
+ * 열어 보는 중인 물건 하나(누른 때부터 끝까지). 두근은 꽝이든 아니든 같고, 갈리는 때(splitAt)에 팡 아니면 푸슉.
+ * 누르는 순간 든 상자를 붙잡아 둔다 — 두근거리는 사이에 상자가 이사 가 버리지 않게
+ */
+interface Opening {
+  c: Candidate;
+  /** 누른 때부터(초) */
+  t: number;
+  /** 든 상자(없으면 꽝) */
+  hider: Hider | null;
+  /** 다음에 낼 덜컹 소리(몇째) */
+  knock: number;
+  /** 찾음: 상자가 솟기 시작한 높이·꼭대기 높이(m) · 내려앉을 자리와 그 땅 높이 · 춤 박자에 뿌린 별 수 */
+  from: number;
+  apex: number;
+  land: THREE.Vector3;
+  landAt: number;
+  stars: number;
+}
 
 /** 숨은 상자 하나: 숨은 물건·패턴, 지금 하는 일(물건 속 · 빼꼼 나와 메롱 · 이사 중) */
 interface Hider {
@@ -95,8 +115,6 @@ export interface HideSeekLinks {
   sky: { setDusk(k: number): void };
   /** 옆을 따라다니는 고양이(꼬리 반짝임) */
   cat: WarmCat;
-  /** 시간을 seconds 초 멈추고 화면을 살짝 당긴다(찾는 순간) */
-  pause(seconds: number): void;
   /** 장소(소원 나무 …)가 반응할 때 라임빛으로 물드나 — 판 동안은 끈다(라임색은 상자의 것) */
   setPlaceGlow(on: boolean): void;
   /** 장소 이름표·말풍선 — 판 동안은 숨긴다(화면에 글자를 띄우지 않는다) */
@@ -108,7 +126,27 @@ export interface HideSeekLinks {
 }
 
 /** 누른 물건으로 날아가는 안개 알갱이 수 */
-const MIST_DOTS = 5;
+const MIST_DOTS = 8,
+  MIST_SIZE = 0.6,
+  MIST_LIFE = 0.3;
+/** 덜컹이 시작되는 때들과 결과가 갈리는 때(누른 때부터 초) */
+const SHAKES = shakeStarts(STAGE.open),
+  SPLIT = splitAt(STAGE.open);
+/** 찾음(갈린 뒤부터 초): 상자가 솟기 시작 · 춤과 "찾았다!" */
+const LAUNCH_AFTER = 0.02,
+  DANCE_AFTER = 1.02;
+/** 이사 오는 상자를 기다릴 때: 갈리는 때 바로 앞(초)에 멈춰 숨죽인다 */
+const HOLD_SHY = 0.001;
+/** 내려앉을 자리를 찾아보는 방향(내 쪽에서 비켜난 각의 배수 — 다른 물건과 겹치면 다음 것) · 다른 물건에서 띄울 거리(m) */
+const LAND_TURNS = [1, -1, 2, -2, 0, 3, -3],
+  LAND_ROOM = 0.4;
+/** 상자가 내려앉는 자리: 물건 가장자리에서(m)·내 쪽에서 옆으로 비켜난 각(rad) · 착지의 작은 튐(m) · 먼지 고리(m) · 빛의 크기(물건 너비의 배) · 춤 별 크기(m) */
+const LAND_GAP = 0.9,
+  LAND_ASIDE = 0.65,
+  LAND_HOP = 0.35,
+  LAND_RING = 2.6,
+  FLASH_WIDE = 3.2,
+  STAR_SIZE = 0.9;
 /** 누르는 자리: 사방으로 넓히는 폭·가장 작은 네모(px) */
 const TAP_PAD = HIDE.find.tapPad,
   TAP_MIN = HIDE.find.tapMin;
@@ -154,6 +192,14 @@ export class HideSeek implements Thing, Tappable {
   private hasBonus = false;
   private readonly overlay: HideOverlay;
   private readonly fx: HideFx;
+  private readonly openFx: OpenFx;
+  private readonly openings: Opening[] = [];
+  /** 꽝에서 나오는 것을 돌려 쓰는 차례 */
+  private junkTurn = 0;
+  /** 구경꾼을 한 번은 앉혔나(첫 판 전에 — 시작부터 주민이 살고 있게) */
+  private isSeated = false;
+  /** 이사 중인 상자의 세계 자리(구경꾼이 눈으로 쫓는다) */
+  private readonly flying = new THREE.Vector3();
   private readonly timeline = new Timeline();
   private readonly hiding: HidingScene;
   private readonly line: BoxLine;
@@ -195,6 +241,7 @@ export class HideSeek implements Thing, Tappable {
     this.pickedLevel = forcedLevel();
     this.overlay = new HideOverlay(parent);
     this.fx = new HideFx(s.scene);
+    this.openFx = new OpenFx(s.scene, s.mats.lime);
     const hub = s.occ.hubs[STAGE_HUB];
     if (!hub)
       throw new Error(`[teum] hideseek.data.json — stage.hub: 지도에 없는 마을(${STAGE_HUB})`);
@@ -250,7 +297,8 @@ export class HideSeek implements Thing, Tappable {
   }
 
   /**
-   * 화면 (x, y)를 눌렀다: 후보 물건이나 버섯에 걸리면 그것이 반응하고 true. 걸린 것이 없으면 false(판 중에는 아무 일도 없다)
+   * 화면 (x, y)를 눌렀다: 리본 달린 물건에 걸리면 그것이 반응하고 true. 걸린 것이 없으면 false —
+   * 리본이 없는 것(랜드마크·조형물·나무·놀이기구·생물·버섯·빈 데)은 판 중에 눌러도 아무 일도 없다
    */
   pick(x: number, y: number): boolean {
     if (this.phase !== "seek" || this.links.studio.isOpen) return false;
@@ -258,10 +306,7 @@ export class HideSeek implements Thing, Tappable {
       view = { w: innerWidth, h: innerHeight };
     const hit = pickAt(x, y, targets, this.s.camera.camera, view, TAP_PAD, TAP_MIN);
     if (!hit) return false;
-    // 닿지 않는 물건을 누른 것은 누름으로 치지 않는다 — 날갯짓·풍선 놓기 같은 놀이기구 누름이 그 물건에 가려 먹히지 않게
-    if (hit.kind === "prop") return this.tapProp(hit.c);
-    this.mushrooms.ride(hit.c);
-    return true;
+    return this.tapProp(hit);
   }
 
   /** 빈 데 누름: 언박싱 중이면 지금 상자를 연다. 판 중에는 아무 일도 없다(바닥은 반응하지 않는다) */
@@ -285,6 +330,7 @@ export class HideSeek implements Thing, Tappable {
     for (const k of this.seekers) k.box.update(dt, f.time);
     this.bonus.update(dt, f.time);
     this.fx.update(dt);
+    this.openFx.update(dt);
     for (const trail of this.trails) trail.update(dt);
     this.unboxing.update(dt, f.time);
     const canLook = this.phase === "seek" || this.phase === "prompt" || this.phase === "end";
@@ -295,6 +341,7 @@ export class HideSeek implements Thing, Tappable {
   dispose() {
     this.overlay.dispose();
     this.fx.dispose();
+    this.openFx.dispose();
     this.unboxing.dispose();
     this.props.dispose();
     for (const trail of this.trails) trail.dispose();
@@ -308,8 +355,11 @@ export class HideSeek implements Thing, Tappable {
     this.phaseT += dt;
     this.timeline.tick(dt);
     const isSeeking = this.phase === "seek";
-    this.props.update(dt, isSeeking);
+    this.props.update(dt, isSeeking, this.time);
     this.mushrooms.update(dt, isSeeking);
+    // 열어 보기는 판이 넘어가도 끝까지 간다(넷째 상자가 줄에 설 때 다른 물건의 꽝이 진행 중일 수 있다)
+    for (let i = this.openings.length - 1; i >= 0; i--)
+      if (this.stepOpening(this.openings[i], dt)) this.openings.splice(i, 1);
     switch (this.phase) {
       case "wait":
         this.begin();
@@ -382,6 +432,9 @@ export class HideSeek implements Thing, Tappable {
     o.showEnding(null);
     o.showStats(null);
     this.fx.clear();
+    this.openFx.clear();
+    this.openings.length = 0;
+    this.s.camera.kickFov(0);
     this.timeline.clear();
     this.caught.length = 0;
     this.hiders.length = 0;
@@ -399,6 +452,16 @@ export class HideSeek implements Thing, Tappable {
     this.log.begin(screen, now, this.time);
     // 맨 처음 판: 이 규칙(조각 02)으로 이 기기에서 처음 하는 판 — 앞 조각을 해 본 기기도 처음은 쉽게. 주소로 단계를 골랐으면 그대로
     this.first = this.pickedLevel === null ? this.log.isFirstOnDevice : this.pickedLevel === 0;
+    // 주민은 첫 판 전부터 광장에 산다. "꼭꼭 숨어라" 동안은 눈을 가리듯 등을 돌린다
+    this.bystanders.watch(null);
+    if (!this.isSeated) {
+      const keepOff = this.keepOff();
+      // 버섯도 제자리에 먼저 앉힌다(첫 판의 "꼭꼭 숨어라"에 한데 몰려 있지 않게)
+      this.mushrooms.begin(hub);
+      this.bystanders.seat(hub, keepOff);
+    }
+    this.isSeated = true;
+    this.bystanders.turnAway(true);
     this.hiding.start(hub, null, this.first, HIDE.difficulty[0], {
       // 눈을 감은 동안: 상자들이 물건 속에 들고, 꽃 길이 놓이고, 버섯과 구경꾼이 제자리에 앉는다
       settled: () => this.settle(hub),
@@ -410,7 +473,8 @@ export class HideSeek implements Thing, Tappable {
   // 눈을 감은 동안: 패턴 넷을 섞어 물건을 고르고 상자를 숨긴다
   private settle(hub: THREE.Vector3) {
     this.mushrooms.begin(hub);
-    this.bystanders.seat(hub);
+    const keepOff = this.keepOff();
+    this.bystanders.seat(hub, keepOff);
     const rand = this.dealRand(),
       patterns = dealPatterns(this.first, rand),
       // 꽃 길을 놓을 데가 없는 물건은 이번 판에 길 끝으로 쓰지 않는다(이 빠진 길은 길로 안 읽힌다).
@@ -448,6 +512,18 @@ export class HideSeek implements Thing, Tappable {
     });
     const ids = dealt.map((d) => d.prop.id);
     this.log.dealt(patterns, ids);
+    this.tellHiding();
+  }
+
+  // 리본 달린 물건들(구경꾼이 그 둘레에는 서지 않는다 — 물건을 가려 못 누르게 하면 안 된다)
+  private keepOff(): KeepOff[] {
+    return this.props.list.map((c) => ({ v: c.v, r: c.foot }));
+  }
+
+  // 상자가 숨어 있는 물건들을 구경꾼에게 알린다(곁의 생물이 가끔 힐끗거린다 — 아주 약한 단서)
+  private tellHiding() {
+    const spots = this.hiders.filter((h) => h.k.state === "hidden").map((h) => h.host.v);
+    this.bystanders.setHiding(spots);
   }
 
   // 그 물건 앞에 꽃 길을 놓을 수 있나: 가장 짧은 길을 가장 넓은 간격으로 놓아 본다
@@ -479,6 +555,7 @@ export class HideSeek implements Thing, Tappable {
   // 눈을 떴다: '술래는 너'와 함께 조작이 풀리고 찾기가 시작된다
   private startSeek() {
     this.overlay.showBig(HIDE.copy.it);
+    this.bystanders.turnAway(false);
     this.links.input.hold(false);
     this.log.seekStarted(this.time);
     this.roundT = 0;
@@ -492,7 +569,8 @@ export class HideSeek implements Thing, Tappable {
       nearestD = Infinity;
     for (const h of this.hiders) {
       if (h.k.state !== "hidden") continue;
-      this.stepHider(h, dt);
+      // 지금 열어 보는 물건에 든 상자는 하던 짓(메롱·이사 준비)을 멈추고 기다린다 — 두근거리는 사이에 날아가 버리지 않게
+      if (!this.openings.some((o) => o.hider === h)) this.stepHider(h, dt);
       const dist = this.distanceTo(h);
       // 곁을 지나쳤는지는 물건 속에 있을 때만 센다(메롱·이사 중에는 상자가 제 발로 멀어진다)
       if (h.mode === "in") this.watchNear(h, dist);
@@ -662,6 +740,8 @@ export class HideSeek implements Thing, Tappable {
     const where = b.center(at),
       pan = this.panOf(where);
     this.s.events.emit("findHopped", { pan });
+    b.center(this.flying);
+    this.bystanders.watch(this.flying);
   }
 
   // 이사 중: 눈에 보이는 포물선으로 다음 물건까지(땅 위로는 고르게, 높이는 miss.moveArc 만큼 솟았다가). 닿으면 그 물건 속으로 쏙
@@ -684,6 +764,7 @@ export class HideSeek implements Thing, Tappable {
     b.a = level + hump;
     ahead.crossVectors(axis, b.v);
     b.faceTo(ahead);
+    b.center(this.flying);
     if (u < 1) return;
     h.host = to;
     h.next = null;
@@ -691,51 +772,274 @@ export class HideSeek implements Thing, Tappable {
     this.props.bump(to);
     this.tuck(h);
     h.trail?.show(to, this.props.list, this.rand);
+    this.bystanders.watch(null);
+    this.tellHiding();
   }
 
   /* ─── 내부: 누르기 ─────────────────────────── */
 
-  // 누를 수 있는 것: 아직 찾지 않은 후보 물건 모두(닿는지는 누른 뒤에 본다) · 가까운 버섯
-  private pickTargets(): PickTarget<Picked>[] {
-    const targets: PickTarget<Picked>[] = [];
-    for (const t of this.props.targets()) targets.push({ ...t, item: { kind: "prop", c: t.item } });
+  // 누를 수 있는 것: 리본이 묶여 있는 후보 물건(닿는지는 누른 뒤에 본다). 버섯은 누르는 것이 아니라 올라서는 것이다
+  private pickTargets(): PickTarget<Candidate>[] {
+    const targets: PickTarget<Candidate>[] = this.props.targets();
     // 물건 밖으로 나와 보이는 상자(높은 곳의 빼꼼·리본 끝·메롱)를 눌러도 그 물건을 누른 것이다
     for (const h of this.hiders) {
       const b = h.k.box;
       if (h.k.state !== "hidden" || h.mode === "hop" || !b.visible) continue;
+      if (this.openings.some((o) => o.c === h.host)) continue;
       const half = b.hh * b.size,
         spot = new THREE.Vector3(),
         center = b.center(spot),
         halfH = half * BOX_PICK_TALL,
         halfW = half * BOX_PICK_WIDE;
-      targets.push({ item: { kind: "prop", c: h.host }, center, halfH, halfW });
+      targets.push({ item: h.host, center, halfH, halfW });
     }
-    const mushrooms: PickTarget<Creature>[] = [];
-    this.mushrooms.targets(mushrooms);
-    for (const t of mushrooms) targets.push({ ...t, item: { kind: "mushroom", c: t.item } });
     return targets;
   }
 
-  // 물건을 눌렀다: 닿지 않으면(멀거나, 높은 곳을 밑에서) 아무 일도 없다(false). 닿으면 미스트가 날아가고 — 상자가 들었으면 찾은 것, 아니면 꽝
+  // 리본 달린 물건을 눌렀다: 닿지 않으면(멀거나, 높은 곳을 밑에서) 리본만 까딱한다. 닿으면 열어 보기가 시작된다 —
+  // 미스트가 날아가고 리본이 팽팽해진다. 든 상자가 있으면 그 상자를 붙잡아 둔다(두근거리는 사이에 이사 가지 않게)
   private tapProp(c: Candidate): boolean {
     const { events } = this.s;
+    // 이미 열어 봤거나 찾았거나 지금 열어 보는 물건: 아무 일도 없다(그 뒤에 겹쳐 보이는 물건이 대신 열리지도 않는다)
+    if (c.isFound || c.isOpened || this.openings.some((o) => o.c === c)) return false;
+    // 닿지 않는 누름은 누름으로 치지 않는다 — 날갯짓·풍선 놓기 같은 놀이기구 누름이 그 물건에 가려 먹히지 않게
     if (!this.props.canReach(c)) {
+      this.props.flick(c);
       this.log.far();
       events.emit("findTapped", { far: true });
       return false;
     }
+    const found = this.hiderIn(c);
+    this.openings.push({
+      c,
+      t: 0,
+      hider: found ?? null,
+      knock: 0,
+      from: 0,
+      apex: 0,
+      land: new THREE.Vector3(),
+      landAt: 0,
+      stars: 0,
+    });
+    this.props.startOpen(c);
     this.pullMist(c);
     events.emit("findTapped", { far: false });
-    const h = this.hiders.find((x) => x.host === c && x.k.state === "hidden" && x.mode !== "hop");
-    if (h) {
-      this.catchBox(h);
-      return true;
-    }
-    this.props.squish(c);
-    this.log.wrong();
-    events.emit("findMissed", {});
-    this.tauntNear(c);
     return true;
+  }
+
+  // 그 물건에 든 상자(이사 중인 것은 아직 든 것이 아니다)
+  private hiderIn(c: Candidate): Hider | null {
+    const found = this.hiders.find(
+      (x) => x.host === c && x.k.state === "hidden" && x.mode !== "hop",
+    );
+    return found ?? null;
+  }
+
+  // 열어 보기 한 프레임. 끝났으면 true
+  private stepOpening(o: Opening, dt: number): boolean {
+    const { events, camera } = this.s,
+      O = STAGE.open,
+      was = o.t;
+    let next = o.t + dt;
+    // 갈리는 순간 다시 본다: 두근거리는 사이에 이사 온 상자가 들었으면 찾은 것이고,
+    // 지금 이 물건으로 날아오는 상자가 있으면 내려앉을 때까지 숨죽인 채 기다린다(상자가 든 채 꽝이 되지 않게)
+    if (!o.hider && was < SPLIT && next >= SPLIT) {
+      o.hider = this.hiderIn(o.c);
+      const isIncoming = this.hiders.some((x) => x.next === o.c && x.k.state === "hidden");
+      if (!o.hider && isIncoming) next = SPLIT - HOLD_SHY;
+    }
+    o.t = next;
+    const isHit = o.hider !== null;
+    this.props.setOpen(o.c, o.t, isHit);
+    // 두근: 덜컹마다 두드림 소리(갈수록 높게). 첫 덜컹에 북 굴림이 깔리고 화면이 살짝 다가간다
+    while (o.knock < SHAKES.length && o.t >= SHAKES[o.knock]) {
+      const where = this.props.center(o.c, at),
+        pan = this.panOf(where);
+      events.emit("openKnocked", { step: o.knock, pan });
+      if (o.knock === 0) {
+        events.emit("openRolled", { pan });
+        camera.kickFov(-O.zoomIn);
+      }
+      o.knock++;
+    }
+    if (o.t < SPLIT) return false;
+    if (was < SPLIT) {
+      if (o.hider) this.popOpen(o, o.hider);
+      else this.fizzleOpen(o);
+    }
+    return o.hider ? this.whileFound(o, o.hider, was) : this.whileDud(o, was);
+  }
+
+  // 팡! 물건이 부풀었다 돌아오고 리본이 튕겨 풀린다. 라임 빛·색종이가 위로, 상자가 솟구친다. 곁의 생물과 고양이가 좋아한다
+  private popOpen(o: Opening, h: Hider) {
+    const { events, camera, terrain } = this.s,
+      O = STAGE.open,
+      c = o.c,
+      k = h.k,
+      b = k.box;
+    k.state = "caught";
+    k.slot = this.caught.length;
+    this.caught.push(k);
+    h.mode = "in";
+    h.next = null;
+    this.log.found(
+      { prop: c.spec.id, pattern: h.pattern, moves: h.moves, nearMisses: h.nearMisses },
+      this.time,
+    );
+    h.trail?.clear();
+    h.trail = null;
+    this.props.markFound(c);
+    this.props.splitOpen(c, true);
+    this.tellHiding();
+    const top = c.base + c.lid,
+      face = this.faceFrom(c.v);
+    b.put(c.v, top, face);
+    b.visible = true;
+    b.setSize(1);
+    b.startle();
+    o.from = top;
+    o.apex = top + O.riseHeights * b.hh * 2;
+    // 내려앉을 자리: 물건 옆 — 내 쪽에서 비스듬히 비켜난 땅(물건도 나도 가리지 않게). 이웃 물건과 겹치면 다른 쪽으로
+    const toMe = tmp.copy(face),
+      along = toMe.dot(c.v);
+    toMe.addScaledVector(c.v, -along).normalize();
+    const out = (c.wide + b.hh + LAND_GAP) / S.R;
+    for (const turn of LAND_TURNS) {
+      const angle = LAND_ASIDE * turn;
+      side.copy(toMe).applyAxisAngle(c.v, angle);
+      o.land.copy(c.v).addScaledVector(side, out).normalize();
+      const isClear = this.props.list.every((p) => {
+        const room = p.foot + b.hh + LAND_ROOM;
+        return p === c || o.land.angleTo(p.v) * S.R >= room;
+      });
+      if (isClear) break;
+    }
+    o.landAt = terrain.groundAt(o.land);
+    const center = this.props.center(c, at),
+      pan = this.panOf(center),
+      glow = c.wide * FLASH_WIDE;
+    this.openFx.flash(center, glow, O.flashSeconds);
+    this.openFx.confetti(center, O.confetti, this.rand);
+    events.emit("openPopped", { pan });
+    camera.kickFov(O.zoomOut);
+    this.timeline.after(O.zoomOutSeconds, () => camera.kickFov(0));
+    this.overlay.shake();
+    this.bystanders.cheer(c.v);
+    this.links.cat.catCheer();
+  }
+
+  // 찾음(갈린 뒤): 상자가 제 키의 open.riseHeights 배까지 솟고 → 공중 한 바퀴 돌며 물건 옆으로 내려앉고 → 춤("찾았다!"·팡파레·위 칸) →
+  // 나를 보고 폴짝 뛴 뒤 줄로 간다. 그때 물건의 리본이 다시 묶이고 흰 하트가 얹힌다
+  private whileFound(o: Opening, h: Hider, was: number): boolean {
+    const O = STAGE.open,
+      k = h.k,
+      b = k.box,
+      c = o.c,
+      after = o.t - SPLIT,
+      before = was - SPLIT,
+      apexAt = LAUNCH_AFTER + O.riseSeconds,
+      landAt = apexAt + O.spinSeconds;
+    if (after < apexAt) {
+      const raw = (after - LAUNCH_AFTER) / O.riseSeconds,
+        u = THREE.MathUtils.clamp(raw, 0, 1),
+        rest = 1 - u;
+      b.a = o.from + (o.apex - o.from) * (1 - rest * rest);
+      return false;
+    }
+    if (before < apexAt) b.hop(0, true);
+    if (after < landAt) {
+      // 한 바퀴 도는 사이에 물건 옆으로 건너가며 떨어진다(갈수록 빠르게)
+      const u = (after - apexAt) / O.spinSeconds,
+        angle = c.v.angleTo(o.land) * u;
+      axis.crossVectors(c.v, o.land).normalize();
+      b.v.copy(c.v).applyAxisAngle(axis, angle).normalize();
+      b.a = o.apex + (o.landAt - o.apex) * u * u;
+      return false;
+    }
+    if (before < landAt) {
+      const face = this.faceFrom(o.land);
+      b.put(o.land, o.landAt, face);
+      b.hop(LAND_HOP);
+      const radius = S.R + o.landAt + 0.08,
+        feet = tmp.copy(o.land).multiplyScalar(radius);
+      this.openFx.ring(feet, LAND_RING);
+    }
+    if (after >= DANCE_AFTER && before < DANCE_AFTER) {
+      b.dance(O.danceSeconds);
+      this.overlay.showBig(HIDE.copy.found);
+      this.overlay.fillSlot(k.slot);
+      const count = this.caught.length;
+      this.s.events.emit("findFound", { count });
+    }
+    // 춤 박자마다 발밑에 작은 라임 별
+    const beat = O.danceSeconds / O.danceBeats,
+      beats = (after - DANCE_AFTER) / beat,
+      due = Math.floor(beats) + 1;
+    while (after >= DANCE_AFTER && o.stars < Math.min(due, O.danceBeats)) {
+      const sideways = o.stars % 2 === 0 ? 1 : -1;
+      side.crossVectors(o.land, this.s.player.h).normalize();
+      const radius = S.R + o.landAt + 0.3,
+        aside = sideways * b.hh,
+        feet = tmp.copy(o.land).multiplyScalar(radius).addScaledVector(side, aside);
+      this.openFx.star(feet, STAR_SIZE);
+      o.stars++;
+    }
+    if (o.t < O.leaveAt) return false;
+    // 나를 보고 한 번 폴짝 → 줄로
+    const face = this.faceFrom(o.land);
+    b.faceTo(face);
+    b.hop();
+    this.props.tieHeart(c);
+    this.props.endOpen(c, true);
+    this.timeline.after(LimeBox.hopSeconds, () => {
+      k.state = "line";
+      this.line.join(b, k.slot);
+    });
+    return true;
+  }
+
+  // 푸슉. 물건이 꺼지고 리본이 힘없이 풀린다. 흰 김 한 줄기 — 위로 솟는 것도 빛도 색종이도 없다
+  private fizzleOpen(o: Opening) {
+    const { events, camera } = this.s,
+      c = o.c;
+    this.props.splitOpen(c, false);
+    this.log.wrong();
+    const top = this.topOf(c, at),
+      pan = this.panOf(top);
+    this.openFx.steam(top, this.rand);
+    events.emit("openFizzled", { pan });
+    camera.kickFov(0);
+    this.bystanders.puzzle(c.v);
+    this.links.cat.catSigh();
+  }
+
+  // 꽝(갈린 뒤): 꺼진 물건에서 시시한 것 하나가 나오고(세 가지를 돌려 쓴다) → 도리도리("나 아니야")에 내려가는 두 음 →
+  // 끝. 곁에 진짜 상자가 있으면 그때 메롱 이사가 이어진다
+  private whileDud(o: Opening, was: number): boolean {
+    const O = STAGE.open,
+      c = o.c,
+      junkAt = SPLIT + O.sinkSeconds;
+    if (o.t >= junkAt && was < junkAt) {
+      const kind = JUNKS[this.junkTurn % JUNKS.length],
+        top = this.topOf(c, at),
+        toward = this.faceFrom(c.v),
+        along = toward.dot(c.v);
+      toward.addScaledVector(c.v, -along).normalize();
+      const floor = S.R + this.s.terrain.groundAt(c.v);
+      this.junkTurn++;
+      this.openFx.junk(kind, top, toward, c.wide, floor, O.junkSeconds);
+    }
+    if (o.t >= O.refuseAt && was < O.refuseAt) this.s.events.emit("findMissed", {});
+    if (o.t < O.missEnd) return false;
+    this.props.endOpen(c, false);
+    this.timeline.after(O.tauntAfter - O.missEnd, () => this.tauntNear(c));
+    return true;
+  }
+
+  // 물건 윗면 가운데의 세계 자리
+  private topOf(c: Candidate, out: THREE.Vector3): THREE.Vector3 {
+    const radius = S.R + c.base + c.lid;
+    return out.copy(c.v).multiplyScalar(radius);
   }
 
   // 꽝 곁(miss.tauntReach)의 진짜 상자가 메롱 한다: 가장 가까운 하나. 이사는 상자 하나당 miss.cooldown 초에 한 번, 한 판 miss.maxMoves 번까지
@@ -745,6 +1049,8 @@ export class HideSeek implements Thing, Tappable {
       bestD = M.tauntReach;
     for (const h of this.hiders) {
       if (h.k.state !== "hidden" || h.mode !== "in") continue;
+      // 지금 열어 보는 물건에 든 상자는 나오지 않는다
+      if (this.openings.some((o) => o.hider === h)) continue;
       const dx = h.host.spec.x - dud.spec.x,
         dy = h.host.spec.y - dud.spec.y,
         gap = Math.hypot(dx, dy);
@@ -764,7 +1070,9 @@ export class HideSeek implements Thing, Tappable {
     // 길 끝 상자는 꽃 길을 놓을 수 있는 물건으로만 이사 간다
     const isTaken = (spec: Candidate["spec"]) => {
       const c = this.props.of(spec);
-      if (c.isFound || hosts.includes(c)) return true;
+      // 열어 본 물건(리본이 풀렸다)·지금 열어 보는 물건에는 들어가지 않는다
+      if (c.isFound || c.isOpened || hosts.includes(c)) return true;
+      if (this.openings.some((o) => o.c === c)) return true;
       return h.pattern === "B" && !this.canTrail(c);
     };
     const open = moveTargets(h.host.spec, FIND.props, isTaken);
@@ -774,58 +1082,17 @@ export class HideSeek implements Thing, Tappable {
     return this.props.of(spec);
   }
 
-  // 찾았다: 시간이 잠깐 멈추고, 물건이 통 튀며 상자가 원래 크기로 튀어나와 공중에서 한 바퀴 → 짧은 춤 → 내 뒤 줄에 선다(위 칸이 하나 찬다).
-  // 상자가 나온 물건에는 작은 라임 리본이 남는다
-  private catchBox(h: Hider) {
-    const F = FIND.found,
-      k = h.k,
-      b = k.box,
-      c = h.host;
-    k.state = "caught";
-    k.slot = this.caught.length;
-    this.caught.push(k);
-    h.mode = "in";
-    h.next = null;
-    this.log.found(
-      { prop: c.spec.id, pattern: h.pattern, moves: h.moves, nearMisses: h.nearMisses },
-      this.time,
-    );
-    h.trail?.clear();
-    h.trail = null;
-    this.props.bump(c);
-    this.props.markFound(c);
-    const top = c.base + c.lid,
-      face = this.faceFrom(c.v);
-    b.put(c.v, top, face);
-    b.visible = true;
-    b.setSize(1);
-    b.hop(F.popHeight, true);
-    this.links.pause(HIDE.find.pauseSeconds);
-    const center = b.center(at);
-    this.fx.confetti(center, this.rand);
-    this.s.fx.burst(center, 14, 8);
-    this.overlay.showBig(HIDE.copy.found);
-    const count = this.caught.length;
-    this.s.events.emit("findFound", { count });
-    this.timeline.after(LimeBox.hopSeconds, () => b.dance(F.danceSeconds));
-    this.timeline.after(LimeBox.hopSeconds + F.danceSeconds, () => {
-      k.state = "line";
-      this.line.join(b, k.slot);
-      this.overlay.fillSlot(k.slot);
-    });
-  }
-
-  // 누른 물건으로 안개 알갱이가 내 자리에서 빨려가듯 흐른다
+  // 내 손에서 미스트 줄기가 누른 물건으로 날아간다(open.mistSeconds 에 닿는다). 흰 알갱이 — 판 영역의 라임색은 상자와 리본뿐이다
   private pullMist(c: Candidate) {
     const from = this.s.player.P.clone(),
       spot = new THREE.Vector3(),
       to = this.props.center(c, spot);
     for (let i = 1; i <= MIST_DOTS; i++) {
       const part = i / (MIST_DOTS + 1),
-        wait = part * HIDE.find.mistSeconds;
+        wait = part * STAGE.open.mistSeconds;
       this.timeline.after(wait, () => {
         const mote = tmp.copy(from).lerp(to, part);
-        this.fx.dot(mote, 0.7, 0.35);
+        this.fx.dot(mote, MIST_SIZE, MIST_LIFE, 0xffffff);
       });
     }
   }
@@ -867,6 +1134,9 @@ export class HideSeek implements Thing, Tappable {
       b.setSize(1, true);
       b.put(ahead, ground, face);
       b.dropFrom(HIDE.bonus.dropHeight);
+      // 주민이 금색 상자가 떨어지는 자리를 둥글게 둘러선다
+      const spot = ahead.clone();
+      this.bystanders.gather(spot);
       this.s.events.emit("hideBonusFalling", {});
       return;
     }
@@ -934,6 +1204,9 @@ export class HideSeek implements Thing, Tappable {
   private finish() {
     this.goTo("end");
     this.release();
+    // 판이 끝나면 리본이 모두 다시 묶이고, 주민은 제 하루로 돌아간다
+    this.props.reset();
+    this.bystanders.release();
     this.overlay.showSlots(false);
     this.endAt.copy(this.s.player.p);
     this.overlay.showEnding(() => this.again());

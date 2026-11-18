@@ -22,6 +22,10 @@ export interface WarmTarget {
 /** 고양이: 꼬리 반짝임 간격(초) */
 export interface WarmCat {
   setCatTwinkle(every: number): void;
+  /** 꽝을 열었다: 한숨(납작) */
+  catSigh(): void;
+  /** 상자를 찾았다: 한 바퀴 */
+  catCheer(): void;
 }
 
 /** 키득 가짓수 · far 안에 막 들어왔을 때 첫 키득까지(초) */

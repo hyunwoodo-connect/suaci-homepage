@@ -139,6 +139,13 @@ export interface GameEventMap {
   findHopped: { pan: number };
   /** 상자를 찾았다 — 물건에서 튀어나온다(count: 찾은 수) */
   findFound: { count: number };
+  // ---- 숨바꼭질 조각 03 '열어 보기' ----
+  /** 두근: 물건이 덜컹했다(step: 몇째 덜컹 0..) · 덜컹이 시작됐다(북 굴림) */
+  openKnocked: { step: number; pan: number };
+  openRolled: { pan: number };
+  /** 결과가 갈렸다: 팡(찾음) · 푸슉(꽝) */
+  openPopped: { pan: number };
+  openFizzled: { pan: number };
   /** 버섯이 나를 쏘아 올렸다 */
   mushroomJumped: Record<string, never>;
   // ---- 수집·상자·부탁·도장·이동(구조만 — 아직 알리는 곳이 없다. 기획이 정하면 그 흐름이 알린다) ----

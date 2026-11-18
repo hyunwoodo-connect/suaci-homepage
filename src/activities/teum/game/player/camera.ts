@@ -15,6 +15,8 @@ import type { Player } from "./player";
 const COMPANY_FULL = 3;
 /** 첫 손님 하나로 오르는 몫(0..1) */
 const COMPANY_FIRST = 0.6;
+/** 화각을 잠깐 바꿀 때 따라가는 빠르기(1/초) */
+const KICK_RATE = 22;
 /**
  * 높이 떠서 둘러볼 때: 카메라는 내 머리 위(위로·뒤로 m)에서, 앞쪽 아래(앞으로·아래로 m — 45도쯤 숙인다)를 본다 —
  * 나는 화면 아래쪽에 작게 들고 화면은 발밑 앞부터 먼 곳까지 넓게 담는다 · 넓히는 화각(도)
@@ -48,6 +50,8 @@ export class CameraRig {
   /** 몸이 커진 만큼 높이·거리를 늘린다(1 이 그대로, 천천히 따라간다) */
   private zoom = 1;
   private zoomWant = 1;
+  private kick = 0;
+  private kickWant = 0;
   /** 회오리·깔때기에 들어올 때의 보는 쪽(안에서 화면이 같이 돌지 않게) */
   private readonly h0 = new THREE.Vector3();
 
@@ -86,6 +90,13 @@ export class CameraRig {
   /** 몸이 커졌다(k 배) — 기본 높이·거리를 늘려 몸이 다 들게 한다 */
   setZoom(k: number) {
     this.zoomWant = k;
+  }
+  /**
+   * 화각을 잠깐 좁히거나 넓힌다(share: 몫 — -0.04 면 4% 좁게, 0 이면 제자리). 숨바꼭질의 열어 보기가 쓴다:
+   * 두근거릴 때 살짝 다가가고, 팡 터질 때 순간 물러난다
+   */
+  kickFov(share: number) {
+    this.kickWant = share;
   }
   /** 지금 보는 쪽을 붙잡아 둔다(회오리·깔때기에 들어서는 순간) */
   lockHeading(h: THREE.Vector3) {
@@ -152,7 +163,10 @@ export class CameraRig {
       lookAhead = followAhead + (SURVEY_AHEAD - followAhead) * sv;
     look.copy(P).addScaledVector(p, lookRise).addScaledVector(cdir, lookAhead);
     camera.lookAt(look);
-    const fov = S.fov + 9 * Math.min(1.6, sp) + SURVEY_FOV * sv;
+    const kickStep = f.dt * KICK_RATE;
+    const kickEase = Math.min(1, kickStep);
+    this.kick += (this.kickWant - this.kick) * kickEase;
+    const fov = (S.fov + 9 * Math.min(1.6, sp) + SURVEY_FOV * sv) * (1 + this.kick);
     // 조금씩 바뀔 때마다 투영 행렬을 다시 만들지 않는다
     const fovDelta = camera.fov - fov;
     if (Math.abs(fovDelta) > 0.05) {

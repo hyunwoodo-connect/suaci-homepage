@@ -90,10 +90,15 @@ export const PLACED_DISGUISES: readonly DisguiseKind[] = [
   "cake",
 ];
 
-/** 판에 부르는 생물 한 무리: 종·마릿수(자리는 판마다 seats 에서 섞어 정한다). 하늘을 도는 종이면 도는 반지름과 땅에서의 높이(m) */
+/**
+ * 판에 부르는 생물 한 무리(판 영역에 사는 주민): 종·마릿수. 사는 자리(home)에서 가장 가까운 빈 seats 에 앉는다(없으면 남은 자리 아무 데나).
+ * 하늘 종이면 처음 흩어져 뜨는 둘레(m)와 땅에서의 높이(m)
+ */
 export interface GuestGroup {
   species: string;
   count: number;
+  /** 사는 자리(무대 마을 중심에서 잰 평면 m) — 없으면 판마다 아무 빈자리 */
+  home: Seat | null;
   /** 눌렀을 때 주는 도움(없으면 원래 반응만) */
   help: HelpKind | null;
   /** 땅 위 무리만: 둘러서지 않고 한 줄로 선다 */
@@ -416,6 +421,10 @@ export function readTuning(raw: unknown): HideTuning {
   }
   const seats = list(r.seats, "seats").map((v, i) => seatOf(v, `seats[${i}]`, radius));
   if (seats.length < guests.length) fail("seats: 생물 무리(guests) 수보다 적다");
+  guests.forEach((g, i) => {
+    if (g.home && Math.hypot(g.home.x, g.home.y) > radius)
+      fail(`guests[${i}].home: 무대 반경(stage.radius ${radius}m) 밖이다`);
+  });
   const rounds = list(r.rounds, "rounds").map((picked, i) => roundOf(picked, i, byId));
   if (!rounds.length) fail("rounds: 묶음이 하나는 있어야 한다");
   const duds = contents(unbox.duds, "unbox.duds"),
@@ -761,11 +770,20 @@ function guestOf(v: unknown, path: string): GuestGroup {
   const help = (g.help ?? null) as HelpKind | null;
   if (g.row !== undefined && typeof g.row !== "boolean")
     fail(`${path}.row: true(한 줄로) 또는 false 여야 한다`);
-  if (!set.sky) return { species, count: n, help, row: g.row === true, orbit: null, alt: null };
+  const home = g.home === undefined ? null : homeOf(g.home, `${path}.home`);
+  if (!set.sky)
+    return { species, count: n, home, help, row: g.row === true, orbit: null, alt: null };
   if (g.row === true) fail(`${path}.row: 하늘 무리는 줄 서지 않는다(땅 위 무리만)`);
   const orbit = positive(g.orbit, `${path}.orbit`),
     alt = positive(g.alt, `${path}.alt`);
-  return { species, count: n, help, row: false, orbit, alt };
+  return { species, count: n, home, help, row: false, orbit, alt };
+}
+
+// 사는 자리: [x, y] 두 수(무대 반경 안인지는 자리표를 다 읽은 뒤에 본다)
+function homeOf(v: unknown, path: string): Seat {
+  const at = list(v, path);
+  if (at.length !== 2) fail(`${path}: [x, y] 두 수여야 한다`);
+  return { x: finite(at[0], `${path}[0]`), y: finite(at[1], `${path}[1]`) };
 }
 
 // 생물 무리가 앉는 자리: 무대 반경 안

@@ -252,7 +252,25 @@ export interface SoundCue {
   delay?: number;
   /** 좌우(-1 왼쪽 … 1 오른쪽 — 없으면 가운데) */
   pan?: number;
+  /** 파일의 한 토막만 낸다: 시작(초)과 길이(초) — 한 파일에 든 세 번의 두드림을 하나씩 꺼낼 때 */
+  from?: number;
+  span?: number;
 }
+
+/**
+ * 열어 보기의 두근 소리. 넘겨받은 두 파일을 재 보니(10ms 마다의 가장 큰 값):
+ * open-knock 은 두드림 셋이 0.02·0.47·0.69초에 따로 서 있고, open-drum 은 셋으로 끊기지 않고 0.28초부터 끝까지 이어지는 북 굴림이다.
+ * 덜컹 세 번(0.14·0.11·0.08초)에 맞추려고 두드림을 하나씩 꺼내 덜컹마다 내고(갈수록 높게), 북 굴림은 그 밑에 작게 깐다
+ */
+const OPEN_KNOCKS: readonly (readonly [number, number])[] = [
+  [0, 0.12],
+  [0.45, 0.12],
+  [0.67, 0.1],
+];
+/** 두드림이 덜컹마다 높아지는 폭(빠르기 배수에 더한다) */
+const OPEN_KNOCK_RISE = 0.13;
+/** 북 굴림에서 쓰는 토막(초) — 덜컹이 시작될 때 깔아 결과가 갈릴 때쯤 끝난다 */
+const OPEN_ROLL = { from: 0.28, span: 0.42 } as const;
 
 /** 일어난 일 하나에 낼 소리: 늘 같은 소리, 여러 소리, 또는 그 일의 값을 보고 고르는 규칙(null 이면 소리 없음) */
 export type SoundRule<K extends GameEventName> =
@@ -445,6 +463,20 @@ export const SOUND_EFFECTS: SoundTable = {
   findTaunted: ({ pan }) => ({ key: "snd_find_taunt", volume: 0.7, pan }),
   findHopped: ({ pan }) => ({ key: "snd_find_hop", volume: 0.5, pan }),
   findFound: { key: "snd_find_found", volume: 0.9 },
+  openKnocked: ({ step, pan }) => {
+    const [from, span] = OPEN_KNOCKS[step % OPEN_KNOCKS.length];
+    return {
+      key: "snd_open_knock",
+      volume: 0.9,
+      rate: 1 + OPEN_KNOCK_RISE * step,
+      pan,
+      from,
+      span,
+    };
+  },
+  openRolled: ({ pan }) => ({ key: "snd_open_drum", volume: 0.4, pan, ...OPEN_ROLL }),
+  openPopped: ({ pan }) => ({ key: "snd_open_pop", volume: 1, pan }),
+  openFizzled: ({ pan }) => ({ key: "snd_open_fizzle", volume: 0.85, pan }),
   mushroomJumped: HIDE_HELP_SOUND.mushroom,
   travelled: { key: "snd_rocket", volume: 0.6 },
 };

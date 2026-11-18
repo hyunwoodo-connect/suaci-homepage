@@ -130,7 +130,71 @@
     "perBox": 5,
     "wiggleSeconds": 0.3,
     "wiggleScale": 0.04,
-    "highBelow": 1.5
+    "highBelow": 1.5,
+    "outlinePx": 2
+  },
+  "ribbon": {
+    "note": "리본 달린 것만 열어 볼 수 있다: 리본 크기(물건 너비의 몫)·살랑이는 주기(초)와 각(도)·쫑긋 튀는 높이(리본 키의 몫)와 시간(초)·먼 데서 눌렀을 때 까딱이는 각(도)과 시간(초)·열어 본 뒤 풀린 리본(세로 배율·기울기 도·어둡게 하는 몫)·찾은 물건의 흰 하트 크기(리본 너비의 몫)",
+    "scale": 0.35,
+    "swaySeconds": 2.4,
+    "swayDegrees": 8,
+    "perkLift": 0.35,
+    "perkSeconds": 0.35,
+    "flickDegrees": 24,
+    "flickSeconds": 0.5,
+    "undoneSquash": 0.45,
+    "undoneTilt": 20,
+    "undoneDim": 0.15,
+    "heart": 0.45
+  },
+  "open": {
+    "note": "열어 보기: 두근(공통) — 미스트가 닿을 때까지(초)·움찔 크기·덜컹 횟수와 각(도)·덜컹마다 걸리는 시간(초, 갈수록 빠르게)·덜컹마다 부푼 크기·숨죽임(초)·화각을 좁히는 몫. 찾음 — 부푸는 크기·색종이 수·빛 시간(초)·화각을 넓히는 몫과 시간(초)·상자가 솟는 높이(제 키의 배)와 시간(초)·공중 한 바퀴(초)·춤 시간(초)과 씰룩 횟수·나를 보고 폴짝 뒤 줄로 가는 때(초). 꽝 — 꺼지는 크기와 시간(초)·통통 튀는 횟수·굴러 나오는 것이 보이는 시간(초)·도리도리 시작(초)·횟수·각(도)·끝(초)·메롱까지(초)",
+    "mistSeconds": 0.2,
+    "flinch": 0.06,
+    "shakeTimes": 3,
+    "shakeDegrees": 7,
+    "shakeSeconds": [0.14, 0.11, 0.08],
+    "shakeSwell": [0.03, 0.06, 0.1],
+    "holdSeconds": 0.08,
+    "zoomIn": 0.04,
+    "hitSwell": 0.25,
+    "confetti": 24,
+    "flashSeconds": 0.2,
+    "zoomOut": 0.06,
+    "zoomOutSeconds": 0.15,
+    "riseHeights": 2.5,
+    "riseSeconds": 0.35,
+    "spinSeconds": 0.4,
+    "danceSeconds": 1.2,
+    "danceBeats": 4,
+    "leaveAt": 2.9,
+    "missSink": 0.12,
+    "sinkSeconds": 0.18,
+    "missBounces": 2,
+    "junkSeconds": 0.7,
+    "refuseAt": 1.1,
+    "refuseTimes": 2,
+    "refuseDegrees": 10,
+    "missEnd": 1.5,
+    "tauntAfter": 1.5
+  },
+  "npc": {
+    "note": "생물(주민): 나를 알아보고 인사하는 거리(m)·길을 비켜 주는 거리(m)·한 번 인사한 뒤 다시 안 하는 시간(초)·숨은 상자를 힐끗거리는 간격(초, 이 사이)과 그 상자까지의 거리(m)·힐끗 보는 시간(초)·내가 이 거리(m) 안에서 보면 딴청·찾았을 때/꽝일 때 반응하는 거리(m)·서로 까딱하는 거리(m)·가만히 있을 수 있는 가장 긴 시간(초)·하루의 한 가지를 하는 시간(초, 이 사이)·리본 물건에서 떨어져 서는 거리(m)·판 영역의 수와 한 종의 가장 많은 수",
+    "greetReach": 12,
+    "yieldReach": 6,
+    "greetCooldown": 30,
+    "peekEvery": [15, 25],
+    "peekReach": 10,
+    "peekSeconds": 2,
+    "caughtReach": 8,
+    "cheerReach": 15,
+    "puzzleReach": 10,
+    "nodReach": 4,
+    "stillMax": 3,
+    "choreSeconds": [8, 20],
+    "propRoom": 3,
+    "count": 30,
+    "perSpecies": 5
   },
   "miss": {
     "note": "꽝을 눌렀을 때: 찌그러지는 시간(초) · 이 거리(m) 안의 진짜 상자가 메롱(tauntSeconds 초) 하고 moveRange(m) 안의 같은 갈래 후보로 moveSeconds 초에 폴짝 이사(포물선 높이 moveArc m) · 상자 하나당 cooldown 초에 한 번, 한 판 maxMoves 번까지",
@@ -491,169 +555,191 @@
   },
   "guests": [
     {
-      "note": "토끼 — 길 안내(상자 쪽으로 15m 뛰며 발자국)",
-      "species": "brabbit",
-      "count": 1,
-      "help": "rabbit"
+      "note": "컵케이크 — 느긋한 먹보. 광장에 가장 많다(다섯). 출발 앞 한가운데의 둘은 시작 화면에 든다. home: 사는 자리(거기가 리본 달린 물건에 막혔으면 가장 가까운 빈 seats 에 앉는다)",
+      "species": "c_cupcake",
+      "count": 2,
+      "help": "cupcake",
+      "home": [-8, -3.2]
     },
     {
-      "species": "brabbit",
+      "species": "c_cupcake",
       "count": 1,
-      "help": "rabbit"
+      "help": "cupcake",
+      "home": [-10, -16]
     },
     {
-      "species": "brabbit",
+      "note": "케이크(판 영역 바로 밖 북동쪽) 곁에 사는 둘 — 케이크를 올려다보러 간다",
+      "species": "c_cupcake",
       "count": 1,
-      "help": "rabbit"
+      "help": "cupcake",
+      "home": [43, 54]
     },
     {
-      "species": "brabbit",
+      "species": "c_cupcake",
       "count": 1,
-      "help": "rabbit"
+      "help": "cupcake",
+      "home": [52, 42]
     },
     {
-      "note": "버섯 — 높이 뛰기(눌러서 올라타 10m)",
-      "species": "mushroom",
-      "count": 1,
-      "help": "mushroom"
-    },
-    {
-      "species": "mushroom",
-      "count": 1,
-      "help": "mushroom"
-    },
-    {
-      "species": "mushroom",
-      "count": 1,
-      "help": "mushroom"
-    },
-    {
-      "species": "mushroom",
-      "count": 1,
-      "help": "mushroom"
-    },
-    {
-      "note": "열쇠 — 투시(15m 안 3초)",
-      "species": "key",
-      "count": 1,
-      "help": "key",
-      "orbit": 4,
-      "alt": 3
-    },
-    {
-      "species": "key",
-      "count": 1,
-      "help": "key",
-      "orbit": 4,
-      "alt": 3
-    },
-    {
-      "species": "key",
-      "count": 1,
-      "help": "key",
-      "orbit": 4,
-      "alt": 3
-    },
-    {
-      "note": "카드 병정 셋 — 점호",
+      "note": "카드 병정 셋 — 소원 나무 앞에서 행진·보초·쉬어",
       "species": "card",
       "count": 3,
       "help": "soldier",
-      "row": true
+      "row": true,
+      "home": [-15, 7.5]
     },
     {
+      "note": "카드 병정 둘 — 소원 나무 뒤쪽",
       "species": "card",
-      "count": 3,
+      "count": 2,
       "help": "soldier",
-      "row": true
+      "row": true,
+      "home": [18, -4]
     },
     {
-      "note": "컵케이크 — 미끼(가장 가까운 숨은 상자가 눈앞에 걸어 나온다)",
-      "species": "c_cupcake",
+      "note": "토끼 — 둘씩 가까이 살며 술래잡기를 한다",
+      "species": "brabbit",
       "count": 1,
-      "help": "cupcake"
+      "help": "rabbit",
+      "home": [8, 44]
     },
     {
-      "species": "c_cupcake",
+      "species": "brabbit",
       "count": 1,
-      "help": "cupcake"
+      "help": "rabbit",
+      "home": [9, 57]
     },
     {
-      "species": "c_cupcake",
+      "species": "brabbit",
       "count": 1,
-      "help": "cupcake"
+      "help": "rabbit",
+      "home": [-20, -38]
     },
     {
-      "species": "c_cupcake",
+      "species": "brabbit",
       "count": 1,
-      "help": "cupcake"
+      "help": "rabbit",
+      "home": [-22, -52]
     },
     {
-      "note": "회중시계 — 시간 +10초",
+      "note": "버섯 — 자리는 mushrooms 칸이 정한다(여기 줄은 종이 판에 나온다는 표시)",
+      "species": "mushroom",
+      "count": 1,
+      "help": "mushroom"
+    },
+    {
+      "species": "mushroom",
+      "count": 1,
+      "help": "mushroom"
+    },
+    {
+      "species": "mushroom",
+      "count": 1,
+      "help": "mushroom"
+    },
+    {
+      "species": "mushroom",
+      "count": 1,
+      "help": "mushroom"
+    },
+    {
+      "note": "회중시계 — 토끼 곁에 산다(토끼를 만나면 같이 달린다)",
       "species": "c_watch",
       "count": 1,
-      "help": "watch"
+      "help": "watch",
+      "home": [16, 30]
     },
     {
       "species": "c_watch",
       "count": 1,
-      "help": "watch"
+      "help": "watch",
+      "home": [-38, -48]
     },
     {
-      "note": "찻주전자 — 도움 없음(누르면 팽이처럼 돌며 김)",
+      "note": "찻주전자 — 이웃에게 차를 따라 준다",
       "species": "teapot",
-      "count": 1
-    },
-    {
-      "note": "주사위 — 도움 없음(데굴데굴 달아난다)",
-      "species": "c_dice",
-      "count": 1
-    },
-    {
-      "species": "c_dice",
-      "count": 1
-    },
-    {
-      "note": "날개 편지 — 도움 없음(하트 종이를 쏟고 지그재그로 달아난다)",
-      "species": "c_wletter",
       "count": 1,
-      "orbit": 6,
-      "alt": 3
+      "home": [0, 20]
     },
     {
-      "note": "날개 하트 — 도움 없음(부풀다 퐁 갈라졌다 모인다)",
-      "species": "c_wheart",
-      "count": 1,
-      "orbit": 5,
-      "alt": 3
-    },
-    {
-      "note": "날개 찻잔 — 도움 없음(차를 엎지르고 빙빙)",
+      "note": "날개 찻잔 — 찻주전자를 졸졸 따라다닌다",
       "species": "c_wcup",
       "count": 1,
       "orbit": 5,
-      "alt": 3
+      "alt": 3,
+      "home": [-8, 33]
     },
     {
-      "note": "날개 종 — 도움 없음(딸랑딸랑 솟구치고 곁의 생물이 까딱)",
-      "species": "c_wbell",
+      "note": "주사위 둘 — 서로 눈을 겨룬다",
+      "species": "c_dice",
+      "count": 2,
+      "home": [16, -18]
+    },
+    {
+      "note": "모자 — 이웃 머리 위에 슬쩍 올라앉는다",
+      "species": "c_hat",
       "count": 1,
-      "orbit": 5,
-      "alt": 3
-    },
-    {
-      "note": "모자 — 도움 없음(뒤집혀 작은 것이 튀어나온다)",
-      "species": "c_hat",
-      "count": 1
+      "home": [18, 8]
     },
     {
       "species": "c_hat",
-      "count": 1
+      "count": 1,
+      "home": [-2, -31]
     },
     {
-      "note": "장미 — 도움 없음(꽃잎을 펼쳤다 부끄러워 반쯤 숨는다)",
+      "note": "장미",
       "species": "c_rose",
-      "count": 1
+      "count": 1,
+      "home": [-40, 6]
+    },
+    {
+      "note": "열쇠 — 리본 달린 물건이 모인 데 곁에 살며 하나씩 살펴본다",
+      "species": "key",
+      "count": 1,
+      "help": "key",
+      "orbit": 4,
+      "alt": 3,
+      "home": [38, 16]
+    },
+    {
+      "species": "key",
+      "count": 1,
+      "help": "key",
+      "orbit": 4,
+      "alt": 3,
+      "home": [54, 22]
+    },
+    {
+      "species": "key",
+      "count": 1,
+      "help": "key",
+      "orbit": 4,
+      "alt": 3,
+      "home": [36, -24]
+    },
+    {
+      "note": "날개 편지 — 우체통(판 영역 바로 밖 남동쪽) 곁에 산다",
+      "species": "c_wletter",
+      "count": 1,
+      "orbit": 6,
+      "alt": 3,
+      "home": [54, -36]
+    },
+    {
+      "note": "날개 하트 둘 — 붙어 다니며 하트를 그린다",
+      "species": "c_wheart",
+      "count": 2,
+      "orbit": 5,
+      "alt": 3,
+      "home": [-40, 30]
+    },
+    {
+      "note": "날개 종 둘 — 번갈아 울린다",
+      "species": "c_wbell",
+      "count": 2,
+      "orbit": 5,
+      "alt": 3,
+      "home": [62, -10]
     }
   ],
   "seats": [

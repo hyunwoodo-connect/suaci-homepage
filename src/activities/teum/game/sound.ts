@@ -194,7 +194,8 @@ export class SoundManager {
       source.connect(gain).connect(side).connect(out);
     } else source.connect(gain).connect(out);
     const when = ctx.currentTime + (cue.delay ?? 0);
-    source.start(when);
+    if (cue.span === undefined) source.start(when, cue.from ?? 0);
+    else source.start(when, cue.from ?? 0, cue.span);
   }
 
   // 소리 파일을 한 번만 받아 푼다(못 받으면 그 소리는 없는 것으로)

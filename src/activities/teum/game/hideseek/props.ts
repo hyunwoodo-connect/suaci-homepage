@@ -6,13 +6,19 @@ import { S } from "../settings";
 import { UP } from "../world/sphere";
 import type { PropSpec } from "./findTuning";
 import { FIND } from "./findTuning";
+import { openPose } from "./opening";
+import { STAGE } from "./openTuning";
+import type { Hull } from "./outline";
+import { addHull } from "./outline";
 import type { PickTarget } from "./picker";
-import { sphereAt } from "./spots";
+import { Ribbons } from "./ribbons";
+import { sphereAt, startPoint } from "./spots";
 
 // 후보 물건: 상자가 들어갈 수 있는 물건들(찻잔·바구니·쿠키 단지·화분·선물 더미). 넷에만 상자가 있고 나머지는 꽝이다.
-//   내가 candidate.wiggleReach 안에 들어오면 한 번 꿈틀한다 — '이건 누를 수 있다'(글자·테두리 없이). 멀어졌다 다시 오면 또 한다
-//   꽝을 누르면 말랑하게 찌그러졌다 펴진다. 상자가 든 물건은 내가 가까이 오면 바스락 흔들린다(뜨거워 차가워)
-//   찾은 물건에는 작은 라임 리본이 남고, 더는 꿈틀하지도 눌리지도 않는다
+//   물건마다 라임 리본이 달려 있다 — 리본 달린 것만 열어 볼 수 있다(조각 03). 리본은 바람에 살랑이고,
+//   내가 candidate.wiggleReach 안에 들어오면 쫑긋 튀며 물건이 한 번 꿈틀한다. 눌릴 거리가 되면 물건에 흰 테두리가 켜진다
+//   누르면 두근(덜컹 세 번) 뒤에 팡 아니면 푸슉 — 몸짓은 opening 이 셈한다. 상자가 든 물건은 내가 가까이 오면 바스락 흔들린다(뜨거워 차가워)
+//   열어 본 꽝은 리본이 풀려 늘어지고 그 판에 다시 눌리지 않는다. 찾은 물건은 리본이 다시 묶이고 흰 하트가 얹힌다
 // 무리(같은 물건 넷 이상)·낱개·높은 곳(쌓아 올린 탑 꼭대기, 통통 구름 위) 세 갈래 — 자리는 hideseek.data.json 의 props.
 // 물건 속으로는 못 들어가고(막힌다), 위에서 내려오면 꼭대기에 올라선다
 
@@ -25,10 +31,14 @@ export interface Candidate {
   tall: number;
   lid: number;
   wide: number;
+  /** 발치의 반너비(m — 탑은 밑동의 가장 굵은 칸, 그 밖에는 반너비와 같다). 곁에 무엇을 세울 때 이만큼 비킨다 */
+  foot: number;
   /** 속에 든 상자의 크기 배수(물건 옆으로 삐져나오지 않게) */
   fit: number;
-  /** 찾았다(리본이 남았다) */
+  /** 찾았다(리본에 흰 하트가 얹힌다) */
   isFound: boolean;
+  /** 이 판에 열어 봤다(꽝 — 리본이 풀렸다. 다시 눌리지 않고 상자도 다시 들어가지 않는다) */
+  isOpened: boolean;
 }
 
 /** 물건 하나의 화면 쪽(틀과 몸짓) */
@@ -42,11 +52,16 @@ interface Shown {
   core: number;
   isNear: boolean;
   wiggleT: number;
-  squishT: number;
   /** 바스락: 남은 시간(초)과 세기(1 이 warm.rustleDegrees) */
   rustleT: number;
   rustleK: number;
-  ribbon: THREE.Object3D | null;
+  /** 리본 번호 */
+  bow: number;
+  /** 눌릴 거리일 때 켜지는 흰 테두리(모델이 온 뒤에 생긴다) */
+  hull: Hull | null;
+  /** 열어 보는 중: 누른 때부터(초, 아니면 -1)와 결과 */
+  openT: number;
+  openHit: boolean;
 }
 
 /** 다시 꿈틀하려면 이만큼(m) 더 멀어졌다 와야 한다 · 바스락 한 번의 길이(초)·빠르기(rad/s) · 혼자 살짝 떨 때의 세기 */
@@ -59,9 +74,11 @@ const FAR = 16;
 /** 몸통이 막는 반지름(반너비의 몫) · 꼭대기에서 이만큼(m) 아래까지는 올라선 것으로 친다 */
 const BODY_SHARE = 0.8,
   STEP_UP = 1;
-/** 찾은 흔적 리본: 크기(m) · 물건 꼭대기 위로(m) */
-const RIBBON_SIZE = 1.1,
-  RIBBON_OVER = 0.12;
+/** 윗면이 열린 물건(뚜껑 높이가 키의 이 몫 이상 — 찻잔)은 리본을 가운데가 아니라 가장자리(반너비의 이 몫)에 단다 */
+const OPEN_TOP = 0.99,
+  RIM_SHARE = 0.86;
+/** 눌릴 거리의 물건에 켜지는 흰 테두리 굵기(px — 물건 모두가 같은 값을 본다) */
+const OUTLINE = { value: STAGE.outlinePx };
 /** 색 없이 온 모델에 칠할 때: 회색 텍스처(밝기 반쯤)에 곱하는 색을 이만큼 밝힌다 */
 const PAINT_GAIN = 1.7;
 /** 누르는 자리의 반너비·반높이(물건 크기의 몫) */
@@ -69,14 +86,14 @@ const PICK_SHARE = 0.5;
 
 const at = new THREE.Vector3(),
   q = new THREE.Quaternion(),
-  yawQ = new THREE.Quaternion();
+  yawQ = new THREE.Quaternion(),
+  toStart = new THREE.Vector3();
 
 /** 후보 물건 전체 */
 export class Props {
   readonly list: Candidate[] = [];
   private readonly shown: Shown[] = [];
-  private readonly ribbonGeo = new THREE.SphereGeometry(0.5, 14, 10);
-  private readonly ribbonMat: THREE.MeshStandardMaterial;
+  private readonly ribbons: Ribbons;
 
   /** hub: 무대 마을 중심 */
   constructor(
@@ -84,27 +101,25 @@ export class Props {
     hub: THREE.Vector3,
     rand: () => number,
   ) {
-    this.ribbonMat = new THREE.MeshStandardMaterial({
-      color: s.mats.lime,
-      emissive: s.mats.lime,
-      emissiveIntensity: 0.35,
-      roughness: 0.5,
-    });
+    this.ribbons = new Ribbons(s);
     for (const kind of Object.values(FIND.kinds))
       if (kind.paint) this.paint(kind.model, kind.paint);
     for (const spec of FIND.props) this.build(spec, hub, rand);
   }
 
-  /** 판 시작: 찾은 흔적을 거두고 몸짓을 그친다 */
+  /** 판 시작·끝: 리본을 모두 다시 묶고 몸짓을 그친다 */
   reset() {
+    this.ribbons.reset();
     for (const o of this.shown) {
-      o.c.isFound = false;
-      o.ribbon?.removeFromParent();
-      o.ribbon = null;
-      o.wiggleT = o.squishT = -1;
+      o.c.isFound = o.c.isOpened = false;
+      o.wiggleT = o.openT = -1;
       o.rustleT = 0;
       o.rustleK = 1;
       o.isNear = false;
+      // 멀리 있는 물건은 몸짓을 다시 셈하지 않으므로, 하던 몸짓(부푼 크기·기울기)을 여기서 푼다
+      o.body.scale.set(1, 1, 1);
+      o.body.rotation.z = 0;
+      if (o.hull) o.hull.visible = false;
     }
   }
 
@@ -136,11 +151,13 @@ export class Props {
     return mine >= c.base - C.highBelow;
   }
 
-  /** 누를 수 있는 것: 아직 찾지 않은 물건 모두(닿는지는 누른 뒤에 본다 — 멀면 아무 일도 없다) */
+  /**
+   * 누름이 걸리는 것: 후보 물건 모두. 열어 봤거나 찾은 물건도 넣는다 — 눌러도 아무 일 없지만,
+   * 빼 버리면 그 뒤에 겹쳐 보이는 물건이 대신 열린다. 열리는지·닿는지는 누른 쪽(숨바꼭질)이 본다
+   */
   targets(): PickTarget<Candidate>[] {
     const out: PickTarget<Candidate>[] = [];
     for (const c of this.list) {
-      if (c.isFound) continue;
       const spot = new THREE.Vector3(),
         center = this.center(c, spot),
         halfH = c.tall * PICK_SHARE;
@@ -149,9 +166,45 @@ export class Props {
     return out;
   }
 
-  /** 꽝: 말랑하게 찌그러졌다 펴진다 */
-  squish(c: Candidate) {
-    this.shownOf(c).squishT = 0;
+  /** 멀리서 눌렀다: 리본만 까딱 흔들린다 */
+  flick(c: Candidate) {
+    const o = this.shownOf(c);
+    this.ribbons.flick(o.bow);
+  }
+
+  /** 열어 보기 시작: 리본이 팽팽히 당겨진다 */
+  startOpen(c: Candidate) {
+    const o = this.shownOf(c);
+    o.openT = 0;
+    o.wiggleT = -1;
+    o.rustleT = 0;
+    this.ribbons.setTaut(o.bow, true);
+  }
+
+  /** 열어 보는 중: 누른 때부터 t 초(hit: 찾음·꽝 — 갈리기 전에는 보지 않는다) */
+  setOpen(c: Candidate, t: number, hit: boolean) {
+    const o = this.shownOf(c);
+    o.openT = t;
+    o.openHit = hit;
+  }
+
+  /** 갈렸다: 찾았으면 리본이 위로 튕겨 풀리고, 꽝이면 힘없이 풀려 늘어진다 */
+  splitOpen(c: Candidate, hit: boolean) {
+    const o = this.shownOf(c);
+    if (hit) this.ribbons.pop(o.bow);
+    else this.ribbons.setLook(o.bow, "undone");
+  }
+
+  /** 열어 보기 끝. 꽝이면 열어 본 것으로 남는다(리본이 풀린 채 — 그 판에 다시 눌리지 않는다) */
+  endOpen(c: Candidate, hit: boolean) {
+    this.shownOf(c).openT = -1;
+    if (!hit) c.isOpened = true;
+  }
+
+  /** 찾은 물건: 리본이 다시 묶이고 매듭 위에 흰 하트가 얹힌다 */
+  tieHeart(c: Candidate) {
+    const o = this.shownOf(c);
+    this.ribbons.setLook(o.bow, "heart");
   }
 
   /** 바스락: 잠깐 흔들린다(상자가 든 물건 — 내가 가까이 있을 때) */
@@ -183,50 +236,51 @@ export class Props {
     return floor;
   }
 
-  /** 통 튄다(상자가 튀어나오는 순간) */
+  /** 한 번 꿈틀한다(이사 온 상자가 쏙 들어왔다) */
   bump(c: Candidate) {
     this.shownOf(c).wiggleT = 0;
   }
 
-  /** 찾았다: 꼭대기에 작은 라임 리본이 남고 더는 꿈틀하지도 눌리지도 않는다 */
+  /** 찾았다: 더는 꿈틀하지도 눌리지도 않는다(리본의 하트는 상자가 줄로 떠날 때 tieHeart 가 얹는다) */
   markFound(c: Candidate) {
-    const o = this.shownOf(c);
     c.isFound = true;
-    if (o.ribbon) return;
-    const ribbon = this.makeRibbon();
-    ribbon.position.y = c.lid + RIBBON_OVER;
-    ribbon.scale.setScalar(RIBBON_SIZE);
-    o.body.add(ribbon);
-    o.ribbon = ribbon;
   }
 
-  /** 한 프레임: 가까이 오면 꿈틀, 하던 몸짓, 속으로 못 들어가게 막고 위에서 오면 올려 세운다 */
-  update(dt: number, isRound: boolean) {
+  /** 한 프레임: 가까이 오면 쫑긋·꿈틀, 눌릴 거리면 흰 테두리, 하던 몸짓, 속으로 못 들어가게 막고 위에서 오면 올려 세운다 */
+  update(dt: number, isRound: boolean, time: number) {
     const { player } = this.s,
       C = FIND.candidate;
     for (const o of this.shown) {
       const c = o.c,
         flat = player.p.angleTo(c.v) * S.R,
-        isIdle = o.wiggleT < 0 && o.squishT < 0 && o.rustleT <= 0;
+        isIdle = o.wiggleT < 0 && o.openT < 0 && o.rustleT <= 0,
+        isLive = isRound && !c.isFound && !c.isOpened;
       if (flat > c.wide + FAR) {
         o.isNear = false;
+        if (o.hull) o.hull.visible = false;
         if (isIdle) continue;
       }
       const dist = this.distance(c);
-      // 판이 도는 동안, 찾지 않은 물건만 꿈틀한다
-      if (isRound && !c.isFound && !o.isNear && dist <= C.wiggleReach) {
+      // 판이 도는 동안, 리본이 묶여 있는 물건만 쫑긋·꿈틀한다
+      if (isLive && !o.isNear && dist <= C.wiggleReach) {
         o.isNear = true;
-        o.wiggleT = 0;
+        if (o.openT < 0) o.wiggleT = 0;
+        this.ribbons.perk(o.bow);
       } else if (o.isNear && dist > C.wiggleReach + REARM) o.isNear = false;
+      // 흰 테두리: 지금 누르면 닿는 것만(테두리가 켜진 것만 눌린다)
+      if (o.hull) o.hull.visible = isLive && o.openT < 0 && this.canReach(c);
       this.pose(o, dt);
       if (!player.held) this.collide(o, flat);
     }
+    this.ribbons.update(dt, time);
   }
 
   dispose() {
-    for (const o of this.shown) o.root.removeFromParent();
-    this.ribbonGeo.dispose();
-    this.ribbonMat.dispose();
+    for (const o of this.shown) {
+      o.hull?.dispose();
+      o.root.removeFromParent();
+    }
+    this.ribbons.dispose();
   }
 
   /* ─── 내부 ─────────────────────────── */
@@ -289,49 +343,74 @@ export class Props {
       tall: hold.userData.hh * 2,
       lid: hold.userData.hh * 2 * kind.lid,
       wide: hold.userData.rw,
+      foot: Math.max(widest, hold.userData.rw),
       fit: Math.min(1, fitted),
       isFound: false,
+      isOpened: false,
     };
     this.list.push(c);
-    const girth = Math.max(widest, c.wide);
-    this.shown.push({
-      c,
-      root,
-      body,
-      ground,
-      core: girth * BODY_SHARE,
-      isNear: false,
-      wiggleT: -1,
-      squishT: -1,
-      rustleT: 0,
-      rustleK: 1,
-      ribbon: null,
+    const girth = Math.max(widest, c.wide),
+      shown: Shown = {
+        c,
+        root,
+        body,
+        ground,
+        core: girth * BODY_SHARE,
+        isNear: false,
+        wiggleT: -1,
+        rustleT: 0,
+        rustleK: 1,
+        bow: this.tieRibbon(c, root, body, hub, kind.lid),
+        hull: null,
+        openT: -1,
+        openHit: false,
+      };
+    this.shown.push(shown);
+    // 흰 테두리는 모델이 온 뒤에 그 모양대로 붙인다(꼭대기 물건에만 — 탑의 밑은 누르는 것이 아니다)
+    models.when(kind.model, () => {
+      shown.hull = addHull(hold, 0xffffff, OUTLINE);
     });
   }
 
-  // 찾은 흔적: 작은 라임 리본(나비 매듭 — 납작한 공 둘과 가운데 매듭)
-  private makeRibbon(): THREE.Group {
-    const bow = new THREE.Group();
-    for (const side of [-1, 1]) {
-      const loop = new THREE.Mesh(this.ribbonGeo, this.ribbonMat);
-      loop.scale.set(0.62, 0.4, 0.26);
-      const across = side * 0.3;
-      loop.position.set(across, 0.2, 0);
-      loop.rotation.z = side * 0.35;
-      bow.add(loop);
-    }
-    const knot = new THREE.Mesh(this.ribbonGeo, this.ribbonMat);
-    knot.scale.setScalar(0.24);
-    knot.position.y = 0.16;
-    bow.add(knot);
-    return bow;
+  // 리본을 단다: 너비는 물건 너비의 ribbon.scale. 뚜껑·손잡이가 있는 물건은 맨 위 가운데, 윗면이 열린 물건(찻잔)은 가장자리에 —
+  // 가운데는 상자가 귀를 내미는 자리라 비워 둔다. 출발 자리 쪽을 보게 단다(다가갈 때 먼저 보인다)
+  private tieRibbon(
+    c: Candidate,
+    root: THREE.Object3D,
+    body: THREE.Object3D,
+    hub: THREE.Vector3,
+    lidShare: number,
+  ): number {
+    const start = startPoint(),
+      width = STAGE.ribbon.scale * c.wide * 2;
+    sphereAt(toStart, hub, start.x, start.y);
+    // 출발 자리 쪽(접선)을 물건의 좌표로 옮겨 각을 잰다
+    const up = toStart.dot(c.v);
+    toStart.addScaledVector(c.v, -up);
+    q.copy(root.quaternion).invert();
+    toStart.applyQuaternion(q);
+    const angle = Math.atan2(toStart.z, toStart.x),
+      isOpenTop = lidShare >= OPEN_TOP,
+      rim = isOpenTop ? c.wide * RIM_SHARE : 0,
+      height = isOpenTop ? c.lid : c.tall,
+      x = Math.cos(angle) * rim,
+      z = Math.sin(angle) * rim;
+    at.set(x, height, z);
+    // 리본의 앞(+x)이 그 각을 보게: y 축으로 -angle 돌리면 +x 가 (cos, 0, sin) 으로 간다
+    return this.ribbons.add(body, at, width, -angle);
   }
 
-  // 몸짓을 몸에 입힌다: 꿈틀(한 번 늘었다 줄기) · 찌그러짐(납작 → 튕겨 올라옴 → 제자리) · 바스락(좌우로 떨기)
+  // 몸짓을 몸에 입힌다: 열어 보는 중이면 그 몸짓(opening)만. 아니면 꿈틀(한 번 늘었다 줄기) · 바스락(좌우로 떨기)
   private pose(o: Shown, dt: number) {
     const C = FIND.candidate,
-      M = FIND.miss,
       W = FIND.warm;
+    if (o.openT >= 0) {
+      const open = openPose(o.openT, o.openHit, STAGE.open),
+        high = open.size * open.tall;
+      o.body.scale.set(open.size, high, open.size);
+      o.body.rotation.z = open.lean;
+      return;
+    }
     let tall = 1,
       lean = 0;
     if (o.wiggleT >= 0) {
@@ -340,12 +419,6 @@ export class Props {
         turn = u * Math.PI * 2;
       tall += C.wiggleScale * Math.sin(turn);
       if (u >= 1) o.wiggleT = -1;
-    }
-    if (o.squishT >= 0) {
-      o.squishT += dt;
-      const u = o.squishT / M.squishSeconds;
-      tall *= squishAt(u);
-      if (u >= 1) o.squishT = -1;
     }
     if (o.rustleT > 0) {
       o.rustleT -= dt;
@@ -371,14 +444,4 @@ export class Props {
     }
     player.block(c.v, o.core, top);
   }
-}
-
-/* ─── 내부 ─────────────────────────── */
-
-// 찌그러짐: 0.35 까지 납작(72%), 0.7 에 살짝 넘치게(106%), 끝에 제자리
-function squishAt(u: number): number {
-  if (u >= 1) return 1;
-  if (u < 0.35) return 1 - 0.28 * (u / 0.35);
-  if (u < 0.7) return 0.72 + 0.34 * ((u - 0.35) / 0.35);
-  return 1.06 - 0.06 * ((u - 0.7) / 0.3);
 }

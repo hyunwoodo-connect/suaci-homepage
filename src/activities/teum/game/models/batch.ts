@@ -115,23 +115,28 @@ export class ModelBatch {
     this.n = 0;
   }
 
-  /** 하나 그린다: 자리·돌림·배율(절대값), 몸 휘기 값, 라임 */
+  /**
+   * 하나 그린다: 자리·돌림·배율(절대값), 몸 휘기 값, 라임, 세로로 늘인 몫(1 이 그대로 — 납작하면 그만큼 옆으로 퍼져 부피가 남는다)
+   */
   push(
     pos: THREE.Vector3,
     quat: THREE.Quaternion,
     scale: number,
     an: THREE.Vector4 = ZERO_AN,
     lime = 0,
+    stretch = 1,
   ) {
     if (!this.ready || this.n >= this.capacity) return;
-    sc.setScalar(scale);
+    const tall = scale * stretch,
+      wide = scale / Math.sqrt(stretch);
+    sc.set(wide, tall, wide);
     m4.compose(pos, quat, sc);
     const i = this.n++;
     const at = i * 4;
     this.sph[at] = pos.x;
     this.sph[at + 1] = pos.y;
     this.sph[at + 2] = pos.z;
-    this.sph[at + 3] = scale * this.halfDiag;
+    this.sph[at + 3] = Math.max(tall, wide) * this.halfDiag;
     for (let j = 0; j < this.meshes.length; j++) {
       this.meshes[j].setMatrixAt(i, m4);
       this.an[j].setXYZW(i, an.x, an.y, an.z, an.w);

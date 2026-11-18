@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import manifest from "../../assets/manifest.v9.json";
+import manifest from "../../assets/manifest.v10.json";
 import { FIND } from "./findTuning";
 import { halfWidthFromBoxes, stageZones } from "./stageZones";
 

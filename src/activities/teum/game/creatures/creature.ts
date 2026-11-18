@@ -2,6 +2,7 @@ import type * as THREE from "three";
 
 import type { Random } from "../core/random";
 import type { ModelBatch } from "../models/batch";
+import type { Resident } from "./resident";
 
 // 생물 하나의 상태. 모양은 종마다 한 번에 그리는 묶음(ModelBatch)이 그리고, 여기에는 자리·상태만 있다.
 // 모든 칸을 처음부터 같은 모양으로 채운다(없는 값은 0·null) — 생물마다 칸이 달라지면 JS 엔진이 수를 상자에 담아
@@ -90,6 +91,13 @@ export interface Creature {
   /** 내 둘레를 도는 남은 시간과 다시 돌 때까지 */
   vt: number;
   vc: number;
+  // ---- 그릴 때 더하는 몸짓(뼈대가 없어 통째로 움직인다) ----
+  /** 통째 부풀기(1 이 그대로) · 세로로 늘이기(1 이 그대로, 작으면 납작) · 보는 쪽에서 더 돌린 각(rad — 두리번·한 바퀴 돌기) */
+  swell: number;
+  squash: number;
+  yaw: number;
+  /** 주민(숨바꼭질 판 영역에 사는 생물)의 상태 — 주민이 아니면 null */
+  res: Resident | null;
 }
 
 /** 이번 프레임 움직임 세기와 고개 — 버릇이 정하면 공통 상태 기계가 그 위에서 이어 간다 */

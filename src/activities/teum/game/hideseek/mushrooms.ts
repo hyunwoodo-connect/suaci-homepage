@@ -6,13 +6,11 @@ import type { Services } from "../services";
 import { S } from "../settings";
 import type { BystanderCreatures } from "./bystanders";
 import { FIND } from "./findTuning";
-import { Leap } from "./leap";
-import type { PickTarget } from "./picker";
 import { sphereAt } from "./spots";
 import { HIDE } from "./tuning";
 
 // 버섯 높이 뛰기 — 힌트가 아니라 이동 수단: 높이 올라가 둘러보고, 높은 곳(탑 꼭대기·통통 구름 위)에 닿는다.
-//   버섯을 누르거나(mushroom.rideReach 안 — 아바타가 뛰어 올라탄다) 위에 올라서면 납작 눌렸다가 mushroom.height 까지 튄다.
+//   위에 올라서면 납작 눌렸다가 mushroom.height 까지 튄다. 누르는 것이 아니다 — 판 중에 눌리는 것은 리본 달린 물건뿐이다(조각 03).
 //   꼭대기에서 mushroom.hang 초 동안 천천히 내려온다. 그동안 카메라는 나를 보지 않고 앞쪽 아래를 넓게 본다(끌면 둘러본다 — 끄는 대로 몸이 돈다).
 //   끌어서 내려앉을 곳을 mushroom.drift(m)까지 옮길 수 있고, 물건 꼭대기 위로 내려오면 거기 올라선다.
 // 버섯은 이름표도 고리도 없다 — 제자리에서 통통 뛰는 모습이 표시다. 자리는 hideseek.data.json 의 mushrooms
@@ -28,7 +26,7 @@ interface Shroom {
 }
 
 /** 뛰는 단계: 뛰어 올라타는 중 · 납작 눌림 · 솟구침 · 꼭대기에서 내려옴 */
-type Step = "board" | "squash" | "launch" | "hang";
+type Step = "squash" | "launch" | "hang";
 
 /** 내 발밑의 올라설 곳(물건 꼭대기)의 높이(m, 땅에서 — 없으면 0) */
 export interface Floors {
@@ -48,15 +46,12 @@ const STEP_AIR = 2.5,
   LEAVE_GAP = 1.5,
   SURVEY_IN = 4,
   SURVEY_OUT = 5;
-/** 누르는 자리: 몸의 반높이·반너비에 곱하는 배수 */
-const PICK_ROOM = 1.3;
 
 const at = new THREE.Vector3();
 
 /** 버섯 높이 뛰기 */
 export class Mushrooms {
   private readonly list: Shroom[] = [];
-  private readonly leap: Leap;
   private riding: Shroom | null = null;
   private step: Step = "squash";
   private stepT = 0;
@@ -72,7 +67,6 @@ export class Mushrooms {
     private readonly floors: Floors,
     private readonly rand: () => number,
   ) {
-    this.leap = new Leap(s);
     for (let i = 0; i < FIND.mushrooms.length; i++) {
       const [c] = creatures.invite("mushroom", 1),
         hopWait = rand() * HOP_EVERY;
@@ -101,33 +95,6 @@ export class Mushrooms {
       m.cool = 0;
       m.mustLeave = false;
     });
-  }
-
-  /** 누를 수 있는 버섯: mushroom.rideReach 안의 것(타는 중이면 없다) */
-  targets(out: PickTarget<Creature>[]) {
-    if (this.riding || this.s.player.isHeld) return;
-    const reach = HIDE.mushroom.rideReach,
-      p = this.s.player.p;
-    for (const m of this.list) {
-      const c = m.c;
-      if (m.cool > 0 || !c.visible || c.v.angleTo(p) * S.R > reach) continue;
-      const hh = c.batch.hh,
-        center = c.pos.clone().addScaledVector(c.v, hh),
-        halfH = hh * PICK_ROOM,
-        halfW = c.batch.rw * PICK_ROOM;
-      out.push({ item: c, center, halfH, halfW });
-    }
-  }
-
-  /** 버섯 c 를 눌렀다: 아바타가 뛰어 올라탄다(이미 타는 중이거나 놀이기구에 실려 있으면 false) */
-  ride(c: Creature): boolean {
-    const m = this.list.find((x) => x.c === c);
-    if (!m || this.riding || this.s.player.isHeld) return false;
-    this.start(m);
-    const top = c.batch.hh * 2;
-    if (this.leap.start(c.v, top)) this.goTo("board");
-    else this.squashNow();
-    return true;
   }
 
   /** 한 프레임: 통통 뛰고, 올라서면 태우고, 타는 중이면 솟구쳤다 내려온다 */
@@ -165,7 +132,6 @@ export class Mushrooms {
   stop() {
     const m = this.riding;
     this.riding = null;
-    this.leap.stop();
     if (!m) return;
     m.c.sink = 0;
     m.cool = COOLDOWN;
@@ -207,10 +173,6 @@ export class Mushrooms {
       c = m.c,
       { player } = this.s;
     this.stepT += dt;
-    if (this.step === "board") {
-      if (this.leap.update(dt)) this.squashNow();
-      return;
-    }
     // 다른 것(놀이기구)이 나를 붙잡으면 그친다
     if (player.isHeld) {
       this.stop();
@@ -224,6 +186,8 @@ export class Mushrooms {
       if (u < 1) return;
       this.used++;
       this.s.events.emit("mushroomJumped", {});
+      // 튕겨 낸 갓은 한참 출렁인다
+      this.creatures.wobble(c);
       this.goTo("launch");
       return;
     }

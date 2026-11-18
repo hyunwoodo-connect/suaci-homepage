@@ -84,6 +84,8 @@ export const CATALOG = {
   // 상자가 속에 숨는 후보 물건(v9 — 기획 세션이 teum-handoff/slice-02/props 에 넣은 것, 이미 줄여 온 폴리곤 그대로): 찻잔·바구니·쿠키 단지.
   // 풍경의 teacup·d_teacup 과 이름이 겹치지 않게 hide_ 를 붙인다
   ...group("hideseek", 7000, 512, "hide_teacup hide_basket hide_jar"),
+  // 후보 물건에 다는 리본 매듭(v10 — teum-handoff/slice-03/props, 이미 줄여 온 한 덩어리 메시. 색은 게임이 라임으로 칠한다)
+  ...group("hideseek", 1500, 256, "hide_ribbon"),
   // 화면 단추 그림(v9 — 옷장 단추. 256px webp)
   ...images("ui", "ui_wardrobe"),
   // suaci 프로모션 오브젝트(로고·제품 등)는 'brand' 분류로 넣는다. 예: ...group("brand", 5000, 1024, "logo_sign bottle"),
@@ -112,6 +114,9 @@ export const CATALOG = {
     "audio/sfx",
     "snd_find_giggle_1 snd_find_giggle_2 snd_find_giggle_3 snd_find_rustle snd_find_wrong snd_find_taunt snd_find_hop snd_find_found",
   ),
+  // 열어 보기 소리(v10 — teum-handoff/slice-03/sounds, 기획이 앞뒤 무음을 자르고 −1dB 에 맞춰 넘긴 것. ffmpeg 로 재 보니 넷 다 들린다):
+  // 두근(북 셋)·두근의 다른 벌(나무 두드림 셋)·팡·푸슉
+  ...sounds("audio/sfx", "snd_open_drum snd_open_knock snd_open_pop snd_open_fizzle"),
 };
 
 /**
