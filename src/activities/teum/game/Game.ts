@@ -74,6 +74,7 @@ import { bareOf } from "./maps/bare";
 import { GardenDecor } from "./garden/decor";
 import type { TeaFountain } from "./garden/teaFountain";
 import { teaFountainOf } from "./garden/teaFountain";
+import { MinigameEntry } from "./minigame/entry";
 import { Minimap } from "./minimap/minimap";
 import { defaultMotion } from "./player/motion";
 import { Studio } from "./studio/studio";
@@ -190,6 +191,8 @@ export class Game {
   /** 존 랜드마크(빛 기둥·모델·반짝이 — 존 설정이 있는 지도만) · 존 미니게임 기록 */
   readonly landmarkShows: LandmarkShow[];
   readonly played: PlayedGames;
+  /** 존 미니게임 입구(존 설정이 있는 지도만) */
+  readonly minigames: MinigameEntry | null;
   /** 자리표의 꾸밈 decor(정원) — 없으면 빈 것 */
   readonly gardenDecor: GardenDecor;
   /** 티 분수(꾸밈에 분수 탑이 있을 때만) */
@@ -457,6 +460,12 @@ export class Game {
     );
     if (!hasHideSeek) this.hideSeek.sleep();
     this.director = new Director(s, this.bubbleTrail, this.seeds, this.creatures);
+    // 존 미니게임 입구(존 설정이 있는 지도만): 랜드마크 앞 시작 자리 → 연출 → 판 → 결과 → 자유 놀이. 도전장 링크(?zone=)는 그 자리로
+    this.minigames = map.zoneConfigs
+      ? new MinigameEntry(s, { s, hideSeek: this.hideSeek }, this.played)
+      : null;
+    this.minigames?.layout();
+    this.minigames?.landFromLink();
     const canOpenMap = () => !this.hideSeek.isRoundOn && !this.hideSeek.takesTaps;
     this.minimap = map.minimap
       ? new Minimap(s, map.minimap, hudParent, stage.camera, canOpenMap)
@@ -560,6 +569,7 @@ export class Game {
       this.studio,
       // 숨바꼭질은 따라가는 카메라 뒤에 — 둘러보기·언박싱이 카메라를 잠깐 빌린다
       this.hideSeek,
+      ...(this.minigames ? [this.minigames] : []),
       this.landmarks,
       places.spots,
       ripples,
