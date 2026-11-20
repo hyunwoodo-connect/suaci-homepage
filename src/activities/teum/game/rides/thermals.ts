@@ -8,6 +8,9 @@ import type { Services } from "../services";
 import { GREY_TOY, S } from "../settings";
 import { from, refTInto, UP } from "../world/sphere";
 
+/** 비탈에 앉힐 때 보는 밑동 반지름(m) — 지도 terrain.level */
+const SEAT_R = 2;
+
 // 상승 기류 — 소용돌이치며 올라가는 바람 기둥. 안에 있는 동안 계속 떠오른다.
 // 기류 기둥: 비스듬한 띠가 돌면서 올라가는 반투명 원통. 위로 갈수록 넓어지며 사라진다. 그 안을 꽃잎이 나선으로 오른다
 
@@ -102,7 +105,7 @@ export class Thermals implements Thing {
     for (const th of this.list) {
       const spot = from(th.dist, th.bear);
       th.v.copy(spot);
-      th.g = terrain.featGround(th.v);
+      th.g = terrain.seatAt(th.v, SEAT_R);
       refTInto(th.t1, th.v);
       th.t2.crossVectors(th.v, th.t1).normalize();
       keep.push(th.v);

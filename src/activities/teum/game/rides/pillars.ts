@@ -9,6 +9,9 @@ import { S } from "../settings";
 import { rowPath } from "../world/paths";
 import { FWD, UP } from "../world/sphere";
 
+/** 비탈에 앉힐 때 보는 밑동 반지름(m) — 지도 terrain.level */
+const SEAT_R = 1.5;
+
 // 기둥 줄 — 지나가면 하나씩 불이 켜지며 솟는다.
 // 풍선 꽃: 줄기 하나에 꽃잎 일곱. 지나가면 줄기가 자라고 꽃이 활짝 핀다(줄기는 길이만 늘어나서 모양이 뭉개지지 않는다).
 // 줄기·꽃잎·꽃 심을 각각 한 번에 그린다(기둥 360여 개 × 아홉 조각을 낱개로 두면 장면이 무거워진다).
@@ -126,7 +129,8 @@ export class Pillars implements Thing, Tappable, Echoing {
         const sideStep = (i % 2 ? 3.2 : -3.2) / S.R;
         pl.v.copy(v).addScaledVector(side, sideStep).normalize();
         keep.push(pl.v);
-        const radius = S.R + terrain.featGround(pl.v);
+        const seat = terrain.seatAt(pl.v, SEAT_R);
+        const radius = S.R + seat;
         pl.root.copy(pl.v).multiplyScalar(radius);
         pl.q.setFromUnitVectors(UP, pl.v);
         fz.copy(d).multiplyScalar(-0.9).addScaledVector(pl.v, 0.44).normalize();

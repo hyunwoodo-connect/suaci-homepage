@@ -12,6 +12,9 @@ import { GREY_TOY, S, WHITE } from "../settings";
 import { clamp, from, heading, UP } from "../world/sphere";
 import { placeBar } from "./bars";
 
+/** 비탈에 앉힐 때 보는 밑동 반지름(m) — 지도 terrain.level */
+const SEAT_R = 3;
+
 // 그네 구름 — 매달려 흔들리다 손을 떼는 순간 날아간다. 기둥 둘과 가로대 대신 둥근 아치 하나, 구름 방석에 두 줄
 
 /** 그네 하나: 아치(pa)·줄 둘·앉는 구름, 줄이 매달린 곳(piv)·방석이 있는 곳(end) */
@@ -113,7 +116,7 @@ export class Swings implements Thing, Holder, Tappable {
       const facing = heading(sw.v, sw.head);
       sw.d.copy(facing);
       sw.side.crossVectors(sw.v, sw.d).normalize();
-      sw.g = terrain.featGround(sw.v);
+      sw.g = terrain.seatAt(sw.v, SEAT_R);
       keep.push(sw.v);
       const groundR = S.R + sw.g;
       const barR = groundR + 10;

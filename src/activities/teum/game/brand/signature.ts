@@ -187,7 +187,10 @@ export class Signature implements Thing {
     };
     const HV = s.occ.hubs,
       plan = s.map.brand.balloons;
-    for (let hk = 0; hk < HV.length; hk++) {
+    // 맵만 보기(지도 bare)에는 로고 풍선·잔디 로고가 없다
+    const isBare = s.map.bare === true;
+    const townCount = isBare ? 0 : HV.length;
+    for (let hk = 0; hk < townCount; hk++) {
       const hubBear = 35 + hk * 67;
       const spot = s.occ.hubAt(hk, plan.town.dist, hubBear);
       mkBal(spot, plan.town.alt); // 마을마다 하나
@@ -201,6 +204,7 @@ export class Signature implements Thing {
       mkBal(spot, plan.between.alt); // 마을 사이
     }
     this.lawnMesh = createLawnMesh(s, lawn, tex.lawn);
+    this.lawnMesh.visible = !isBare;
     // 높은 풍선: 출발 마을에서 가장 가까운 로켓 바로 위(지도 highAlt, v78 은 138m)
     {
       let rk: { v: THREE.Vector3 } | null = null,
@@ -212,7 +216,7 @@ export class Signature implements Thing {
           rk = r;
         }
       }
-      if (rk) mkBal(rk.v, plan.highAlt, 4.2);
+      if (rk && !isBare) mkBal(rk.v, plan.highAlt, 4.2);
     }
     const mistGeo = new THREE.SphereGeometry(1, 16, 12);
     this.geos.push(mistGeo);

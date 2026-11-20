@@ -9,6 +9,9 @@ import type { Services } from "../services";
 import { GREY_TOY, S } from "../settings";
 import { from, UP } from "../world/sphere";
 
+/** 비탈에 앉힐 때 보는 밑동 반지름(m) — 지도 terrain.level */
+const SEAT_R = 1.5;
+
 // 칙 종 — 칙 하면 가까운 것들이 가까운 순서로 울린다. 닿아도 울리고 둘레 꽃이 핀다
 
 /** 종 하나(무리마다 큰 종 하나) */
@@ -65,7 +68,8 @@ export class Chimes implements Thing, Tappable {
       const spot = from(c.dist, c.bear);
       c.v.copy(spot);
       keep.push(c.v);
-      const radius = S.R + this.s.terrain.featGround(c.v);
+      const seat = this.s.terrain.seatAt(c.v, SEAT_R);
+      const radius = S.R + seat;
       c.g.position.copy(c.v).multiplyScalar(radius);
       c.g.quaternion.setFromUnitVectors(UP, c.v);
     }

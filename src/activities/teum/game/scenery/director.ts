@@ -79,6 +79,8 @@ export class Director implements Thing {
 
   /** 바람 고리를 움직이고, 빈 구간을 재고, 3초(떠 있으면 2.2초) 넘으면 앞길에 하나 피운다. 방울 길 바로 뒤에 부른다 */
   update(f: Frame) {
+    // 맵만 보기(지도 bare)에는 앞길에 아무것도 피우지 않는다
+    if (this.s.map.bare) return;
     const { player, fx } = this.s,
       p = player.p,
       dt = f.dt,

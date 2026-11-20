@@ -10,6 +10,9 @@ import { GREY_TOY, S } from "../settings";
 import { along, from, heading, UP } from "../world/sphere";
 import { placeBar } from "./bars";
 
+/** 비탈에 앉힐 때 보는 밑동 반지름(m) — 지도 terrain.level */
+const SEAT_R = 3;
+
 // 고무줄 — 두 기둥 사이 줄에 부딪히면 쭉 늘어났다가 반대로 튕겨 날아간다
 
 /** 고무줄 하나: 기둥 둘(pa·pb)과 줄 둘(ba·bb), 줄 끝(A·B)·가운데(C)·지금 당겨진 자리(mid) */
@@ -100,7 +103,7 @@ export class Slings implements Thing, Holder {
       keep.push(sg.v);
       const poleStep = 5 / S.R;
       const otherPoleStep = -5 / S.R;
-      const gr = terrain.featGround(sg.v);
+      const gr = terrain.seatAt(sg.v, SEAT_R);
       pa.copy(sg.v).addScaledVector(sg.side, poleStep).normalize();
       pb.copy(sg.v).addScaledVector(sg.side, otherPoleStep).normalize();
       const groundR = S.R + gr;

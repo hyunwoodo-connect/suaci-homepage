@@ -19,6 +19,7 @@ export const V79_MAP: GameMap = {
     clouds: 90,
     flowersIn: { hub: 3, reach: 360 },
     cloudsIn: { hub: 4, reach: 380 },
+    level: true,
   },
   zones: [],
   layout: layoutJson as unknown as Layout,
@@ -205,4 +206,8 @@ export const V79_MAP: GameMap = {
   startHub: 0,
   hideSeek: false,
   fog: { near: 60, far: 720 },
+  // 오너가 지도 자체를 먼저 본다 — 꾸밈은 뺀 채로
+  bare: true,
+  // 내가 어디 있는지(기획 MINIMAP-01 4장 가안)
+  minimap: { size: 76, regionName: { seconds: 1.2, cooldown: 10 }, bigMap: { width: 0.85 } },
 };

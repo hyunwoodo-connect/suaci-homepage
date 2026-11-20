@@ -92,12 +92,15 @@ function addStrip(s: Services, road: LayoutRoad, pos: number[], col: number[], i
       last = pts[lastAt];
     ahead.subVectors(next, last);
     side.crossVectors(v, ahead).normalize();
-    const radius = S.R + s.terrain.groundAt(v) + ROAD.lift;
     const halfWidth = ROAD.width / 2;
     const base = pos.length / 3;
     for (const sign of [-1, 1]) {
+      // 길 가장자리마다 그 자리 땅 높이 — 옆으로 기운 비탈에서도 한쪽이 언덕에 묻히지 않게
       const reach = sign * halfWidth;
-      tmp.copy(v).multiplyScalar(radius).addScaledVector(side, reach);
+      tmp.copy(v).multiplyScalar(S.R).addScaledVector(side, reach).normalize();
+      const ground = s.terrain.groundAt(tmp);
+      const radius = S.R + ground + ROAD.lift;
+      tmp.multiplyScalar(radius);
       pos.push(tmp.x, tmp.y, tmp.z);
       const at = s.regions.of(v);
       color.setHex(at.region.ground[0]).lerp(WHITE, ROAD.whiten);
