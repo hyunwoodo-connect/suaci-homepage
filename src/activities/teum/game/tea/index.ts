@@ -3,6 +3,7 @@ import { createAssetLoader } from "../../assets/load";
 import type { LoadedAsset } from "../../assets/load";
 import type { Manifest } from "../../assets/manifest";
 import type { RunningGame } from "../index";
+import { isTeaDebug, teaSeed, teaSpeed } from "./params";
 import { TeaGame } from "./TeaGame";
 
 // 티타임 행성의 시작: 지금 게임(game/index)과 같은 모양(start → stop)이라 입구가 주소만 보고 둘 중 하나를 받는다.
@@ -20,8 +21,9 @@ export function start(
   canvas: HTMLCanvasElement,
   { assets, onProgress }: TeaStartOptions,
 ): RunningGame {
-  const seed = randomSeed();
-  const game = new TeaGame(canvas, assets, seed);
+  const seed = teaSeed() ?? randomSeed();
+  const options = { debug: isTeaDebug(), speed: teaSpeed() };
+  const game = new TeaGame(canvas, assets, seed, options);
   // 개발에서만: 브라우저 도구로 몸을 옮기고 값을 읽는다
   if (process.env.NODE_ENV !== "production") Object.assign(window, { __tea: game });
   let stopped = false,
@@ -82,7 +84,7 @@ export function start(
 
 /* ─── 내부 ─────────────────────────── */
 
-// 판마다 다른 씨앗(오늘의 판·도전장 씨앗은 M5)
+// 판마다 다른 씨앗(&seed= 가 없을 때 — 오늘의 판·도전장 씨앗은 M5)
 function randomSeed(): number {
   const r = Math.random() * 4294967296;
   return r >>> 0;

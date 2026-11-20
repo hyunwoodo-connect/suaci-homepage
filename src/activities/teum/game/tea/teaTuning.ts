@@ -1,16 +1,16 @@
 import data from "./tea.data.json";
 
-// 티타임 행성 값은 tea.data.json 한 파일에 있고, 기획이 코드 없이 직접 고친다(칸 이름은 기획서 13장 그대로).
+// 티타임 행성 값은 tea.data.json 한 파일에 있고, 기획이 코드 없이 직접 고친다(칸 이름은 기획서 v3.1 13장 그대로).
 // 여기서는 그 파일을 읽어 모양을 확인하고 이름 붙은 값으로 내준다. 모양이 틀리면 어느 칸이 왜 틀렸는지 알리고 멈춘다(시험이 먼저 잡는다)
 
-/** 자리: 층(0 땅, 1~3 접시) · 축에서 잰 거리(m) · 방위(도) */
+/** 자리: 층(0 땅, 1~3 접시) · 거리(땅은 북극에서 땅을 따라, 접시는 가운데에서 수평으로, m) · 방위(도) */
 export interface TeaSpot {
   tier: number;
   dist: number;
   bear: number;
 }
 
-/** 놀이기구 길의 한 점: 땅에서 높이(m) · 축에서 잰 거리(m) · 방위(도) */
+/** 놀이기구 길의 한 점: 높이(0 이면 땅 위, 그 밖은 북극 땅에서 잰 높이) · 거리(m) · 방위(도) */
 export interface PathPoint {
   h: number;
   dist: number;
@@ -45,30 +45,52 @@ export interface DecorSpec {
   lift: number;
 }
 
-/** 접시 하나: 땅에서 높이 · 지름(m) */
+/** 접시 하나: 북극 땅에서 높이 · 지름(m) */
 export interface PlateSpec {
   h: number;
   d: number;
 }
 
+/** 걷기와 떨어지기(기획서 13장 밖의 이 씬 값) */
+export interface WalkTuning {
+  /** 바닥에서 떠 있는 높이(그림자가 붙어 보이게) */
+  hover: number;
+  /** 떨어지는 동안 끌기가 먹는 몫(조금) */
+  airControl: number;
+  /** 내려앉을 때 남기는 빠르기 몫 · 작은 폴짝의 세기(m/s) */
+  landKeep: number;
+  landHop: number;
+  /** 떨어지는 동안 받는 접시 가장자리에서 띄우는 여유(m) */
+  catchMargin: number;
+  /** 몸 반지름 · 키(m) */
+  bodyHalf: number;
+  bodyTop: number;
+  /** 걸어서 올라서는 턱 · 바닥에 붙는 거리(m) */
+  stepUp: number;
+  snapDown: number;
+}
+
 /** 티타임 행성 값 전체 */
 export interface TeaTuning {
   planet: { radius: number };
-  /** 스탠드: 접시(아래부터) · 꼭대기 높이 · 기둥 지름 · 접시 두께 · 테두리 높이 */
-  stand: { plates: PlateSpec[]; top: number; column: number; plateThick: number; rim: number };
+  /** 스탠드: 접시(아래부터) · 꼭대기 높이 · 기둥 지름 · 기둥 둘레 틈 · 접시 두께 · 테두리 높이 */
+  stand: {
+    plates: PlateSpec[];
+    top: number;
+    column: number;
+    gap: number;
+    plateThick: number;
+    rim: number;
+  };
+  /** 축 아래 ↔ 별 중심 아래를 섞는 수평 거리(m) */
+  gravity: { axisBlend: readonly [number, number] };
+  /** 이 씬의 중력(m/s²)과 낙하 속도 한계(m/s, 음수) */
+  fall: { gravity: number; limit: number };
+  walk: WalkTuning;
   /** 색(라임은 상자와 리본만, 금색은 보너스 상자만) */
   colors: Record<ColorName, string>;
   /** 하늘이 시계: 색과 그 색이 되는 시각(초) */
   sky: { colors: string[]; at: number[] };
-  /** 걷기와 떨어지기: 떨어질 때 중력·최대 빠르기, 아래 접시가 받는 여유, 내려앉을 때 남기는 빠르기 몫, 몸 반지름·키 */
-  walk: {
-    fallGravity: number;
-    fallLimit: number;
-    catchMargin: number;
-    landKeep: number;
-    bodyHalf: number;
-    bodyTop: number;
-  };
   /** 시작: 내려앉는 자리 · 떨어지기 시작하는 높이 · 행성 전경을 보는 시간 */
   start: { spot: TeaSpot; dropHeight: number; overview: number };
   movers: {
@@ -89,6 +111,10 @@ export interface TeaTuning {
   open: { reach: number };
   warm: { bands: number[]; every: number[] };
   first: { stillSeconds: number };
+  /** 잡은 상자 줄 간격(m) */
+  follow: { gap: number };
+  /** 꽝·빈 물건에 상자가 못 들어가는 시간(초) */
+  dud: { cooldown: number };
   retry: { free: number };
 }
 
@@ -118,6 +144,18 @@ const COLOR_NAMES: readonly ColorName[] = [
   "cream",
 ];
 
+const WALK_KEYS: readonly (keyof WalkTuning)[] = [
+  "hover",
+  "airControl",
+  "landKeep",
+  "landHop",
+  "catchMargin",
+  "bodyHalf",
+  "bodyTop",
+  "stepUp",
+  "snapDown",
+];
+
 /** 값 파일을 읽어 모양을 확인한다. 틀리면 칸 이름과 까닭을 알리며 멈춘다 */
 export function readTeaTuning(raw: unknown): TeaTuning {
   const root = record(raw, "");
@@ -129,6 +167,15 @@ export function readTeaTuning(raw: unknown): TeaTuning {
   const top = positive(stand.top, "stand.top");
   checkPlates(plates, top);
   const tiers = plates.length;
+  const gravity = record(root.gravity, "gravity");
+  const fall = record(root.fall, "fall");
+  const fallLimit = finite(fall.limit, "fall.limit");
+  if (fallLimit >= 0) fail("fall.limit: 아래로 떨어지는 빠르기라 0 보다 작아야 한다");
+  const walkRaw = record(root.walk, "walk");
+  const walk = {} as WalkTuning;
+  for (const key of WALK_KEYS) walk[key] = positive(walkRaw[key], `walk.${key}`);
+  if (walk.landKeep > 1 || walk.airControl > 1)
+    fail("walk.landKeep·airControl: 0 과 1 사이여야 한다");
   const colorsRaw = record(root.colors, "colors");
   const colors = {} as Record<ColorName, string>;
   for (const name of COLOR_NAMES) colors[name] = colorOf(colorsRaw[name], `colors.${name}`);
@@ -136,7 +183,6 @@ export function readTeaTuning(raw: unknown): TeaTuning {
   const skyColors = list(sky.colors, "sky.colors").map((v, i) => colorOf(v, `sky.colors[${i}]`));
   const skyAt = list(sky.at, "sky.at").map((v, i) => finite(v, `sky.at[${i}]`));
   if (skyAt.length !== skyColors.length) fail("sky.at: sky.colors 와 수가 같아야 한다");
-  const walk = record(root.walk, "walk");
   const start = record(root.start, "start");
   const movers = record(root.movers, "movers");
   const mushroomList = list(movers.mushrooms, "movers.mushrooms");
@@ -156,6 +202,8 @@ export function readTeaTuning(raw: unknown): TeaTuning {
   const every = list(warm.every, "warm.every").map((v, i) => positive(v, `warm.every[${i}]`));
   if (every.length !== bands.length) fail("warm.every: warm.bands 와 수가 같아야 한다");
   const first = record(root.first, "first");
+  const follow = record(root.follow, "follow");
+  const dud = record(root.dud, "dud");
   const retry = record(root.retry, "retry");
   return {
     planet: { radius },
@@ -163,19 +211,15 @@ export function readTeaTuning(raw: unknown): TeaTuning {
       plates,
       top,
       column: positive(stand.column, "stand.column"),
+      gap: positive(stand.gap, "stand.gap"),
       plateThick: positive(stand.plateThick, "stand.plateThick"),
       rim: positive(stand.rim, "stand.rim"),
     },
+    gravity: { axisBlend: pair(gravity.axisBlend, "gravity.axisBlend") },
+    fall: { gravity: positive(fall.gravity, "fall.gravity"), limit: fallLimit },
+    walk,
     colors,
     sky: { colors: skyColors, at: skyAt },
-    walk: {
-      fallGravity: positive(walk.fallGravity, "walk.fallGravity"),
-      fallLimit: positive(walk.fallLimit, "walk.fallLimit"),
-      catchMargin: positive(walk.catchMargin, "walk.catchMargin"),
-      landKeep: share(walk.landKeep, "walk.landKeep"),
-      bodyHalf: positive(walk.bodyHalf, "walk.bodyHalf"),
-      bodyTop: positive(walk.bodyTop, "walk.bodyTop"),
-    },
     start: {
       spot: spotOf(start.spot, "start.spot", tiers),
       dropHeight: positive(start.dropHeight, "start.dropHeight"),
@@ -210,6 +254,8 @@ export function readTeaTuning(raw: unknown): TeaTuning {
     open: { reach: positive(open.reach, "open.reach") },
     warm: { bands, every },
     first: { stillSeconds: positive(first.stillSeconds, "first.stillSeconds") },
+    follow: { gap: positive(follow.gap, "follow.gap") },
+    dud: { cooldown: positive(dud.cooldown, "dud.cooldown") },
     retry: { free: whole(retry.free, "retry.free") },
   };
 }
@@ -308,7 +354,7 @@ function pointOf(v: unknown, path: string): PathPoint {
   if (items.length !== 3) fail(`${path}: [높이, 거리, 방위] 셋이어야 한다`);
   const h = finite(items[0], `${path}[0]`),
     dist = finite(items[1], `${path}[1]`);
-  if (h < 0 || dist < 0) fail(`${path}: 높이와 거리는 0 이상이어야 한다`);
+  if (dist < 0) fail(`${path}[1]: 거리는 0 이상이어야 한다`);
   return { h, dist, bear: finite(items[2], `${path}[2]`) };
 }
 

@@ -3,59 +3,68 @@ import * as THREE from "three";
 import { ease } from "../core/frame";
 import type { Intent } from "../player/player";
 import { S } from "../settings";
-import type { StandShape } from "./stand";
+import type { FloorHit, StandShape } from "./stand";
 import type { TeaTuning } from "./teaTuning";
 
-// 티타임 행성의 내 몸. 걷는 셈(끌기로 방향 틀기·빨라지기·순항)은 지금 게임의 Player 와 같은 값(S.speed·S.turn)을 쓰고,
-// 다른 것은 셋: ① 별이 작아 한 걸음의 각을 지금 높이의 반지름으로 나눈다(어느 층에서도 초속 7m)
-// ② 발밑이 땅만이 아니라 접시 셋이다(가장자리 밖으로 나가면 둥실 떨어지고, 받는 접시를 벗어나지 않는다)
-// ③ 놀이기구는 몸을 길에 실어 간다(실력이 필요한 이동은 없다 — 타는 동안 끌기는 먹지 않는다)
+// 티타임 행성의 내 몸(기획서 v3.1 1장 "중력과 조작"). 서서 걷고 떨어진다.
+// 걷는 셈(끌기로 방향 틀기·빨라지기·순항)은 지금 게임의 Player 와 같은 값(S.speed·S.turn)을 쓴다.
+// 위 방향은 자리마다 다르다(스탠드 둘레는 축 위, 멀리는 별 바깥 — StandShape.upAt). 발밑의 가장 가까운 면(별 또는 접시 윗면)에 붙어 걷고,
+// 발밑이 꺼지면 둥실 떨어진다(떨어지는 중에도 끌기가 조금 먹는다). 높이 떨어졌다 내려앉으면 작은 폴짝. 놀이기구는 몸을 길에 실어 간다
 
 /** 몸을 실어 가는 길(버섯·바람 기둥·대포·미끄럼틀) */
 export interface Carrier {
   /** 길을 다 가는 시간(초) */
   readonly seconds: number;
-  /** 길의 t(0~1) 자리(세계 좌표, 발 높이)를 out 에 */
+  /** 길의 t(0~1) 자리(세계 좌표, 발)를 out 에 */
   at(t: number, out: THREE.Vector3): THREE.Vector3;
   /** 다 갔을 때 */
   arrived?(): void;
 }
 
-/** 못 지나가는 꾸밈(케이크·찻잔…): 별 위 자리 · 선 바닥 높이 · 반지름 · 키 */
+/** 못 지나가는 꾸밈(케이크·찻잔…): 바닥에 닿는 가운데 · 그 자리의 위 · 반지름 · 키 */
 export interface Blocker {
-  v: THREE.Vector3;
-  floor: number;
+  base: THREE.Vector3;
+  up: THREE.Vector3;
   radius: number;
   height: number;
 }
 
 /** 순항: 곧게 오래 갈수록 조금씩 더 빨라진다(지금 게임과 같은 값) */
 const CRUISE = { max: 0.9, rise: 0.22, fall: 1.2, straight: 0.35, firm: 0.8 } as const;
+/** 이만큼(m) 넘게 떨어졌다 내려앉으면 작은 폴짝과 먼지 */
+const HOP_FROM = 1.2;
+/** 떠 있는 높이를 잴 때 아래로 볼 거리(m) · 발에서 조금 위에서 잰다(m) */
+const LOOK_DOWN = 80;
+const PROBE_LIFT = 0.05;
 
 const right = new THREE.Vector3(),
   want = new THREE.Vector3(),
-  axis = new THREE.Vector3(),
-  before = new THREE.Vector3(),
-  spot = new THREE.Vector3(),
+  step = new THREE.Vector3(),
+  next = new THREE.Vector3(),
+  probe = new THREE.Vector3(),
+  side = new THREE.Vector3(),
   ahead = new THREE.Vector3();
 
 /** 나 */
 export class TeaBody {
-  /** 별 위 자리(단위 벡터) */
+  /** 발 자리(세계) */
+  readonly foot = new THREE.Vector3();
+  /** 위(아바타·카메라가 이 쪽을 위로 본다 — 지금 게임의 Player.p 자리) */
   readonly p = new THREE.Vector3(0, 1, 0);
-  /** 보는 쪽(접선) */
+  /** 보는 쪽(위에 수직) */
   readonly h = new THREE.Vector3(0, 0, 1);
-  /** 나아가는 쪽(접선) */
+  /** 나아가는 쪽(위에 수직) */
   readonly vel = new THREE.Vector3(0, 0, 1);
-  /** 세계 자리(둥실 떠 있는 몸 가운데) */
+  /** 아바타 몸 자리(발 위로 떠 있는 높이만큼, 둥실 흔들림까지) */
   readonly P = new THREE.Vector3();
-  /** 발 높이(땅에서 m) */
-  alt = 0;
-  /** 발밑 바닥 높이 */
-  floor = 0;
+  /** 발밑 바닥(그림자 자리)과 그 면의 바깥쪽 */
+  readonly ground = new THREE.Vector3();
+  readonly groundNormal = new THREE.Vector3(0, 1, 0);
+  /** 발밑 바닥의 층(0 땅, 1~3 접시) */
+  tier = 0;
   /** 바닥에서 떠 있는 높이 */
   air = 0;
-  /** 위아래 빠르기(m/s) */
+  /** 위 방향 빠르기(m/s) */
   vy = 0;
   /** 이번 프레임 빠르기 배수(아바타 몸짓이 읽는다) */
   tot = 0;
@@ -63,6 +72,14 @@ export class TeaBody {
   dragFx = 0;
   /** 순간 이동·놀이기구 내림 횟수(카메라가 바로 붙는다) */
   jumps = 0;
+  /** 못 지나가는 꾸밈 */
+  readonly blockers: Blocker[] = [];
+  /** 높이 떨어졌다 내려앉았을 때(소리·먼지) — 떨어진 높이(m) */
+  onLanded: ((drop: number) => void) | null = null;
+  private grounded = true;
+  private fallFrom = 0;
+  /** 떨어지기 시작한 층(접시에서 떨어질 때만 한 단 아래가 받는다 — 하늘에서 내려올 때는 땅까지) */
+  private fellFrom = 0;
   private spd = 0;
   private boost = 0;
   private cruise = 0;
@@ -70,8 +87,6 @@ export class TeaBody {
   private fy = 0;
   private m = 0;
   private dt = 0;
-  /** 못 지나가는 꾸밈 */
-  readonly blockers: Blocker[] = [];
   private carrier: Carrier | null = null;
   private carriedT = 0;
   private snap = true;
@@ -86,17 +101,19 @@ export class TeaBody {
     return this.carrier !== null;
   }
 
+  /** 바닥에 서 있나 */
+  get isGrounded(): boolean {
+    return this.grounded && !this.carrier;
+  }
+
   /** 몸 크기(지금 게임의 대포 안처럼 작아지는 일은 없다) */
   get bodyScale(): number {
     return 1;
   }
 
-  /**
-   * 아바타가 그림자를 놓는 높이: 아바타는 (지금 게임의 별 반지름 S.R + 이 값)에 그림자를 둔다.
-   * 이 작은 별에서는 그 합이 발밑 바닥(땅 또는 접시)의 반지름이 되게 맞춘다
-   */
+  /** 아바타 그림자 높이 값(그림자는 이 씬이 따로 놓는다 — 아바타의 셈에 쓰일 뿐이다) */
   get gNow(): number {
-    return this.stand.R + this.floor - S.R;
+    return 0;
   }
 
   /** 카메라가 바로 붙어야 하면 true(한 번 읽으면 지운다) */
@@ -106,17 +123,18 @@ export class TeaBody {
     return s;
   }
 
-  /** dir 자리·높이 alt 에 heading 쪽을 보고 선다 */
-  teleport(dir: THREE.Vector3, heading: THREE.Vector3, alt: number) {
-    this.p.copy(dir).normalize();
+  /** 발을 at 에 두고 heading 쪽을 본다(바닥에 붙지 않는다 — 공중이면 떨어진다) */
+  teleport(at: THREE.Vector3, heading: THREE.Vector3) {
+    this.foot.copy(at);
+    this.stand.upAt(at, this.p);
     this.lookAlong(heading);
-    this.alt = alt;
-    this.floor = this.stand.floorBelow(this.p, alt);
-    this.air = alt - this.floor;
     this.vy = 0;
     this.spd = 0;
     this.boost = 0;
     this.carrier = null;
+    // 순간 이동은 어느 접시에서 떨어진 것이 아니다(공중이면 땅까지 떨어진다)
+    this.grounded = false;
+    this.settle(0.05);
     this.snap = true;
     this.jumps++;
   }
@@ -144,28 +162,30 @@ export class TeaBody {
       this.ride();
       return;
     }
-    this.walk();
-    this.fall();
+    this.steer();
+    if (this.grounded) this.walk();
+    else this.fall();
+    this.measureAir();
   }
 
-  /** 세계 자리를 정한다(둥실 흔들림까지) */
+  /** 아바타 몸 자리를 정한다(둥실 흔들림까지) */
   place(time: number) {
     const bobPhase = time * 1.7,
-      bob = Math.sin(bobPhase) * 0.08;
-    const radius = this.stand.R + this.alt + S.hover + bob;
-    this.P.copy(this.p).multiplyScalar(radius);
+      bob = Math.sin(bobPhase) * 0.04;
+    const lift = this.t.walk.hover + bob;
+    this.P.copy(this.foot).addScaledVector(this.p, lift);
   }
 
-  // 끌기로 방향을 틀고 나아간다(지금 게임의 Player.move 와 같은 셈, 비탈 없음)
-  private walk() {
+  // 끌기로 방향을 틀고 빨라진다(지금 게임의 Player.move 와 같은 셈, 비탈 없음)
+  private steer() {
     const { p, h, vel, dt, fx, m } = this;
     if (m > 0) {
       right.crossVectors(h, p).normalize();
       want.copy(h).multiplyScalar(this.fy).addScaledVector(right, fx).normalize();
       const turnAngle = -S.turn * dt * fx * m;
       h.applyAxisAngle(p, turnAngle);
-      const steer = ease(6, dt);
-      vel.lerp(want, steer).normalize();
+      const steerK = ease(6, dt);
+      vel.lerp(want, steerK).normalize();
     }
     const spdRate = m > this.spd ? 2.2 : 1.1;
     this.spd += (m - this.spd) * ease(spdRate, dt);
@@ -175,117 +195,205 @@ export class TeaBody {
     const cruiseTarget = isCruising ? CRUISE.max : 0;
     const cruiseRate = isCruising ? CRUISE.rise : CRUISE.fall;
     this.cruise += (cruiseTarget - this.cruise) * ease(cruiseRate, dt);
-    const tot = this.spd * (1 + this.cruise) + this.boost;
-    this.tot = tot;
-    if (tot <= 0.002) return;
-    const velUp = vel.dot(p);
-    vel.addScaledVector(p, -velUp).normalize();
-    axis.crossVectors(p, vel).normalize();
-    // 어느 층에서도 같은 빠르기: 지금 높이의 반지름으로 나눈 각만큼
-    const radius = this.stand.R + this.alt;
-    const stepAngle = (S.speed * tot * dt) / radius;
-    before.copy(p);
-    p.applyAxisAngle(axis, stepAngle).normalize();
-    if (this.hitsPlateSide()) p.copy(before);
-    this.stand.pushOutOfColumn(p, this.alt, this.t.walk.bodyHalf);
-    this.pushOutOfBlockers();
-    const hUp = h.dot(p);
-    h.addScaledVector(p, -hUp).normalize();
+    this.tot = this.spd * (1 + this.cruise) + this.boost;
   }
 
-  // 꾸밈 속으로는 못 들어간다: 둘레로 밀어낸다(같은 층에 서 있고 그 키 아래일 때만)
-  private pushOutOfBlockers() {
-    const { p } = this;
-    const radius = this.stand.R + this.alt;
-    for (const b of this.blockers) {
-      const isBeside = this.alt >= b.floor - 0.3 && this.alt < b.floor + b.height;
-      if (!isBeside) continue;
-      const reach = (b.radius + this.t.walk.bodyHalf) / radius;
-      const now = p.angleTo(b.v);
-      if (now >= reach) continue;
-      axis.crossVectors(b.v, p);
-      if (axis.lengthSq() < 1e-12) axis.crossVectors(b.v, this.h);
-      axis.normalize();
-      p.copy(b.v).applyAxisAngle(axis, reach).normalize();
+  // 서 있을 때: 발밑 면을 따라 나아가고, 새 자리에서 다시 발밑 면에 붙는다(없으면 떨어지기 시작)
+  private walk() {
+    const { foot, dt } = this;
+    const distance = S.speed * this.tot * dt;
+    if (distance > 1e-5) {
+      const n = this.groundNormal;
+      const along = this.vel.dot(n);
+      step.copy(this.vel).addScaledVector(n, -along);
+      if (step.lengthSq() > 1e-10) step.normalize().multiplyScalar(distance);
+      next.copy(foot).add(step);
+      this.keepOut(next);
+      if (!this.stand.slabAt(next)) foot.copy(next);
     }
+    this.stand.upAt(foot, this.p);
+    this.reframe();
+    const { stepUp, snapDown } = this.t.walk;
+    probe.copy(foot).addScaledVector(this.p, stepUp);
+    const reach = stepUp + snapDown;
+    const hit = this.stand.castDown(probe, this.p, reach);
+    if (hit) this.standOn(hit);
+    else this.startFalling();
   }
 
-  // 접시 옆면으로는 못 들어간다(윗면 바로 아래까지는 올라선다 — floorBelow 의 step)
-  private hitsPlateSide(): boolean {
-    const { stand } = this;
-    const head = this.alt + S.hover + this.t.walk.bodyTop;
-    const was = stand.angleOf(before),
-      now = stand.angleOf(this.p);
-    for (const plate of stand.plates) {
-      const isEntering = now < plate.ang && was >= plate.ang;
-      const isBeside = head > plate.bottom && this.alt < plate.h - 0.3;
-      if (isEntering && isBeside) return true;
-    }
-    return false;
-  }
-
-  // 발밑이 꺼지면 둥실 떨어지고, 떨어지는 동안 받는 접시를 벗어나지 않는다
+  // 떨어질 때: 위 방향의 반대로 빨라지며 내려가고, 끌기는 조금만 먹는다. 받을 접시를 벗어나지 않는다.
+  // 먼저 옆으로 옮기고(기둥·꾸밈·받는 접시 안으로), 이번에 내려갈 만큼 아래에 바닥이 있으면 거기 내려앉는다
   private fall() {
-    const { stand, dt } = this;
-    const { fallGravity, fallLimit, catchMargin, bodyTop } = this.t.walk;
-    this.floor = stand.floorBelow(this.p, this.alt);
-    const isAirborne = this.alt > this.floor + 1e-4 || this.vy > 0;
-    if (isAirborne) {
-      const pulled = this.vy - fallGravity * dt;
-      this.vy = Math.max(pulled, -fallLimit);
-      this.alt += this.vy * dt;
-      if (this.vy <= 0) stand.keepOverCatcher(this.p, this.alt, catchMargin);
-      const ceiling = stand.ceilingAbove(this.p, this.floor);
-      const headroom = S.hover + bodyTop;
-      if (this.alt + headroom > ceiling) {
-        this.alt = ceiling - headroom;
-        this.vy = Math.min(this.vy, 0);
-      }
-      if (this.alt <= this.floor) {
-        // 내려앉으면 미끄러지던 기세를 줄인다(받은 접시에서 또 굴러떨어지지 않게)
-        this.alt = this.floor;
-        this.vy = 0;
-        this.spd *= this.t.walk.landKeep;
-        this.cruise = 0;
-      }
-    } else this.alt = this.floor;
-    this.air = this.alt - this.floor;
+    const { foot, dt } = this;
+    const { gravity, limit } = this.t.fall;
+    const pulled = this.vy - gravity * dt;
+    this.vy = Math.max(pulled, limit);
+    const drift = S.speed * this.tot * this.t.walk.airControl * dt;
+    const rise = this.vy * dt;
+    next.copy(foot).addScaledVector(this.vel, drift);
+    this.keepOut(next);
+    const isCatching = this.vy <= 0 && this.fellFrom > 0;
+    if (isCatching) this.stand.keepOverCatcher(next, this.t.walk.catchMargin);
+    const landing = this.landingOn(next, -rise);
+    if (landing) {
+      const drop = this.fallFrom;
+      this.standOn(landing);
+      this.land(drop);
+      return;
+    }
+    next.addScaledVector(this.p, rise);
+    // 접시 판 속으로(옆이나 밑에서) 들어가면 옆으로는 못 간다
+    if (this.stand.slabAt(next)) next.copy(foot).addScaledVector(this.p, rise);
+    if (this.stand.slabAt(next)) next.copy(foot);
+    foot.copy(next);
+    this.stand.upAt(foot, this.p);
+    this.reframe();
   }
 
-  // 길에 실려 간다: 길의 자리에서 몸 방향·높이를 읽고, 나아가는 쪽을 길 쪽으로
+  // 이번 걸음에 지나갈 바닥(내려가는 중일 때만): at 바로 위에서 dropBy 만큼 아래까지
+  private landingOn(at: THREE.Vector3, dropBy: number): FloorHit | null {
+    if (dropBy <= 0) return null;
+    probe.copy(at).addScaledVector(this.p, 0.05);
+    const reach = dropBy + 0.1;
+    return this.stand.castDown(probe, this.p, reach);
+  }
+
+  // 발밑이 꺼졌다: 그 높이를 기억하고 떨어지기 시작한다
+  private startFalling() {
+    this.fellFrom = this.grounded ? this.tier : 0;
+    this.grounded = false;
+    this.fallFrom = this.heightOver();
+    this.vy = 0;
+  }
+
+  // 바닥 hit 에 선다
+  private standOn(hit: FloorHit) {
+    this.foot.copy(hit.point);
+    this.groundNormal.copy(hit.normal);
+    this.tier = hit.tier;
+    this.grounded = true;
+    if (this.vy < 0) this.vy = 0;
+    this.stand.upAt(this.foot, this.p);
+    this.reframe();
+  }
+
+  // 내려앉았다: 미끄러지던 기세를 줄이고, 높이 떨어졌으면 작은 폴짝
+  private land(drop: number) {
+    this.spd *= this.t.walk.landKeep;
+    this.cruise = 0;
+    if (drop < HOP_FROM) return;
+    this.grounded = false;
+    this.vy = this.t.walk.landHop;
+    this.fallFrom = 0;
+    this.onLanded?.(drop);
+  }
+
+  // 기둥·꾸밈 속으로는 못 들어간다
+  private keepOut(at: THREE.Vector3) {
+    const { bodyHalf } = this.t.walk;
+    this.stand.pushOutOfColumn(at, bodyHalf);
+    for (const b of this.blockers) pushOutOf(at, b, bodyHalf);
+  }
+
+  // 발밑 바닥과 떠 있는 높이(그림자·몸짓) — 발이 바닥에 딱 붙어 있어도 잡히게 조금 위에서 잰다
+  private measureAir() {
+    probe.copy(this.foot).addScaledVector(this.p, PROBE_LIFT);
+    const hit = this.stand.castDown(probe, this.p, LOOK_DOWN);
+    if (!hit) {
+      this.air = LOOK_DOWN;
+      return;
+    }
+    const below = hit.dist - PROBE_LIFT;
+    this.air = Math.max(0, below);
+    this.ground.copy(hit.point);
+    this.groundNormal.copy(hit.normal);
+    if (this.grounded) this.tier = hit.tier;
+  }
+
+  // 지금 발에서 아래 바닥까지
+  private heightOver(): number {
+    probe.copy(this.foot).addScaledVector(this.p, PROBE_LIFT);
+    const hit = this.stand.castDown(probe, this.p, LOOK_DOWN);
+    return hit ? hit.dist - PROBE_LIFT : 0;
+  }
+
+  // 발을 바닥에 붙인다(순간 이동·놀이기구에서 내린 뒤)
+  private settle(reach: number) {
+    probe.copy(this.foot).addScaledVector(this.p, reach);
+    const span = reach * 2;
+    const hit = this.stand.castDown(probe, this.p, span);
+    if (hit) this.standOn(hit);
+    else this.startFalling();
+    this.measureAir();
+  }
+
+  // 길에 실려 간다: 길의 자리에 발을 두고, 나아가는 쪽을 길 쪽으로
   private ride() {
     const c = this.carrier!;
-    const step = this.dt / c.seconds;
-    const reached = this.carriedT + step;
+    const stepT = this.dt / c.seconds;
+    const reached = this.carriedT + stepT;
     this.carriedT = Math.min(1, reached);
-    c.at(this.carriedT, spot);
-    const radius = spot.length();
+    c.at(this.carriedT, this.foot);
     const peek = this.carriedT + 0.02;
     const nextT = Math.min(1, peek);
     c.at(nextT, ahead);
-    this.p.copy(spot).normalize();
-    this.alt = radius - this.stand.R;
-    ahead.normalize().sub(this.p);
-    const along = ahead.lengthSq() > 1e-10;
-    if (along) this.lookAlong(ahead);
+    this.stand.upAt(this.foot, this.p);
+    ahead.sub(this.foot);
+    if (ahead.lengthSq() > 1e-8) this.lookAlong(ahead);
+    else this.reframe();
     this.tot = 1;
-    this.floor = this.stand.floorBelow(this.p, this.alt);
-    this.air = this.alt - this.floor;
+    this.measureAir();
     if (this.carriedT < 1) return;
     this.carrier = null;
-    this.alt = this.floor;
-    this.air = 0;
     this.spd = 0.6;
     this.jumps++;
+    this.settle(0.6);
     c.arrived?.();
+  }
+
+  // 위가 바뀌면 보는 쪽·나아가는 쪽을 새 위에 수직으로
+  private reframe() {
+    const p = this.p;
+    const hUp = this.h.dot(p);
+    this.h.addScaledVector(p, -hUp);
+    if (this.h.lengthSq() < 1e-10) {
+      side.set(1, 0, 0).cross(p);
+      this.h.copy(side);
+    }
+    this.h.normalize();
+    const vUp = this.vel.dot(p);
+    this.vel.addScaledVector(p, -vUp);
+    if (this.vel.lengthSq() < 1e-10) this.vel.copy(this.h);
+    this.vel.normalize();
   }
 
   // 보는 쪽·나아가는 쪽을 dir 의 접선 성분으로
   private lookAlong(dir: THREE.Vector3) {
     const up = dir.dot(this.p);
     this.h.copy(dir).addScaledVector(this.p, -up);
-    if (this.h.lengthSq() < 1e-10) return;
+    if (this.h.lengthSq() < 1e-10) {
+      this.reframe();
+      return;
+    }
     this.h.normalize();
     this.vel.copy(this.h);
   }
+}
+
+/* ─── 내부 ─────────────────────────── */
+
+const offset = new THREE.Vector3();
+
+// 꾸밈 하나 속으로 들어왔으면 둘레로 밀어낸다(그 꾸밈의 키 안에서만)
+function pushOutOf(at: THREE.Vector3, b: Blocker, body: number) {
+  offset.subVectors(at, b.base);
+  const height = offset.dot(b.up);
+  if (height < -0.5 || height > b.height) return;
+  offset.addScaledVector(b.up, -height);
+  const reach = b.radius + body;
+  const now = offset.length();
+  if (now >= reach) return;
+  if (now < 1e-6) offset.set(1, 0, 0).cross(b.up);
+  offset.normalize().multiplyScalar(reach);
+  at.copy(b.base).add(offset).addScaledVector(b.up, height);
 }

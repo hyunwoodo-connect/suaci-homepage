@@ -9,16 +9,24 @@ import type { MushroomSpec, RideSpec, TeaSpot, TeaTuning } from "./teaTuning";
 
 // 다니는 법: 버섯(땅 → 1단, 1단 → 2단) · 바람 기둥(땅 → 3단) · 대포(별 뒤편 → 2단) · 스푼 미끄럼틀(3단 → 땅).
 // 모두 '실어 가기'다 — 올라서면(누를 필요 없음) 정해진 길을 따라 정해진 접시에 내려 준다. 실력이 필요한 이동은 없다.
-// 길은 값 파일의 점을 부드럽게 잇는다(바람 기둥·대포·미끄럼틀). 버섯은 두 자리 사이를 포물선으로 튄다
+// 길은 값 파일의 점을 부드럽게 잇는다(바람 기둥·대포·미끄럼틀). 버섯은 먼저 솟았다가 위 접시로 내려앉는다(가장자리에 걸리지 않게)
 
-/** 버섯이 튈 때 두 자리를 잇는 선 위로 더 솟는 높이(m) */
-const MUSHROOM_LIFT = 6;
+/** 버섯이 튈 때 내려 줄 접시보다 더 솟는 높이(m) */
+const MUSHROOM_LIFT = 8;
 /** 내려 준 뒤 같은 놀이기구를 다시 타지 않는 시간(초) — 내려선 자리가 타는 자리 곁이어도 바로 또 타지 않게 */
 const COOLDOWN = 1.2;
+/** 바람 기둥 속 꽃잎 수와 한 바퀴 오르는 시간(초) */
+const PETALS = 16;
+const PETAL_RISE = 3.2;
+/** 대포 통 색(코발트) */
+const COBALT = "#4A63D9";
+const TAU = Math.PI * 2,
+  HALF_PI = Math.PI / 2;
+const Y_UP = new THREE.Vector3(0, 1, 0);
 
 /** 놀이기구 하나 */
 interface Mover {
-  /** 타는 자리(세계, 발 높이)와 그 층 */
+  /** 타는 자리(세계, 발)와 그 층 */
   at: THREE.Vector3;
   tier: number;
   reach: number;
@@ -32,13 +40,10 @@ interface Mover {
   pose: (f: Frame) => void;
 }
 
-/** 대포 통 색(코발트) */
-const COBALT = "#4A63D9";
-const TAU = Math.PI * 2,
-  HALF_PI = Math.PI / 2;
-const Y_UP = new THREE.Vector3(0, 1, 0);
-
-const tmp = new THREE.Vector3(),
+const m4 = new THREE.Matrix4(),
+  q = new THREE.Quaternion(),
+  sc = new THREE.Vector3(),
+  pos = new THREE.Vector3(),
   up = new THREE.Vector3();
 
 /** 다니는 법 넷 */
@@ -72,12 +77,9 @@ export class Movers implements Thing {
     for (const mv of this.list) {
       if (mv.cool > 0) mv.cool -= f.dt;
       mv.pose(f);
-      if (body.isHeld || mv.cool > 0 || body.air > 0.6) continue;
-      const tier = this.stand.tierAt(body.p, body.alt);
-      if (tier !== mv.tier) continue;
-      const radius = this.stand.R + body.alt;
-      tmp.copy(body.p).multiplyScalar(radius);
-      if (tmp.distanceTo(mv.at) > mv.reach) continue;
+      if (!body.isGrounded || mv.cool > 0) continue;
+      if (body.tier !== mv.tier) continue;
+      if (body.foot.distanceTo(mv.at) > mv.reach) continue;
       mv.cool = COOLDOWN;
       mv.onBoard();
       body.carry(mv.carrier);
@@ -101,14 +103,17 @@ export class Movers implements Thing {
     const { stand } = this;
     const at = spotPoint(stand, spec.at);
     const to = spotPoint(stand, spec.to);
+    // 솟는 정점: 서 있는 자리 바로 위, 내려 줄 접시보다 높게(가장자리에 걸리지 않게)
+    const peak = at.clone();
+    peak.y = to.y + MUSHROOM_LIFT;
     const holder = new THREE.Group();
-    placeUpright(holder, at);
+    this.placeUpright(holder, at);
     const cap = mushroomShape(t, this.disposables);
     holder.add(cap);
     if (models.has("mushroom")) {
       const hold = models.fit("mushroom", 2.4, "h");
       hold.position.y = hold.userData.hh;
-      hold.rotation.y = Math.PI / 2;
+      hold.rotation.y = HALF_PI;
       models.swapWhenReady("mushroom", [cap]);
       holder.add(hold);
     }
@@ -120,7 +125,7 @@ export class Movers implements Thing {
       reach,
       carrier: {
         seconds,
-        at: (k, out) => hopPoint(at, to, k, out),
+        at: (k, out) => bezier(at, peak, to, k, out),
         arrived: () => this.events.emit("landed", {}),
       },
       cool: 0,
@@ -139,27 +144,39 @@ export class Movers implements Thing {
     this.list.push(mover);
   }
 
-  // ---- 바람 기둥: 들어가면 둥실 올라가 3단 가장자리에 내려 준다 ----
+  // ---- 바람 기둥: 들어가면 둥실 올라가 3단 가장자리에 내려 준다(투명한 소용돌이 + 꽃잎) ----
   private addWind(spec: RideSpec, t: TeaTuning) {
     const { stand } = this;
     const at = spotPoint(stand, spec.at);
     const curve = pathCurve(stand, spec);
-    const top = spec.path.reduce((h, p) => Math.max(h, p.h), 0);
-    const geo = new THREE.CylinderGeometry(2.2, 1.4, top, 28, 1, true);
-    const half = top / 2;
+    const topY = spec.path.reduce((y, p) => Math.max(y, stand.R + p.h), at.y);
+    const height = topY - at.y;
+    const geo = new THREE.CylinderGeometry(2.2, 1.4, height, 28, 1, true);
+    const half = height / 2;
     geo.translate(0, half, 0);
     const mat = windMaterial(t.colors.porcelain);
     const column = new THREE.Mesh(geo, mat);
     column.renderOrder = 2;
-    placeUpright(column, at);
+    column.position.copy(at);
     const ringGeo = new THREE.TorusGeometry(1.9, 0.22, 10, 36);
     const ringMat = new THREE.MeshStandardMaterial({ color: t.colors.lavender });
     const ring = new THREE.Mesh(ringGeo, ringMat);
-    ring.rotation.x = Math.PI / 2;
+    ring.rotation.x = HALF_PI;
     ring.position.y = 0.15;
     column.add(ring);
+    const petalGeo = new THREE.CircleGeometry(0.22, 8);
+    petalGeo.scale(1, 0.6, 1);
+    const petalMat = new THREE.MeshBasicMaterial({
+      color: t.colors.strawberry,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.85,
+    });
+    const petals = new THREE.InstancedMesh(petalGeo, petalMat, PETALS);
+    petals.frustumCulled = false;
+    column.add(petals);
     this.root.add(column);
-    this.disposables.push(geo, mat, ringGeo, ringMat);
+    this.disposables.push(geo, mat, ringGeo, ringMat, petalGeo, petalMat);
     const uT = mat.uniforms.uT as { value: number };
     this.list.push({
       at,
@@ -173,6 +190,7 @@ export class Movers implements Thing {
       },
       pose: (f) => {
         uT.value = f.time;
+        swirlPetals(petals, f.time, height);
       },
     });
   }
@@ -183,12 +201,14 @@ export class Movers implements Thing {
     const at = spotPoint(stand, spec.at);
     const curve = pathCurve(stand, spec);
     const holder = new THREE.Group();
-    placeUpright(holder, at);
+    this.placeUpright(holder, at);
     // 포구가 길의 첫 쪽(스탠드 쪽)을 보게
     const second = curve.getPointAt(0.08);
+    holder.updateMatrixWorld(true);
     holder.worldToLocal(second);
     const aim = Math.atan2(second.x, second.z);
-    holder.rotation.y += aim;
+    const turn = new THREE.Quaternion().setFromAxisAngle(Y_UP, aim);
+    holder.quaternion.multiply(turn);
     const barrelGeo = new THREE.CylinderGeometry(0.55, 0.75, 2.6, 18);
     const tilt = -Math.PI / 3;
     barrelGeo.rotateX(tilt);
@@ -200,7 +220,7 @@ export class Movers implements Thing {
     if (models.has("cannon")) {
       const hold = models.fit("cannon", 3.2, "h");
       hold.position.y = hold.userData.hh;
-      hold.rotation.y = -Math.PI / 2;
+      hold.rotation.y = -HALF_PI;
       models.swapWhenReady("cannon", [barrel]);
       holder.add(hold);
     }
@@ -245,9 +265,8 @@ export class Movers implements Thing {
       side: THREE.DoubleSide,
     });
     const bowl = new THREE.Mesh(bowlGeo, bowlMat);
-    placeUpright(bowl, at);
-    up.copy(at).normalize();
-    bowl.position.addScaledVector(up, 0.35);
+    this.placeUpright(bowl, at);
+    bowl.position.y += 0.35;
     this.root.add(handle, bowl);
     this.disposables.push(handleGeo, bowlGeo, handleMat, bowlMat);
     // 미끄럼틀 위를 탄다: 길보다 조금 위로
@@ -256,8 +275,8 @@ export class Movers implements Thing {
       seconds: ride.seconds,
       at: (k, out) => {
         ride.at(k, out);
+        this.stand.upAt(out, up);
         const lift = 0.5 * (1 - k);
-        up.copy(out).normalize();
         return out.addScaledVector(up, lift);
       },
       arrived: ride.arrived,
@@ -275,6 +294,13 @@ export class Movers implements Thing {
       pose: () => {},
     });
   }
+
+  // 물체를 그 자리에 바로 세운다(위 = 그 자리의 위 방향)
+  private placeUpright(o: THREE.Object3D, at: THREE.Vector3) {
+    o.position.copy(at);
+    this.stand.upAt(at, up);
+    o.quaternion.setFromUnitVectors(Y_UP, up);
+  }
 }
 
 /* ─── 내부 ─────────────────────────── */
@@ -282,7 +308,7 @@ export class Movers implements Thing {
 // 값 파일 자리의 세계 좌표(새 벡터)
 function spotPoint(stand: StandShape, spot: TeaSpot): THREE.Vector3 {
   const out = new THREE.Vector3();
-  return stand.worldOf(spot, 0, out);
+  return stand.spotPoint(spot, out);
 }
 
 // 0 → 1 사이에서 한 번 솟았다 내려오는 곡선(sin 반 바퀴)
@@ -313,32 +339,41 @@ function carrierOf(curve: THREE.CatmullRomCurve3, seconds: number, arrived: () =
   };
 }
 
-// 버섯 튐: 두 자리 사이 큰 원을 따라가며, 높이는 두 높이를 잇는 선 위로 포물선만큼 솟는다
-function hopPoint(
-  from: THREE.Vector3,
-  to: THREE.Vector3,
+// 두 번 꺾인 곡선(a → 정점 쪽 → b)
+function bezier(
+  a: THREE.Vector3,
+  c: THREE.Vector3,
+  b: THREE.Vector3,
   k: number,
   out: THREE.Vector3,
 ): THREE.Vector3 {
-  const r0 = from.length(),
-    r1 = to.length();
-  const a = from.clone().normalize(),
-    b = to.clone().normalize();
-  const angle = a.angleTo(b);
-  const axis = a.clone().cross(b).normalize();
-  const turn = angle * k;
-  out.copy(a).applyAxisAngle(axis, turn);
-  const base = r0 + (r1 - r0) * k,
-    arch = bump(k) * MUSHROOM_LIFT;
-  const radius = base + arch;
-  return out.multiplyScalar(radius);
+  const u = 1 - k;
+  const wa = u * u,
+    wc = 2 * k * u,
+    wb = k * k;
+  return out.copy(a).multiplyScalar(wa).addScaledVector(c, wc).addScaledVector(b, wb);
 }
 
-// 물체를 별 표면의 그 자리에 바로 세운다(위 = 별 바깥쪽)
-function placeUpright(o: THREE.Object3D, at: THREE.Vector3) {
-  o.position.copy(at);
-  const dir = at.clone().normalize();
-  o.quaternion.setFromUnitVectors(Y_UP, dir);
+// 꽃잎이 기둥 속을 빙글빙글 감겨 오른다
+function swirlPetals(petals: THREE.InstancedMesh, time: number, height: number) {
+  for (let i = 0; i < PETALS; i++) {
+    const offsetT = (i / PETALS) * PETAL_RISE;
+    const cycle = (time + offsetT) % PETAL_RISE;
+    const k = cycle / PETAL_RISE;
+    const spin = time * 2.4 + i * 1.7;
+    const wobblePhase = i * 2.3;
+    const radius = 1.4 + 0.5 * Math.sin(wobblePhase);
+    const x = Math.cos(spin) * radius,
+      z = Math.sin(spin) * radius,
+      y = k * height;
+    pos.set(x, y, z);
+    const flutter = spin * 1.5;
+    q.setFromAxisAngle(Y_UP, flutter);
+    sc.setScalar(1);
+    m4.compose(pos, q, sc);
+    petals.setMatrixAt(i, m4);
+  }
+  petals.instanceMatrix.needsUpdate = true;
 }
 
 // 모델이 오기 전의 버섯(라벤더 갓·크림 대)

@@ -1,0 +1,215 @@
+{
+  "_about": "숨는 자리 후보(기획서 v3.1 6장). 층마다 8곳(3단은 좁아 6곳 — 4m 간격). 판마다 층에서 3곳을 씨앗으로 뽑아 리본 물건을 놓는다. 거리는 땅(층 0)이면 북극에서 땅을 따라, 접시면 접시 가운데에서 수평으로(m). 방위는 도. 물건 종류: flowerpot·teacup·jar·basket·gift·macaron. 붙는 면(mount): top 윗면 · under 그 층 접시의 밑면에 거꾸로 · wall 기둥 바깥벽(그 층 접시 위). 오너가 돌아다니며 고친다(?debug=1 에 번호가 보인다).",
+  "spots": [
+    {
+      "tier": 0,
+      "bear": 180,
+      "dist": 6.5,
+      "kind": "flowerpot",
+      "mount": "top"
+    },
+    {
+      "tier": 0,
+      "bear": 60,
+      "dist": 12,
+      "kind": "teacup",
+      "mount": "top"
+    },
+    {
+      "tier": 0,
+      "bear": 300,
+      "dist": 22,
+      "kind": "gift",
+      "mount": "top"
+    },
+    {
+      "tier": 0,
+      "bear": 130,
+      "dist": 27,
+      "kind": "teacup",
+      "mount": "top"
+    },
+    {
+      "tier": 0,
+      "bear": 20,
+      "dist": 30,
+      "kind": "jar",
+      "mount": "top"
+    },
+    {
+      "tier": 0,
+      "bear": 240,
+      "dist": 33,
+      "kind": "basket",
+      "mount": "top"
+    },
+    {
+      "tier": 0,
+      "bear": 90,
+      "dist": 45,
+      "kind": "gift",
+      "mount": "top"
+    },
+    {
+      "tier": 0,
+      "bear": 330,
+      "dist": 50,
+      "kind": "flowerpot",
+      "mount": "top"
+    },
+    {
+      "tier": 1,
+      "bear": 100,
+      "dist": 14,
+      "kind": "flowerpot",
+      "mount": "top"
+    },
+    {
+      "tier": 1,
+      "bear": 30,
+      "dist": 9,
+      "kind": "gift",
+      "mount": "top"
+    },
+    {
+      "tier": 1,
+      "bear": 170,
+      "dist": 15.5,
+      "kind": "jar",
+      "mount": "top"
+    },
+    {
+      "tier": 1,
+      "bear": 225,
+      "dist": 10,
+      "kind": "teacup",
+      "mount": "top"
+    },
+    {
+      "tier": 1,
+      "bear": 278,
+      "dist": 15,
+      "kind": "gift",
+      "mount": "top"
+    },
+    {
+      "tier": 1,
+      "bear": 335,
+      "dist": 12.5,
+      "kind": "flowerpot",
+      "mount": "top"
+    },
+    {
+      "tier": 1,
+      "bear": 200,
+      "dist": 14.5,
+      "kind": "basket",
+      "mount": "under"
+    },
+    {
+      "tier": 1,
+      "bear": 60,
+      "dist": 5.5,
+      "kind": "teacup",
+      "mount": "top"
+    },
+    {
+      "tier": 2,
+      "bear": 150,
+      "dist": 9,
+      "kind": "teacup",
+      "mount": "top"
+    },
+    {
+      "tier": 2,
+      "bear": 30,
+      "dist": 10.5,
+      "kind": "jar",
+      "mount": "top"
+    },
+    {
+      "tier": 2,
+      "bear": 100,
+      "dist": 6,
+      "kind": "gift",
+      "mount": "top"
+    },
+    {
+      "tier": 2,
+      "bear": 220,
+      "dist": 10.5,
+      "kind": "flowerpot",
+      "mount": "top"
+    },
+    {
+      "tier": 2,
+      "bear": 330,
+      "dist": 5,
+      "kind": "basket",
+      "mount": "top"
+    },
+    {
+      "tier": 2,
+      "bear": 0,
+      "dist": 8,
+      "kind": "teacup",
+      "mount": "top"
+    },
+    {
+      "tier": 2,
+      "bear": 260,
+      "dist": 0,
+      "kind": "jar",
+      "mount": "wall"
+    },
+    {
+      "tier": 2,
+      "bear": 200,
+      "dist": 5,
+      "kind": "macaron",
+      "mount": "top"
+    },
+    {
+      "tier": 3,
+      "bear": 0,
+      "dist": 5.8,
+      "kind": "macaron",
+      "mount": "top"
+    },
+    {
+      "tier": 3,
+      "bear": 45,
+      "dist": 5.8,
+      "kind": "jar",
+      "mount": "top"
+    },
+    {
+      "tier": 3,
+      "bear": 160,
+      "dist": 5.8,
+      "kind": "teacup",
+      "mount": "top"
+    },
+    {
+      "tier": 3,
+      "bear": 280,
+      "dist": 5.8,
+      "kind": "basket",
+      "mount": "top"
+    },
+    {
+      "tier": 3,
+      "bear": 110,
+      "dist": 3,
+      "kind": "flowerpot",
+      "mount": "top"
+    },
+    {
+      "tier": 3,
+      "bear": 230,
+      "dist": 3,
+      "kind": "gift",
+      "mount": "top"
+    }
+  ]
+}

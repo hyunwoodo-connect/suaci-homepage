@@ -26,17 +26,18 @@ export class Decor {
       if (!models.has(d.key)) continue;
       this.keys.push(d.key);
       const hold = models.fit(d.key, d.size, "h");
-      const v = new THREE.Vector3();
-      stand.dirOf(d.at, v);
-      const floor = stand.heightOf(d.at.tier);
-      const radius = stand.R + floor + d.lift + hold.userData.hh;
+      const base = new THREE.Vector3();
+      stand.spotPoint(d.at, base);
+      const up = new THREE.Vector3();
+      stand.upAt(base, up);
+      const lift = d.lift + hold.userData.hh;
       const holder = new THREE.Group();
-      holder.position.copy(v).multiplyScalar(radius);
-      holder.quaternion.setFromUnitVectors(upY, v);
+      holder.position.copy(base).addScaledVector(up, lift);
+      holder.quaternion.setFromUnitVectors(upY, up);
       hold.rotation.y = THREE.MathUtils.degToRad(d.turn);
       holder.add(hold);
       this.root.add(holder);
-      if (d.block > 0) blockers.push({ v, floor, radius: d.block, height: d.size });
+      if (d.block > 0) blockers.push({ base, up, radius: d.block, height: d.size });
     }
     scene.add(this.root);
   }
