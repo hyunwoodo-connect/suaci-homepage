@@ -10,6 +10,9 @@ import { fr } from "../world/hash";
 import { from } from "../world/sphere";
 import type { Height, HasHeights } from "../world/tall";
 
+/** 비탈에 심을 때 보는 줄기 밑동 반지름(m) */
+const TRUNK_SEAT_R = 2.5;
+
 // 키 큰 솜사탕 나무: 자리표에 정해 둔 나무(놀이와 겹치지 않게 미리 고른 자리)와 조형물 숲의 나무(sculptures 가 심는다).
 // 위에 내려앉으면 통 튀고, 갓 옆으로는 갓에, 갓 아래로는 줄기에 막힌다. 눌리면 꿀렁
 
@@ -134,7 +137,8 @@ export class Trees implements Thing, HasHeights {
 
   /** 나무 하나를 심는다: 땅에 세워 찍고, 줄기 둘레를 비운 자리로 맡는다 */
   plant(v: THREE.Vector3, H: number, T: TreeKind, yaw: number): Tree {
-    const gr = this.s.terrain.groundAt(v),
+    // 비탈에서는 줄기 밑동이 다 땅에 닿게 가장 낮은 땅에 심는다(지도 terrain.level)
+    const gr = this.s.terrain.seatGroundAt(v, TRUNK_SEAT_R),
       t: Tree = {
         v,
         g: gr,

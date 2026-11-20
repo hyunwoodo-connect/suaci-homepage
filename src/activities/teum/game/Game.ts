@@ -70,6 +70,8 @@ import { Sculptures } from "./sculptures/sculptures";
 import type { Services } from "./services";
 import { S } from "./settings";
 import { SoundManager } from "./sound";
+import { bareOf } from "./maps/bare";
+import { Minimap } from "./minimap/minimap";
 import { Studio } from "./studio/studio";
 import { Beacons } from "./world/beacons";
 import { CloudIslands } from "./world/cloudIslands";
@@ -90,6 +92,7 @@ import { BodyField } from "./world/bodyField";
 import { from } from "./world/sphere";
 import { createStage } from "./world/stage";
 import type { Stage } from "./world/stage";
+import { terraceSpots } from "./world/terraces";
 import { Terrain } from "./world/terrain";
 import { Today } from "./world/today";
 import { TerrainView } from "./world/terrainView";
@@ -177,6 +180,8 @@ export class Game {
   readonly gates: Gates;
   readonly cloudIslands: CloudIslands;
   readonly beacons: Beacons;
+  /** 미니맵(지도 값 minimap 이 있을 때만) */
+  readonly minimap: Minimap | null;
   /** 놓인 것의 몸(채우는 것이 엉키지 않게 놓는 데 썼다 — ?noavoid 면 없다) */
   readonly placed: BodyField | null;
   readonly bubbleTrail: BubbleTrail;
@@ -202,9 +207,10 @@ export class Game {
     canvas: HTMLCanvasElement,
     manifest: Manifest,
     seed: number,
-    map: GameMap,
+    chosen: GameMap,
     festival: number | null = null,
   ) {
+    const map = chosen.bare ? bareOf(chosen) : chosen;
     const stage = createStage(canvas);
     this.stage = stage;
     const fog = stage.scene.fog as THREE.Fog | null;
@@ -420,6 +426,10 @@ export class Game {
     );
     if (!hasHideSeek) this.hideSeek.sleep();
     this.director = new Director(s, this.bubbleTrail, this.seeds, this.creatures);
+    const canOpenMap = () => !this.hideSeek.isRoundOn && !this.hideSeek.takesTaps;
+    this.minimap = map.minimap
+      ? new Minimap(s, map.minimap, hudParent, stage.camera, canOpenMap)
+      : null;
     if (field) this.clearFlowers(field);
     this.whale.fitModels();
     this.balloons.fitModels();
@@ -498,6 +508,8 @@ export class Game {
       places.lighthouse,
       hud,
       camera,
+      // 미니맵은 카메라가 보는 쪽을 따라 돈다
+      ...(this.minimap ? [this.minimap] : []),
       this.studio,
       // 숨바꼭질은 따라가는 카메라 뒤에 — 둘러보기·언박싱이 카메라를 잠깐 빌린다
       this.hideSeek,
@@ -660,6 +672,11 @@ export class Game {
     this.ground.layout();
     this.places.layoutPlaces();
     terrain.placeFeatures();
+    // 비탈에 걸린 넓은 것 밑은 평평한 단으로 깎는다(지도 terrain.level) — 언덕 그물을 짓기 전에
+    if (terrain.isLevel) {
+      const spots = terraceSpots(this.s.layout, terrain);
+      terrain.carve(spots);
+    }
     this.terrainView.layoutFeatures();
     const keep: THREE.Vector3[] = [];
     this.places.layoutItems(keep);

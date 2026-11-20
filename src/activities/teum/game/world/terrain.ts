@@ -3,7 +3,7 @@ import * as THREE from "three";
 import type { LayoutHill, Spot } from "../maps/layout";
 import type { GameMap, HubCap } from "../maps/map";
 import { S } from "../settings";
-import { from } from "./sphere";
+import { from, offsetInto } from "./sphere";
 import { chordOf, SphereGrid } from "./sphereGrid";
 
 // 지형(높이만): 꽃 자리, 완만한 둔덕, 하늘의 뭉게구름 자리, 큰 언덕과 등대 산.
@@ -12,6 +12,11 @@ import { chordOf, SphereGrid } from "./sphereGrid";
 
 /** 큰 언덕 비탈에 얹는 솜 뭉치 수 */
 const FEATURE_TUFTS = 16;
+/** 단: 평평한 곳 밖으로 언덕에 잇는 폭(평평한 반지름의 몫, 가장 좁을 때 m) · 언덕 자락에서 단이 옅어지는 폭(m) */
+const TERRACE_BLEND = 0.7,
+  TERRACE_BLEND_MIN = 10,
+  TERRACE_RIM = 14;
+const seatP = new THREE.Vector3();
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 
 /** 바닥의 꽃 자리: 자리(v)·크기(s)·피어난 정도(lit)·제 색(base)·땅 높이(g) */
@@ -50,6 +55,19 @@ export interface Feature {
   c: [number, number, number][];
   /** 자리를 정하는 법 */
   at: () => THREE.Vector3;
+  /** 이 언덕에 깎인 평평한 단(지도 terrain.level) */
+  terraces: Terrace[];
+}
+
+/**
+ * 평평한 단: 넓은 것(깔때기·큰 구조물·문…) 밑의 언덕을 가운데 높이 h 로 깎거나 돋운다 — 반지름 r 안은 평평하고,
+ * 그 밖 blend m 동안 언덕으로 이어진다(지도 terrain.level 일 때만)
+ */
+export interface Terrace {
+  v: THREE.Vector3;
+  r: number;
+  h: number;
+  blend: number;
 }
 
 /** 둔덕을 끌 때 피하는 둥근 자리 */
@@ -69,6 +87,8 @@ export class Terrain {
   private readonly flowerGrid = new SphereGrid(0.04);
   private readonly hillChord: number;
   private readonly near: number[] = [];
+  /** 놓인 것을 비탈에 맞춰 앉히나(지도 terrain.level) */
+  readonly isLevel: boolean;
 
   /**
    * 지도의 지형 씨앗·수와 큰 언덕 자리(첫째는 등대 산 — 등대 자리와 같은 자리여야 한다).
@@ -81,6 +101,7 @@ export class Terrain {
     hubs: readonly Spot[] = [],
   ) {
     this.seed = seed;
+    this.isLevel = counts.level === true;
     const flowerCap = capOf(counts.flowersIn, hubs),
       cloudCap = capOf(counts.cloudsIn, hubs);
     const FLN = counts.flowers,
@@ -164,7 +185,7 @@ export class Terrain {
         c.push([dir, far, size]);
       }
       const at = () => from(h.dist, h.bear);
-      return { s: h.s, H: h.H, v: new THREE.Vector3(), c, at };
+      return { s: h.s, H: h.H, v: new THREE.Vector3(), c, at, terraces: [] };
     });
   }
 
@@ -190,17 +211,64 @@ export class Terrain {
     }
   }
 
-  /** 큰 언덕이 올린 땅 높이 */
+  /** 큰 언덕이 올린 땅 높이(깎은 단 포함) */
   featGround(v: THREE.Vector3): number {
     let gr = 0;
     for (const f of this.features) {
-      const r = v.angleTo(f.v) * S.R;
-      if (r >= f.s) continue;
-      const phase = (Math.PI * r) / f.s;
-      const y = f.H * 0.5 * (Math.cos(phase) + 1);
+      const y = this.featureAt(f, v);
       if (y > gr) gr = y;
     }
     return gr;
+  }
+
+  /** 큰 언덕 하나가 v 에 올린 높이(깎은 단 포함 — 언덕 그물도 이 값으로 그린다) */
+  featureAt(f: Feature, v: THREE.Vector3): number {
+    const r = v.angleTo(f.v) * S.R;
+    if (r >= f.s) return 0;
+    const phase = (Math.PI * r) / f.s;
+    let y = f.H * 0.5 * (Math.cos(phase) + 1);
+    if (!f.terraces.length) return y;
+    // 언덕 자락으로 갈수록 단이 옅어진다 — 자락이 늘 땅에 붙게
+    const rim = (f.s - r) / TERRACE_RIM;
+    const rimShare = smooth01(rim);
+    for (const t of f.terraces) {
+      const d = v.angleTo(t.v) * S.R;
+      const out = (d - t.r) / t.blend;
+      const share = 1 - smooth01(out);
+      if (share <= 0) continue;
+      y += (t.h - y) * share * rimShare;
+    }
+    return y;
+  }
+
+  /** 지금 땅으로 단 높이를 정하고 그 단이 닿는 큰 언덕에 깎는다(큰 언덕 자리를 정한 뒤, 언덕 그물을 짓기 전) */
+  carve(spots: readonly { v: THREE.Vector3; r: number; at?: THREE.Vector3 }[]) {
+    const terraces = spots.map((sp) => {
+      const h = this.featGround(sp.at ?? sp.v);
+      const wide = sp.r * TERRACE_BLEND;
+      const blend = Math.max(TERRACE_BLEND_MIN, wide);
+      return { v: sp.v.clone(), r: sp.r, h, blend };
+    });
+    for (const t of terraces)
+      for (const f of this.features) {
+        const gap = f.v.angleTo(t.v) * S.R;
+        if (gap < f.s + t.r + t.blend) f.terraces.push(t);
+      }
+  }
+
+  /**
+   * 폭 r(m)인 것이 비탈에서 뜨지 않게 앉힐 땅 높이: 가운데와 둘레 여덟 곳 가운데 가장 낮은 땅(지도 terrain.level).
+   * level 이 아닌 지도는 가운데 땅(지금 게임과 같다)
+   */
+  seatAt(v: THREE.Vector3, r: number): number {
+    if (!this.isLevel) return this.featGround(v);
+    return this.lowest(v, r);
+  }
+
+  /** seatAt 과 같되 level 이 아닌 지도는 둔덕까지 본 가운데 땅(나무·조형물이 쓰던 값) */
+  seatGroundAt(v: THREE.Vector3, r: number): number {
+    if (!this.isLevel) return this.groundAt(v);
+    return this.lowest(v, r);
   }
 
   /** 그 자리의 땅 높이(큰 언덕 + 켜진 둔덕). 둔덕은 칸 나눔으로 가까운 것만 본다 */
@@ -229,6 +297,18 @@ export class Terrain {
       const chordSq = 2 * (1 - v.dot(fl.v[k]));
       if (chordSq * S.R * S.R < distSq) fl.lit[k] = 1;
     }
+  }
+
+  // 가운데와 둘레(반지름 r) 여덟 곳 가운데 가장 낮은 땅
+  private lowest(v: THREE.Vector3, r: number): number {
+    let lo = this.groundAt(v);
+    for (let k = 0; k < 8; k++) {
+      const bear = k * 45;
+      offsetInto(seatP, v, r, bear);
+      const g = this.groundAt(seatP);
+      if (g < lo) lo = g;
+    }
+    return lo;
   }
 
   // 지형 난수(지도의 지형 씨앗)
@@ -268,6 +348,13 @@ export class Terrain {
 interface Cap {
   turn: THREE.Quaternion;
   angle: number;
+}
+
+// 0 이하 → 0, 1 이상 → 1, 사이는 부드럽게(smoothstep)
+function smooth01(x: number): number {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  return x * x * (3 - 2 * x);
 }
 
 // 지도의 둘레(마을 차례·반지름 m) → 회전과 각. 없으면 null

@@ -1,5 +1,6 @@
 import * as THREE from "three";
 
+import { GIRTHS } from "../models/girth";
 import { SCULPTURES, sculptureKeys } from "../../assets/settings";
 import type { Frame, Thing } from "../core/frame";
 import { within } from "../maps/map";
@@ -15,6 +16,9 @@ import type { BodyField } from "../world/bodyField";
 import { fr } from "../world/hash";
 import { along, offset } from "../world/sphere";
 import type { Height, HasHeights } from "../world/tall";
+
+/** 굵기 표에 없는 조형물의 밑동 반지름(키의 몫) */
+const FOOT_SHARE = 0.15;
 
 // 조형물: 고르게 뿌리지 않는다. 마을 기준탑(그 마을의 랜드마크) → 길목의 문 → 가로수 터널 → 숲 덩어리 → 높이 사다리 → 열기구 왕관 → 사이 채움
 // → 외딴 거대 조형물 → 지역의 하늘 열기구. 큰 것(14 이상)은 크게 놓으려고 뽑은 열두 가지에서, 작은 것은 여섯 가지에서 —
@@ -216,7 +220,10 @@ export class Sculptures implements Thing, HasHeights {
       }
       field?.add(body);
       const set = SCULPTURES[I.key];
-      const gr = terrain.groundAt(v),
+      // 비탈에서는 밑동(굵기 표의 맨 아래 토막)이 다 땅에 닿게 가장 낮은 땅에 세운다(지도 terrain.level)
+      const footShare = GIRTHS[I.key]?.[0] ?? FOOT_SHARE;
+      const foot = footShare * H;
+      const gr = terrain.seatGroundAt(v, foot),
         yaw = 6.28 * fr(i, 308),
         o: Deco = {
           v,

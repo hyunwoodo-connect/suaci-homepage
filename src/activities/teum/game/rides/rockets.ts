@@ -8,6 +8,9 @@ import type { Services } from "../services";
 import { GREY_TOY, S } from "../settings";
 import { from, UP } from "../world/sphere";
 
+/** 비탈에 앉힐 때 보는 밑동 반지름(m) — 지도 terrain.level */
+const SEAT_R = 2.5;
+
 // 로켓 풍선 — 올라타면 덜덜 떨다가 하늘 끝까지 솟구친다
 
 /** 로켓 하나 */
@@ -79,7 +82,7 @@ export class Rockets implements Thing, Holder {
     for (const o of this.list) {
       const spot = from(o.dist, o.bear);
       o.v.copy(spot);
-      o.gnd = terrain.featGround(o.v);
+      o.gnd = terrain.seatAt(o.v, SEAT_R);
       keep.push(o.v);
       const groundR = S.R + o.gnd;
       o.g.position.copy(o.v).multiplyScalar(groundR);

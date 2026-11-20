@@ -6,6 +6,9 @@ import type { Services } from "../services";
 import { S } from "../settings";
 import { from, offset, UP } from "../world/sphere";
 
+/** 비탈에 앉힐 때 보는 밑동 반지름(m) — 지도 terrain.level */
+const SEAT_R = 1.5;
+
 // 범퍼 밭 — 부딪히면 튕겨 나간다(모델은 버섯).
 // 범퍼 190여 개는 모두 같은 모양이라 도형도 모델도 한 번에 그린다(가까운 것만 넣는다)
 
@@ -79,7 +82,8 @@ export class Bumpers implements Thing {
       const spot = b.k === 0 ? center : offset(center, ringDist, ringBear);
       b.v.copy(spot);
       keep.push(b.v);
-      const radius = S.R + this.s.terrain.featGround(b.v) + 0.5;
+      const seat = this.s.terrain.seatAt(b.v, SEAT_R);
+      const radius = S.R + seat + 0.5;
       b.pos.copy(b.v).multiplyScalar(radius);
       b.q.setFromUnitVectors(UP, b.v);
     }

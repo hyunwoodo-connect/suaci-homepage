@@ -174,6 +174,8 @@ export interface GameMap {
     clouds: number;
     flowersIn?: HubCap;
     cloudsIn?: HubCap;
+    /** 놓인 것을 비탈에 맞춘다: 넓은 것 밑은 평평한 단으로 깎고, 작은 것은 가장 낮은 땅에 앉힌다(지도 v2) */
+    level?: boolean;
   };
   /** 구역(출발점에서 본 방향) — 자리를 고를 때의 기준. 게임 규칙은 보지 않고 지도 점검이 센다 */
   zones: readonly MapZone[];
@@ -201,6 +203,17 @@ export interface GameMap {
   hideSeek?: boolean;
   /** 안개가 시작하고 짙어지는 거리(m) — 없으면 그리는 틀의 값(28~340). v79 는 경계에서 이웃 랜드마크가 보이게 멀리 */
   fog?: { near: number; far: number };
+  /** 맵만 보기: 놀이기구·랜드마크·지형·길·문만 놓는다(생물·별·나무·조형물·꽃·쉬는 곳·브랜드 없이 — maps/bare.ts) */
+  bare?: boolean;
+  /** 미니맵(왼쪽 위 작은 지구본·지역 이름·큰 지도) — 없으면 없다 */
+  minimap?: MinimapValues;
+}
+
+/** 미니맵 값(기획 MINIMAP-01): 작은 지구본 지름(px) · 지역 이름(띄우는 초·같은 경계를 다시 넘어도 안 띄우는 초) · 큰 지도 폭(화면 짧은 변의 몫) */
+export interface MinimapValues {
+  size: number;
+  regionName: { seconds: number; cooldown: number };
+  bigMap: { width: number };
 }
 
 /** span 안에서 roll(0..1) 만큼의 값 */
