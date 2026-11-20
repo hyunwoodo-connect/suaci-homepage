@@ -170,14 +170,17 @@ export class Bystanders {
   private readonly seats = openSeats();
   private readonly groups: { spec: GuestGroup; members: Creature[] }[];
 
+  /** hasGuests: 거짓이면 아무도 부르지 않는다(판을 띄우지 않는 지도) */
   constructor(
     private readonly creatures: BystanderCreatures,
     private readonly rand: () => number,
+    hasGuests = true,
   ) {
     const guests = HIDE.guests.filter((g) => g.species !== "mushroom"),
       problems = rosterProblems(guests, STAGE.npc);
     if (problems.length) throw new Error(`[teum] hideseek.data.json — ${problems[0]}`);
-    this.groups = guests.map((spec) => {
+    const invited = hasGuests ? guests : [];
+    this.groups = invited.map((spec) => {
       const members = creatures.invite(spec.species, spec.count);
       return { spec, members };
     });

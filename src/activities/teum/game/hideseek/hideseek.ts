@@ -260,7 +260,9 @@ export class HideSeek implements Thing, Tappable {
     this.hub = hub;
     this.warm = new Warm(s, links.cat, this.rand);
     this.mushrooms = new Mushrooms(s, links.creatures, this.props, this.rand);
-    this.bystanders = new Bystanders(links.creatures, this.rand);
+    // 판을 띄우지 않는 지도(v79)에는 구경꾼을 부르지 않는다 — 광장에 생물이 서 있지 않게
+    const hasGuests = s.map.hideSeek !== false;
+    this.bystanders = new Bystanders(links.creatures, this.rand, hasGuests);
     const press = () => links.input.pressSeconds();
     this.looker = isLookAround() ? new LookAround(s, press) : null;
     if (isStatsShown()) {
