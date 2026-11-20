@@ -348,6 +348,8 @@ export const SOUND_EFFECTS: SoundTable = {
   },
   landmarkTalked: { key: "snd_quad", volume: 0.5, rate: 0.55, gap: 0.3 },
   regionEntered: { key: "snd_legend", volume: 0.35, rate: 1.2, gap: 3 },
+  // 존 랜드마크에 다가갈 때 그 존의 소리(존 설정 sound.landmark — manifest 에 없으면 조용히)
+  landmarkApproached: (p) => (p.sound ? { key: p.sound, volume: 0.6, gap: 4 } : null),
   // ---- 수집·상자·부탁·도장·이동(아직 알리는 곳이 없다 — 그 흐름이 생기면 바로 난다) ----
   collected: { key: "snd_stamp", volume: 0.7 },
   stamped: { key: "snd_stamp", volume: 0.7 },

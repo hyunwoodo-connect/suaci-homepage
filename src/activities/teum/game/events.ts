@@ -68,6 +68,11 @@ export interface GameEventMap {
   regionEntered: { region: number };
   /** 랜드마크가 말을 걸었다(region: 그 마을의 지역 차례) */
   landmarkTalked: { region: number };
+  /** 존 랜드마크에 다가갔다(60m 안 — 다가올 때 한 번). sound: 그 존이 정한 소리(없으면 null) */
+  landmarkApproached: { zone: string; sound: string | null };
+  /** 존 미니게임 입구: 시작 자리에 올라섰다 · 판이 끝났다 */
+  minigameStarted: { zone: string; game: string };
+  minigameEnded: { zone: string; game: string };
   /** 한국 시간으로 날이 바뀌었다(festival: 새 축제 지역) */
   dayChanged: { day: number; festival: number };
   /** 옷장에서 하나 골랐다(random: 아무거나 단추) */
