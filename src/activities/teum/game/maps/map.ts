@@ -219,13 +219,12 @@ export interface GameMap {
 }
 
 /**
- * 꾸민 지역(MAP-03): 지역 차례 · 큰 공 색 · 꽃의 줄기·잎·가운데를 칠할 색 · 노랑이던 놀이기구(통통·징검 구름, 기둥…)를 칠할 색 ·
- * 이동 구멍 색 — 맵에 초록·노랑 없음
+ * 꾸민 지역이 있는 지도(MAP-03)의 놀이기구 색: 지역 차례 · 큰 공 색 · 노랑이던 놀이기구(통통·징검 구름, 기둥…)를 칠할 색 · 이동 구멍 색
+ * — 맵에 초록·노랑 없음(놀이기구는 지도 전체에 하나라 존마다 다른 색은 아직 없다)
  */
 export interface GardenValues {
   region: number;
   ball: number;
-  flowerParts: number;
   toy: number;
   hole: number;
 }

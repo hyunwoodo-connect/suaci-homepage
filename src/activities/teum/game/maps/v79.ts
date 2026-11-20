@@ -130,8 +130,9 @@ export const V79_MAP: GameMap = {
   bare: true,
   // 내가 어디 있는지(기획 MINIMAP-01 4장 가안)
   minimap: { size: 76, regionName: { seconds: 1.2, cooldown: 10 }, bigMap: { width: 0.85 } },
-  // 티파티 정원(MAP-03): 광장의 분수 탑·뽑기 기계는 꾸밈이 그리고(소원 나무 없음), 큰 공은 분홍, 꽃 줄기·잎·가운데는 흰색
-  garden: { region: 0, ball: 0xff6fa5, flowerParts: 0xffffff, toy: 0xff9ec8, hole: 0xffffff },
+  // 티파티 정원(MAP-03): 광장의 분수 탑·뽑기 기계는 꾸밈이 그리고(소원 나무 없음), 큰 공은 분홍, 노랑이던 놀이기구는 분홍, 구멍은 흰색
+  // (꽃 줄기·잎·꽃술 흰색은 간식 존 설정의 변형 모델 flower_*@candy)
+  garden: { region: 0, ball: 0xff6fa5, toy: 0xff9ec8, hole: 0xffffff },
 };
 
 /* ─── 내부 ─────────────────────────── */

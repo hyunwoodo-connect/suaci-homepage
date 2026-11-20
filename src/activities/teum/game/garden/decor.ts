@@ -8,12 +8,12 @@ import { S } from "../settings";
 import { from } from "../world/sphere";
 import { modelKeyIn } from "../zones/zone";
 import { chordOf, SphereGrid } from "../world/sphereGrid";
-import { whitenGreenYellow } from "./recolor";
 
 // 정원 꾸밈(기획 MAP-03 3·4장 — 자리표 decor 837 + 숨는 자리 hideSpot 12): 모델마다 한 묶음(InstancedMesh)으로 찍는다.
 // h 는 높이(m) — 모델을 그 높이로 키운다, rot 은 도는 각(도), lift 는 땅에서 띄우는 높이(m).
 // plate 는 코드로 그리는 흰 접시(코발트 테두리) — 케이크가 그 위에 선다. 케이크 위(lift)에 놓인 것은 접시 두께만큼 더 띄운다.
-// 꽃은 초록 줄기·잎과 노랑 가운데를 흰색으로 칠한다(맵에 초록·노랑 없음). 꽃은 지나갈 수 있고, 나머지는 몸의 높이마다 굵기대로 막는다.
+// 모델은 그 자리 존이 고른 것(존 설정 objects.models — 에셋 빌드의 색 바꾸기 변형, 예 간식 존 꽃은 줄기 흰색)과 색 곱하기로 그린다.
+// 꽃은 지나갈 수 있고, 나머지는 몸의 높이마다 굵기대로 막는다.
 // 숨는 자리는 자리만 잡아 그린다(리본·숨바꼭질 판은 아직 — MAP-02 8장)
 
 /** 케이크 접시 두께(m) — 케이크와 케이크 위에 놓인 것은 이만큼 위에 선다 */
@@ -22,8 +22,6 @@ export const PLATE_H = 1.2;
 const PLATE = { h: PLATE_H, rim: 3, white: 0xffffff, cobalt: 0x2a4fd0 } as const;
 /** 지나갈 수 있는 꾸밈(꽃은 막지 않는다) */
 const SOFT = new Set(["flower_pink", "flower_blue"]);
-/** 줄기·잎·가운데를 흰색으로 칠하는 꾸밈 */
-const RECOLOR = ["flower_pink", "flower_blue"];
 /** 막는 것을 찾아보는 둘레(m) · 칸(현 길이) · 굵기 띠 수 */
 const NEAR = 40;
 const GRID_CELL = 0.06;
@@ -147,7 +145,7 @@ export class GardenDecor implements Thing {
     return tint === undefined ? key : `${key}|${tint}`;
   }
 
-  // 모델이 오면: 띠마다 굵기를 재고, 존이 정한 색을 곱하고, 변형이 없는 꽃은 줄기·잎·가운데를 흰색으로
+  // 모델이 오면: 띠마다 굵기를 재고, 존이 정한 색을 곱한다
   private measure(group: string, k: string, inst: Instancer, tint: number | null) {
     const radii = new Array<number>(BANDS).fill(0);
     const pos = new THREE.Vector3();
@@ -166,9 +164,6 @@ export class GardenDecor implements Thing {
     }
     this.unitGirth.set(group, radii);
     if (tint !== null) for (const im of inst.ims) im.material = tinted(im.material, tint);
-    if (!RECOLOR.includes(k)) return;
-    const white = this.s.map.garden?.flowerParts ?? 0xffffff;
-    for (const im of inst.ims) whitenGreenYellow(im.material as THREE.MeshStandardMaterial, white);
   }
 
   // 한 꾸밈의 몸 굵기(높이 h 로 키운 것) — 모델이 오기 전에는 없다

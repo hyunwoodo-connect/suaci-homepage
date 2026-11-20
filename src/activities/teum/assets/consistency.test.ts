@@ -10,7 +10,9 @@ import { LIMEBOX } from "../game/hideseek/limebox";
 import { RIBBON_KEY } from "../game/hideseek/ribbons";
 import { MAPS } from "../game/maps";
 import { WEAR_ICON_KEY } from "../game/studio/closet";
+import { V79_ZONES } from "../game/zones";
 import { CATALOG, RETIRED } from "../tools/catalog.mjs";
+import { variantList } from "../tools/recolorRules.mjs";
 import { ASSET_VERSION } from "./config";
 import manifestJson from "./manifest.v10.json";
 import {
@@ -59,9 +61,20 @@ describe("manifest 사본", () => {
     expect(manifestJson.version).toBe(ASSET_VERSION);
   });
 
-  it("하늘 말고 모든 키 → 분류표에 같은 분류로 있다", () => {
+  it("하늘 말고 모든 키 → 분류표에 같은 분류로 있다(존별 색 바꾸기 변형 <원본>@<존> 은 원본의 분류)", () => {
     const models = Object.entries(assets).filter(([, a]) => a.category !== "sky");
-    for (const [k, a] of models) expect(CATALOG[k]?.cat, k).toBe(a.category);
+    for (const [k, a] of models) {
+      const [base] = k.split("@");
+      expect(CATALOG[base]?.cat, k).toBe(a.category);
+    }
+  });
+
+  it("존별 색 바꾸기 규칙의 변형 → 모두 manifest 에 있다(원본과 같은 크기 상자)", () => {
+    const variants = variantList() as [string, string, unknown][];
+    for (const [key, model] of variants) {
+      expect(assets[key], key).toBeDefined();
+      expect(assets[key].box, key).toEqual(assets[model].box);
+    }
   });
 
   it("분류표의 모든 키 → manifest 에 있고, 쓰지 않는 옛 에셋은 없다", () => {
@@ -126,6 +139,8 @@ function referencedKeys(): Set<string> {
     ...maps.flatMap((m) => m.layout.site.map((s) => s.k)).filter((k) => k !== "ferris"),
     ...maps.flatMap((m) => m.layout.tree.map((t) => t.t)),
     ...maps.flatMap((m) => m.brand.objects.map((b) => b.key)),
+    // 존 설정이 고른 색 바꾸기 변형(zones/<id>.ts 의 objects.models)
+    ...V79_ZONES.flatMap((z) => Object.values(z.objects?.models ?? {}).map((m) => m.variant ?? "")),
   ]);
   // 소리 표(assets/settings 의 소리 규칙)에 글자 그대로 적은 소리 키(snd_…)
   const settingsText = fs.readFileSync(path.join(__dirname, "settings.ts"), "utf8");
