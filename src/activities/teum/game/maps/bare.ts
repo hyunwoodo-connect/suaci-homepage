@@ -2,14 +2,14 @@ import type { Layout } from "./layout";
 import type { GameMap, MapRegion } from "./map";
 
 // 맵만 보기(오너 2026-11-20 — "기구·랜드마크 말고 나머지는 다 빼 봐, 지금 맵 그 자체를 보고 싶다"):
-// 놀이기구·랜드마크(장소·큰 구조물·임시 랜드마크)·지형·길·문만 남긴다. 생물(말 거는 것 포함)·별·나무·조형물·꽃·
-// 쉬는 곳·로고 풍선·잔디 로고는 놓지 않는다. 값만 비우므로 지도 bare 를 끄면 그대로 돌아온다
+// 놀이기구·랜드마크(장소·큰 구조물·임시 랜드마크)·지형·길·문만 남긴다. 생물(말 거는 것 포함)·별·주워 드는 풍선과 나비 날개
+// (오너 — "풍선 나비는 아직도 있는데?")·나무·조형물·꽃·쉬는 곳·로고 풍선·잔디 로고는 놓지 않는다. 값만 비우므로 지도 bare 를 끄면 그대로 돌아온다
 
 /** 지도 bare 가 켜진 지도에서 꾸밈을 뺀 지도 */
 export function bareOf(map: GameMap): GameMap {
   const L = map.layout;
   const site = L.site.filter((st) => st.kind !== "rest");
-  const layout: Layout = { ...L, star: [], tree: [], site };
+  const layout: Layout = { ...L, star: [], balloon: [], wing: [], tree: [], site };
   const regions = map.regions.map(bareRegion);
   const { creatures, brand } = map;
   return {
