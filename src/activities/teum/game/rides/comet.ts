@@ -51,11 +51,14 @@ export class Comet implements Thing, Holder {
     tail.rotation.z = Math.PI / 2;
     tail.position.x = -8;
     this.g.add(ball, tail);
+    // 꾸밈을 자리표만 쓰는 지도(bare — MAP-03)에는 혜성이 없다: 자리표 밖의 놀이기구다
+    this.g.visible = s.map.bare !== true;
     s.scene.add(this.g);
   }
 
   /** 하늘을 돌고, 높이 떠서 닿으면 올라타며, 끌면 뛰어내린다 */
   update(f: Frame) {
+    if (!this.g.visible) return;
     const { player, mats, fx, hud } = this.s,
       dt = f.dt;
     const cdeg = ((f.time * 26) / (120 * S.wide)) * 57.2958 + 40;

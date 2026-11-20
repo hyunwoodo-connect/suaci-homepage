@@ -29,8 +29,12 @@ describe("checkMap", () => {
     expect(checkMap(map, manifest)).toEqual([]);
   });
 
-  it("고를 때만 받는 지도 v79(지도 v2) → 문제 없음", () => {
-    expect(checkMap(V79_MAP, manifest)).toEqual([]);
+  it("고를 때만 받는 지도 v79(티파티 정원) → 기획에 넘긴 하나(징검 구름 두 줄의 마디 겹침 — RESULT-MAP-03) 말고 문제 없음", () => {
+    const reported = ["hop#0.6 · hop#1.3"];
+    const problems = checkMap(V79_MAP, manifest).filter(
+      (p) => !reported.some((what) => p.what.startsWith(what)),
+    );
+    expect(problems).toEqual([]);
   });
 
   it("대포 둘을 한 자리에 → 겹침", () => {

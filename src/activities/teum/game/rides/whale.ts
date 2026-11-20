@@ -130,6 +130,9 @@ export class Whale implements Thing, Holder {
   /** 한 번이라도 움직였나(처음 프레임에는 고래 자리를 아직 모르는 것으로 쳐서 제 빠르기로 떠난다 — 시제품과 같은 첫 빠르기) */
   private moved = false;
 
+  /** 이 지도에는 고래가 없다(bare) */
+  private readonly isAway: boolean;
+
   constructor(
     private readonly s: Services,
     private readonly whirls: Holder,
@@ -139,6 +142,9 @@ export class Whale implements Thing, Holder {
     this.prim = new THREE.Mesh(primGeo, primMat);
     this.prim.scale.set(16, 5, 6.5);
     this.g.add(this.prim);
+    // 꾸밈을 자리표만 쓰는 지도(bare — MAP-03)에는 고래가 없다: 자리표 밖의 놀이기구다
+    this.isAway = s.map.bare === true;
+    this.g.visible = !this.isAway;
     s.scene.add(this.g);
     this.mover = { update: (f) => this.move(f), dispose: () => {} };
   }
@@ -386,6 +392,7 @@ export class Whale implements Thing, Holder {
 
   /** 아래에서 뛰어오르면 등으로 끌어 올리고, 끌면 내린다. 가까이 오면 한 번 알려 준다 */
   update(f: Frame) {
+    if (this.isAway) return;
     const { player, hud, camera, events } = this.s,
       dt = f.dt;
     if (this.cool > 0) this.cool -= dt;
@@ -458,6 +465,7 @@ export class Whale implements Thing, Holder {
 
   // 큰 바퀴를 간다: 빠르기(가까우면 느리게·타면 빠르게)와 높이(표를 3초 앞서 본다)를 천천히 맞춘다
   private move(f: Frame) {
+    if (this.isAway) return;
     const dt = f.dt,
       p = this.s.player.p;
     const near = this.moved && p.angleTo(this.v) * S.R < NEAR_SLOW;

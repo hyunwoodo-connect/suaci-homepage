@@ -1,21 +1,18 @@
-import type { Layout } from "./layout";
 import type { GameMap, MapRegion } from "./map";
 
-// 맵만 보기(오너 2026-11-20 — "기구·랜드마크 말고 나머지는 다 빼 봐, 지금 맵 그 자체를 보고 싶다"):
-// 놀이기구·랜드마크(장소·큰 구조물·임시 랜드마크)·지형·길·문만 남긴다. 생물(말 거는 것 포함)·별·주워 드는 풍선과 나비 날개
-// (오너 — "풍선 나비는 아직도 있는데?")·나무·조형물·꽃·쉬는 곳·로고 풍선·잔디 로고는 놓지 않는다. 값만 비우므로 지도 bare 를 끄면 그대로 돌아온다
+// 꾸밈은 자리표만(오너 2026-11-20 "맵 그 자체를 보고 싶다" → MAP-03 티파티 정원): 자리표가 놓은 것(놀이기구·쉼터·장소·
+// 랜드마크·꾸밈 decor·지형·길·문)은 모두 그리고, 지역이 흩뿌리는 꾸밈(조형물·나무·꽃·열기구·비눗방울·꼬마 라임)·생물·
+// 브랜드 오브젝트, 자리표 밖의 놀이기구(고래·혜성 — rides/whale·comet 이 bare 를 본다)는 놓지 않는다. 값만 비우므로 지도 bare 를 끄면 그대로 돌아온다
 
-/** 지도 bare 가 켜진 지도에서 꾸밈을 뺀 지도 */
+/** 지도 bare 가 켜진 지도에서 지역이 흩뿌리는 꾸밈·생물·브랜드를 뺀 지도 */
 export function bareOf(map: GameMap): GameMap {
-  const L = map.layout;
-  const site = L.site.filter((st) => st.kind !== "rest");
-  const layout: Layout = { ...L, star: [], balloon: [], wing: [], tree: [], site };
   const regions = map.regions.map(bareRegion);
   const { creatures, brand } = map;
   return {
     ...map,
-    layout,
     regions,
+    // 장소 곁 생물 자리(회색 공)도 없다
+    placeSpots: [],
     terrain: { ...map.terrain, flowers: 0, clouds: 0 },
     bigFlowers: { ...map.bigFlowers, perHub: 0 },
     bubbles: { ...map.bubbles, perHub: 0 },
@@ -36,7 +33,7 @@ export function bareOf(map: GameMap): GameMap {
 
 /* ─── 내부 ─────────────────────────── */
 
-// 지역에서 조형물·나무·열기구·생물을 비운다(땅·하늘 색은 그대로)
+// 지역에서 조형물·나무·열기구·생물을 비운다(땅·하늘·길 색은 그대로)
 function bareRegion(r: MapRegion): MapRegion {
   return {
     ...r,

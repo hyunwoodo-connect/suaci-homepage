@@ -1,12 +1,33 @@
-import type { Layout } from "./layout";
+import type { Layout, LayoutSite } from "./layout";
 import type { GameMap } from "./map";
 import layoutJson from "./v79.layout.json";
 
-// 지도 v2(기획 MAP-02 — teum-handoff/world-map). 지역 여섯이 확연히 다르게: 땅·하늘·기구·조형물·나무·꽃·생물·지형이 전부 그 지역 것만.
-// 자리표(world-v2.layout.json — 기획의 plan2.py 가 계산)는 v79.layout.json, 그 밖의 수·지역은 여기.
+// 지도 v2(기획 MAP-02) 위에 티파티 정원(MAP-03 "거인의 다과상" — 둘이 다르면 MAP-03). 지금은 정원 하나만 꾸미고 다섯 지역은 비운다.
+// 자리표(world-v3.layout.json — 기획의 plan2.py·garden.py 가 계산)는 v79.layout.json, 그 밖의 수·지역은 여기.
+// 정원의 꾸밈 837(decor)은 자리표가 놓고, 지역이 흩뿌리는 꾸밈·생물·브랜드는 끈다(bare).
 // v78 과 달리: 마을 0 티파티 정원 ↔ 1 과자 언덕 차례가 바뀌고, 놀이기구는 방향 띠가 아니라 자리표가 지역마다 무리로 놓고,
 // 행성 전체에 같은 규칙으로 흩던 것(큰 꽃·비눗방울·꼬마 라임·조형물 숲·왕관 띠·외딴 조형물)은 끄거나 한 지역에만 둔다.
 // 숨바꼭질 판은 띄우지 않는다(정원 숨바꼭질은 다음 단계) — 자유롭게 날아다니며 지역을 본다
+
+/** 자리표 v3 의 쉼터({k, dist, bear, r, h}) → 이름·종류·말 — 회전목마·관람차·수레는 랜드마크, 나머지는 쉬는 곳 */
+const GARDEN_SITES: Readonly<Record<string, { name: string; kind: string; msg: string }>> = {
+  carousel: { name: "회전목마", kind: "land", msg: "회전목마 — 천천히 돕니다" },
+  ferris: { name: "마카롱 관람차", kind: "land", msg: "마카롱 관람차 — 멀리서도 보이는 큰 바퀴" },
+  candycart: { name: "솜사탕 수레", kind: "land", msg: "솜사탕 수레" },
+  sofa: { name: "풍선 소파", kind: "rest", msg: "풍선 소파 — 쉬어 가는 곳" },
+  picnic: { name: "피크닉 돗자리", kind: "rest", msg: "피크닉 돗자리 — 쉬어 가는 곳" },
+  parasol: { name: "파라솔", kind: "rest", msg: "파라솔 — 쉬어 가는 곳" },
+  gumdrops: { name: "젤리 방석", kind: "rest", msg: "젤리 방석 — 쉬어 가는 곳" },
+};
+
+/** 자리표 v3 의 쉼터 한 줄 */
+interface GardenSite {
+  k: string;
+  dist: number;
+  bear: number;
+  r: number;
+  h: number;
+}
 
 /** 지도 v2 */
 export const V79_MAP: GameMap = {
@@ -22,11 +43,13 @@ export const V79_MAP: GameMap = {
     level: true,
   },
   zones: [],
-  layout: layoutJson as unknown as Layout,
+  layout: gardenLayout(),
   regions: [
     {
       name: "티파티 정원",
-      ground: [0xffd6e6, 0xffffff],
+      // 식탁보: 분홍·흰 체크, 큰 길은 테이블 러너
+      ground: [0xffd6e6, 0xfffafc],
+      road: 0xffecd6,
       hue: 0,
       sky: 0xc9b8ff,
       big: ["s_gift", "s_cherry"],
@@ -206,8 +229,30 @@ export const V79_MAP: GameMap = {
   startHub: 0,
   hideSeek: false,
   fog: { near: 60, far: 720 },
-  // 오너가 지도 자체를 먼저 본다 — 꾸밈은 뺀 채로
+  // 꾸밈은 자리표(decor)만 — 지역이 흩뿌리는 꾸밈·생물·브랜드는 없다
   bare: true,
   // 내가 어디 있는지(기획 MINIMAP-01 4장 가안)
   minimap: { size: 76, regionName: { seconds: 1.2, cooldown: 10 }, bigMap: { width: 0.85 } },
+  // 식탁보 체크 한 칸(m)
+  checker: 12,
+  // 티파티 정원(MAP-03): 광장의 분수 탑·뽑기 기계는 꾸밈이 그리고(소원 나무 없음), 큰 공은 분홍, 꽃 줄기·잎·가운데는 흰색
+  garden: { region: 0, ball: 0xff6fa5, flowerParts: 0xffffff, toy: 0xff9ec8, hole: 0xffffff },
 };
+
+/* ─── 내부 ─────────────────────────── */
+
+// 자리표 v3 를 엔진의 꼴로: 쉼터는 높이 h 그대로(키우지 않는다 — sc 1). 기획용 갈래(정원 이름 garden·놀이터 playground)는 뺀다
+function gardenLayout(): Layout {
+  const raw = layoutJson as unknown as Omit<Layout, "site"> & {
+    site: GardenSite[];
+    garden?: unknown;
+  };
+  const site = raw.site.map((st): LayoutSite => {
+    const known = GARDEN_SITES[st.k] ?? { name: st.k, kind: "rest", msg: st.k };
+    return { ...known, k: st.k, dist: st.dist, bear: st.bear, r: st.r, size: st.h, by: "h", sc: 1 };
+  });
+  const layout = { ...raw, site };
+  delete layout.garden;
+  delete layout.playground;
+  return layout;
+}

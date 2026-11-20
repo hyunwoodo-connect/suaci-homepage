@@ -26,6 +26,8 @@ export interface GroundUniforms {
   uRegA: { value: THREE.Color[] };
   uRegB: { value: THREE.Color[] };
   uRegE: { value: THREE.Vector2 };
+  /** 체커 한 칸(m) */
+  uCell: { value: number };
 }
 
 /** 부푼 구름 셰이더가 같이 쓰는 값 */
@@ -39,6 +41,9 @@ const RIM_GLSL = `
   float teumFr = pow(1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0), 3.0);
   gl_FragColor.rgb = mix(gl_FragColor.rgb, uRim, teumFr * uRimK);
   #include <dithering_fragment>`;
+
+/** 체커 한 칸(m) — 지도가 정하지 않으면 */
+const DEFAULT_CELL = 13;
 
 /** 행성과 땅 재질 */
 export class Ground implements Thing {
@@ -57,6 +62,7 @@ export class Ground implements Thing {
       regions = s.map.regions,
       edge = s.map.regionEdge;
     const between = edge.ground ?? [LOOK.gA, LOOK.gB];
+    const grass = s.map.garden ? 0 : 1;
     this.GND = {
       uA: { value: new THREE.Color(between[0]) },
       uB: { value: new THREE.Color(between[1]) },
@@ -64,13 +70,14 @@ export class Ground implements Thing {
       uRimK: { value: 0.85 },
       uInvR: { value: 1 / S.R },
       uT: { value: 0 },
-      // 초현실 팝: 가까운 곳에 잔디 결
-      uGrass: { value: 1 },
+      // 초현실 팝: 가까운 곳에 잔디 결 — 꾸민 지역이 있는 지도(MAP-03 식탁보)는 결도 연두빛도 없다
+      uGrass: { value: grass },
       uPk: { value: new THREE.Color(0xff5fa8) },
       uHubV: { value: hubV },
       uRegA: { value: regions.map((r) => new THREE.Color(r.ground[0])) },
       uRegB: { value: regions.map((r) => new THREE.Color(r.ground[1])) },
       uRegE: { value: new THREE.Vector2(edge.from, edge.width) },
+      uCell: { value: s.map.checker ?? DEFAULT_CELL },
     };
     this.PUF = { uRim: { value: new THREE.Color(0xffffff) }, uRimK: { value: 0.55 } };
     this.groundify(planetMat);
@@ -95,7 +102,7 @@ export class Ground implements Thing {
         );
       sh.fragmentShader =
         `#define TEUM_REGIONS ${regions}
-        varying vec3 vWp; uniform vec3 uA; uniform vec3 uB; uniform vec3 uRim; uniform float uRimK; uniform float uInvR; uniform float uT; uniform float uGrass; uniform vec3 uPk;
+        varying vec3 vWp; uniform vec3 uA; uniform vec3 uB; uniform vec3 uRim; uniform float uRimK; uniform float uInvR; uniform float uT; uniform float uGrass; uniform vec3 uPk; uniform float uCell;
         #if TEUM_REGIONS > 0
         uniform vec3 uHubV[TEUM_REGIONS]; uniform vec3 uRegA[TEUM_REGIONS]; uniform vec3 uRegB[TEUM_REGIONS]; uniform vec2 uRegE;
         #endif
@@ -111,7 +118,7 @@ export class Ground implements Thing {
         vec3 tq = vWp * uInvR; float tn = teumN(tq * 14.0) * 0.65 + teumN(tq * 47.0) * 0.35;
         float tsh = smoothstep(0.5, 0.8, teumN(tq * 4.0 + vec3(uT * 0.012, 0.0, uT * 0.008)));
         vec3 aW = abs(normalize(vWp)); vec2 cuv = (aW.y >= aW.x && aW.y >= aW.z) ? vWp.xz : (aW.x >= aW.z ? vWp.yz : vWp.xy); // 공 전체에서 체커가 되게: 가장 가까운 축 면에 펴서 그린다
-        vec2 cq = floor(cuv / 13.0); float ck = mod(cq.x + cq.y, 2.0); // 체커 무늬 땅
+        vec2 cq = floor(cuv / uCell); float ck = mod(cq.x + cq.y, 2.0); // 체커 무늬 땅
         vec3 cA = uA, cB = uB;
         #if TEUM_REGIONS > 0
         { vec3 nW = normalize(vWp), rA = uA, rB = uB; float rb = -1.0; for (int i = 0; i < TEUM_REGIONS; i++) { float dH = dot(nW, uHubV[i]); if (dH > rb) { rb = dH; rA = uRegA[i]; rB = uRegB[i]; } } float rw = smoothstep(uRegE.x, uRegE.x + uRegE.y, rb); // 지역마다 다른 색 체커, 사이는 옅게

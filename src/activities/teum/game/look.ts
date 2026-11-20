@@ -101,6 +101,9 @@ export interface OutfitUniforms {
 /** 코드로 만든 도형의 재질 메시 */
 export type GreyMesh = THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
 
+/** 놀이기구 톤의 노랑 */
+const YELLOW_TOY = 0xffd21f;
+
 /** 재질 만드는 곳: 놀이기구 바탕색, 반응한 라임, 톤 값 */
 export class Mats {
   readonly toy: Record<ToyKind, THREE.Color>;
@@ -118,6 +121,15 @@ export class Mats {
     const toy = {} as Record<ToyKind, THREE.Color>;
     for (const [k, hex] of Object.entries(LOOK.toy)) toy[k as ToyKind] = new THREE.Color(hex);
     this.toy = toy;
+  }
+
+  /** 노랑 놀이기구 색(LOOK.toy 의 노랑)을 toy 로, 이동 구멍은 hole 로 바꾼다(맵에 노랑이 없는 지도 — MAP-03) */
+  repaintYellowToys(toy: number, hole: number) {
+    for (const [k, hex] of Object.entries(LOOK.toy)) {
+      if (hex !== YELLOW_TOY) continue;
+      this.toy[k as ToyKind].setHex(toy);
+    }
+    this.toy.hole.setHex(hole);
   }
 
   /** 도형 재질: 팝 톤의 매끈한 광택 */

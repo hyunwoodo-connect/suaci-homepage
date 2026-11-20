@@ -95,6 +95,8 @@ export interface MapRegion {
   /** 서는 조형물 종류(조형물 설정 키): 큰 것 · 작은 것 */
   big: readonly string[];
   small: readonly string[];
+  /** 큰 길 색 — 없으면 땅 첫째 색에 흰빛을 섞는다 */
+  road?: number;
   /** 숲·가로수의 키 큰 나무 종류(나무 설정 키) — 나무가 없는 지역은 null */
   tree: string | null;
   /** 지역 한가운데에서 솎는 비율(0..1): 조형물 · 숲의 나무 · 열기구 */
@@ -207,6 +209,22 @@ export interface GameMap {
   bare?: boolean;
   /** 미니맵(왼쪽 위 작은 지구본·지역 이름·큰 지도) — 없으면 없다 */
   minimap?: MinimapValues;
+  /** 땅 체커 한 칸(m) — 없으면 13 */
+  checker?: number;
+  /** 자리표의 꾸밈(decor)으로 채운 지역(MAP-03 티파티 정원) — 없으면 없다 */
+  garden?: GardenValues;
+}
+
+/**
+ * 꾸민 지역(MAP-03): 지역 차례 · 큰 공 색 · 꽃의 줄기·잎·가운데를 칠할 색 · 노랑이던 놀이기구(통통·징검 구름, 기둥…)를 칠할 색 ·
+ * 이동 구멍 색 — 맵에 초록·노랑 없음
+ */
+export interface GardenValues {
+  region: number;
+  ball: number;
+  flowerParts: number;
+  toy: number;
+  hole: number;
 }
 
 /** 미니맵 값(기획 MINIMAP-01): 작은 지구본 지름(px) · 지역 이름(띄우는 초·같은 경계를 다시 넘어도 안 띄우는 초) · 큰 지도 폭(화면 짧은 변의 몫) */
