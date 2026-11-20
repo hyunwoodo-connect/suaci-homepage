@@ -6,8 +6,10 @@ import { V79_MAP } from "./v79";
 describe("bareOf(맵만 보기)", () => {
   const bare = bareOf(V79_MAP);
 
-  it("별·나무·쉬는 곳 → 뺀다, 놀이기구·랜드마크·장소 → 그대로", () => {
+  it("별·풍선·나비 날개·나무·쉬는 곳 → 뺀다, 놀이기구·랜드마크·장소 → 그대로", () => {
     expect(bare.layout.star).toEqual([]);
+    expect(bare.layout.balloon).toEqual([]);
+    expect(bare.layout.wing).toEqual([]);
     expect(bare.layout.tree).toEqual([]);
     expect(bare.layout.site.some((st) => st.kind === "rest")).toBe(false);
     expect(bare.layout.site.length).toBeGreaterThan(0);
