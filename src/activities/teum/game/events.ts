@@ -124,15 +124,6 @@ export interface GameEventMap {
   stamped: { count: number };
   /** 가 본 지역으로 옮겨 갔다 */
   travelled: { region: number };
-  // ---- 숨바꼭질 행성(?planet=tea, 기획서 v3.1) — 지금 게임은 알리지 않는다 ----
-  /** 상자가 한 발 디뎠다(몰래 이동은 작게, 도망은 빠르게 — 그쪽에서 들린다) */
-  teaStepped: { pan: number; volume: number; running: boolean };
-  /** 상자가 들켜 화들짝 */
-  teaStartled: { pan: number };
-  /** 도망가는 상자를 톡으로 잡았다 */
-  teaCaught: Record<string, never>;
-  /** 상자가 꼭대기 찜 기둥에 닿았다 */
-  teaClaimed: Record<string, never>;
 }
 
 /** 알리는 일의 이름 */

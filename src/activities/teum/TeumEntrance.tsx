@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 
 import type { EntranceProps } from "../types";
 import { fetchManifest } from "./assets/manifest";
-import { isTeaPlanet } from "./game/tea/params";
 
 /**
  * '틈' 입구: 화면 전체가 게임이다. 첫 화면 에셋을 받는 동안 진행 막대를 보이고, 다 받으면 게임이 그리기 시작한다.
@@ -41,8 +40,7 @@ function Stage({ title }: StageProps) {
     let stop: (() => void) | null = null;
     let cancelled = false;
     const manifestJob = fetchManifest();
-    // ?planet=tea 면 숨바꼭질 행성(v3)만 받는다 — 지금 게임 코드는 받지 않는다
-    const gameJob = isTeaPlanet() ? import("./game/tea") : import("./game");
+    const gameJob = import("./game");
     Promise.all([manifestJob, gameJob])
       .then(([assets, game]) => {
         if (cancelled) return;
