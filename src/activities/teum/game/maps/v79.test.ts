@@ -28,12 +28,21 @@ describe("지도 v79(티파티 정원 — MAP-03)", () => {
     expect(L.bumper).toHaveLength(10);
   });
 
-  it("정원 바닥: 분홍·흰 체크(한 칸 12m), 큰 길은 테이블 러너, 하늘 라벤더", () => {
+  it("간식 존 바닥: 분홍·흰 체크(한 칸 12m), 큰 길은 테이블 러너, 하늘 라벤더", () => {
     const garden = V79_MAP.regions[0];
     expect(garden.ground).toEqual([0xffd6e6, 0xfffafc]);
     expect(garden.road).toBe(0xffecd6);
     expect(garden.sky).toBe(0xc9b8ff);
-    expect(V79_MAP.checker).toBe(12);
+    expect(garden.checker).toBe(12);
+  });
+
+  it("지역은 존 설정에서: 존 여섯이 마을 차례대로, 빈 존은 기본 땅·하늘", () => {
+    const zones = V79_MAP.zoneConfigs!;
+    expect(zones.map((z) => z.hub)).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(V79_MAP.regions.map((r) => r.name)).toEqual(zones.map((z) => z.name));
+    const empty = V79_MAP.regions[2];
+    expect(empty.ground).toEqual([0xe9e3ff, 0xfbfaff]);
+    expect(empty.big).toEqual([]);
   });
 
   it("거인의 케이크 → 모델 cake, 높이 70m", () => {

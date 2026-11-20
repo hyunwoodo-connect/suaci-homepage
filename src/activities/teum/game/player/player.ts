@@ -7,6 +7,8 @@ import { girthAt } from "../models/extent";
 import { FLIGHT, S } from "../settings";
 import { clamp, offset, START } from "../world/sphere";
 import type { Terrain } from "../world/terrain";
+import type { Motion } from "./motion";
+import { DEFAULT_MOTION } from "./motion";
 
 // 나(몸)의 상태와 움직임. 다른 모듈은 이 상태를 직접 바꾸지 않고 아래의 좁은 요청으로만 부탁한다:
 //   튕겨 올리기(bounce·lift·raise·hop·easeLift·standOn·keepAbove) · 빨라지기(boost·boostAtLeast) · 잠깐 방향 안 먹기(stun) ·
@@ -117,9 +119,11 @@ export class Player {
   private readonly body: HeldBody;
 
   /** events: 붙잡힘·놓임·날림·튕김을 알리는 알림판 */
+  /** motion: 몸놀림 값(존이 바꾼다 — 없으면 기본값) */
   constructor(
     private readonly terrain: Terrain,
     private readonly events: GameEvents,
+    private readonly motion: Readonly<Motion> = DEFAULT_MOTION,
   ) {
     // 붙잡은 쪽이 쓰는 손잡이: 몸의 벡터는 그대로 건네고, 높이·위아래 속도는 이 몸의 값을 읽고 쓴다
     const body = {
@@ -337,7 +341,7 @@ export class Player {
       const slTarget = clamp(slopePush, -0.35, 1.0);
       const slEase = 1 - Math.exp(slDecay);
       this.sl += (slTarget - this.sl) * slEase;
-      const stepAngle = (S.speed / S.R) * tot * dt;
+      const stepAngle = (this.motion.speed / S.R) * tot * dt;
       p.applyAxisAngle(axis, stepAngle).normalize();
       const hRadial = h.dot(p);
       h.addScaledVector(p, -hRadial).normalize();
@@ -345,8 +349,8 @@ export class Player {
     // 떠오름과 내려앉음 — 천천히 활공해 내려온다(날개가 있으면 더 천천히)
     if (this.wingT > 0) this.wingT -= dt;
     const winged = this.wingT > 0;
-    const G = winged ? FLIGHT.wingGravity : FLIGHT.gravity,
-      VT = winged ? FLIGHT.wingFallLimit : FLIGHT.fallLimit;
+    const G = winged ? FLIGHT.wingGravity : this.motion.gravity,
+      VT = winged ? FLIGHT.wingFallLimit : this.motion.fallLimit;
     const frozen = this.holders.some((h) => h.freezesGravity === true);
     if (!frozen && (this._air > 0 || this._vy > 0)) {
       this._vy -= G * dt;

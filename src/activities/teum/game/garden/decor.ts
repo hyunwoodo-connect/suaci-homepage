@@ -6,6 +6,7 @@ import type { Instancer } from "../models/instancer";
 import type { Services } from "../services";
 import { S } from "../settings";
 import { from } from "../world/sphere";
+import { modelKeyIn } from "../zones/zone";
 import { chordOf, SphereGrid } from "../world/sphereGrid";
 import { whitenGreenYellow } from "./recolor";
 
@@ -30,7 +31,10 @@ const BANDS = 16;
 
 /** 찍을 것 하나 */
 interface Piece {
+  /** 자리표의 모델 이름 */
   model: string;
+  /** 묶음 이름: 그 존이 고른 모델(변형 — 예 flower_pink@candy)과 색 곱하기 */
+  group: string;
   v: THREE.Vector3;
   h: number;
   yaw: number;
@@ -64,27 +68,30 @@ export class GardenDecor implements Thing {
       const extra = onCake ? PLATE.h : 0;
       const lift = (d.lift ?? 0) + extra;
       const yaw = THREE.MathUtils.degToRad(d.rot);
-      this.pieces.push({ model: d.model, v, h: d.h, yaw, lift, base: 0 });
+      const group = this.groupOf(d.model, v);
+      this.pieces.push({ model: d.model, group, v, h: d.h, yaw, lift, base: 0 });
     }
     for (const hs of L.hideSpot ?? []) {
       const v = from(hs.dist, hs.bear);
       const onCake = hs.tier > 0;
       const extra = onCake ? PLATE.h : 0;
       const lift = (hs.lift ?? 0) + extra;
-      this.pieces.push({ model: hs.model, v, h: hs.h, yaw: 0, lift, base: 0 });
+      const group = this.groupOf(hs.model, v);
+      this.pieces.push({ model: hs.model, group, v, h: hs.h, yaw: 0, lift, base: 0 });
     }
-    // 모델마다 한 묶음
+    // 묶음(모델 + 색 곱하기)마다 한 번에 그린다
     const counts = new Map<string, number>();
     for (const p of this.pieces) {
-      const n = counts.get(p.model) ?? 0;
+      const n = counts.get(p.group) ?? 0;
       const more = n + 1;
-      counts.set(p.model, more);
+      counts.set(p.group, more);
     }
-    for (const [k, n] of counts) {
+    for (const [group, n] of counts) {
+      const [k, tint] = splitGroup(group);
       const inst = s.models.inst(k, n);
       if (!inst) continue;
-      this.insts.set(k, inst);
-      s.models.when(k, () => this.measure(k, inst));
+      this.insts.set(group, inst);
+      s.models.when(k, () => this.measure(group, k, inst, tint));
     }
     for (const p of this.pieces) this.grid.add(p.v);
     if (plateSpot) this.plate = this.buildPlate(plateSpot.v, plateSpot.r);
@@ -95,7 +102,7 @@ export class GardenDecor implements Thing {
     const { terrain } = this.s;
     for (const p of this.pieces) {
       p.base = terrain.featGround(p.v) + p.lift;
-      const inst = this.insts.get(p.model);
+      const inst = this.insts.get(p.group);
       inst?.stamp(p.v, p.base, p.h, p.yaw);
     }
     if (this.plate) {
@@ -130,8 +137,18 @@ export class GardenDecor implements Thing {
     for (const o of this.owned) o.dispose();
   }
 
-  // 모델이 오면: 띠마다 굵기를 재고, 꽃은 줄기·잎·가운데를 흰색으로
-  private measure(k: string, inst: Instancer) {
+  // 그 자리의 존이 이 모델을 어떻게 쓰나 → 묶음 이름(모델 키|색 곱하기)
+  private groupOf(model: string, v: THREE.Vector3): string {
+    const { map, models, regions } = this.s;
+    const hub = regions.nearest(v);
+    const zone = map.zoneConfigs?.find((z) => z.hub === hub);
+    const key = modelKeyIn(zone, model, (k) => models.has(k));
+    const tint = zone?.objects?.models?.[model]?.tint;
+    return tint === undefined ? key : `${key}|${tint}`;
+  }
+
+  // 모델이 오면: 띠마다 굵기를 재고, 존이 정한 색을 곱하고, 변형이 없는 꽃은 줄기·잎·가운데를 흰색으로
+  private measure(group: string, k: string, inst: Instancer, tint: number | null) {
     const radii = new Array<number>(BANDS).fill(0);
     const pos = new THREE.Vector3();
     for (const im of inst.ims) {
@@ -147,7 +164,8 @@ export class GardenDecor implements Thing {
         if (r > radii[slot]) radii[slot] = r;
       }
     }
-    this.unitGirth.set(k, radii);
+    this.unitGirth.set(group, radii);
+    if (tint !== null) for (const im of inst.ims) im.material = tinted(im.material, tint);
     if (!RECOLOR.includes(k)) return;
     const white = this.s.map.garden?.flowerParts ?? 0xffffff;
     for (const im of inst.ims) whitenGreenYellow(im.material as THREE.MeshStandardMaterial, white);
@@ -155,7 +173,7 @@ export class GardenDecor implements Thing {
 
   // 한 꾸밈의 몸 굵기(높이 h 로 키운 것) — 모델이 오기 전에는 없다
   private girthOf(p: Piece): Girth | null {
-    const unit = this.unitGirth.get(p.model);
+    const unit = this.unitGirth.get(p.group);
     if (!unit) return null;
     const step = p.h / BANDS;
     const radii = unit.map((r) => r * p.h * GIRTH_SHARE);
@@ -190,5 +208,30 @@ export class GardenDecor implements Thing {
 /* ─── 내부 ─────────────────────────── */
 
 const UP = new THREE.Vector3(0, 1, 0);
+
+// 묶음 이름 → 모델 키·색 곱하기(없으면 null)
+function splitGroup(group: string): [string, number | null] {
+  const [key, tint] = group.split("|");
+  const hex = tint === undefined ? null : Number(tint);
+  return [key, hex];
+}
+
+// 존이 정한 색 곱하기: 재질을 따로 떼어(같은 모델의 다른 존과 나눠 쓰지 않게) 색을 곱한다 — 모델 재질의 셰이더 손질은 그대로
+function tintedOne(m: THREE.Material, tint: number): THREE.Material {
+  const own = m.clone() as THREE.MeshStandardMaterial;
+  own.onBeforeCompile = m.onBeforeCompile;
+  own.customProgramCacheKey = m.customProgramCacheKey;
+  const color = new THREE.Color(tint);
+  own.color?.multiply(color);
+  return own;
+}
+
+function tinted(
+  m: THREE.Material | THREE.Material[],
+  tint: number,
+): THREE.Material | THREE.Material[] {
+  if (Array.isArray(m)) return m.map((x) => tintedOne(x, tint));
+  return tintedOne(m, tint);
+}
 /** 모델 굵기에서 막는 몫(삐죽 나온 끝은 비켜 가게) */
 const GIRTH_SHARE = 0.85;

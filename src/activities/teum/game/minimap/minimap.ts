@@ -15,11 +15,10 @@ import {
   paintRegions,
   project,
 } from "./globe";
-import { RegionNamer } from "./regionName";
 
 // 미니맵(기획 MINIMAP-01 — 지도 값 minimap 이 있는 지도에만, 지금은 v79):
 // 1) 왼쪽 위 작은 지구본 — 내가 늘 가운데, 위가 늘 내가 보는 쪽. 지역 색·경계·바다·큰 길·랜드마크 점(아직 안 한 게임은 천천히 깜빡)
-// 2) 새 지역에 들어서면 화면 위 가운데에 지역 이름(글자 규칙의 예외 — 이름 여섯만)
+// 2) 새 지역에 들어서면 화면 위 가운데에 지역 이름(글자 규칙의 예외 — 이름 여섯만). 언제 띄울지는 존 넘나들기(zones/tracker)가 정한다
 // 3) 지구본을 톡 → 큰 지도(끌면 돈다, 지역 이름·랜드마크 아이콘·이동 구멍·큰 길·나). 바깥이나 지구본을 다시 톡 하면 닫힌다.
 //    판 중(숨바꼭질)에는 열리지 않는다. 열려 있어도 게임 시간은 흐른다
 
@@ -57,7 +56,6 @@ export class Minimap implements Thing {
   private drag: { id: number; x: number; y: number } | null = null;
   // ---- 지역 이름 ----
   private readonly nameEl: HTMLDivElement;
-  private readonly namer: RegionNamer;
   private nameT = 0;
   // ---- 셈에 쓰는 값 ----
   private readonly forward = new THREE.Vector3();
@@ -156,20 +154,22 @@ export class Minimap implements Thing {
     parent.append(this.button, this.nameEl, this.overlay);
     s.hud.attach(this.button);
     s.hud.attach(this.nameEl);
-    const start = s.regions.nearest(s.player.p);
-    this.namer = new RegionNamer(start, values.regionName.cooldown);
   }
 
-  /** 지구본을 내 자리·보는 쪽에 맞춰 다시 그리고, 새 지역에 들어서면 이름을 띄운다(카메라 다음) */
+  /** 지역 이름을 화면 위 가운데에 띄운다(존 넘나들기가 부른다 — 정해진 초 동안) */
+  showName(name: string) {
+    this.nameEl.textContent = name;
+    this.nameEl.style.opacity = "1";
+    this.nameT = this.values.regionName.seconds;
+  }
+
+  /** 지구본을 내 자리·보는 쪽에 맞춰 다시 그리고, 띄운 이름은 시간이 되면 지운다(카메라 다음) */
   update(f: Frame) {
     this.time = f.time;
     const p = this.s.player.p;
     this.aimForward(p);
     aimView(this.miniView, p, this.forward);
     this.drawMini();
-    const at = this.s.regions.of(p);
-    const entered = this.namer.step(at.i, at.w, f.time);
-    if (entered !== null) this.showName(entered);
     if (this.nameT > 0) {
       this.nameT -= f.dt;
       if (this.nameT <= 0) this.nameEl.style.opacity = "0";
@@ -235,14 +235,6 @@ export class Minimap implements Thing {
     f.addScaledVector(p, -along);
     if (f.lengthSq() < 1e-6) f.copy(this.s.player.h);
     f.normalize();
-  }
-
-  private showName(i: number) {
-    const name = this.data.names[i];
-    if (!name) return;
-    this.nameEl.textContent = name;
-    this.nameEl.style.opacity = "1";
-    this.nameT = this.values.regionName.seconds;
   }
 
   private bigSize(): number {

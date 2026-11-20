@@ -76,6 +76,7 @@ import { GardenDecor } from "./garden/decor";
 import type { TeaFountain } from "./garden/teaFountain";
 import { teaFountainOf } from "./garden/teaFountain";
 import { Minimap } from "./minimap/minimap";
+import { defaultMotion } from "./player/motion";
 import { Studio } from "./studio/studio";
 import { Beacons } from "./world/beacons";
 import { CloudIslands } from "./world/cloudIslands";
@@ -89,6 +90,7 @@ import { Lakes } from "./world/lakes";
 import { Occupancy } from "./world/occupancy";
 import { Places } from "./world/places";
 import { RegionLook } from "./world/regionLook";
+import { ZoneTracker } from "./zones/tracker";
 import { Regions } from "./world/regions";
 import { Sites } from "./world/sites";
 import { Sky } from "./world/sky";
@@ -126,7 +128,9 @@ export class Game {
   readonly ground: Ground;
   readonly sky: Sky;
   /** 지금 지역의 하늘빛·안개(새 지역에 들어서면 알린다) */
-  readonly regionLook: RegionLook;
+  /** 지역 하늘빛(존 설정이 없는 지도 — v78) 또는 존 넘나들기(존 설정이 있는 지도 — v79) */
+  readonly regionLook: RegionLook | null;
+  readonly zoneTracker: ZoneTracker | null;
   readonly places: Places;
   readonly sites: Sites;
   readonly brand: BrandObjects;
@@ -236,7 +240,9 @@ export class Game {
     const rng = new Random(seed);
     const terrain = new Terrain(map.seed, map.terrain, layout.hill, layout.hub);
     const events = new GameEvents();
-    const player = new Player(terrain, events);
+    // 몸놀림 값 한 벌: 나·카메라가 읽고, 존 넘나들기가 바꾼다(기본값 = 지금 큰 행성 값)
+    const motion = defaultMotion();
+    const player = new Player(terrain, events, motion);
     const hudParent = canvas.parentElement ?? document.body;
     const hud = new Hud(hudParent);
     const models = new ModelLibrary(manifest, mats.lookU, scene);
@@ -254,7 +260,7 @@ export class Game {
       today: new Today(events, map.regions.length, festival),
       culler: new Culler(scene, player),
       player,
-      camera: new CameraRig(stage.camera, player, terrain),
+      camera: new CameraRig(stage.camera, player, terrain, motion),
       fx: new Fx(scene, player, fxRng, events),
       ripples: new Ripples(scene, rippleRng, terrain, player, events),
       hud,
@@ -274,7 +280,7 @@ export class Game {
     // ---- 장면·땅·하늘 ----
     this.ground = new Ground(s);
     this.sky = new Sky(s, stage.sun);
-    this.regionLook = new RegionLook(s, this.sky);
+    this.regionLook = map.zoneConfigs ? null : new RegionLook(s, this.sky);
     const places = new Places(s);
     this.places = places;
     this.sites = new Sites(s, places);
@@ -452,6 +458,12 @@ export class Game {
     this.minimap = map.minimap
       ? new Minimap(s, map.minimap, hudParent, stage.camera, canOpenMap)
       : null;
+    // 존 넘나들기: 하늘·안개·빛·몸놀림·배경 소리·지역 이름(존 설정이 있는 지도만)
+    const minimap = this.minimap;
+    const showName = minimap ? (name: string) => minimap.showName(name) : null;
+    this.zoneTracker = map.zoneConfigs
+      ? new ZoneTracker(s, { sky: this.sky, sun: stage.sun, motion, ambient: this.sound, showName })
+      : null;
     if (field) this.clearFlowers(field);
     this.whale.fitModels();
     this.balloons.fitModels();
@@ -525,7 +537,8 @@ export class Game {
       this.creatures,
       // 데리고 다니는 손님 수만큼 카메라가 높아지고 멀어진다(다 같이 화면에 들어오게)
       () => camera.setCompany(this.creatures.followers.length),
-      this.regionLook,
+      ...(this.regionLook ? [this.regionLook] : []),
+      ...(this.zoneTracker ? [this.zoneTracker] : []),
       places,
       this.cloudIslands,
       this.beacons,

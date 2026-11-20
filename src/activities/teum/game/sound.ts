@@ -37,6 +37,8 @@ const DEFAULT_VOLUME = 0.6,
   DEFAULT_GAP = 0.05;
 /** 효과음 분류 */
 const SFX_CATEGORY = "audio/sfx";
+/** 존의 배경 소리가 바뀌는 시간(초) */
+const AMBIENT_FADE = 2;
 
 /** 소리판 */
 export class SoundManager {
@@ -51,6 +53,9 @@ export class SoundManager {
   private readonly music: SoundCue | null;
   private readonly offs: (() => void)[] = [];
   private readonly random: () => number;
+  /** 존의 배경 소리: 바라는 키 · 지금 도는 소리와 그 크기 */
+  private ambientKey: string | null = null;
+  private ambientNow: { source: AudioBufferSourceNode; gain: GainNode } | null = null;
 
   constructor(private readonly o: SoundOptions) {
     this.muted = readMuted();
@@ -80,6 +85,18 @@ export class SoundManager {
   /** 꺼 두었나 */
   get isMuted(): boolean {
     return this.muted;
+  }
+
+  /**
+   * 존의 배경 소리(에셋 키 — 없으면 null·manifest 에 없으면 조용히): 2초에 걸쳐 앞의 것을 줄이고 새것을 키운다.
+   * 소리를 열기 전에 부르면 기억해 두었다가 열 때 튼다
+   */
+  setAmbient(key: string | null) {
+    const known = key !== null && Object.hasOwn(this.o.manifest.assets, key);
+    const want = known ? key : null;
+    if (want === this.ambientKey) return;
+    this.ambientKey = want;
+    if (this.ctx) this.swapAmbient();
   }
 
   /** 끄기·켜기(이 기기에 기억한다) */
@@ -121,6 +138,7 @@ export class SoundManager {
     for (const [key, entry] of Object.entries(this.o.manifest.assets))
       if (entry.category === SFX_CATEGORY) void this.load(key);
     if (this.music) this.startMusic(this.music);
+    if (this.ambientKey) this.swapAmbient();
   }
 
   // 꺼져 있거나 탭이 숨으면 멈추고, 아니면 다시 돈다
@@ -153,6 +171,38 @@ export class SoundManager {
     const rate = this.rateOf(cue);
     void this.load(cue.key).then((buffer) => {
       if (buffer && this.ctx === ctx) this.start(ctx, buffer, cue, rate, "sfx", false);
+    });
+  }
+
+  // 존의 배경 소리를 바꾼다: 도는 것은 2초에 걸쳐 줄여 멈추고, 새것은 받아서 2초에 걸쳐 키운다(배경 음악 채널)
+  private swapAmbient() {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const old = this.ambientNow;
+    this.ambientNow = null;
+    if (old) {
+      old.gain.gain.setValueAtTime(old.gain.gain.value, t);
+      const end = t + AMBIENT_FADE;
+      old.gain.gain.linearRampToValueAtTime(0, end);
+      old.source.stop(end);
+    }
+    const key = this.ambientKey;
+    if (!key) return;
+    void this.load(key).then((buffer) => {
+      if (!buffer || this.ctx !== ctx || this.ambientKey !== key) return;
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.loop = true;
+      const gain = ctx.createGain();
+      const now = ctx.currentTime;
+      gain.gain.setValueAtTime(0, now);
+      const full = now + AMBIENT_FADE;
+      gain.gain.linearRampToValueAtTime(DEFAULT_VOLUME, full);
+      const out = this.channels.get("bgm")!;
+      source.connect(gain).connect(out);
+      source.start();
+      this.ambientNow = { source, gain };
     });
   }
 
