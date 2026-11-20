@@ -53,9 +53,10 @@ export class Pads implements Thing, Tappable, Echoing {
 
   constructor(private readonly s: Services) {
     this.geo = cloudPadGeometry();
-    // 통통 구름과 징검 구름은 톤에서 같은 노랑이다(LOOK.pad·LOOK.hop)
+    // 통통 구름과 징검 구름은 톤에서 같은 노랑이다(LOOK.pad·LOOK.hop) — 꾸민 지역이 있는 지도(MAP-03)는 노랑 대신 그 지도의 놀이기구 색
+    const padColor = s.map.garden?.toy ?? LOOK.pad;
     this.mat = new THREE.MeshStandardMaterial({
-      color: LOOK.pad,
+      color: padColor,
       roughness: 0.32,
       metalness: 0,
       emissive: 0xffffff,

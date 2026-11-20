@@ -14,6 +14,7 @@ import { mapShot } from "./maps/mapShot";
 import { groundRadius, widest } from "./maps/tangles";
 import { planeOf, worldBodies } from "./maps/worldBodies";
 import { measureGirth } from "./models/girth";
+import { from } from "./world/sphere";
 
 // 개발 중 시험용 — 운영 빌드에서는 NODE_ENV 비교가 상수가 되어 통째로 빠진다.
 // ?seed=숫자: 게임 난수를 고정하고, 시제품과 같은지 보는 시험 창구(window.__teum.probe)를 건다.
@@ -49,6 +50,8 @@ interface Probe {
   vy(): number;
   teleport(v: THREE.Vector3, d: THREE.Vector3 | null, air: number): void;
   vec(): THREE.Vector3;
+  /** 자리표의 거리·방향 → 행성 위 자리(같은 각도로 다시 찍는 캡처가 쓴다) */
+  at(dist: number, bear: number): THREE.Vector3;
   creatures(): unknown[];
   bubs(): { t: number }[];
   place(): unknown;
@@ -181,6 +184,7 @@ function createProbe(g: Game, firstScreen: readonly string[]): Probe {
     vy: () => pl.vy,
     teleport: (v, d, air) => pl.teleport(v, d, air),
     vec: () => new THREE.Vector3(),
+    at: (dist, bear) => from(dist, bear),
     creatures: () =>
       g.creatures.list.map((c) => ({
         k: c.k,

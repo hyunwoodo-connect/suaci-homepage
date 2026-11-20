@@ -102,8 +102,11 @@ function addStrip(s: Services, road: LayoutRoad, pos: number[], col: number[], i
       const radius = S.R + ground + ROAD.lift;
       tmp.multiplyScalar(radius);
       pos.push(tmp.x, tmp.y, tmp.z);
+      // 지역이 길 색을 정했으면 그 색(MAP-03 정원의 테이블 러너), 아니면 땅 첫째 색에 흰빛을 섞는다
       const at = s.regions.of(v);
-      color.setHex(at.region.ground[0]).lerp(WHITE, ROAD.whiten);
+      const own = at.region.road;
+      if (own === undefined) color.setHex(at.region.ground[0]).lerp(WHITE, ROAD.whiten);
+      else color.setHex(own);
       col.push(color.r, color.g, color.b);
     }
     if (prev >= 0) {

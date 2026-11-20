@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
 import { ease } from "../core/frame";
-import type { LayoutLandmark, LayoutSite } from "../maps/layout";
+import type { LayoutSite } from "../maps/layout";
 import type { Hold } from "../models/library";
 import type { Girth } from "../models/extent";
 import { girthOf, topDir } from "../models/extent";
@@ -143,7 +143,7 @@ export class Sites implements Thing, Holder, HasHeights {
     {
       const pts: THREE.Vector3[] = [];
       for (const [k, list] of Object.entries(L)) {
-        if (SKIP_IN_SIZING.includes(k)) continue;
+        if (SKIP_IN_SIZING.includes(k) || !Array.isArray(list)) continue;
         for (const o of list as { dist?: number; bear?: number }[])
           if (o && typeof o.dist === "number") {
             const at = from(o.dist, o.bear!);
@@ -154,12 +154,8 @@ export class Sites implements Thing, Holder, HasHeights {
         sv = L.site.map((st) => from(st.dist, st.bear));
       // 자리표의 크기를 그 자리에서 바로 키운다 — 뒤의 조형물은 앞에서 이미 키운 크기(o.size)를 보고 정한다
       L.site.forEach((st, i) => {
-        // 랜드마크 자리를 채우는 임시 모델: 키우지 않고 랜드마크 크기 그대로(떠 있는 섬은 너비·뜬 높이)
-        const land = L.landmark?.find((m) => m.name === st.placeholderFor);
-        if (land) {
-          fitPlaceholder(st, land);
-          return;
-        }
+        // 크기가 정해져 온 것(MAP-03 정원의 쉼터 — 높이 그대로)은 키우지 않는다
+        if (st.sc !== undefined) return;
         let k = 1.25;
         if (st.kind === "land") {
           k = 1;
@@ -725,18 +721,4 @@ function bubbleTex() {
   const t = new THREE.CanvasTexture(cv);
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
-}
-
-// 임시 모델을 랜드마크 크기로: 키(높이)를 맞추고, 떠 있는 것(lift)은 바닥 반지름을 너비로·높이만큼 띄운다
-function fitPlaceholder(st: LayoutSite, land: LayoutLandmark) {
-  st.sc = 1;
-  st.r = land.footR;
-  if (st.lift) {
-    st.by = "w";
-    st.size = land.footR * 2;
-    st.lift = land.height;
-    return;
-  }
-  st.by = "h";
-  st.size = land.height;
 }

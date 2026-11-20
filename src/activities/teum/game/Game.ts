@@ -71,6 +71,10 @@ import type { Services } from "./services";
 import { S } from "./settings";
 import { SoundManager } from "./sound";
 import { bareOf } from "./maps/bare";
+import { GiantCake } from "./garden/cake";
+import { GardenDecor } from "./garden/decor";
+import type { TeaFountain } from "./garden/teaFountain";
+import { teaFountainOf } from "./garden/teaFountain";
 import { Minimap } from "./minimap/minimap";
 import { Studio } from "./studio/studio";
 import { Beacons } from "./world/beacons";
@@ -180,6 +184,12 @@ export class Game {
   readonly gates: Gates;
   readonly cloudIslands: CloudIslands;
   readonly beacons: Beacons;
+  /** 자리표의 꾸밈 decor(정원) — 없으면 빈 것 */
+  readonly gardenDecor: GardenDecor;
+  /** 거인의 케이크(모델이 있는 랜드마크가 있을 때만) */
+  readonly cake: GiantCake | null;
+  /** 티 분수(꾸밈에 분수 탑이 있을 때만) */
+  readonly teaFountain: TeaFountain | null;
   /** 미니맵(지도 값 minimap 이 있을 때만) */
   readonly minimap: Minimap | null;
   /** 놓인 것의 몸(채우는 것이 엉키지 않게 놓는 데 썼다 — ?noavoid 면 없다) */
@@ -221,6 +231,8 @@ export class Game {
     const scene = stage.scene;
     const layout = cloneLayout(map);
     const mats = new Mats();
+    // 꾸민 지역이 있는 지도(MAP-03): 맵에 노랑이 없다 — 노랑이던 놀이기구는 그 지도의 놀이기구 색, 이동 구멍은 그 색
+    if (map.garden) mats.repaintYellowToys(map.garden.toy, map.garden.hole);
     const rng = new Random(seed);
     const terrain = new Terrain(map.seed, map.terrain, layout.hill, layout.hub);
     const events = new GameEvents();
@@ -327,6 +339,16 @@ export class Game {
     this.gates = new Gates(s);
     this.cloudIslands = new CloudIslands(s);
     this.beacons = new Beacons(s);
+    // 꾸민 지역(MAP-03 티파티 정원)의 꾸밈 — 땅 높이가 정해진 뒤 찍는다
+    this.gardenDecor = new GardenDecor(s);
+    this.gardenDecor.layout();
+    // 모델을 세운 랜드마크(거인의 케이크 — MAP-03 2장)
+    const cakeLand = layout.landmark?.find((m) => m.model);
+    this.cake = cakeLand ? new GiantCake(s, cakeLand) : null;
+    this.cake?.layout();
+    // 광장의 티 분수(분수 탑에 분홍 차·김)
+    this.teaFountain = teaFountainOf(s);
+    this.teaFountain?.layout();
     // 출발은 오늘의 축제 지역 마을에서(지도가 출발 마을을 정하면 늘 거기서)
     const startIndex = map.startHub ?? s.today.festival;
     const startHub = s.occ.hubs[startIndex];
@@ -487,6 +509,9 @@ export class Game {
       this.swings.pose,
       // 풍경·생물
       this.sites,
+      this.gardenDecor,
+      ...(this.cake ? [this.cake] : []),
+      ...(this.teaFountain ? [this.teaFountain] : []),
       culler,
       this.footsteps,
       this.bubbles,

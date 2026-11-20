@@ -23,10 +23,8 @@ export interface LayoutSite extends Spot {
   msg: string;
   lift?: number;
   sky?: number;
-  /** 겹치지 않는 만큼 키운 배율 — 배치가 채운다 */
+  /** 겹치지 않는 만큼 키운 배율 — 배치가 채운다(지도가 정해 오면 그대로 둔다) */
   sc?: number;
-  /** 랜드마크 모델이 오기 전 그 자리를 채우는 임시 모델이면 그 랜드마크 이름(layout.landmark 의 name) */
-  placeholderFor?: string;
 }
 
 /** 키 큰 솜사탕 나무 */
@@ -117,6 +115,36 @@ export interface LayoutLandmark extends Spot {
   footR: number;
   gameR: number;
   placeholder: string;
+  /** 꾸민 지역(MAP-03): 랜드마크 모델(높이 height 로 세운다) · 층마다 윗면 높이·반지름(m — 숨바꼭질 발판) */
+  model?: string;
+  tiers?: readonly LayoutTier[];
+}
+
+/** 랜드마크 한 층: 윗면 높이 h(m)·반지름 r(m) */
+export interface LayoutTier {
+  h: number;
+  r: number;
+}
+
+/**
+ * 꾸밈 하나(MAP-03): 모델 키를 높이 h(m)로 세우고 rot(도)만큼 돌리고 땅에서 lift(m) 띄운다. zone 은 기획의 구역 이름.
+ * plate 는 코드로 그리는 접시(반지름 r)
+ */
+export interface LayoutDecor extends Spot {
+  model: string;
+  h: number;
+  rot: number;
+  zone: string;
+  lift?: number;
+  r?: number;
+}
+
+/** 숨바꼭질 리본 물건 자리(MAP-03): 층 tier(0 땅, 1~3 케이크 층 — lift 가 층 높이) */
+export interface LayoutHideSpot extends Spot {
+  model: string;
+  h: number;
+  tier: number;
+  lift?: number;
 }
 
 /** 큰 길(v79): 이웃한 랜드마크 둘(마을 차례)을 잇는 점들([dist, bear], 20m 간격) */
@@ -193,4 +221,7 @@ export interface Layout {
   sea?: RegionRound[];
   cloudIsland?: LayoutCloudIsland[];
   playground?: LayoutPlayground[];
+  /** 꾸민 지역의 꾸밈(MAP-03 — 모델마다 한 묶음으로 그린다) · 숨바꼭질 리본 물건 자리 */
+  decor?: LayoutDecor[];
+  hideSpot?: LayoutHideSpot[];
 }

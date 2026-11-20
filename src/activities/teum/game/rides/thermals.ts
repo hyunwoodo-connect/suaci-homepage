@@ -141,7 +141,8 @@ export class Thermals implements Thing {
       tc.set(hex);
       thermM.setColorAt(k, tc);
     }
-    thermM.instanceColor!.needsUpdate = true;
+    // 상승 기류가 없는 지도(MAP-03 정원)는 색 칸이 생기지 않는다
+    if (thermM.instanceColor) thermM.instanceColor.needsUpdate = true;
     this.thermMat.uniforms.uCol.value.set(0xffffff);
   }
 

@@ -245,7 +245,9 @@ export class Signature implements Thing {
         pGeo = new THREE.CylinderGeometry(0.06, 0.06, 7, 6);
       this.geos.push(tri, pGeo);
       this.mats.push(fMat);
-      for (const site of sites.list) {
+      // 맵만 보기(지도 bare)에는 쉬는 곳의 라임 깃발도 없다 — 라임은 상자·리본만(MAP-03)
+      const flagSites = isBare ? [] : sites.list;
+      for (const site of flagSites) {
         if (site.kind !== "rest") continue;
         const flagFar = (site.r || 6) * 0.95;
         const v = offset(site.v, flagFar, 40),

@@ -72,6 +72,11 @@ export class Places implements Thing, Tappable {
     { i: 2, core: 4, top: 11, girth: null },
     { i: 3, core: 12, top: 40, girth: null },
   ];
+  /**
+   * 광장을 꾸밈이 채우나(MAP-03 정원 — 지도 garden): 분수 탑(티 분수)·뽑기 기계는 꾸밈이 그리고 막고, 소원 나무는 없다.
+   * 그때 광장 나무·분수·뽑기 기계는 자리만 있고 그리지도 반응하지도 않는다(등대는 그대로)
+   */
+  private readonly isPlazaDecor: boolean;
   /** 반응할 때 라임빛으로 물드나 */
   private isLimeGlowOn = true;
   /** 닿거나 누르면 반응하나(숨바꼭질 판 동안은 끈다) */
@@ -166,6 +171,15 @@ export class Places implements Thing, Tappable {
       this.spotBalls.push({ m, ph });
       this.addItem(m, () => offset(list[i].at(), dist, b), 1.4);
     });
+    this.isPlazaDecor = s.map.garden !== undefined;
+    if (this.isPlazaDecor) {
+      for (let i = 0; i < 3; i++) {
+        const prims = this.items[i].obj.children.filter((c) => c instanceof THREE.Mesh);
+        for (const c of prims) c.removeFromParent();
+      }
+      const lighthouseOnly = this.solids.filter((x) => x.i === 3);
+      this.solids.splice(0, this.solids.length, ...lighthouseOnly);
+    }
     for (const it of this.items) this.bin.keep(it.obj);
     this.PV = list.map(() => new THREE.Vector3());
     this.PLZ = [
@@ -223,16 +237,17 @@ export class Places implements Thing, Tappable {
 
   /** 장소 모델(광장 나무·분수·뽑기 기계는 저마다 라임으로 물든다) */
   fitModels() {
+    this.placeModel(3, "lighthouse", 46, "h", false);
+    if (this.isPlazaDecor) return;
     this.placeModel(0, "wishtree", 6.4, "h", true);
     this.placeModel(1, "fountain", 3.4, "w", true);
     this.placeModel(2, "gacha", 2.7, "h", true);
-    this.placeModel(3, "lighthouse", 46, "h", false);
   }
 
   /** 칙 둘레 13m 안의 장소가 반응한다 */
   onTap(tap: Tap) {
     const n = tap.ground;
-    if (!n || !this.isReacting) return;
+    if (!n || !this.isReacting || this.isPlazaDecor) return;
     for (let i = 0; i < 3; i++) if (n.angleTo(this.PV[i]) * S.R < 13) this.react(i);
   }
 
@@ -253,6 +268,7 @@ export class Places implements Thing, Tappable {
       dt = f.dt;
     // 소원 나무·뽑기 기계·등대는 속으로 못 들어간다 — 모델의 높이마다 굵기대로(소원 나무는 넓은 밑동과 위의 갓까지)
     if (!player.held) for (const solid of this.solids) this.blockSolid(solid);
+    if (this.isPlazaDecor) return;
     for (let i = 0; i < 3; i++) {
       const z = PLZ[i],
         dz = player.p.angleTo(PV[i]) * S.R;
