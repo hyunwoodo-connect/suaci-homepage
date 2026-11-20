@@ -1,4 +1,5 @@
 import { ASSET_BASE, ASSET_VERSION } from "./config";
+import variantsJson from "./variants.v10.json";
 
 /** 원본 모델의 크기 상자 [minX, minY, minZ, maxX, maxY, maxZ] — `tools/bounds.mjs` 가 three Box3 와 같은 셈으로 만든다 */
 export type AssetBox = readonly [number, number, number, number, number, number];
@@ -21,6 +22,9 @@ export interface Manifest {
   assets: Record<string, AssetEntry>;
 }
 
+/** 이미 올린 버전에 더한 존별 색 바꾸기 변형(tools/variants.mjs 가 만든 variants.json 의 사본) */
+const VARIANTS = variantsJson as unknown as Manifest;
+
 /** 버전 폴더 안 파일 → 받을 주소 */
 export function assetUrl(file: string): string {
   return `${ASSET_BASE}/${ASSET_VERSION}/${file}`;
@@ -35,7 +39,23 @@ export async function fetchManifest(): Promise<Manifest> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`manifest ${res.status}`);
   const body: unknown = await res.json();
-  return parseManifest(body);
+  const manifest = parseManifest(body);
+  return withVariants(manifest, VARIANTS);
+}
+
+/**
+ * 존별 색 바꾸기 변형(<원본>@<존>)을 manifest 에 더한다: 이미 올린 버전에는 변형 파일만 더하고(tools/variants.mjs·upload-variants.sh)
+ * 그 버전의 manifest.json 은 덮어쓰지 않으므로, 더한 줄은 게임이 가진 목록(variants.<버전>.json)에서 온다. 받은 manifest 에 이미 있으면 그대로.
+ * 새 버전을 빌드하면(build.mjs) 변형이 manifest.json 에 들어 있어 이 목록은 비운다
+ */
+export function withVariants(manifest: Manifest, variants: Manifest): Manifest {
+  if (variants.version !== manifest.version) return manifest;
+  const assets = { ...manifest.assets };
+  for (const [key, entry] of Object.entries(variants.assets)) {
+    const isVariant = key.includes("@");
+    if (isVariant && !Object.hasOwn(assets, key)) assets[key] = entry;
+  }
+  return { ...manifest, assets };
 }
 
 /** 받은 JSON 이 manifest 모양이고 지금 버전인지 본다 */

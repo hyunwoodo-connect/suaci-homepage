@@ -1,0 +1,23 @@
+{
+  "version": "v10",
+  "assets": {
+    "flower_pink@candy": {
+      "file": "scenery/flowers/flower-pink@candy.glb",
+      "category": "scenery/flowers",
+      "bytes": 82708,
+      "tris": 3500,
+      "box": [
+        -0.11530658602714539, -0.5, -0.320675790309906, 0.11530658602714539, 0.5, 0.320675790309906
+      ]
+    },
+    "flower_blue@candy": {
+      "file": "scenery/flowers/flower-blue@candy.glb",
+      "category": "scenery/flowers",
+      "bytes": 67612,
+      "tris": 3498,
+      "box": [
+        -0.10920083522796631, -0.5, -0.30631023645401, 0.10920083522796631, 0.5, 0.30631023645401
+      ]
+    }
+  }
+}
