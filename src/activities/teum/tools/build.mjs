@@ -1,5 +1,6 @@
 // 원본(<raw>/*.glb) → 배포본(<out>/<버전>/<분류>/<이름>.glb) + manifest.json
 // 하는 일: 폴리곤 줄이기(목표보다 많을 때만) → 텍스처 크기·webp → meshopt 압축. 뼈대가 있는 것은 줄이지 않는다.
+// 끝에 존별 색 바꾸기(recolorRules.mjs 규칙 → <원본>@<존> 변형 모델)를 같은 버전에 싣는다.
 // 소리(<raw>/<이름>.mp3·.m4a·.ogg·.webm, 분류표의 audio/… 이름)는 그대로 <분류>/<이름>.<확장자> 로 싣는다.
 // 그림(<raw>/<이름>.webp, 분류표에 image 로 적은 이름 — 옷 무늬·옷장 칸 그림)도 그대로 싣는다.
 // manifest 에는 원본 기준 크기 상자(box)를 같이 적는다 — 게임이 모델을 받기 전에 배치를 끝내는 데 쓴다.
@@ -10,6 +11,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 import { boxOf } from "./bounds.mjs";
+import { addVariants } from "./recolor.mjs";
 import {
   AUDIO_EXTENSIONS,
   CATALOG,
@@ -173,6 +175,10 @@ for (const { f, ext, k } of [...sounds, ...pictures]) {
   const bytes = fs.statSync(path.join(raw, f)).size;
   manifest.assets[k] = { file: rel, category: CATALOG[k].cat, bytes };
 }
+// 존별 색 바꾸기: 규칙(recolorRules.mjs)의 변형 모델을 방금 만든 원본에서 뽑아 같은 버전에 싣는다(<원본>@<존>)
+const variants = await addVariants(dist, manifest);
+for (const [k, a] of Object.entries(variants))
+  console.log(`변형 ${k} → ${a.file} (${a.changed}px)`);
 manifest.assets = Object.fromEntries(
   Object.entries(manifest.assets).sort(([, a], [, b]) => a.file.localeCompare(b.file)),
 );

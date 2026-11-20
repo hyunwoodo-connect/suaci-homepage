@@ -15,11 +15,10 @@ import {
   paintRegions,
   project,
 } from "./globe";
-import { RegionNamer } from "./regionName";
 
 // 미니맵(기획 MINIMAP-01 — 지도 값 minimap 이 있는 지도에만, 지금은 v79):
 // 1) 왼쪽 위 작은 지구본 — 내가 늘 가운데, 위가 늘 내가 보는 쪽. 지역 색·경계·바다·큰 길·랜드마크 점(아직 안 한 게임은 천천히 깜빡)
-// 2) 새 지역에 들어서면 화면 위 가운데에 지역 이름(글자 규칙의 예외 — 이름 여섯만)
+// 2) 새 지역에 들어서면 화면 위 가운데에 지역 이름(글자 규칙의 예외 — 이름 여섯만). 언제 띄울지는 존 넘나들기(zones/tracker)가 정한다
 // 3) 지구본을 톡 → 큰 지도(끌면 돈다, 지역 이름·랜드마크 아이콘·이동 구멍·큰 길·나). 바깥이나 지구본을 다시 톡 하면 닫힌다.
 //    판 중(숨바꼭질)에는 열리지 않는다. 열려 있어도 게임 시간은 흐른다
 
@@ -57,12 +56,13 @@ export class Minimap implements Thing {
   private drag: { id: number; x: number; y: number } | null = null;
   // ---- 지역 이름 ----
   private readonly nameEl: HTMLDivElement;
-  private readonly namer: RegionNamer;
   private nameT = 0;
   // ---- 셈에 쓰는 값 ----
   private readonly forward = new THREE.Vector3();
   private readonly pt: GlobePoint = { x: 0, y: 0, z: 0 };
   private time = 0;
+  /** 랜드마크 게임을 했나(없으면 아무것도 안 했다) */
+  private isDone: (landmark: number) => boolean = () => false;
 
   /** parent: 게임 화면(캔버스의 부모) · camera: 보는 쪽 · canOpen: 큰 지도를 열어도 되나(판 중이면 아니다) */
   constructor(
@@ -156,20 +156,27 @@ export class Minimap implements Thing {
     parent.append(this.button, this.nameEl, this.overlay);
     s.hud.attach(this.button);
     s.hud.attach(this.nameEl);
-    const start = s.regions.nearest(s.player.p);
-    this.namer = new RegionNamer(start, values.regionName.cooldown);
   }
 
-  /** 지구본을 내 자리·보는 쪽에 맞춰 다시 그리고, 새 지역에 들어서면 이름을 띄운다(카메라 다음) */
+  /** 랜드마크(자리표 차례)의 게임을 했는지 묻는 창구 — 한 랜드마크는 깜빡이지 않는다(존 미니게임 기록) */
+  setDone(isDone: (landmark: number) => boolean) {
+    this.isDone = isDone;
+  }
+
+  /** 지역 이름을 화면 위 가운데에 띄운다(존 넘나들기가 부른다 — 정해진 초 동안) */
+  showName(name: string) {
+    this.nameEl.textContent = name;
+    this.nameEl.style.opacity = "1";
+    this.nameT = this.values.regionName.seconds;
+  }
+
+  /** 지구본을 내 자리·보는 쪽에 맞춰 다시 그리고, 띄운 이름은 시간이 되면 지운다(카메라 다음) */
   update(f: Frame) {
     this.time = f.time;
     const p = this.s.player.p;
     this.aimForward(p);
     aimView(this.miniView, p, this.forward);
     this.drawMini();
-    const at = this.s.regions.of(p);
-    const entered = this.namer.step(at.i, at.w, f.time);
-    if (entered !== null) this.showName(entered);
     if (this.nameT > 0) {
       this.nameT -= f.dt;
       if (this.nameT <= 0) this.nameEl.style.opacity = "0";
@@ -237,14 +244,6 @@ export class Minimap implements Thing {
     f.normalize();
   }
 
-  private showName(i: number) {
-    const name = this.data.names[i];
-    if (!name) return;
-    this.nameEl.textContent = name;
-    this.nameEl.style.opacity = "1";
-    this.nameT = this.values.regionName.seconds;
-  }
-
   private bigSize(): number {
     const side = Math.min(innerWidth, innerHeight);
     const size = side * this.values.bigMap.width;
@@ -263,15 +262,16 @@ export class Minimap implements Thing {
     const css = this.miniImg.width / dpr,
       half = css / 2;
     drawRoads(ctx, view, this.data, half, half, half, MINI.road);
-    const alpha = this.blink();
+    const blink = this.blink();
     const dotR = MINI.landmark / 2;
-    for (const m of this.data.landmarks) {
+    this.data.landmarks.forEach((m, i) => {
       project(view, m.v, this.pt);
-      if (this.pt.z <= 0) continue;
+      if (this.pt.z <= 0) return;
       const x = half + this.pt.x * half,
         y = half - this.pt.y * half;
+      const alpha = this.isDone(i) ? 1 : blink;
       dot(ctx, x, y, dotR, alpha);
-    }
+    });
     drawMe(ctx, half, half, MINI.me, 0);
   }
 
@@ -303,14 +303,15 @@ export class Minimap implements Thing {
         y = half - pt.y * half;
       hole(ctx, x, y, BIG.hole);
     }
-    const alpha = this.blink();
-    for (const m of this.data.landmarks) {
+    const blink = this.blink();
+    this.data.landmarks.forEach((m, i) => {
       project(view, m.v, pt);
-      if (pt.z <= FRONT_FOR_TEXT) continue;
+      if (pt.z <= FRONT_FOR_TEXT) return;
       const x = half + pt.x * half,
         y = half - pt.y * half;
+      const alpha = this.isDone(i) ? 1 : blink;
       icon(ctx, m.name, x, y, BIG.icon, alpha);
-    }
+    });
     this.data.hubs.forEach((hub, i) => {
       project(view, hub, pt);
       if (pt.z <= FRONT_FOR_TEXT) return;
@@ -330,7 +331,7 @@ export class Minimap implements Thing {
     drawMe(ctx, mx, my, BIG.me, angle);
   }
 
-  // 아직 안 한 게임의 랜드마크는 천천히 깜빡인다(랜드마크 게임이 아직 없어 모두 깜빡)
+  // 아직 안 한 게임의 랜드마크는 천천히 깜빡인다(했는지는 setDone 창구 — 존 미니게임 기록)
   private blink(): number {
     const phase = (this.time / BLINK.period) * Math.PI * 2;
     const wave = 0.5 + 0.5 * Math.sin(phase);

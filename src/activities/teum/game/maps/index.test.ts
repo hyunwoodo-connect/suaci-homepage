@@ -30,14 +30,14 @@ describe("scatterHubs", () => {
 });
 
 describe("지도 v2(v79) 지역", () => {
-  it("마을 0 은 티파티 정원, 1 은 과자 언덕 — 출발은 늘 정원, 숨바꼭질 판은 띄우지 않는다", () => {
+  it("마을 0 은 간식 존(존 설정의 이름) — 출발은 늘 간식 존, 숨바꼭질 판은 띄우지 않는다", () => {
     expect(V79_MAP.regions.map((r) => r.name)).toEqual([
-      "티파티 정원",
-      "과자 언덕",
-      "장난감 궁전",
-      "꽃밭",
-      "구름 마을",
-      "물가",
+      "간식 존",
+      "밤 존",
+      "놀이 존",
+      "청량의 숲",
+      "낮잠 존",
+      "휴가 존",
     ]);
     expect(V79_MAP.startHub).toBe(0);
     expect(V79_MAP.hideSeek).toBe(false);

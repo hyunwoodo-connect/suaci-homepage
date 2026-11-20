@@ -1,4 +1,5 @@
 import type { Layout, LayoutJet } from "./layout";
+import type { ZoneConfig } from "../zones/zone";
 
 // 지도 하나: 무엇을 어디에 몇 개 놓는지(값)만 담는다. 놓는 규칙(겹침 피하기·고르는 셈·차례)은 각 모듈의 코드에 있다.
 // 지도를 바꾸는 것은 이 모양의 값을 고치는 일이다(maps/v78.ts · v78.layout.json). 거리 단위는 줄마다 적었다 —
@@ -97,6 +98,8 @@ export interface MapRegion {
   small: readonly string[];
   /** 큰 길 색 — 없으면 땅 첫째 색에 흰빛을 섞는다 */
   road?: number;
+  /** 땅 체커 한 칸(m) — 없으면 13 */
+  checker?: number;
   /** 숲·가로수의 키 큰 나무 종류(나무 설정 키) — 나무가 없는 지역은 null */
   tree: string | null;
   /** 지역 한가운데에서 솎는 비율(0..1): 조형물 · 숲의 나무 · 열기구 */
@@ -209,20 +212,19 @@ export interface GameMap {
   bare?: boolean;
   /** 미니맵(왼쪽 위 작은 지구본·지역 이름·큰 지도) — 없으면 없다 */
   minimap?: MinimapValues;
-  /** 땅 체커 한 칸(m) — 없으면 13 */
-  checker?: number;
+  /** 존 설정(zones — 마을 차례대로). 있으면 지역(regions)은 이것으로 만들고, 존 넘나들기·랜드마크·미니게임 입구가 이것을 읽는다 */
+  zoneConfigs?: readonly ZoneConfig[];
   /** 자리표의 꾸밈(decor)으로 채운 지역(MAP-03 티파티 정원) — 없으면 없다 */
   garden?: GardenValues;
 }
 
 /**
- * 꾸민 지역(MAP-03): 지역 차례 · 큰 공 색 · 꽃의 줄기·잎·가운데를 칠할 색 · 노랑이던 놀이기구(통통·징검 구름, 기둥…)를 칠할 색 ·
- * 이동 구멍 색 — 맵에 초록·노랑 없음
+ * 꾸민 지역이 있는 지도(MAP-03)의 놀이기구 색: 지역 차례 · 큰 공 색 · 노랑이던 놀이기구(통통·징검 구름, 기둥…)를 칠할 색 · 이동 구멍 색
+ * — 맵에 초록·노랑 없음(놀이기구는 지도 전체에 하나라 존마다 다른 색은 아직 없다)
  */
 export interface GardenValues {
   region: number;
   ball: number;
-  flowerParts: number;
   toy: number;
   hole: number;
 }

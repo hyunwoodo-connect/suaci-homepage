@@ -4,7 +4,7 @@ import type { Frame, Thing } from "../core/frame";
 import type { Services } from "../services";
 import { S } from "../settings";
 import { from } from "../world/sphere";
-import { SPARKLE_DOT, SparklePoints } from "./sparkles";
+import { SPARKLE_DOT, SparklePoints } from "../zones/sparkles";
 
 // 티 분수(기획 MAP-03 3장 광장): 분수 탑(fountaintower)에 물 대신 분홍 차가 그릇마다 고이고 그릇 끝에서 흘러내리며, 김이 오른다.
 // 그릇 자리는 분수 탑 모델(키 1)을 재 둔 값 — 그릇 윗면 높이·차 수면 반지름·흘러내리는 가장자리 반지름(키의 몫)

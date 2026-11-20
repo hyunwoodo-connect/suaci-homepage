@@ -6,6 +6,8 @@ import { S } from "../settings";
 import { clamp } from "../world/sphere";
 import type { Terrain } from "../world/terrain";
 import type { Player } from "./player";
+import type { Motion } from "./motion";
+import { DEFAULT_MOTION } from "./motion";
 
 // 카메라 — 뒤에서 따라간다. 빨라지거나 높이 뜨면 물러나고, 등대에 닿으면 올라 둘러본다.
 // 놀이기구는 카메라를 직접 옮기지 않고 섞는 정도만 부탁한다: 회오리·깔때기(spin), 고래·혜성(ride), 등대(overlook),
@@ -59,6 +61,7 @@ export class CameraRig {
     readonly camera: THREE.PerspectiveCamera,
     private readonly player: Player,
     private readonly terrain: Terrain,
+    private readonly motion: Readonly<Motion> = DEFAULT_MOTION,
   ) {}
 
   /** 회오리·깔때기에 실린 정도를 target 쪽으로 */
@@ -136,9 +139,9 @@ export class CameraRig {
     // 빠를수록·높이 뜰수록·회오리(wB)·놀이기구(rB)에 탈수록 위로 올라가고 뒤로 물러난다
     // 손님을 데리고 다니면 높이 올라 내려다본다 — 내 발자취 위에 한 줄로 선 손님들이 나를 가리지 않고 내 아래쪽 화면에 든다
     const followRise =
-      S.camH * zoom + 24 * over + pl.air * 0.22 + 5 * wB + 4 * rB + COMPANY_RISE * folK;
+      this.motion.camH * zoom + 24 * over + pl.air * 0.22 + 5 * wB + 4 * rB + COMPANY_RISE * folK;
     const followBack =
-      -S.camD * zoom * (1 + 0.22 * sp) -
+      -this.motion.camD * zoom * (1 + 0.22 * sp) -
       20 * over -
       pl.air * 0.35 -
       9 * wB -

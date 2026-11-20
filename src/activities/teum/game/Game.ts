@@ -71,13 +71,13 @@ import type { Services } from "./services";
 import { S } from "./settings";
 import { SoundManager } from "./sound";
 import { bareOf } from "./maps/bare";
-import { GiantCake } from "./garden/cake";
 import { GardenDecor } from "./garden/decor";
 import type { TeaFountain } from "./garden/teaFountain";
 import { teaFountainOf } from "./garden/teaFountain";
+import { MinigameEntry } from "./minigame/entry";
 import { Minimap } from "./minimap/minimap";
+import { defaultMotion } from "./player/motion";
 import { Studio } from "./studio/studio";
-import { Beacons } from "./world/beacons";
 import { CloudIslands } from "./world/cloudIslands";
 import { Gates } from "./world/gates";
 import { Roads } from "./world/roads";
@@ -89,6 +89,9 @@ import { Lakes } from "./world/lakes";
 import { Occupancy } from "./world/occupancy";
 import { Places } from "./world/places";
 import { RegionLook } from "./world/regionLook";
+import { LandmarkShow } from "./zones/landmark";
+import { PlayedGames } from "./zones/played";
+import { ZoneTracker } from "./zones/tracker";
 import { Regions } from "./world/regions";
 import { Sites } from "./world/sites";
 import { Sky } from "./world/sky";
@@ -126,7 +129,9 @@ export class Game {
   readonly ground: Ground;
   readonly sky: Sky;
   /** 지금 지역의 하늘빛·안개(새 지역에 들어서면 알린다) */
-  readonly regionLook: RegionLook;
+  /** 지역 하늘빛(존 설정이 없는 지도 — v78) 또는 존 넘나들기(존 설정이 있는 지도 — v79) */
+  readonly regionLook: RegionLook | null;
+  readonly zoneTracker: ZoneTracker | null;
   readonly places: Places;
   readonly sites: Sites;
   readonly brand: BrandObjects;
@@ -179,15 +184,17 @@ export class Game {
   readonly signature: Signature;
   /** 숨바꼭질(메인 퀘스트 시험판) */
   readonly hideSeek: HideSeek;
-  /** 지도 v2(v79)의 큰 길·문·구름섬·빛 기둥(자리표에 그 갈래가 없으면 비어 있다) */
+  /** 지도 v2(v79)의 큰 길·문·구름섬(자리표에 그 갈래가 없으면 비어 있다) */
   readonly roads: Roads;
   readonly gates: Gates;
   readonly cloudIslands: CloudIslands;
-  readonly beacons: Beacons;
+  /** 존 랜드마크(빛 기둥·모델·반짝이 — 존 설정이 있는 지도만) · 존 미니게임 기록 */
+  readonly landmarkShows: LandmarkShow[];
+  readonly played: PlayedGames;
+  /** 존 미니게임 입구(존 설정이 있는 지도만) */
+  readonly minigames: MinigameEntry | null;
   /** 자리표의 꾸밈 decor(정원) — 없으면 빈 것 */
   readonly gardenDecor: GardenDecor;
-  /** 거인의 케이크(모델이 있는 랜드마크가 있을 때만) */
-  readonly cake: GiantCake | null;
   /** 티 분수(꾸밈에 분수 탑이 있을 때만) */
   readonly teaFountain: TeaFountain | null;
   /** 미니맵(지도 값 minimap 이 있을 때만) */
@@ -236,7 +243,9 @@ export class Game {
     const rng = new Random(seed);
     const terrain = new Terrain(map.seed, map.terrain, layout.hill, layout.hub);
     const events = new GameEvents();
-    const player = new Player(terrain, events);
+    // 몸놀림 값 한 벌: 나·카메라가 읽고, 존 넘나들기가 바꾼다(기본값 = 지금 큰 행성 값)
+    const motion = defaultMotion();
+    const player = new Player(terrain, events, motion);
     const hudParent = canvas.parentElement ?? document.body;
     const hud = new Hud(hudParent);
     const models = new ModelLibrary(manifest, mats.lookU, scene);
@@ -254,7 +263,7 @@ export class Game {
       today: new Today(events, map.regions.length, festival),
       culler: new Culler(scene, player),
       player,
-      camera: new CameraRig(stage.camera, player, terrain),
+      camera: new CameraRig(stage.camera, player, terrain, motion),
       fx: new Fx(scene, player, fxRng, events),
       ripples: new Ripples(scene, rippleRng, terrain, player, events),
       hud,
@@ -274,7 +283,7 @@ export class Game {
     // ---- 장면·땅·하늘 ----
     this.ground = new Ground(s);
     this.sky = new Sky(s, stage.sun);
-    this.regionLook = new RegionLook(s, this.sky);
+    this.regionLook = map.zoneConfigs ? null : new RegionLook(s, this.sky);
     const places = new Places(s);
     this.places = places;
     this.sites = new Sites(s, places);
@@ -338,14 +347,17 @@ export class Game {
     this.roads = new Roads(s);
     this.gates = new Gates(s);
     this.cloudIslands = new CloudIslands(s);
-    this.beacons = new Beacons(s);
+    // 존 랜드마크: 자리표 랜드마크마다 그 마을 존의 설정으로(모델이 없는 존은 빛 기둥만)
+    this.played = new PlayedGames();
+    const zoneOfHub = (hub: number) => map.zoneConfigs?.find((z) => z.hub === hub);
+    const lands = map.zoneConfigs ? (layout.landmark ?? []) : [];
+    this.landmarkShows = lands.map(
+      (land) => new LandmarkShow(s, land, zoneOfHub(land.region), this.played),
+    );
+    for (const show of this.landmarkShows) show.layout();
     // 꾸민 지역(MAP-03 티파티 정원)의 꾸밈 — 땅 높이가 정해진 뒤 찍는다
     this.gardenDecor = new GardenDecor(s);
     this.gardenDecor.layout();
-    // 모델을 세운 랜드마크(거인의 케이크 — MAP-03 2장)
-    const cakeLand = layout.landmark?.find((m) => m.model);
-    this.cake = cakeLand ? new GiantCake(s, cakeLand) : null;
-    this.cake?.layout();
     // 광장의 티 분수(분수 탑에 분홍 차·김)
     this.teaFountain = teaFountainOf(s);
     this.teaFountain?.layout();
@@ -448,9 +460,28 @@ export class Game {
     );
     if (!hasHideSeek) this.hideSeek.sleep();
     this.director = new Director(s, this.bubbleTrail, this.seeds, this.creatures);
+    // 존 미니게임 입구(존 설정이 있는 지도만): 랜드마크 앞 시작 자리 → 연출 → 판 → 결과 → 자유 놀이. 도전장 링크(?zone=)는 그 자리로
+    this.minigames = map.zoneConfigs
+      ? new MinigameEntry(s, { s, hideSeek: this.hideSeek }, this.played)
+      : null;
+    this.minigames?.layout();
+    this.minigames?.landFromLink();
     const canOpenMap = () => !this.hideSeek.isRoundOn && !this.hideSeek.takesTaps;
     this.minimap = map.minimap
       ? new Minimap(s, map.minimap, hudParent, stage.camera, canOpenMap)
+      : null;
+    // 미니맵의 랜드마크 점: 그 존의 게임을 했으면 깜빡이지 않는다
+    const landOf = (i: number) => layout.landmark?.[i];
+    this.minimap?.setDone((i) => {
+      const land = landOf(i);
+      const zone = land ? zoneOfHub(land.region) : undefined;
+      return zone ? this.played.has(zone.id) : false;
+    });
+    // 존 넘나들기: 하늘·안개·빛·몸놀림·배경 소리·지역 이름(존 설정이 있는 지도만)
+    const minimap = this.minimap;
+    const showName = minimap ? (name: string) => minimap.showName(name) : null;
+    this.zoneTracker = map.zoneConfigs
+      ? new ZoneTracker(s, { sky: this.sky, sun: stage.sun, motion, ambient: this.sound, showName })
       : null;
     if (field) this.clearFlowers(field);
     this.whale.fitModels();
@@ -510,7 +541,7 @@ export class Game {
       // 풍경·생물
       this.sites,
       this.gardenDecor,
-      ...(this.cake ? [this.cake] : []),
+      ...this.landmarkShows,
       ...(this.teaFountain ? [this.teaFountain] : []),
       culler,
       this.footsteps,
@@ -525,10 +556,10 @@ export class Game {
       this.creatures,
       // 데리고 다니는 손님 수만큼 카메라가 높아지고 멀어진다(다 같이 화면에 들어오게)
       () => camera.setCompany(this.creatures.followers.length),
-      this.regionLook,
+      ...(this.regionLook ? [this.regionLook] : []),
+      ...(this.zoneTracker ? [this.zoneTracker] : []),
       places,
       this.cloudIslands,
-      this.beacons,
       this.clouds,
       places.lighthouse,
       hud,
@@ -538,6 +569,7 @@ export class Game {
       this.studio,
       // 숨바꼭질은 따라가는 카메라 뒤에 — 둘러보기·언박싱이 카메라를 잠깐 빌린다
       this.hideSeek,
+      ...(this.minigames ? [this.minigames] : []),
       this.landmarks,
       places.spots,
       ripples,
