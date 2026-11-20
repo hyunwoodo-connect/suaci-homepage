@@ -86,8 +86,9 @@ export function worldBodies(game: Game): WorldBodies {
       parts,
     });
   });
-  // ---- 숨바꼭질 ----
-  if (hub) {
+  // ---- 숨바꼭질(판을 띄우지 않는 지도는 무대가 없다) ----
+  const hasStage = hub && map.hideSeek !== false;
+  if (hasStage) {
     const hand = bodies.filter((b) => b.layer === "손"),
       stage = stageBodies(hub, halfWidthOf, hand);
     bodies.push(...stage);

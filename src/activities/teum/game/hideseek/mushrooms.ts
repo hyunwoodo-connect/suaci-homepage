@@ -139,6 +139,13 @@ export class Mushrooms {
     this.creatures.dismiss(m.c);
   }
 
+  /** 판을 띄우지 않는 지도: 불러 둔 버섯을 모두 놓아준다 */
+  releaseAll() {
+    this.stop();
+    for (const m of this.list) this.creatures.dismiss(m.c);
+    this.list.length = 0;
+  }
+
   /* ─── 내부 ─────────────────────────── */
 
   private start(m: Shroom) {

@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
-import type { LayoutHill } from "../maps/layout";
-import type { GameMap } from "../maps/map";
+import type { LayoutHill, Spot } from "../maps/layout";
+import type { GameMap, HubCap } from "../maps/map";
 import { S } from "../settings";
 import { from } from "./sphere";
 import { chordOf, SphereGrid } from "./sphereGrid";
@@ -12,6 +12,7 @@ import { chordOf, SphereGrid } from "./sphereGrid";
 
 /** 큰 언덕 비탈에 얹는 솜 뭉치 수 */
 const FEATURE_TUFTS = 16;
+const Y_AXIS = new THREE.Vector3(0, 1, 0);
 
 /** 바닥의 꽃 자리: 자리(v)·크기(s)·피어난 정도(lit)·제 색(base)·땅 높이(g) */
 export interface FlowerSpots {
@@ -69,9 +70,19 @@ export class Terrain {
   private readonly hillChord: number;
   private readonly near: number[] = [];
 
-  /** 지도의 지형 씨앗·수와 큰 언덕 자리(첫째는 등대 산 — 등대 자리와 같은 자리여야 한다) */
-  constructor(seed: number, counts: GameMap["terrain"], hillSpots: readonly LayoutHill[]) {
+  /**
+   * 지도의 지형 씨앗·수와 큰 언덕 자리(첫째는 등대 산 — 등대 자리와 같은 자리여야 한다).
+   * hubs: 마을 자리 — 지도가 꽃·뭉게구름을 한 마을 둘레에만 두라고 하면(flowersIn·cloudsIn) 그 둘레를 잰다
+   */
+  constructor(
+    seed: number,
+    counts: GameMap["terrain"],
+    hillSpots: readonly LayoutHill[],
+    hubs: readonly Spot[] = [],
+  ) {
     this.seed = seed;
+    const flowerCap = capOf(counts.flowersIn, hubs),
+      cloudCap = capOf(counts.cloudsIn, hubs);
     const FLN = counts.flowers,
       HLN = counts.mounds,
       CLOUD_N = counts.clouds;
@@ -79,7 +90,7 @@ export class Terrain {
     const fv: THREE.Vector3[] = [],
       fs: number[] = [];
     for (let i = 0; i < FLN; i++) {
-      const v = this.rv();
+      const v = this.rvIn(flowerCap);
       fv.push(v);
       const size = 0.35 + this.rnd() * 1.0;
       fs.push(size);
@@ -130,7 +141,7 @@ export class Terrain {
       clouds.c.push(center);
     }
     for (let i = 0; i < CLOUD_N; i++) {
-      const v = this.rv();
+      const v = this.rvIn(cloudCap);
       clouds.v.push(v);
       const size = 5 + this.rnd() * 7;
       clouds.s.push(size);
@@ -227,6 +238,21 @@ export class Terrain {
   }
 
   // 공 전체에 고르게 뽑은 단위 벡터: 높이(u)를 먼저, 둘레 각(a)을 다음에 뽑는다 — 이 순서가 지형을 정한다
+  // 둘레 안의 고른 자리(둘레가 없으면 행성 전체 — rv 와 같은 난수를 같은 차례로 쓴다)
+  private rvIn(cap: Cap | null): THREE.Vector3 {
+    if (!cap) return this.rv();
+    const lowest = Math.cos(cap.angle);
+    const spread = 1 - lowest;
+    const u = 1 - this.rnd() * spread,
+      a = this.rnd() * Math.PI * 2;
+    const ringSq = 1 - u * u;
+    const r = Math.sqrt(ringSq);
+    const x = r * Math.cos(a),
+      z = r * Math.sin(a);
+    const v = new THREE.Vector3(x, u, z);
+    return v.applyQuaternion(cap.turn);
+  }
+
   private rv(): THREE.Vector3 {
     const u = this.rnd() * 2 - 1,
       a = this.rnd() * Math.PI * 2;
@@ -236,4 +262,19 @@ export class Terrain {
       z = r * Math.sin(a);
     return new THREE.Vector3(x, u, z);
   }
+}
+
+/** 행성 위 둥근 둘레: 가운데로 돌리는 회전과 반지름 각 */
+interface Cap {
+  turn: THREE.Quaternion;
+  angle: number;
+}
+
+// 지도의 둘레(마을 차례·반지름 m) → 회전과 각. 없으면 null
+function capOf(cap: HubCap | undefined, hubs: readonly Spot[]): Cap | null {
+  const hub = cap ? hubs[cap.hub] : undefined;
+  if (!cap || !hub) return null;
+  const center = from(hub.dist, hub.bear);
+  const turn = new THREE.Quaternion().setFromUnitVectors(Y_AXIS, center);
+  return { turn, angle: cap.reach / S.R };
 }

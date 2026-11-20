@@ -141,13 +141,17 @@ export class Sculptures implements Thing, HasHeights {
     let isFiller = false;
     const isFixed = (other: Body) => other.layer !== "흩뿌림";
     // 지역 한가운데 쪽(0.25 넘게)이면 그 지역에 서는 종류 가운데서만 고른다
+    // 지도가 strict 면 지역 한가운데 쪽에서만, 그 지역 종류만(없으면 놓지 않는다)
+    const isStrict = plan.strict === true;
     const pick = (list0: Instancer[], v: THREE.Vector3, i: number, cap: number) => {
       let list = list0;
       const at = regions.of(v);
+      if (isStrict && at.w <= REGION_POOL) return null;
       if (at.w > REGION_POOL) {
         const pool = list0 === DKB ? at.region.big : at.region.small;
         const inRegion = list0.filter((I) => pool.includes(I.key));
         if (inRegion.length) list = inRegion;
+        else if (isStrict) return null;
       }
       let best: Instancer | null = null,
         bs = -1e9;
@@ -246,7 +250,9 @@ export class Sculptures implements Thing, HasHeights {
         if (at.w < 0.1 && fr(i, 406) < between.treeSkip) return false;
         H *= 1 + (at.region.treeHeight - 1) * at.w;
       }
-      const own = at.w > REGION_POOL ? trees.kindOf(at.region.tree) : null;
+      const regionTree = at.region.tree;
+      const own = at.w > REGION_POOL && regionTree ? trees.kindOf(regionTree) : null;
+      if (isStrict && !own) return false;
       const T = own ?? TKS[i % TKS.length];
       if (!T || T.I.n >= 300 || !occ.isFree(v, 7) || !clearHub(v, 6) || occ.nearCorridor(v, 3))
         return false;
@@ -310,8 +316,9 @@ export class Sculptures implements Thing, HasHeights {
           break;
         }
       }
-    // 2) 다른 마을로 가는 길목마다 거대한 것 둘이 문이 된다
-    for (let a = 0; a < HV.length; a++)
+    // 2) 다른 마을로 가는 길목마다 거대한 것 둘이 문이 된다(지도가 끄면 없다)
+    const gateHubs = plan.gates === false ? 0 : HV.length;
+    for (let a = 0; a < gateHubs; a++)
       for (let b = 0; b < HV.length; b++) {
         if (a === b) continue;
         const ang = HV[a].angleTo(HV[b]);
@@ -401,8 +408,9 @@ export class Sculptures implements Thing, HasHeights {
       gi++;
     }
     isFiller = false;
-    // 5) 높이 사다리: 낮은 것 → 큰 것 → 나무 → 열기구. 밟고 올라간다
-    for (let hk = 0; hk < HV.length; hk++) {
+    // 5) 높이 사다리: 낮은 것 → 큰 것 → 나무 → 열기구. 밟고 올라간다(지도가 끄면 없다)
+    const ladderHubs = plan.ladder === false ? 0 : HV.length;
+    for (let hk = 0; hk < ladderHubs; hk++) {
       const b0 = 200 + hk * 53,
         base = occ.hubAt(hk, 44, b0),
         dir = offset(base, 6, b0).sub(base);

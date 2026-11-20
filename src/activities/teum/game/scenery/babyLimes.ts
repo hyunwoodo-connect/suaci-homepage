@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
-import { within } from "../maps/map";
+import { scatterHubs, within } from "../maps/map";
 import { babyLimeBody } from "../maps/placed";
 import type { Instancer } from "../models/instancer";
 import type { Services } from "../services";
@@ -51,7 +51,8 @@ export class BabyLimes implements Thing {
     if (!BL) return;
     // 늘 따라다니므로 가까운 것만 그리기에서 뺀다
     BL.noCull = true;
-    for (let hk = 0; hk < HV.length; hk++)
+    const hubs = scatterHubs(plan, HV.length);
+    for (const hk of hubs)
       for (let i0 = 0, got = 0; i0 < plan.tries && got < plan.perHub; i0++) {
         const i = hk * HUB_STRIDE + i0,
           distRoll = fr(i, 81),

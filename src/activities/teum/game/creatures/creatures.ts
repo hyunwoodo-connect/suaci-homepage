@@ -64,7 +64,16 @@ export interface CreatureLinks {
   footsteps: { readonly length: number; at(i: number): Footstep };
   /** 따라오는 꼬마 라임 수(손님은 그 뒤에 선다) */
   babyLimes: { joined: number };
-  lakes: { list: readonly { v: THREE.Vector3; r: number }[] };
+  lakes: {
+    list: readonly {
+      v: THREE.Vector3;
+      r: number;
+      /** 바다(지도 v2) · 물빛(초콜릿 시내) · 어느 지역의 물 */
+      isSea: boolean;
+      tint?: string;
+      region?: number;
+    }[];
+  };
   /** 전설을 만난 자리에 도장 */
   signature: { stampAt(v: THREE.Vector3): void };
   /** 고래 등에 타면 고래도 만난 것으로 친다 */
@@ -1241,14 +1250,20 @@ export class Creatures implements Thing {
       }
     }
     // 호수: 호수마다 몇씩, 호수 종을 돌려 가며 수면에서 원을 그리며 헤엄친다
+    // 바다(지도 v2)는 그 지역에 사는 물 종만 seaSwimmers 마리, 초콜릿 시내(tint)에는 아무도 없다
     this.links.lakes.list.forEach((l, i) => {
-      for (let j = 0; j < plan.perLake; j++) {
-        const rad = 3 + j * 1.5;
-        const pondDist = l.r * (0.4 + 0.25 * j);
+      const count = l.isSea ? (plan.seaSwimmers ?? 0) : l.tint ? 0 : plan.perLake;
+      const residents = l.region === undefined ? null : s.map.regions[l.region]?.residents;
+      const own = residents ? LAKE.filter((k) => residents.includes(k.key)) : [];
+      const pool = own.length ? own : LAKE;
+      for (let j = 0; j < count; j++) {
+        const ringShare = l.isSea ? 0.15 + 0.7 * ((j * 0.37) % 1) : 0.4 + 0.25 * j;
+        const rad = 3 + (j % 3) * 1.5;
+        const pondDist = l.r * ringShare;
         const pondBearing = i * 67 + j * 170;
         const pondAt = offset(l.v, pondDist, pondBearing);
-        const kindAt = (i + j) % LAKE.length;
-        const kind = LAKE[kindAt];
+        const kindAt = (i + j) % pool.length;
+        const kind = pool[kindAt];
         const dir = j ? -1 : 1;
         const c = this.crit(kind.key, "fish", pondAt, { st: "swim", rad, dir });
         if (!c) continue;
@@ -1265,7 +1280,9 @@ export class Creatures implements Thing {
       if (!c) return;
       c.base = s.terrain.groundAt(c.v) + 5.5;
       // 호수가 가까우면 그 위를 맴돈다
-      const lake = this.links.lakes.list.find((l) => l.v.angleTo(c.v) * S.R < JELLY_LAKE_REACH);
+      const lake = this.links.lakes.list.find(
+        (l) => !l.isSea && l.v.angleTo(c.v) * S.R < JELLY_LAKE_REACH,
+      );
       if (!lake) return;
       c.home.copy(lake.v);
       c.rad = lake.r;
