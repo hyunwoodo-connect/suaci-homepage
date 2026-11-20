@@ -178,6 +178,15 @@ describe("placeGroups", () => {
 });
 
 describe("Bystanders", () => {
+  it("판을 띄우지 않는 지도(hasGuests 거짓) → 아무도 부르지 않고 앉히지도 않는다", () => {
+    const { creatures, seated } = fakeCreatures();
+    const invite = vi.spyOn(creatures, "invite");
+    const bystanders = new Bystanders(creatures, () => 0.5, false);
+    bystanders.seat(HUB, []);
+    expect(invite).not.toHaveBeenCalled();
+    expect(seated).toHaveLength(0);
+  });
+
   it("판 시작 → 판 영역과 리본 달린 물건을 알리고(npc.propRoom), 무리마다 서로 다른 자리에 앉힌다", () => {
     const { creatures, seated } = fakeCreatures(),
       bystanders = new Bystanders(creatures, () => 0.5);

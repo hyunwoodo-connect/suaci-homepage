@@ -67,7 +67,9 @@ export class Mushrooms {
     private readonly floors: Floors,
     private readonly rand: () => number,
   ) {
-    for (let i = 0; i < FIND.mushrooms.length; i++) {
+    // 판을 띄우지 않는 지도(v79)에는 버섯도 부르지 않는다
+    const count = s.map.hideSeek === false ? 0 : FIND.mushrooms.length;
+    for (let i = 0; i < count; i++) {
       const [c] = creatures.invite("mushroom", 1),
         hopWait = rand() * HOP_EVERY;
       if (c) this.list.push({ c, hopWait, cool: 0, mustLeave: false });
