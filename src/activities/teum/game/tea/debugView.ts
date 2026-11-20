@@ -120,9 +120,14 @@ function labelSprite(text: string, color: string): THREE.Sprite {
     g.fillText(text, half, baseline);
   }
   const tex = new THREE.CanvasTexture(canvas);
-  const mat = new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true });
+  const mat = new THREE.SpriteMaterial({
+    map: tex,
+    depthTest: false,
+    transparent: true,
+    opacity: 0.7,
+  });
   const sprite = new THREE.Sprite(mat);
-  sprite.scale.setScalar(1.1);
+  sprite.scale.setScalar(0.6);
   sprite.renderOrder = 11;
   return sprite;
 }

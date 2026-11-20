@@ -29,6 +29,8 @@ export class TeaCamera {
   readonly up = new THREE.Vector3(0, 1, 0);
   /** 전경에서 스탠드를 바라보는 쪽(시작 자리 쪽 수평 방향) */
   readonly overviewSide = new THREE.Vector3(0, 0, -1);
+  /** 화면을 이만큼 확대한다(잡았다 멈춤 — 4%) */
+  kick = 0;
   private ride = 0;
 
   constructor(
@@ -75,7 +77,8 @@ export class TeaCamera {
     camera.up.copy(up).lerp(UP_Y, this.overview).normalize();
     camera.lookAt(look);
     const widen = 9 * Math.min(1.6, sp);
-    const fov = S.fov + widen;
+    const zoomIn = 1 - this.kick;
+    const fov = (S.fov + widen) * zoomIn;
     const fovDelta = camera.fov - fov;
     if (Math.abs(fovDelta) > 0.05) {
       camera.fov = fov;

@@ -11,6 +11,9 @@ import type { Frame } from "../core/frame";
 import { Random } from "../core/random";
 import { GameEvents } from "../events";
 import { Fx } from "../fx/fx";
+import { OpenFx } from "../hideseek/openFx";
+import { HideOverlay } from "../hideseek/overlay";
+import { Ribbons } from "../hideseek/ribbons";
 import { Hud } from "../hud";
 import { Mats } from "../look";
 import { ModelLibrary } from "../models/library";
@@ -23,10 +26,16 @@ import { SoundManager } from "../sound";
 import { createStage } from "../world/stage";
 import type { Stage } from "../world/stage";
 import { TeaBody } from "./body";
+import { Router } from "./boxRoute";
+import { Chase } from "./chase";
+import type { Hider } from "./chase";
 import { DebugView } from "./debugView";
 import { Decor } from "./decor";
+import { EdgeDust } from "./edgeDust";
 import { Finger } from "./finger";
 import { Movers } from "./movers";
+import { MultiTap } from "./multiTap";
+import { TeaProps } from "./props";
 import { Puffs } from "./puffs";
 import { CAP_TO_LAVENDER, LIME_TO_CREAM, LIME_TO_LAVENDER, recolorModel } from "./recolor";
 import { TeaSky } from "./sky";
@@ -59,6 +68,9 @@ const SUN_SIDE = 0.55,
 const LANDING_EASE = 1.2;
 /** 내려앉을 때 먼지 방울 수·크기 */
 const LAND_PUFFS = { n: 7, size: 0.9 } as const;
+/** 잡았다 멈춤 동안 화면 확대 몫 · 판 끝 뒤 '한 판 더'까지(초) */
+const HIT_STOP_ZOOM = 0.04;
+const ENDING_DELAY = 2.5;
 /** 그림자: 바닥에서 띄우는 높이, 떠 있을수록 넓어지고 옅어지는 몫 */
 const SHADOW = { lift: 0.04, spread: 0.08, fade: 0.12, opacity: 0.16 } as const;
 
@@ -109,6 +121,9 @@ export class TeaGame {
   readonly puffs: Puffs;
   /** 판 시작 장면이 어디까지 왔나 */
   intro: Intro = "waiting";
+  /** 리본 물건 12개와 상자(M2 는 하나) */
+  readonly props: TeaProps;
+  readonly chase: Chase;
   private readonly sky: TeaSky;
   private readonly decor: Decor;
   private readonly fx: Fx;
@@ -118,7 +133,15 @@ export class TeaGame {
   private readonly shadow: THREE.Mesh | null;
   private readonly debug: DebugView | null;
   private readonly unlisten: () => void;
+  private readonly ribbons: Ribbons;
+  private readonly overlay: HideOverlay;
+  private readonly openFx: OpenFx;
+  private readonly multiTap: MultiTap;
   private landingT = 0;
+  /** 잡았다 멈춤이 남은 시간(초) */
+  private hitStop = 0;
+  /** 판 끝(잡힘·찜) 뒤 '한 판 더'까지 남은 시간 */
+  private endingT = -1;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -164,6 +187,10 @@ export class TeaGame {
     this.movers = new Movers(scene, this.stand, this.body, this.events, this.models, t);
     this.spots = placeSpots(this.stand, SPOT_SPECS);
     this.puffs = new Puffs(scene, 0xffffff);
+    this.ribbons = new Ribbons(s);
+    const propRng = rng.fork("props");
+    this.props = new TeaProps(scene, this.models, this.ribbons, this.spots, propRng);
+    this.openFx = new OpenFx(scene, t.colors.lime);
     // ---- 나 ----
     const noWings = { mine: new THREE.Group() };
     this.avatar = new Avatar(s, noWings);
@@ -197,6 +224,30 @@ export class TeaGame {
     stage.hemi.intensity = LIGHT.hemi;
     stage.sun.intensity = LIGHT.sun;
     this.finger = new Finger(hudParent);
+    this.overlay = new HideOverlay(hudParent);
+    const dustRng = rng.fork("dust");
+    const edgeDust = new EdgeDust(hudParent, () => dustRng.next());
+    const router = new Router(this.stand, this.standMesh.topPoint);
+    this.chase = new Chase(
+      t,
+      this.stand,
+      this.standMesh,
+      this.props,
+      router,
+      this.body,
+      stage.camera,
+      this.events,
+      this.overlay,
+      this.openFx,
+      this.puffs,
+      edgeDust,
+      (seconds) => this.startHitStop(seconds),
+      (h) => this.settled(h),
+      rng,
+    );
+    const firstProp = this.groundPropNearStart();
+    if (firstProp) this.chase.addHider(this.models, scene, firstProp);
+    this.multiTap = new MultiTap(canvas, TAP_RULE, (x, y) => this.tap(x, y));
     this.debug = options.debug ? new DebugView(hudParent, scene, this.spots) : null;
     // 첫 손길(톡이든 끌기든)이 판 시작 장면을 넘긴다
     const onFirstTouch = () => this.startDrop();
@@ -209,7 +260,15 @@ export class TeaGame {
   /** 첫 화면에 받을 모델 키(아바타·옷·고양이는 index 가 더한다) */
   firstScreenKeys(): string[] {
     const keys = new Set<string>(this.decor.keys);
-    for (const k of ["mushroom", "cannon", "s_cherry"]) if (this.models.has(k)) keys.add(k);
+    const always = [
+      "mushroom",
+      "cannon",
+      "s_cherry",
+      "limebox",
+      "hide_ribbon",
+      ...this.props.modelKeys(),
+    ];
+    for (const k of always) if (this.models.has(k)) keys.add(k);
     return [...keys];
   }
 
@@ -244,10 +303,24 @@ export class TeaGame {
     const f = this.frame;
     f.dt = dt;
     f.time += dt;
+    const isFrozen = this.hitStop > 0;
+    if (isFrozen) this.hitStop -= dt;
+    this.camera.kick = isFrozen ? HIT_STOP_ZOOM : 0;
+    const worldDt = isFrozen ? 0 : dt;
     const intent = this.input.read();
-    this.body.begin(dt, intent);
+    this.body.begin(worldDt, intent);
     if (this.intro !== "waiting") this.body.move();
     this.playIntro(dt);
+    if (this.intro === "playing") {
+      const roundDt = worldDt * this.speed;
+      this.chase.runTimers();
+      this.chase.update(roundDt, f.time);
+      this.sky.setTime(this.chase.now);
+      this.tickEnding(dt);
+    }
+    this.props.update(worldDt, f.time, this.chase.now);
+    this.openFx.update(worldDt);
+    this.overlay.update(dt);
     this.movers.update(f);
     this.body.place(f.time);
     this.avatar.update(f);
@@ -276,6 +349,12 @@ export class TeaGame {
   /** 멈추고 그리던 것·리스너·DOM 을 치운다 */
   dispose() {
     this.unlisten();
+    this.multiTap.dispose();
+    this.chase.dispose();
+    this.props.dispose();
+    this.ribbons.dispose();
+    this.openFx.dispose();
+    this.overlay.dispose();
     this.input.dispose();
     this.sound.dispose();
     this.movers.dispose();
@@ -324,7 +403,9 @@ export class TeaGame {
     const k = Math.min(1, share);
     const left = 1 - k;
     this.camera.overview = left * left;
-    if (k >= 1 && this.body.isGrounded) this.intro = "playing";
+    if (k < 1 || !this.body.isGrounded) return;
+    this.intro = "playing";
+    this.overlay.showSlots(true);
   }
 
   // 내려앉았다: 쿵 소리와 먼지
@@ -361,16 +442,70 @@ export class TeaGame {
     sun.target.updateMatrixWorld();
   }
 
-  // 톡(M1 에는 누를 것이 없다 — 상자는 M2)
+  // 톡: 판이 시작된 뒤에만(도망 중인 상자가 먼저, 그다음 리본 물건)
   private tap(x: number, y: number) {
-    void x;
-    void y;
+    if (this.intro !== "playing") return;
+    this.chase.tap(x, y);
   }
 
-  // ?debug=1 글 판
+  // 잡았다 멈춤(시간이 멈춘 듯, 화면 4% 확대)
+  private startHitStop(seconds: number) {
+    this.hitStop = seconds;
+  }
+
+  // 상자가 잡히거나 찜했다(M2 는 상자 하나 — 조금 뒤 '한 판 더')
+  private settled(h: Hider) {
+    void h;
+    this.endingT = ENDING_DELAY;
+  }
+
+  private tickEnding(dt: number) {
+    if (this.endingT < 0) return;
+    this.endingT -= dt;
+    if (this.endingT > 0) return;
+    this.endingT = -1;
+    this.overlay.showEnding(() => this.again());
+  }
+
+  // 한 판 더: 상자를 출발 자리 곁 땅의 물건에 다시 숨기고 칸을 비운다(나는 그 자리에서 이어 간다)
+  private again() {
+    this.overlay.showEnding(null);
+    this.overlay.resetSlots();
+    this.ribbons.reset();
+    for (const p of this.props.list) p.dudUntil = 0;
+    this.chase.resetRound();
+    const prop = this.groundPropNearStart();
+    if (!prop) return;
+    for (const h of this.chase.hiders) this.chase.rehide(h, prop);
+  }
+
+  // 출발 자리에서 가장 가까운 땅의 리본 물건
+  private groundPropNearStart() {
+    const start = new THREE.Vector3();
+    this.stand.spotPoint(this.t.start.spot, start);
+    const ground = this.props.list.filter((p) => p.spot.tier === 0);
+    ground.sort((a, b) => a.center.distanceTo(start) - b.center.distanceTo(start));
+    return ground[0] ?? null;
+  }
+
+  // ?debug=1 글 판(상자 상태·다음 이동까지·보인다 선)
   private debugLines(): string[] {
-    const { body } = this;
+    const { body, chase } = this;
+    const cam = this.stage.camera.position;
+    const eye = cam.clone();
+    const boxes = chase.hiders.map((h) => {
+      const center = new THREE.Vector3();
+      h.box.center(center);
+      const seen = chase.isSeen(center);
+      this.debug?.sightLine(eye, center, seen);
+      const wait = h.state === "hidden" ? ` 다음 ${Math.max(0, h.wait).toFixed(1)}s` : "";
+      const where = h.prop ? ` 물건#${h.prop.spot.index}(${h.prop.spot.tier}층)` : "";
+      const left = h.route ? ` 남은 ${(h.route.length - h.s).toFixed(1)}m` : "";
+      return `상자 ${h.state}${where}${wait}${left} 보임 ${seen ? "O" : "X"}`;
+    });
     return [
+      `판 ${chase.now.toFixed(1)}s ×${this.speed} 잡음 ${chase.stats.caught} 찜 ${chase.stats.claimed} 연 ${chase.stats.opened} 꽝 ${chase.stats.duds}`,
+      ...boxes,
       `intro ${this.intro} tier ${body.tier} air ${body.air.toFixed(1)}`,
       `foot ${body.foot
         .toArray()

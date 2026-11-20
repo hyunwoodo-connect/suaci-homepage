@@ -6,9 +6,9 @@ import * as THREE from "three";
 /** 바꿀 색(HSL, 0~1)을 돌려주거나 그대로 두면 null */
 export type HueRule = (h: number, s: number, l: number) => readonly [number, number, number] | null;
 
-/** 노랑~초록(색상 45°~170°)을 라벤더로 — 맵의 물건 */
+/** 노랑~초록(색상 36°~170° — 금빛 노랑부터)을 라벤더로 — 맵의 물건 */
 export const LIME_TO_LAVENDER: HueRule = (h, s, l) => {
-  const isLimeFamily = h > 45 / 360 && h < 170 / 360 && s > 0.28 && l > 0.12 && l < 0.94;
+  const isLimeFamily = h > 36 / 360 && h < 170 / 360 && s > 0.28 && l > 0.12 && l < 0.94;
   if (!isLimeFamily) return null;
   const sat = s * 0.8;
   return [258 / 360, sat, l];

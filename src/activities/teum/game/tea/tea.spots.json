@@ -1,5 +1,5 @@
 {
-  "_about": "숨는 자리 후보(기획서 v3.1 6장). 층마다 8곳(3단은 좁아 6곳 — 4m 간격). 판마다 층에서 3곳을 씨앗으로 뽑아 리본 물건을 놓는다. 거리는 땅(층 0)이면 북극에서 땅을 따라, 접시면 접시 가운데에서 수평으로(m). 방위는 도. 물건 종류: flowerpot·teacup·jar·basket·gift·macaron. 붙는 면(mount): top 윗면 · under 그 층 접시의 밑면에 거꾸로 · wall 기둥 바깥벽(그 층 접시 위). 오너가 돌아다니며 고친다(?debug=1 에 번호가 보인다).",
+  "_about": "숨는 자리 후보(기획서 v3.1 6장). 층마다 8곳(3단은 좁아 6곳 — 4m 간격). 땅은 접시 밑 둘(첫 상자 자리 포함)과 1단 가장자리 둘레 여섯 — 땅에서 꼭대기까지 달아나는 데 10초 안팎이 되게. 판마다 층에서 3곳을 씨앗으로 뽑아 리본 물건을 놓는다. 거리는 땅(층 0)이면 북극에서 땅을 따라, 접시면 접시 가운데에서 수평으로(m). 방위는 도. 물건 종류: flowerpot·teacup·jar·basket·gift·macaron. 붙는 면(mount): top 윗면 · under 그 층 접시의 밑면에 거꾸로 · wall 기둥 바깥벽(그 층 접시 위). 오너가 돌아다니며 고친다(?debug=1 에 번호가 보인다).",
   "spots": [
     {
       "tier": 0,
@@ -11,49 +11,49 @@
     {
       "tier": 0,
       "bear": 60,
-      "dist": 12,
+      "dist": 18,
       "kind": "teacup",
       "mount": "top"
     },
     {
       "tier": 0,
       "bear": 300,
-      "dist": 22,
+      "dist": 19,
       "kind": "gift",
       "mount": "top"
     },
     {
       "tier": 0,
-      "bear": 130,
-      "dist": 27,
+      "bear": 125,
+      "dist": 17.5,
       "kind": "teacup",
       "mount": "top"
     },
     {
       "tier": 0,
       "bear": 20,
-      "dist": 30,
+      "dist": 19.5,
       "kind": "jar",
       "mount": "top"
     },
     {
       "tier": 0,
       "bear": 240,
-      "dist": 33,
+      "dist": 18.5,
       "kind": "basket",
       "mount": "top"
     },
     {
       "tier": 0,
-      "bear": 90,
-      "dist": 45,
+      "bear": 95,
+      "dist": 9,
       "kind": "gift",
       "mount": "top"
     },
     {
       "tier": 0,
-      "bear": 330,
-      "dist": 50,
+      "bear": 345,
+      "dist": 18,
       "kind": "flowerpot",
       "mount": "top"
     },
