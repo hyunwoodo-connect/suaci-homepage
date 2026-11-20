@@ -6,6 +6,7 @@ import { checkMap } from "./check";
 import { MAPS } from "./index";
 import type { GameMap } from "./map";
 import { V78_MAP } from "./v78";
+import { V79_MAP } from "./v79";
 
 // 지도 점검: 등록된 지도는 모두 깨끗하고, 흔한 실수(겹치게·물 위·행성 밖·없는 에셋·차례 바꿈)는 잡는다
 
@@ -26,6 +27,10 @@ function kindsOf(map: GameMap): string[] {
 describe("checkMap", () => {
   it.each(Object.entries(MAPS))("등록된 지도 %s → 문제 없음", (_, map) => {
     expect(checkMap(map, manifest)).toEqual([]);
+  });
+
+  it("고를 때만 받는 지도 v79(지도 v2) → 문제 없음", () => {
+    expect(checkMap(V79_MAP, manifest)).toEqual([]);
   });
 
   it("대포 둘을 한 자리에 → 겹침", () => {

@@ -224,6 +224,8 @@ export class HideSeek implements Thing, Tappable {
   private played = 0;
   /** 꾸미기 씬이 열려 있었나 · '한 판 더'를 눌렀는데 놀이기구에서 아직 못 내렸다 · 판 끝 단추가 뜬 자리 */
   private wasStudio = false;
+  /** 판을 띄우지 않는다(지도가 hideSeek: false — v79) */
+  private isAsleep = false;
   private isAgainWaiting = false;
   private readonly endAt = new THREE.Vector3();
 
@@ -265,6 +267,14 @@ export class HideSeek implements Thing, Tappable {
       const stamp = buildStamp();
       this.overlay.showStamp(stamp);
     }
+  }
+
+  /** 판을 띄우지 않는다(지도가 숨바꼭질을 끈다): 후보 물건·상자를 숨기고 버섯을 놓아준다. 다시 깨우지 않는다 */
+  sleep() {
+    this.isAsleep = true;
+    this.props.setHidden(true);
+    for (const k of this.seekers) k.box.visible = false;
+    this.mushrooms.releaseAll();
   }
 
   /** 언박싱(과 그리로 넘어가는 동안)은 누름을 혼자 받는다 — 다른 놀이기구가 나를 붙잡아 줄 앞에서 데려가지 않게 */
@@ -312,6 +322,7 @@ export class HideSeek implements Thing, Tappable {
 
   /** 한 프레임: 판 흐름·상자·물건(따라가는 카메라 뒤에 — 둘러보기·언박싱이 카메라를 잠깐 빌린다) */
   update(f: Frame) {
+    if (this.isAsleep) return;
     const dt = f.dt;
     this.time = f.time;
     OUTLINE_VIEW.value.set(innerWidth, innerHeight);

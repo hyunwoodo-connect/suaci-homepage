@@ -92,6 +92,12 @@ const at = new THREE.Vector3(),
 /** 후보 물건 전체 */
 export class Props {
   readonly list: Candidate[] = [];
+
+  /** 후보 물건을 숨긴다·보인다(판을 띄우지 않는 지도) */
+  setHidden(hidden: boolean) {
+    for (const o of this.shown) o.root.visible = !hidden;
+  }
+
   private readonly shown: Shown[] = [];
   private readonly ribbons: Ribbons;
 

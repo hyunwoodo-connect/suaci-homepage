@@ -2,7 +2,7 @@ import type * as THREE from "three";
 
 import { BIG_FLOWERS } from "../../assets/settings";
 import type { Frame, Thing } from "../core/frame";
-import { within } from "../maps/map";
+import { scatterHubs, within } from "../maps/map";
 import type { Instancer } from "../models/instancer";
 import { bigFlowerBody } from "../maps/placed";
 import type { Services } from "../services";
@@ -49,7 +49,8 @@ export class BigFlowers implements Thing, HasHeights {
     const HV = occ.hubs,
       plan = s.map.bigFlowers,
       picked = new Map<Instancer, number>();
-    for (let hk = 0; hk < HV.length; hk++)
+    const hubs = scatterHubs(plan, HV.length);
+    for (const hk of hubs)
       for (let i0 = 0, got = 0; i0 < plan.tries && got < plan.perHub; i0++) {
         const i = hk * HUB_STRIDE + i0,
           distRoll = fr(i, 41),

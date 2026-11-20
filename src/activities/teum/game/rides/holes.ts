@@ -104,8 +104,10 @@ export class Holes implements Thing, Holder {
         player.p.angleTo(ho.v) * S.R < 2.5 &&
         player.grab(this)
       ) {
+        // 짝이 없는 마지막 구멍(구멍 수가 홀수 — v79 는 15)은 바로 앞 구멍으로 나온다
         const pairAt = ho.pi * 2 + (1 - ho.k);
-        this.warp = { a: ho, b: list[pairAt], t: 0, done: false };
+        const exit = list[pairAt] ?? list[pairAt - 2];
+        this.warp = { a: ho, b: exit, t: 0, done: false };
         hud.say("구름 구멍 — 멀리 있는 짝 구멍으로 나옵니다");
       }
       const dimmed = ho.lit - dt * 0.8;

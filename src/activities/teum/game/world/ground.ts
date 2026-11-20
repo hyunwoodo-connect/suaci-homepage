@@ -56,9 +56,10 @@ export class Ground implements Thing {
     const hubV = s.occ.hubs.map((hub) => hub.clone()),
       regions = s.map.regions,
       edge = s.map.regionEdge;
+    const between = edge.ground ?? [LOOK.gA, LOOK.gB];
     this.GND = {
-      uA: { value: new THREE.Color(LOOK.gA) },
-      uB: { value: new THREE.Color(LOOK.gB) },
+      uA: { value: new THREE.Color(between[0]) },
+      uB: { value: new THREE.Color(between[1]) },
       uRim: { value: new THREE.Color(LOOK.rim) },
       uRimK: { value: 0.85 },
       uInvR: { value: 1 / S.R },

@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
 import { ease } from "../core/frame";
-import type { LayoutSite } from "../maps/layout";
+import type { LayoutLandmark, LayoutSite } from "../maps/layout";
 import type { Hold } from "../models/library";
 import type { Girth } from "../models/extent";
 import { girthOf, topDir } from "../models/extent";
@@ -101,7 +101,21 @@ interface SlideRide {
 }
 
 // 이 갈래의 자리는 조형물 크기를 정할 때 보지 않는다(따로 피하거나 겹쳐도 되는 것)
-const SKIP_IN_SIZING = ["site", "tree", "hill", "hub", "place", "lake", "jet"];
+const SKIP_IN_SIZING = [
+  "site",
+  "tree",
+  "hill",
+  "hub",
+  "place",
+  "lake",
+  "jet",
+  // v79 의 새 갈래(점이 아니라 넓이·기획용 자리 — 키울 크기를 막지 않는다)
+  "landmark",
+  "gameZone",
+  "gate",
+  "sea",
+  "cloudIsland",
+];
 
 const siteCol = new THREE.Color(),
   top = new THREE.Vector3(),
@@ -140,6 +154,12 @@ export class Sites implements Thing, Holder, HasHeights {
         sv = L.site.map((st) => from(st.dist, st.bear));
       // 자리표의 크기를 그 자리에서 바로 키운다 — 뒤의 조형물은 앞에서 이미 키운 크기(o.size)를 보고 정한다
       L.site.forEach((st, i) => {
+        // 랜드마크 자리를 채우는 임시 모델: 키우지 않고 랜드마크 크기 그대로(떠 있는 섬은 너비·뜬 높이)
+        const land = L.landmark?.find((m) => m.name === st.placeholderFor);
+        if (land) {
+          fitPlaceholder(st, land);
+          return;
+        }
         let k = 1.25;
         if (st.kind === "land") {
           k = 1;
@@ -705,4 +725,18 @@ function bubbleTex() {
   const t = new THREE.CanvasTexture(cv);
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
+}
+
+// 임시 모델을 랜드마크 크기로: 키(높이)를 맞추고, 떠 있는 것(lift)은 바닥 반지름을 너비로·높이만큼 띄운다
+function fitPlaceholder(st: LayoutSite, land: LayoutLandmark) {
+  st.sc = 1;
+  st.r = land.footR;
+  if (st.lift) {
+    st.by = "w";
+    st.size = land.footR * 2;
+    st.lift = land.height;
+    return;
+  }
+  st.by = "h";
+  st.size = land.height;
 }

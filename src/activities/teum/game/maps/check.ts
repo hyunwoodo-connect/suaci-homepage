@@ -266,7 +266,7 @@ function checkAssets(map: GameMap, manifest: Manifest, out: MapProblem[]) {
       if (!Object.hasOwn(SCULPTURES, k)) missing(`${name}: ${k} — 조형물 설정표에 없다`);
       else if (!has(k)) missing(`${name}: ${k}`);
     }
-    if (!Object.hasOwn(TREE_CROWN_BASE, r.tree))
+    if (r.tree !== null && !Object.hasOwn(TREE_CROWN_BASE, r.tree))
       missing(`${name}: ${r.tree} — 나무 종류 표에 없다`);
     for (const k of new Set([...r.herds, ...r.residents])) {
       if (!Object.hasOwn(CREATURES, k)) missing(`${name}: ${k} — 생물 설정표에 없다`);

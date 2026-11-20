@@ -17,6 +17,14 @@ export interface HubScatter {
   dist: Span;
   /** 그 둘레가 비어 있어야 하는 반지름(m) */
   clear: number;
+  /** 이 마을들에만 놓는다(없으면 모든 마을 — v79 는 큰 꽃을 꽃밭에만, 비눗방울을 물가에만) */
+  hubs?: readonly number[];
+}
+
+/** 행성의 한 둘레: 마을 차례와 그 중심에서 반지름(m) — 지형 흩뿌리기를 이 안에만 */
+export interface HubCap {
+  hub: number;
+  reach: number;
 }
 
 /** 구역: 출발점에서 본 방향(도) 범위와 이름 */
@@ -68,6 +76,11 @@ export interface SculptureMap {
   lone: { count: number; tries: number; height: Span };
   /** 지역 사이(어느 지역에도 들지 않는 곳)에서 솎는 비율: 조형물 · 숲의 나무 */
   between: { skip: number; treeSkip: number };
+  /** 그 지역 종류만 놓는다(지역이 옅은 곳에서 다른 지역 종류로 바꾸지 않고, 지역 종류가 없으면 놓지 않는다) — v79 */
+  strict?: boolean;
+  /** 5) 높이 사다리 · 2) 길목의 문을 세우나(없으면 세운다 — v79 는 랜드마크·문을 자리표가 정한다. 기준탑은 anchorTries 0 으로 끈다) */
+  ladder?: boolean;
+  gates?: boolean;
 }
 
 /** 지역 하나. 차례는 마을(layout.hub)과 같다 — 마을 i 가 지역 i 의 가운데다 */
@@ -82,8 +95,8 @@ export interface MapRegion {
   /** 서는 조형물 종류(조형물 설정 키): 큰 것 · 작은 것 */
   big: readonly string[];
   small: readonly string[];
-  /** 숲·가로수의 키 큰 나무 종류(나무 설정 키) */
-  tree: string;
+  /** 숲·가로수의 키 큰 나무 종류(나무 설정 키) — 나무가 없는 지역은 null */
+  tree: string | null;
   /** 지역 한가운데에서 솎는 비율(0..1): 조형물 · 숲의 나무 · 열기구 */
   skip: number;
   treeSkip: number;
@@ -105,6 +118,8 @@ export interface MapRegion {
 export interface RegionEdge {
   from: number;
   width: number;
+  /** 지역 사이(어느 지역에도 들지 않는 곳) 땅 체커의 두 색 — 없으면 지금 게임의 잔디색 */
+  ground?: readonly [number, number];
 }
 
 /** 생물(creatures): 어디에 몇 무리 — 마을마다 사는 종과 수는 지역(regions)이 정하고, 여기는 놓는 거리와 수 */
@@ -124,6 +139,8 @@ export interface CreatureMap {
   townFlocks: { dist: Span };
   /** 호수마다 헤엄치는 수 */
   perLake: number;
+  /** 바다(자리표 sea)에 헤엄치는 수(그 지역에 사는 물 종만) — 없으면 바다가 없다 */
+  seaSwimmers?: number;
   /** 해파리: 정해 둔 자리([자리표 거리, 방향]) · 마을 중심에서 거리(자리표 거리, 마을마다 수는 지역의 jellies) */
   jellies: { at: readonly (readonly [number, number])[]; dist: Span };
   /** 전설의 손님: 종 키 → 자리. 온 행성에 이 자리뿐이고 옮기지 않는다(종은 설정표에 legend 가 있어야 한다) */
@@ -150,8 +167,14 @@ export interface GameMap {
   name: string;
   /** 지형 씨앗 — 꽃 자리·둔덕·뭉게구름·큰 언덕 비탈의 솜을 이 씨앗으로 뽑는다(같은 씨앗이면 같은 지형) */
   seed: number;
-  /** 지형: 꽃 자리·둔덕·뭉게구름 수 */
-  terrain: { flowers: number; mounds: number; clouds: number };
+  /** 지형: 꽃 자리·둔덕·뭉게구름 수 — 둘레(flowersIn·cloudsIn)가 있으면 그 안에만 흩는다 */
+  terrain: {
+    flowers: number;
+    mounds: number;
+    clouds: number;
+    flowersIn?: HubCap;
+    cloudsIn?: HubCap;
+  };
   /** 구역(출발점에서 본 방향) — 자리를 고를 때의 기준. 게임 규칙은 보지 않고 지도 점검이 센다 */
   zones: readonly MapZone[];
   /** 자리표: 장소·랜드마크·키 큰 나무·호수·놀이기구·큰 언덕(첫째는 등대 산)·마을 중심 */
@@ -172,12 +195,25 @@ export interface GameMap {
   sculptures: SculptureMap;
   creatures: CreatureMap;
   brand: BrandMap;
+  /** 늘 이 마을에서 출발한다(없으면 그날 축제 지역 마을 — v79 는 0 티파티 정원) */
+  startHub?: number;
+  /** 숨바꼭질 판을 띄우나(없으면 띄운다 — v79 는 자유롭게 날아다니며 지역을 본다) */
+  hideSeek?: boolean;
+  /** 안개가 시작하고 짙어지는 거리(m) — 없으면 그리는 틀의 값(28~340). v79 는 경계에서 이웃 랜드마크가 보이게 멀리 */
+  fog?: { near: number; far: number };
 }
 
 /** span 안에서 roll(0..1) 만큼의 값 */
 export function within(span: Span, roll: number): number {
   const [lo, hi] = span;
   return lo + (hi - lo) * roll;
+}
+
+/** 흩어 놓을 마을 차례(지도가 hubs 를 정하면 그 마을들만, 없으면 모든 마을) */
+export function scatterHubs(sc: HubScatter, hubCount: number): number[] {
+  const all = Array.from({ length: hubCount }, (_, hk) => hk);
+  if (!sc.hubs) return all;
+  return all.filter((hk) => sc.hubs!.includes(hk));
 }
 
 /** 게임 한 판이 쓸 자리표. 배치가 자리표에 값을 덧붙이므로(크기 배율·마디) 판마다 새로 복사한다 */

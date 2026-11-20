@@ -71,6 +71,10 @@ import type { Services } from "./services";
 import { S } from "./settings";
 import { SoundManager } from "./sound";
 import { Studio } from "./studio/studio";
+import { Beacons } from "./world/beacons";
+import { CloudIslands } from "./world/cloudIslands";
+import { Gates } from "./world/gates";
+import { Roads } from "./world/roads";
 import { Clouds } from "./world/clouds";
 import { Culler } from "./world/culler";
 import { Flowers } from "./world/flowers";
@@ -168,6 +172,11 @@ export class Game {
   readonly signature: Signature;
   /** 숨바꼭질(메인 퀘스트 시험판) */
   readonly hideSeek: HideSeek;
+  /** 지도 v2(v79)의 큰 길·문·구름섬·빛 기둥(자리표에 그 갈래가 없으면 비어 있다) */
+  readonly roads: Roads;
+  readonly gates: Gates;
+  readonly cloudIslands: CloudIslands;
+  readonly beacons: Beacons;
   /** 놓인 것의 몸(채우는 것이 엉키지 않게 놓는 데 썼다 — ?noavoid 면 없다) */
   readonly placed: BodyField | null;
   readonly bubbleTrail: BubbleTrail;
@@ -198,11 +207,16 @@ export class Game {
   ) {
     const stage = createStage(canvas);
     this.stage = stage;
+    const fog = stage.scene.fog as THREE.Fog | null;
+    if (fog && map.fog) {
+      fog.near = map.fog.near;
+      fog.far = map.fog.far;
+    }
     const scene = stage.scene;
     const layout = cloneLayout(map);
     const mats = new Mats();
     const rng = new Random(seed);
-    const terrain = new Terrain(map.seed, map.terrain, layout.hill);
+    const terrain = new Terrain(map.seed, map.terrain, layout.hill, layout.hub);
     const events = new GameEvents();
     const player = new Player(terrain, events);
     const hudParent = canvas.parentElement ?? document.body;
@@ -303,8 +317,13 @@ export class Game {
     s.camera.resize(stage.renderer);
     // ---- 놓기: 자리표 → 행성 위 자리 ----
     this.layoutWorld();
-    // 출발은 오늘의 축제 지역 마을에서
-    const startHub = s.occ.hubs[s.today.festival];
+    this.roads = new Roads(s);
+    this.gates = new Gates(s);
+    this.cloudIslands = new CloudIslands(s);
+    this.beacons = new Beacons(s);
+    // 출발은 오늘의 축제 지역 마을에서(지도가 출발 마을을 정하면 늘 거기서)
+    const startIndex = map.startHub ?? s.today.festival;
+    const startHub = s.occ.hubs[startIndex];
     player.goHome(startHub);
     this.thermals.usePetals(this.petals);
     this.streams.usePetals(this.petals);
@@ -316,7 +335,8 @@ export class Game {
     this.cannons.fitModels();
     this.bumpers.fitModels();
     this.claimAll();
-    if (!isAvoidOff()) this.reserveStage();
+    const hasHideSeek = map.hideSeek !== false;
+    if (!isAvoidOff() && hasHideSeek) this.reserveStage();
     this.footsteps = new Footsteps(s);
     // suaci 잔디 로고 자리를 나무·꽃·조형물보다 먼저 맡아 둔다
     const lawn = Signature.reserveLawn(s);
@@ -398,6 +418,7 @@ export class Game {
       },
       hudParent,
     );
+    if (!hasHideSeek) this.hideSeek.sleep();
     this.director = new Director(s, this.bubbleTrail, this.seeds, this.creatures);
     if (field) this.clearFlowers(field);
     this.whale.fitModels();
@@ -471,6 +492,8 @@ export class Game {
       () => camera.setCompany(this.creatures.followers.length),
       this.regionLook,
       places,
+      this.cloudIslands,
+      this.beacons,
       this.clouds,
       places.lighthouse,
       hud,
@@ -598,6 +621,8 @@ export class Game {
     for (const t of this.frameOrder) if (typeof t !== "function") t.dispose();
     this.terrainView.dispose();
     this.brand.dispose();
+    this.roads.dispose();
+    this.gates.dispose();
     this.s.models.dispose();
     this.stage.dispose();
   }
@@ -752,7 +777,15 @@ export class Game {
       this.funnels,
       this.seeds,
       this.jets,
+      this.roads,
+      this.gates,
+      this.cloudIslands,
     ];
     for (const c of claimers) c.claim();
+    // 게임 마당(지도 v2): 랜드마크 둘레는 비워 둔다
+    for (const zone of this.s.layout.gameZone ?? []) {
+      const v = from(zone.dist, zone.bear);
+      this.s.occ.fill(v, zone.r);
+    }
   }
 }

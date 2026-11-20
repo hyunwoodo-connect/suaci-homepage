@@ -25,6 +25,8 @@ export interface LayoutSite extends Spot {
   sky?: number;
   /** 겹치지 않는 만큼 키운 배율 — 배치가 채운다 */
   sc?: number;
+  /** 랜드마크 모델이 오기 전 그 자리를 채우는 임시 모델이면 그 랜드마크 이름(layout.landmark 의 name) */
+  placeholderFor?: string;
 }
 
 /** 키 큰 솜사탕 나무 */
@@ -36,6 +38,14 @@ export interface LayoutTree extends Spot {
 /** 반지름이 있는 자리(호수) */
 export interface RoundSpot extends Spot {
   r: number;
+}
+
+/** 호수(v79: 색과 어느 지역의 물인지가 붙는다) */
+export interface LayoutLake extends RoundSpot {
+  /** 물빛 — 없으면 물, chocolate 이면 초콜릿 시내 */
+  tint?: "chocolate";
+  /** 이 물이 있는 지역(헤엄치는 생물을 그 지역 종으로) */
+  region?: number;
 }
 
 /** 이름 붙은 장소(광장·분수·뽑기터·등대 — 이 차례로 넷) */
@@ -99,12 +109,56 @@ export interface LayoutHill extends Spot {
   H: number;
 }
 
+/** 지역의 랜드마크(v79): 이름·높이(m)·바닥 반지름(m)·비워 두는 게임 마당 반지름(m)·모델이 오기 전 임시 모델 키 */
+export interface LayoutLandmark extends Spot {
+  region: number;
+  name: string;
+  height: number;
+  footR: number;
+  gameR: number;
+  placeholder: string;
+}
+
+/** 큰 길(v79): 이웃한 랜드마크 둘(마을 차례)을 잇는 점들([dist, bear], 20m 간격) */
+export interface LayoutRoad {
+  between: readonly number[];
+  points: readonly (readonly number[])[];
+}
+
+/** 경계의 문(v79): 큰 길이 지역 경계를 넘는 자리 · 길이 나아가는 쪽(head) · 잇는 두 지역 */
+export interface LayoutGate extends HeadedSpot {
+  between: readonly number[];
+}
+
+/** 지역이 붙은 둥근 자리(v79 게임 마당·바다) */
+export interface RegionRound extends RoundSpot {
+  region: number;
+}
+
+/** 떠 있는 구름섬(v79): 높이(m)·반지름(m) — 위에 내려앉을 수 있다 */
+export interface LayoutCloudIsland extends Spot {
+  alt: number;
+  r: number;
+}
+
+/** 놀이터 가운데(v79 기획용 — 기구는 이미 그 둘레에 무리로 놓였다. 엔진은 쓰지 않는다) */
+export interface LayoutPlayground extends Spot {
+  region: number;
+  n: number;
+  r: number;
+}
+
+/** 이동 구멍(v79 는 어느 지역 것인지가 붙는다) */
+export interface LayoutHole extends Spot {
+  region?: number;
+}
+
 /** 자리표 전체 */
 export interface Layout {
   place: LayoutPlace[];
   site: LayoutSite[];
   tree: LayoutTree[];
-  lake: RoundSpot[];
+  lake: LayoutLake[];
   pipe: HeadedSpot[];
   funnel: Spot[];
   seed: Spot[];
@@ -127,8 +181,16 @@ export interface Layout {
   wing: Spot[];
   pad: Spot[];
   ball: Spot[];
-  hole: Spot[];
+  hole: LayoutHole[];
   jet: LayoutJet[];
   hill: LayoutHill[];
   hub: Spot[];
+  // ---- v79 에서 붙은 갈래(없으면 빈 것) ----
+  landmark?: LayoutLandmark[];
+  gameZone?: RegionRound[];
+  road?: LayoutRoad[];
+  gate?: LayoutGate[];
+  sea?: RegionRound[];
+  cloudIsland?: LayoutCloudIsland[];
+  playground?: LayoutPlayground[];
 }

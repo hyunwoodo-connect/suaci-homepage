@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
-import { within } from "../maps/map";
+import { scatterHubs, within } from "../maps/map";
 import { bubbleBody } from "../maps/placed";
 import type { Services } from "../services";
 import { S } from "../settings";
@@ -66,7 +66,8 @@ export class Bubbles implements Thing {
     scene.add(this.m);
     const BUBS = this.list,
       HV = occ.hubs;
-    for (let hk = 0; hk < HV.length; hk++)
+    const hubs = scatterHubs(plan, HV.length);
+    for (const hk of hubs)
       for (let c0 = 0, got = 0; c0 < plan.tries && got < plan.perHub && BUBS.length < BUB_N; c0++) {
         const c = hk * HUB_STRIDE + c0,
           distRoll = fr(c, 91),
