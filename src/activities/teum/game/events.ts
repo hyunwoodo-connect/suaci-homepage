@@ -31,6 +31,8 @@ export interface GameEventMap {
   legendMet: { kind: string };
   /** 비눗방울이 터졌다(combo: 잇달아 터뜨린 수, 1 부터) */
   bubblePopped: { combo: number };
+  /** 방울 길의 방울을 터뜨렸다(step: 그 줄에서 몇 번째 — 0부터, last: 줄의 마지막 방울) */
+  trailBubblePopped: { step: number; last: boolean };
   /** 고리를 지나며 울렸다(i: 그 줄에서 몇째 고리) */
   ringPassed: { i: number };
   /** 풍경 종이 울렸다 */

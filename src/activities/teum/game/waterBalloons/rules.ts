@@ -1,4 +1,4 @@
-// 물풍선 놀이의 셈: 닿았나 · 가장 가까운 남은 물풍선 · 걸린 시간 글 · 화면 밖 물풍선을 가리키는 자리.
+// 물풍선 놀이의 셈: 닿았나 · 가장 가까운 남은 물풍선 · 걸린 시간 글 · 화면 안 물풍선의 핀 자리 · 화면 밖 물풍선을 가리키는 자리.
 // 장면도 화면도 모른다 — 수만 받아 수를 돌려준다
 
 /** 세계 위의 한 점(m) */
@@ -60,6 +60,32 @@ export function nearestRemaining(
     }
   }
   return nearest;
+}
+
+/**
+ * 화면 안에 보이는 물풍선 위에 얹을 핀의 자리(px). 화면 밖(또는 등 뒤)이면 null — 그때는 가장자리 화살표가 가리킨다.
+ * view: 카메라에서 본 자리(오른쪽 +x, 위 +y, 앞이 -z), tanX·tanY: 시야 절반 각의 탄젠트, width·height: 화면 크기(px)
+ */
+export function screenPin(
+  view: Point,
+  tanX: number,
+  tanY: number,
+  width: number,
+  height: number,
+): { x: number; y: number } | null {
+  if (view.z >= 0) return null;
+  const depth = -view.z,
+    acrossX = view.x / (depth * tanX),
+    acrossY = view.y / (depth * tanY);
+  if (Math.abs(acrossX) > 1 || Math.abs(acrossY) > 1) return null;
+  return { x: (acrossX * 0.5 + 0.5) * width, y: (0.5 - acrossY * 0.5) * height };
+}
+
+/** 핀의 진하기(0..1): near(m) 안에서는 안 보이고(물풍선이 바로 보인다) far(m)부터 다 보인다 */
+export function pinFade(distance: number, near: number, far: number): number {
+  const along = (distance - near) / (far - near),
+    low = Math.max(0, along);
+  return Math.min(1, low);
 }
 
 /** 걸린 시간 글: 151.9 → "2분 31초", 42 → "42초"(초 아래는 버린다) */

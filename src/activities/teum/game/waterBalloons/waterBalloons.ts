@@ -1,29 +1,20 @@
 import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
-import { ease } from "../core/frame";
 import type { Random } from "../core/random";
 import type { WaterBalloonSpot } from "../maps/map";
 import type { Services } from "../services";
 import { S } from "../settings";
 import { from, rad, UP } from "../world/sphere";
-import type { BeamUniforms } from "./balloonLook";
-import {
-  BALLOON_TINTS,
-  BEAM_ABOVE,
-  beamTintInto,
-  createBalloonGeometry,
-  createBalloonMaterial,
-  createBeamGeometry,
-  createBeamMaterial,
-} from "./balloonLook";
+import { BALLOON_TINT, createBalloonGeometry, createBalloonMaterial } from "./balloonLook";
+import type { BalloonPin } from "./hud";
 import { WaterBalloonHud } from "./hud";
 import { BalloonRound } from "./round";
-import { edgeHint, nearestRemaining, touchedBalloons } from "./rules";
+import { edgeHint, nearestRemaining, pinFade, screenPin, touchedBalloons } from "./rules";
 import { Splash } from "./splash";
 
 // 물풍선 놀이: 지도에 놓인 물풍선(GameMap.waterBalloons)을 다 먹으면 성공. 숨기지 않는다 — 놀이기구를 타다 보면 지나는 자리에
-// 떠 있고, 멀리서도 물빛 기둥으로 보인다. 닿으면 터지고, 다 먹으면 걸린 시간과 함께 성공 판이 뜬다.
+// 떠 있고, 멀리서는 그 위에 얹은 물방울 핀으로 찾는다. 닿으면 터지고, 다 먹으면 걸린 시간과 함께 성공 판이 뜬다.
 // 떠다니는 맛이 먼저라 몸은 건드리지 않는다(튕기지도 멈추지도 않는다). 지도에 물풍선이 없으면 이 놀이는 만들어지지 않는다
 
 /** 물풍선 하나 */
@@ -36,20 +27,12 @@ export interface WaterBalloon {
   readonly ground: number;
   /** 지금 가운데(둥실거림까지) — 닿았는지를 이 점으로 잰다 */
   readonly centre: THREE.Vector3;
-  /** 몸 색(숫자와 그 색) · 기둥 색 */
-  readonly hex: number;
-  readonly tint: THREE.Color;
-  readonly beamTint: THREE.Color;
-  /** 화살표에 칠할 색(CSS) */
-  readonly css: string;
   /** 흔들림 위상 */
   readonly phase: number;
   /** 나타난 뒤 흐른 시간(초). 0 이하면 아직 나오지 않았다 */
   age: number;
   /** 터지는 중 남은 시간(초) */
   pop: number;
-  /** 물빛 기둥의 굵기(0 없음 … 1) */
-  beam: number;
 }
 
 /** 물풍선 몸의 반지름(m) */
@@ -77,9 +60,11 @@ const POP_SECONDS = 0.14,
 /** 다시 놓일 때: 차례마다 이만큼(초) 늦게, 이 시간(초) 동안 통 하고 자란다 */
 const RETURN_STAGGER = 0.07,
   GROW_SECONDS = 0.45;
-/** 기둥이 굵어지고 가늘어지는 빠르기 · 땅속으로 묻는 길이(m, 비탈에서 발치가 뜨지 않게) */
-const BEAM_RATE = 9,
-  BEAM_SINK = 2;
+/** 핀: 물풍선 가운데에서 이만큼(m) 위를 가리킨다 · 내가 이 거리(m) 안이면 안 보이고 → 이 거리부터 다 보인다 */
+const PIN_ABOVE = BALLOON_RADIUS * 1.5,
+  PIN_NEAR: readonly [number, number] = [30, 70];
+/** 축하 물방울의 색: 라임과 흰 물빛 */
+const PARTY_TINTS: readonly number[] = [BALLOON_TINT, 0xffffff];
 /** 다 먹은 뒤: 축하가 이어지는 시간(초)·한 다발 사이(초), 성공 판이 뜨기까지(초 — 마지막 물풍선이 터지는 것을 보고 나서) */
 const PARTY_SECONDS = 3,
   PARTY_EVERY = 0.28,
@@ -96,6 +81,8 @@ const at = new THREE.Vector3(),
   view = new THREE.Vector3(),
   side = new THREE.Vector3();
 const TILT_AXIS = new THREE.Vector3(1, 0, 0);
+const TINT = new THREE.Color(BALLOON_TINT),
+  TINT_CSS = `#${TINT.getHexString()}`;
 
 /** 지도에 물풍선이 있으면 놀이를 만든다. 없으면 null — 장면에도 화면에도 아무것도 얹지 않는다 */
 export function createWaterBalloons(s: Services, parent: HTMLElement): WaterBalloons | null {
@@ -111,8 +98,7 @@ export class WaterBalloons implements Thing {
   readonly round: BalloonRound;
   private readonly hud: WaterBalloonHud;
   private readonly bodies: THREE.InstancedMesh<THREE.LatheGeometry, THREE.MeshStandardMaterial>;
-  private readonly beams: THREE.InstancedMesh<THREE.CylinderGeometry, THREE.ShaderMaterial>;
-  private readonly beamU: BeamUniforms = { uT: { value: 0 }, uEye: { value: new THREE.Vector3() } };
+  private readonly pins: BalloonPin[] = [];
   private readonly splash: Splash;
   private readonly rng: Random;
   private readonly centres: THREE.Vector3[];
@@ -135,27 +121,18 @@ export class WaterBalloons implements Thing {
     // 놀이 난수는 제 갈래에서만 뽑는다(다른 것들의 흐름을 건드리지 않는다)
     const rng = s.rng.fork("waterBalloons");
     this.rng = rng;
-    this.list = spots.map((spot, i) => {
+    this.list = spots.map((spot) => {
       const v = from(spot.dist, spot.bear),
-        ground = s.terrain.groundAt(v),
-        hex = BALLOON_TINTS[i % BALLOON_TINTS.length],
-        tint = new THREE.Color(hex),
-        beamTint = new THREE.Color();
-      beamTintInto(beamTint, i);
+        ground = s.terrain.groundAt(v);
       const radius = S.R + ground + spot.alt;
       return {
         v,
         alt: spot.alt,
         ground,
         centre: v.clone().multiplyScalar(radius),
-        hex,
-        tint,
-        beamTint,
-        css: `#${tint.getHexString()}`,
         phase: rng.next() * 6.283,
         age: GROW_SECONDS,
         pop: 0,
-        beam: 1,
       };
     });
     const total = this.list.length;
@@ -163,19 +140,12 @@ export class WaterBalloons implements Thing {
     this.centres = this.list.map((b) => b.centre);
     this.away = this.list.map(() => false);
     const bodyGeo = createBalloonGeometry(),
-      bodyMat = createBalloonMaterial(),
-      beamGeo = createBeamGeometry(),
-      beamMat = createBeamMaterial(this.beamU);
+      bodyMat = createBalloonMaterial();
     this.bodies = new THREE.InstancedMesh(bodyGeo, bodyMat, total);
-    this.beams = new THREE.InstancedMesh(beamGeo, beamMat, total);
-    for (const mesh of [this.bodies, this.beams]) {
-      // 온 행성에 흩어져 있어 한 덩어리의 시야 검사가 맞지 않는다(열 개 남짓이라 그냥 그린다)
-      mesh.frustumCulled = false;
-      this.list.forEach((b, i) => mesh.setColorAt(i, b.tint));
-      s.scene.add(mesh);
-    }
-    // 반투명한 것들(구름·방울) 뒤에 더해 그린다
-    this.beams.renderOrder = 2;
+    // 온 행성에 흩어져 있어 한 덩어리의 시야 검사가 맞지 않는다(열 개 남짓이라 그냥 그린다)
+    this.bodies.frustumCulled = false;
+    this.list.forEach((_, i) => this.bodies.setColorAt(i, TINT));
+    s.scene.add(this.bodies);
     this.splash = new Splash(s.scene, rng);
     this.hud = new WaterBalloonHud(parent, {
       onAgain: () => this.playAgain(),
@@ -203,7 +173,6 @@ export class WaterBalloons implements Thing {
     this.party = 0;
     this.panelIn = 0;
     this.bodies.count = 0;
-    this.beams.count = 0;
     this.hud.close();
   }
 
@@ -223,18 +192,15 @@ export class WaterBalloons implements Thing {
     this.eatTouched();
     this.celebrate(f);
     this.point();
-    this.beamU.uT.value = f.time;
-    this.beamU.uEye.value.copy(player.P);
   }
 
   /** 장면과 화면에서 치운다 */
   dispose() {
-    for (const mesh of [this.bodies, this.beams]) {
-      mesh.removeFromParent();
-      mesh.geometry.dispose();
-      mesh.material.dispose();
-      mesh.dispose();
-    }
+    const bodies = this.bodies;
+    bodies.removeFromParent();
+    bodies.geometry.dispose();
+    bodies.material.dispose();
+    bodies.dispose();
     this.splash.dispose();
     this.hud.dispose();
   }
@@ -254,10 +220,8 @@ export class WaterBalloons implements Thing {
   private float(f: Frame) {
     const { dt, time } = f,
       eaten = this.round.eaten,
-      P = this.s.player.P,
-      beamEase = ease(BEAM_RATE, dt);
-    let bodyN = 0,
-      beamN = 0;
+      P = this.s.player.P;
+    let bodyN = 0;
     this.list.forEach((b, i) => {
       const isEaten = eaten[i];
       if (!isEaten) {
@@ -272,19 +236,7 @@ export class WaterBalloons implements Thing {
       const bobPhase = time * BOB_RATE + b.phase,
         radius = S.R + b.ground + b.alt + BOB * Math.sin(bobPhase);
       b.centre.copy(b.v).multiplyScalar(radius);
-      const beamWant = isOut ? 1 : 0;
-      b.beam += (beamWant - b.beam) * beamEase;
       stand.setFromUnitVectors(UP, b.v);
-      if (b.beam > 0.01) {
-        const footRadius = S.R + b.ground - BEAM_SINK,
-          length = b.alt + BEAM_SINK + BEAM_ABOVE;
-        at.copy(b.v).multiplyScalar(footRadius);
-        size.set(b.beam, length, b.beam);
-        matrix.compose(at, stand, size);
-        this.beams.setMatrixAt(beamN, matrix);
-        this.beams.setColorAt(beamN, b.beamTint);
-        beamN++;
-      }
       const k = bodyScale(b, isEaten);
       if (k <= 0) return;
       // 물이 든 것처럼: 옆으로 불면 위아래로 줄고, 천천히 기우뚱한다
@@ -298,11 +250,9 @@ export class WaterBalloons implements Thing {
       size.set(wide, tall, wide);
       matrix.compose(b.centre, tilt, size);
       this.bodies.setMatrixAt(bodyN, matrix);
-      this.bodies.setColorAt(bodyN, b.tint);
       bodyN++;
     });
     this.fill(this.bodies, bodyN);
-    this.fill(this.beams, beamN);
   }
 
   // 묶음에 이번 프레임 채운 칸 수를 알린다
@@ -336,7 +286,7 @@ export class WaterBalloons implements Thing {
     this.away[i] = true;
     // 물풍선 소리를 빛 방울보다 먼저 알린다 — 빛 방울의 울림이 같은 소리를 먼저 잡으면 먹은 수만큼 높인 음이 묻힌다
     events.emit("waterBalloonPopped", { count, total });
-    this.splash.burst(b.centre, b.v, b.hex, POP_DROPS, POP_SPEED);
+    this.splash.burst(b.centre, b.v, BALLOON_TINT, POP_DROPS, POP_SPEED);
     fx.burst(b.centre, 10, 9);
     this.hud.setCount(count, total);
     if (round.stage !== "cleared") return;
@@ -365,8 +315,8 @@ export class WaterBalloons implements Thing {
     const ahead = rng.range(-12, 12),
       aside = rng.range(-12, 12),
       above = rng.range(2, 8),
-      pick = rng.next() * BALLOON_TINTS.length,
-      hex = BALLOON_TINTS[Math.floor(pick)];
+      pick = rng.next() * PARTY_TINTS.length,
+      hex = PARTY_TINTS[Math.floor(pick)];
     side.crossVectors(player.h, up);
     at.copy(player.P)
       .addScaledVector(player.h, ahead)
@@ -376,22 +326,40 @@ export class WaterBalloons implements Thing {
     fx.burst(at, 12, 11);
   }
 
-  // 가장 가까운 남은 물풍선이 화면 밖이면 그쪽 가장자리에 화살표를 둔다
+  // 화면에 보이는 남은 물풍선마다 그 위에 핀을 얹고, 가장 가까운 것이 화면 밖이면 그쪽 가장자리에 화살표를 둔다
   private point() {
-    const i = nearestRemaining(this.s.player.P, this.centres, this.away);
-    if (i < 0) {
+    const P = this.s.player.P,
+      camera = this.s.camera.camera,
+      halfFov = rad(camera.fov) / 2,
+      tanY = Math.tan(halfFov),
+      tanX = tanY * camera.aspect;
+    let pinN = 0;
+    this.list.forEach((b, i) => {
+      if (this.away[i]) return;
+      const distance = P.distanceTo(b.centre),
+        alpha = pinFade(distance, PIN_NEAR[0], PIN_NEAR[1]);
+      if (alpha <= 0) return;
+      view.copy(b.centre).addScaledVector(b.v, PIN_ABOVE).applyMatrix4(camera.matrixWorldInverse);
+      const spot = screenPin(view, tanX, tanY, innerWidth, innerHeight);
+      if (!spot) return;
+      const pin = this.pins[pinN] ?? { x: 0, y: 0, tint: TINT_CSS, alpha: 0 };
+      this.pins[pinN] = pin;
+      pin.x = spot.x;
+      pin.y = spot.y;
+      pin.alpha = alpha;
+      pinN++;
+    });
+    for (let k = pinN; k < this.pins.length; k++) this.pins[k].alpha = 0;
+    this.hud.setPins(this.pins);
+    const nearest = nearestRemaining(P, this.centres, this.away);
+    if (nearest < 0) {
       this.hud.pointTo(null);
       return;
     }
-    const camera = this.s.camera.camera,
-      b = this.list[i],
-      halfFov = rad(camera.fov) / 2,
-      tanY = Math.tan(halfFov),
-      tanX = tanY * camera.aspect,
-      box = this.hud.hintBox();
-    view.copy(b.centre).applyMatrix4(camera.matrixWorldInverse);
+    const box = this.hud.hintBox();
+    view.copy(this.list[nearest].centre).applyMatrix4(camera.matrixWorldInverse);
     const hint = edgeHint(view, tanX, tanY, box);
-    this.hud.pointTo(hint, b.css);
+    this.hud.pointTo(hint, TINT_CSS);
   }
 }
 

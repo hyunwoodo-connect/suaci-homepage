@@ -7,7 +7,8 @@ import { isDirectorOff } from "../debug";
 import type { Services } from "../services";
 import { S } from "../settings";
 
-// 방울 길: 어디로 가든 몇 초 앞에 방울 여섯 개가 줄지어 떠 있다. 스치면 퐁퐁 터지며 조금씩 빨라지고, 마지막 방울은 위로 튕겨 준다.
+// 방울 길: 어디로 가든 몇 초 앞에 방울 여섯 개가 줄지어 떠 있다. 스치면 퐁퐁 터지며 빨라지고(잇달아 터뜨릴수록 조금 더,
+// 소리도 한 음씩 오른다), 마지막 방울은 위로 튕겨 준다 — 방울은 "먹으면 빨라지는 것"이다(먹어서 수를 세는 물풍선과 다르다).
 // 지나쳤거나 다 터뜨리면 다시 앞쪽에 생긴다. 빈 초원에서도 5초 넘게 아무 일 없는 구간이 없게 하려는 것.
 // 네 줄을 처음에 만들어 두고 돌려 쓴다. 지루함 감독도 이 줄을 빌려 앞길에 방울을 놓는다(layTrail)
 
@@ -27,7 +28,16 @@ interface TrailRow {
   live: boolean;
   wait: number;
   age: number;
+  /** 이 줄에서 터뜨린 수(터뜨릴수록 더 빨라진다) */
+  popped: number;
 }
+
+/** 방울 색(줄마다 차례를 돌린다) */
+const TRAIL_TINTS = [0xff4f9a, 0xffd21f, 0xffffff, 0x4fc3ff];
+/** 터뜨릴 때 빨라지는 정도(몸으로 느낄 만큼 — 0.8 이면 잠깐 1.8배쯤): 첫 방울 · 하나 터뜨릴 때마다 더, 마지막 방울이 튕겨 올리는 세기 */
+const POP_BOOST = 0.8,
+  POP_BOOST_STEP = 0.15,
+  LAST_LIFT = 6.5;
 
 const td = new THREE.Vector3(),
   tw = new THREE.Vector3(),
@@ -54,11 +64,10 @@ export class BubbleTrail implements Thing {
     this.rng = s.rng.fork("bubbleTrail");
     this.off = isDirectorOff();
     this.tp.copy(s.player.p);
-    const cols = [0xff4f9a, 0xffd21f, 0xffffff, 0x4fc3ff];
     for (let t = 0; t < 4; t++) {
       const bs: TrailBubble[] = [];
       for (let j = 0; j < 6; j++) {
-        const c = cols[(t + j) % 4];
+        const c = TRAIL_TINTS[(t + j) % 4];
         const material = new THREE.MeshStandardMaterial({
           color: c,
           roughness: 0.12,
@@ -75,7 +84,7 @@ export class BubbleTrail implements Thing {
         const bubble: TrailBubble = { m, v: new THREE.Vector3(), alt: 0, on: false, pop: 0, ph };
         bs.push(bubble);
       }
-      const row: TrailRow = { bs, live: false, wait: 1 + t * 1.2, age: 0 };
+      const row: TrailRow = { bs, live: false, wait: 1 + t * 1.2, age: 0, popped: 0 };
       this.TR.push(row);
     }
   }
@@ -103,11 +112,12 @@ export class BubbleTrail implements Thing {
     });
     tr.live = true;
     tr.age = 0;
+    tr.popped = 0;
   }
 
   /** 움직이고 있으면 앞쪽에 줄을 세우고, 스치면 터지며, 지나치면 거둔다 */
   update(f: Frame) {
-    const { player, fx, occ, terrain } = this.s,
+    const { player, fx, occ, terrain, hud } = this.s,
       p = player.p,
       h = player.h,
       P = player.P,
@@ -158,6 +168,7 @@ export class BubbleTrail implements Thing {
         }
         tr.live = true;
         tr.age = 0;
+        tr.popped = 0;
         continue;
       }
       tr.age += dt;
@@ -197,10 +208,15 @@ export class BubbleTrail implements Thing {
           b.pop = 1;
           left--;
           this.pops++;
-          player.boostAtLeast(0.5);
+          const isLast = b === tr.bs[tr.bs.length - 1],
+            boost = POP_BOOST + POP_BOOST_STEP * tr.popped;
+          player.boostAtLeast(boost);
           fx.burst(b.m.position, 5, 6);
-          if (b === tr.bs[tr.bs.length - 1]) {
-            player.lift(6.5);
+          this.s.events.emit("trailBubblePopped", { step: tr.popped, last: isLast });
+          tr.popped++;
+          hud.sayOnce("trail", "방울 — 먹으면 빨라져요");
+          if (isLast) {
+            player.lift(LAST_LIFT);
             fx.burst(b.m.position, 10, 10);
           }
         }
