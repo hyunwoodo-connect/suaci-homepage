@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+import type { SoundCue } from "./settings";
 import {
   CREATURES,
   MODEL_BAKE,
   MODEL_TINT,
+  SOUND_EFFECTS,
   herdSpecies,
   lakeSpecies,
   sculptureKeys,
@@ -93,5 +95,35 @@ describe("설정 표", () => {
   it("일각고래·물개 → 앞이 -z 라 받을 때 y 축으로 -90도", () => {
     expect(MODEL_BAKE.c_narwhal).toEqual([0, -Math.PI / 2, 0]);
     expect(MODEL_BAKE.c_seal).toEqual([0, -Math.PI / 2, 0]);
+  });
+});
+
+describe("물풍선 소리", () => {
+  // count 개째(모두 total 개)를 먹을 때 내는 소리들
+  const cuesFor = (count: number, total: number): readonly SoundCue[] => {
+    const rule = SOUND_EFFECTS.waterBalloonPopped;
+    const cues = typeof rule === "function" ? rule({ count, total }) : rule;
+    return Array.isArray(cues) ? cues : [];
+  };
+  const ringRate = (count: number, total: number) =>
+    cuesFor(count, total).find((cue) => cue.key === "snd_ring")?.rate;
+
+  it("먹을 때마다 → 물소리와 울림을 같이 낸다", () => {
+    expect(cuesFor(1, 10).map((cue) => cue.key)).toEqual(["snd_splash", "snd_ring"]);
+  });
+
+  it("먹은 수가 늘수록 → 울림이 조금씩 높아진다(첫 개 0.9 → 마지막 1.5)", () => {
+    const rates = [1, 5, 10].map((count) => ringRate(count, 10) as number);
+    expect([rates[0], rates[2]]).toEqual([0.9, 1.5]);
+    expect(rates[1]).toBeGreaterThan(rates[0]);
+    expect(rates[1]).toBeLessThan(rates[2]);
+  });
+
+  it("물풍선이 하나뿐인 지도 → 음높이가 숫자로 나온다(0 으로 나누지 않는다)", () => {
+    expect(ringRate(1, 1)).toBe(0.9);
+  });
+
+  it("다 먹으면 → 당첨 소리", () => {
+    expect(SOUND_EFFECTS.waterBalloonsCleared).toMatchObject({ key: "snd_win" });
   });
 });

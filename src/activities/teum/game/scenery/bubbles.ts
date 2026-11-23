@@ -60,7 +60,9 @@ export class Bubbles implements Thing {
     scene.add(this.m);
     const BUBS = this.list,
       HV = occ.hubs;
-    for (let hk = 0; hk < HV.length; hk++)
+    for (let hk = 0; hk < HV.length; hk++) {
+      // 바다에 잠긴 마을은 건너뛴다
+      if (!s.land.has(HV[hk])) continue;
       for (let c0 = 0, got = 0; c0 < plan.tries && got < plan.perHub && BUBS.length < BUB_N; c0++) {
         const c = hk * HUB_STRIDE + c0,
           distRoll = fr(c, 91),
@@ -88,6 +90,7 @@ export class Bubbles implements Thing {
           BUBS.push(bubble);
         }
       }
+    }
     this.m.count = BUBS.length;
     for (let i = 0; i < BUBS.length; i++) {
       const tint = BUBBLE_TINTS[i % 4];

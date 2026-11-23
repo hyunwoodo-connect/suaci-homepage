@@ -1,11 +1,16 @@
 import * as THREE from "three";
 
 import { S } from "../settings";
+import { Land } from "./land";
 import { offset } from "./sphere";
 import { chordOf, SphereGrid } from "./sphereGrid";
 
 // 세계의 자리 차지: 이미 찬 자리(놓을 때 겹치지 않게), 비행 통로(놀이기구가 나를 실어 보내는 길 — 키 작은 것을 두지 않는다),
-// 언덕이 덮으면 안 되는 넓은 놀이 자리, 마을 중심. 놓는 것들은 이 창구로만 묻고 적는다
+// 언덕이 덮으면 안 되는 넓은 놀이 자리, 마을 중심. 놓는 것들은 이 창구로만 묻고 적는다.
+// 바다는 늘 찬 자리다 — 빈자리를 묻고 놓는 것은 저절로 뭍에만 놓인다
+
+/** 온 행성이 뭍(지도가 뭍을 정하지 않았을 때) */
+const WHOLE = new Land();
 
 /** 둥근 자리 하나 */
 interface Zone {
@@ -44,17 +49,20 @@ export class Occupancy {
   private readonly cor = new ZoneSet();
   /** 언덕이 덮으면 안 되는 넓은 놀이 자리(깔때기·씨앗밭·로켓…) */
   readonly zones: Zone[] = [];
-  /** 마을 중심 여섯(자리표 hub) */
+  /** 마을 중심(자리표 hub) */
   readonly hubs: THREE.Vector3[] = [];
+
+  /** land: 뭍과 바다(없으면 온 행성이 뭍) */
+  constructor(private readonly land: Land = WHOLE) {}
 
   /** 찬 자리에 더한다 */
   fill(v: THREE.Vector3, r: number) {
     this.occ.add(v, r);
   }
 
-  /** v 둘레 r 이 비어 있나 */
+  /** v 둘레 r 이 비어 있나(바다는 늘 차 있다) */
   isFree(v: THREE.Vector3, r: number): boolean {
-    return !this.occ.touches(v, r);
+    return this.land.has(v) && !this.occ.touches(v, r);
   }
 
   /** 비행 통로에 더한다 */

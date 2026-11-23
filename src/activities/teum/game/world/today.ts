@@ -17,11 +17,15 @@ export function kstDay(ms: number): number {
   return Math.floor(days);
 }
 
-/** 그날의 축제 지역. fixed 가 있으면(개발 ?fest=) 날과 상관없이 그 지역 */
-export function festivalOf(day: number, regions: number, fixed: number | null): number {
+/**
+ * 그날의 축제 지역: 축제를 열 수 있는 마을(towns — 뭍의 마을, 지역 차례)을 날마다 돌아간다.
+ * fixed 가 있으면(개발 ?fest=) 날과 상관없이 그 차례의 마을
+ */
+export function festivalOf(day: number, towns: readonly number[], fixed: number | null): number {
   const n = fixed ?? day;
-  const r = n % regions;
-  return (r + regions) % regions;
+  const r = n % towns.length;
+  const turn = (r + towns.length) % towns.length;
+  return towns[turn];
 }
 
 /** 오늘 */
@@ -32,16 +36,16 @@ export class Today implements Thing {
   festival: number;
   private wait = CHECK_EVERY;
 
-  /** regions: 지역 수, fixed: 개발에서 고정한 축제 지역(?fest), now: 시계(시험이 바꾼다) */
+  /** towns: 축제를 열 수 있는 마을(지역 차례), fixed: 개발에서 고정한 축제 지역(?fest), now: 시계(시험이 바꾼다) */
   constructor(
     private readonly events: GameEvents,
-    private readonly regions: number,
+    private readonly towns: readonly number[],
     private readonly fixed: number | null,
     private readonly now: () => number = Date.now,
   ) {
     const ms = now();
     this.day = kstDay(ms);
-    this.festival = festivalOf(this.day, regions, fixed);
+    this.festival = festivalOf(this.day, towns, fixed);
   }
 
   /** 1초마다 날짜를 다시 보고, 바뀌었으면 알린다 */
@@ -53,7 +57,7 @@ export class Today implements Thing {
     const day = kstDay(ms);
     if (day === this.day) return;
     this.day = day;
-    this.festival = festivalOf(day, this.regions, this.fixed);
+    this.festival = festivalOf(day, this.towns, this.fixed);
     this.events.emit("dayChanged", { day, festival: this.festival });
   }
 

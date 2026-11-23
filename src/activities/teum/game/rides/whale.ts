@@ -5,21 +5,14 @@ import { ease } from "../core/frame";
 import type { Holder } from "../player/player";
 import type { Services } from "../services";
 import { S } from "../settings";
-import { fromInto } from "../world/sphere";
 import type { HasHeights, Height } from "../world/tall";
+import type { WhaleRoute } from "./whaleRoute";
+import { grandTour, islandLoop } from "./whaleRoute";
 
-// 고래 등 — 고래는 한자리를 돌지 않는다. 출발 마을에서 떠나 행성을 한 바퀴 크게 돌고, 바퀴마다 방향을 90도씩 바꿔
-// 여섯 마을 하늘을 차례로 지난다. 높이는 길 아래 가장 높은 것 + 10m 를 미리 재 둔 표(빈 들판 위에서는 낮게 내려온다).
+// 고래 등 — 고래는 한자리를 돌지 않는다. 정해진 길(whaleRoute — 온 행성이 뭍이면 여섯 마을을 지나는 큰 바퀴, 섬이면 섬 일주)을
+// 따라 마을 하늘을 차례로 지난다. 높이는 길 아래 가장 높은 것 + 10m 를 미리 재 둔 표(빈 들판 위에서는 낮게 내려온다).
 // 내가 가까이(220m 안) 있으면 천천히 가서 따라잡을 수 있고, 등에 타면 빨리 간다. 아래에서 뛰어오르기만 하면 등으로 끌어 올린다
 
-/** 한 바퀴의 길이(자리표 거리 — 행성 둘레)와 빠르기(자리표 거리/초) */
-const LAP = 1485.2,
-  SPEED = 6.8;
-/** 출발 마을에서 조금 떨어진 곳에서 떠난다(바퀴의 몫) */
-const LAP_START = 0.02;
-/** 바퀴의 끝 몫(TURN_FROM 뒤 TURN_SPAN 동안 다음 방향으로 부드럽게 돈다) */
-const TURN_FROM = 0.94,
-  TURN_SPAN = 0.06;
 /** 높이 표: 바퀴마다 나눈 칸 수, 길 아래를 보는 폭(코사인), 가장 낮게·꼭대기 위로 띄우는 높이·가장 높게 */
 const PROFILE_N = 240,
   PROFILE_COS = 0.9985,
@@ -66,8 +59,10 @@ export class Whale implements Thing, Holder {
   readonly f = new THREE.Vector3();
   /** 지금 떠 있는 높이 — 높이 표를 천천히 따라간다 */
   WH = 70;
-  /** 높이 표: 방향 0 도 바퀴와 90 도 바퀴(180·270 도 바퀴는 같은 길을 거꾸로 간다). 풍경을 다 놓은 뒤 choosePath 가 채운다 */
+  /** 높이 표(길의 바퀴마다 하나). 풍경을 다 놓은 뒤 choosePath 가 채운다 */
   profile: Float32Array[] | null = null;
+  /** 도는 길 */
+  private readonly route: WhaleRoute;
   /** 고래의 시계(초 — 빠르기만큼 간다) */
   clock = 0;
   /** 등에 탔을 때 내 몸이 떠 있는 높이 — 고래 모델이 오면 그 등 높이로 */
@@ -97,6 +92,7 @@ export class Whale implements Thing, Holder {
     this.prim.scale.set(16, 5, 6.5);
     this.g.add(this.prim);
     s.scene.add(this.g);
+    this.route = s.land.centre ? islandLoop(s.land.centre) : grandTour();
     this.mover = { update: (f) => this.move(f), dispose: () => {} };
   }
 
@@ -107,13 +103,14 @@ export class Whale implements Thing, Holder {
   choosePath(sources: readonly HasHeights[]) {
     const all: Height[] = [];
     for (const src of sources) src.pushHeights(all);
-    this.profile = [0, 90].map((bear) => {
+    const route = this.route;
+    const tables = Array.from({ length: route.tables }, (_, table) => table);
+    this.profile = tables.map((table) => {
       const raw = new Float32Array(PROFILE_N),
         wide = new Float32Array(PROFILE_N),
         out = new Float32Array(PROFILE_N);
       for (let i = 0; i < PROFILE_N; i++) {
-        const dist = (LAP * (i + 0.5)) / PROFILE_N;
-        fromInto(tv, dist, bear);
+        route.cell(table, i, PROFILE_N, tv);
         let top = PROFILE_FLOOR;
         for (const [ov, H] of all) if (ov.dot(tv) > PROFILE_COS && H > top) top = H;
         raw[i] = top + PROFILE_CLEAR;
@@ -238,9 +235,9 @@ export class Whale implements Thing, Holder {
     const lookAhead = this.clock + 3;
     const top = this.topAt(lookAhead);
     this.WH += (top - this.WH) * heightEase;
-    pointAt(this.clock, this.v);
+    this.route.at(this.clock, this.v);
     const aheadT = this.clock + 0.4;
-    pointAt(aheadT, ahead);
+    this.route.at(aheadT, ahead);
     this.f.copy(ahead).sub(this.v);
     const fUp = this.f.dot(this.v);
     this.f.addScaledVector(this.v, -fUp).normalize();
@@ -251,17 +248,14 @@ export class Whale implements Thing, Holder {
     this.g.quaternion.setFromRotationMatrix(m4);
   }
 
-  // 시계 tt 의 높이 표 값(표가 없으면 70m). 180·270 도 바퀴는 같은 길을 거꾸로 간다
+  // 시계 tt 의 높이 표 값(표가 없으면 70m)
   private topAt(tt: number): number {
     const profile = this.profile;
     if (!profile) return 70;
-    const l = (tt * SPEED) / LAP + LAP_START,
-      lap = Math.floor(l),
-      frac = l - lap;
-    const table = profile[lap % 2],
+    const seat = this.route.tableAt(tt);
+    const table = profile[seat.table],
       n = table.length;
-    const along = lap % 4 < 2 ? frac : 1 - frac;
-    const scaled = along * n;
+    const scaled = seat.along * n;
     const raw = Math.floor(scaled);
     const last = n - 1,
       low = Math.max(0, raw);
@@ -271,20 +265,6 @@ export class Whale implements Thing, Holder {
 }
 
 /* ─── 내부 ─────────────────────────── */
-
-// 시계 tt 에서 고래가 있는 자리: 바퀴마다 방향을 90 도씩 바꾸고, 바퀴 끝(0.94 뒤)에서 부드럽게 돈다
-function pointAt(tt: number, out: THREE.Vector3): THREE.Vector3 {
-  const l = (tt * SPEED) / LAP + LAP_START,
-    lap = Math.floor(l),
-    frac = l - lap;
-  let bear = 90 * lap;
-  if (frac > TURN_FROM) {
-    const u = (frac - TURN_FROM) / TURN_SPAN;
-    bear += 90 * u * u * (3 - 2 * u);
-  }
-  const dist = LAP * frac;
-  return fromInto(out, dist, bear);
-}
 
 // 프레임마다 share 씩 다가가는 것을 dt 에 맞춘 몫(1/60 초면 share)
 function perFrame(share: number, dt: number): number {

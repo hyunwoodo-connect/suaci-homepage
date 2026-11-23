@@ -44,6 +44,7 @@ interface Placed {
 /** 단계마다 같이 쓰는 것: 찍을 묶음(DK 작은 것·DKB 큰 것·DBAL 열기구)·숲의 나무 종류(TKS)·놓은 것·지도 */
 interface PlaceCtx {
   occ: Services["occ"];
+  land: Services["land"];
   terrain: Services["terrain"];
   regions: Services["regions"];
   plan: GameMap["sculptures"];
@@ -87,6 +88,7 @@ export function placeSculptures(s: Services, trees: Trees, cannons: Cannons, int
   const plan = s.map.sculptures;
   const x: PlaceCtx = {
     occ,
+    land: s.land,
     terrain,
     regions: s.regions,
     plan,
@@ -119,7 +121,9 @@ export function placeSculptures(s: Services, trees: Trees, cannons: Cannons, int
 // 1) 마을마다 기준탑 하나: 멀리서도 저기가 마을임을 안다
 function placeAnchors(x: PlaceCtx) {
   const { HV, occ, plan, st, DECO, landmarks } = x;
-  for (let hk = 0; hk < HV.length; hk++)
+  for (let hk = 0; hk < HV.length; hk++) {
+    // 바다에 잠긴 마을은 기준탑이 없다(빈자리를 찾아 먼 뭍까지 나가 세우지 않게)
+    if (!x.land.has(HV[hk])) continue;
     for (let t = 0; t < plan.anchorTries; t++) {
       const dist = 30 + t * 1.5;
       const bearing = 40 + hk * 67 + t * 37;
@@ -133,6 +137,7 @@ function placeAnchors(x: PlaceCtx) {
         break;
       }
     }
+  }
 }
 
 // 2) 다른 마을로 가는 길목마다 거대한 것 둘이 문이 된다
@@ -476,7 +481,7 @@ function putB(x: PlaceCtx, v: THREE.Vector3, alt: number, H: number, i: number) 
     const skipRoll = fr(i, 407);
     if (skipRoll < at.region.balloonSkip * at.w) return false;
   }
-  if (!DBAL || DBAL.n >= BALLOON_N) return false;
+  if (!DBAL || DBAL.n >= BALLOON_N || !x.land.has(v)) return false;
   const gr = terrain.groundAt(v) + alt,
     yaw = 6.28 * fr(i, 355),
     o: Deco = {

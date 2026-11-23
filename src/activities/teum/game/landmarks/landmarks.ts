@@ -41,9 +41,11 @@ export class Landmarks implements Thing {
 
   /** 다가가면 말을 걸고, 말풍선을 랜드마크 위에 둔다(카메라 다음) */
   update(f: Frame) {
-    const { player, hud, occ } = this.s,
+    const { player, hud, occ, land } = this.s,
       p = player.p;
     for (let hk = 0; hk < occ.hubs.length; hk++) {
+      // 바다 한가운데의 마을 자리는 말을 걸지 않는다
+      if (!land.has(occ.hubs[hk])) continue;
       const o = this.landmarks[hk],
         v = o ? o.v : occ.hubs[hk],
         r = o ? o.r : NO_LANDMARK_R;

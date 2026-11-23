@@ -4,7 +4,7 @@
 // 때에 따라 쓰는 난수가 달라지는 것들이 있어, 도착을 늘 같은 구간 경계에 맞춘다).
 // 뜨는 것: 배치 전체 · 놓인 수 · 가만히 2초 · 놀이기구·장소마다 순간이동한 뒤 3초 · 키를 눌러 나는 9초 · 끝 상태.
 // 사용: 개발 서버(`next dev`, 에셋은 tools/serve.mjs)를 띄우고
-//   node fingerprint.mjs <origin> <out.json>                      지문을 뜬다
+//   node fingerprint.mjs <origin> <out.json> [지도]               지문을 뜬다(지도를 안 주면 기본 지도, 주면 ?map=<지도>)
 //   node fingerprint.mjs --compare <before.json> <after.json>     비교한다(같으면 0, 다르면 1로 끝난다)
 // 비교는 끝 상태의 호수 물고기만 뺀다 — 같은 코드로도 판마다 아주 조금 흔들린다(그 밖은 모두 정확히 같아야 한다).
 // 크롬은 깔려 있는 것을 쓴다: TEUM_CHROME 으로 바꾼다
@@ -19,10 +19,10 @@ if (process.argv[2] === "--compare") {
   process.exit(same ? 0 : 1);
 }
 
-const [origin, out] = process.argv.slice(2);
+const [origin, out, map] = process.argv.slice(2);
 if (!origin || !out) {
   console.error(
-    "사용: node fingerprint.mjs <origin> <out.json> | --compare <before.json> <after.json>",
+    "사용: node fingerprint.mjs <origin> <out.json> [지도] | --compare <before.json> <after.json>",
   );
   process.exit(1);
 }
@@ -60,7 +60,8 @@ page.on("pageerror", (e) => errors.push(String(e)));
 page.on("console", (m) => {
   if (m.type() === "error") errors.push(m.text());
 });
-await page.goto(`${origin}/events/teum?seed=7&fest=0&quick`, {
+const mapParam = map ? `&map=${map}` : "";
+await page.goto(`${origin}/events/teum?seed=7&fest=0&quick${mapParam}`, {
   waitUntil: "domcontentloaded",
   timeout: 120000,
 });

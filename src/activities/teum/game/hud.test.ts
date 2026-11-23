@@ -56,4 +56,15 @@ describe("Hud 꾸미기 씬", () => {
     expect([hud.hint.style.display, mute.style.right, mute.style.zIndex]).toEqual(["", before, ""]);
     hud.dispose();
   });
+
+  it("열려 있는 동안 → isInStudio 가 true(따로 얹은 놀이 화면이 이것을 보고 같이 숨는다)", () => {
+    const parent = document.createElement("div");
+    const hud = new Hud(parent);
+    const before = hud.isInStudio;
+    hud.setStudio(true);
+    const open = hud.isInStudio;
+    hud.setStudio(false);
+    expect([before, open, hud.isInStudio]).toEqual([false, true, false]);
+    hud.dispose();
+  });
 });

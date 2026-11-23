@@ -69,6 +69,10 @@ export interface GameEventMap {
   dayChanged: { day: number; festival: number };
   /** 옷장에서 하나 골랐다(random: 아무거나 단추) */
   outfitPicked: { random: boolean };
+  /** 물풍선을 먹었다(count: 이번 판에 먹은 수, total: 이 지도의 물풍선 수) */
+  waterBalloonPopped: { count: number; total: number };
+  /** 물풍선을 다 먹었다(seconds: 처음 움직인 때부터 걸린 시간) */
+  waterBalloonsCleared: { seconds: number };
 }
 
 /** 알리는 일의 이름 */

@@ -67,11 +67,14 @@ import type { Services } from "./services";
 import { S } from "./settings";
 import { SoundManager } from "./sound";
 import { Studio } from "./studio/studio";
+import type { WaterBalloons } from "./waterBalloons/waterBalloons";
+import { createWaterBalloons } from "./waterBalloons/waterBalloons";
 import { Clouds } from "./world/clouds";
 import { Culler } from "./world/culler";
 import { Flowers } from "./world/flowers";
 import { Ground } from "./world/ground";
 import { Lakes } from "./world/lakes";
+import { Land } from "./world/land";
 import { Occupancy } from "./world/occupancy";
 import { Places } from "./world/places";
 import { RegionLook } from "./world/regionLook";
@@ -162,6 +165,8 @@ export class Game {
   readonly bubbleTrail: BubbleTrail;
   readonly director: Director;
   readonly creatures: Creatures;
+  /** 물풍선 놀이(지도에 물풍선 자리가 있을 때만 — 없으면 null) */
+  readonly waterBalloons: WaterBalloons | null;
   readonly input: Input;
   /** 소리판(알림판을 듣는다 — 소리를 정하기 전에는 아무것도 하지 않는다) */
   readonly sound: SoundManager;
@@ -189,7 +194,9 @@ export class Game {
     const layout = cloneLayout(map);
     const mats = new Mats();
     const rng = new Random(seed);
-    const terrain = new Terrain(map.seed, map.terrain, layout.hill);
+    const land = new Land(map.land);
+    const isLand = (v: THREE.Vector3) => land.has(v);
+    const terrain = new Terrain(map.seed, map.terrain, layout.hill, isLand);
     const events = new GameEvents();
     const player = new Player(terrain, events);
     const hudParent = canvas.parentElement ?? document.body;
@@ -197,7 +204,10 @@ export class Game {
     const models = new ModelLibrary(manifest, mats.lookU, scene);
     const fxRng = rng.fork("fx"),
       rippleRng = rng.fork("ripples");
-    const occ = new Occupancy();
+    const occ = new Occupancy(land);
+    const hubSpots = layout.hub.map((h) => from(h.dist, h.bear));
+    // 축제는 뭍의 마을에서만 연다(출발도 그 마을에서 한다)
+    const towns = hubSpots.flatMap((v, i) => (land.has(v) ? [i] : []));
     const s: Services = {
       scene,
       map,
@@ -205,8 +215,9 @@ export class Game {
       layout,
       terrain,
       occ,
+      land,
       regions: new Regions(occ.hubs, map.regions, map.regionEdge),
-      today: new Today(events, map.regions.length, festival),
+      today: new Today(events, towns, festival),
       culler: new Culler(scene, player),
       player,
       camera: new CameraRig(stage.camera, player, terrain),
@@ -218,10 +229,7 @@ export class Game {
       rng,
     };
     this.s = s;
-    for (const h of layout.hub) {
-      const hubV = from(h.dist, h.bear);
-      s.occ.hubs.push(hubV);
-    }
+    for (const hubV of hubSpots) s.occ.hubs.push(hubV);
     // 물건 셰이더가 보는 지역: 마을 중심·색상 돌림 각·테두리
     mats.lookU.regionHub.value = s.occ.hubs;
     mats.lookU.regionHue.value = map.regions.map((r) => THREE.MathUtils.degToRad(r.hue));
@@ -343,6 +351,9 @@ export class Game {
     this.wings.fitModels();
     this.funnels.fitModels();
     this.seeds.fitModels();
+    // 물풍선 놀이는 맨 마지막에 만든다 — 세계의 배치·난수 차례에 끼어들지 않게(자리 차지도 하지 않는다)
+    this.waterBalloons = createWaterBalloons(s, hudParent);
+    const balloonGame = this.waterBalloons ? [this.waterBalloons] : [];
     // 찍어 둔 묶음(조형물·나무·꽃·봉오리…)도 가까운 것만 칸에 채운다 — 장면에서 떼는 것과 같은 기준·같은 때
     s.culler.onCull((cut) => models.cull(player.p as THREE.Vector3, cut));
     // ---- 한 프레임의 순서 ----
@@ -404,6 +415,7 @@ export class Game {
       this.bubbleTrail,
       this.director,
       this.creatures,
+      ...balloonGame,
       this.regionLook,
       places,
       this.clouds,

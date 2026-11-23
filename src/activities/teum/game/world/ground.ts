@@ -26,6 +26,9 @@ interface GroundUniforms {
   uRegA: { value: THREE.Color[] };
   uRegB: { value: THREE.Color[] };
   uRegE: { value: THREE.Vector2 };
+  /** 뭍의 가운데와 물가의 코사인(바다가 있는 지도만 쓴다) */
+  uLandC: { value: THREE.Vector3 };
+  uLandCos: { value: number };
 }
 
 /** 부푼 구름 셰이더가 같이 쓰는 값 */
@@ -70,6 +73,8 @@ export class Ground implements Thing {
       uRegA: { value: regions.map((r) => new THREE.Color(r.ground[0])) },
       uRegB: { value: regions.map((r) => new THREE.Color(r.ground[1])) },
       uRegE: { value: new THREE.Vector2(edge.from, edge.width) },
+      uLandC: { value: s.land.centre?.clone() ?? new THREE.Vector3(0, 1, 0) },
+      uLandCos: { value: s.land.cos },
     };
     this.PUF = { uRim: { value: new THREE.Color(0xffffff) }, uRimK: { value: 0.55 } };
     this.groundify(planetMat);
@@ -84,6 +89,8 @@ export class Ground implements Thing {
   /** 땅 재질: 체커 무늬 땅(지역마다 두 색, 지역 사이는 옅은 중립색), 구름 그림자, 가까운 곳의 잔디 결 */
   groundify(mat: THREE.MeshStandardMaterial) {
     const regions = this.GND.uRegA.value.length;
+    // 바다가 없는 지도는 바다 셈을 셰이더에 넣지 않는다
+    const sea = this.s.land.centre ? 1 : 0;
     mat.onBeforeCompile = (sh) => {
       Object.assign(sh.uniforms, this.GND);
       sh.vertexShader =
@@ -94,6 +101,10 @@ export class Ground implements Thing {
         );
       sh.fragmentShader =
         `#define TEUM_REGIONS ${regions}
+        #define TEUM_SEA ${sea}
+        #if TEUM_SEA > 0
+        uniform vec3 uLandC; uniform float uLandCos;
+        #endif
         varying vec3 vWp; uniform vec3 uA; uniform vec3 uB; uniform vec3 uRim; uniform float uRimK; uniform float uInvR; uniform float uT; uniform float uGrass; uniform vec3 uPk;
         #if TEUM_REGIONS > 0
         uniform vec3 uHubV[TEUM_REGIONS]; uniform vec3 uRegA[TEUM_REGIONS]; uniform vec3 uRegB[TEUM_REGIONS]; uniform vec2 uRegE;
@@ -117,15 +128,29 @@ export class Ground implements Thing {
           cA = mix(mix(uA, vec3(0.93), 0.45), rA, rw); cB = mix(mix(uB, vec3(0.93), 0.45), rB, rw); }
         #endif
         diffuseColor.rgb = mix(cA, cB, ck) * (0.96 + 0.07 * tn) * (1.0 - 0.05 * tsh);
-        // 잔디 결: 가까운 곳에서만 잘게 얼룩지고, 군데군데 햇빛 받은 연두가 섞인다
-        float gf = (1.0 - smoothstep(16.0, 85.0, length(vViewPosition))) * uGrass;
+        float seaK = 0.0;
+        #if TEUM_SEA > 0
+        { // 물가 밖은 바다: 청록 물 타일이 일렁이고, 물가 안쪽 20m 는 모래, 물가 선에는 거품이 드나든다(코사인 0.002 가 약 1m)
+          float lc = dot(normalize(vWp), uLandC) - uLandCos;
+          float wave = 0.004 * sin(uT * 0.9 + tn * 9.0);
+          seaK = 1.0 - smoothstep(-0.006, 0.006, lc + wave);
+          float swell = teumN(tq * 70.0 + vec3(uT * 0.06, uT * 0.04, 0.0));
+          vec3 water = mix(vec3(0.09, 0.64, 0.85), vec3(0.24, 0.75, 0.92), ck) * (0.9 + 0.2 * swell);
+          vec3 sand = vec3(1.0, 0.95, 0.81) * (0.97 + 0.06 * tn);
+          diffuseColor.rgb = mix(sand, diffuseColor.rgb, smoothstep(0.0, 0.04, lc));
+          diffuseColor.rgb = mix(diffuseColor.rgb, water, seaK);
+          float foam = 1.0 - smoothstep(0.0, 0.005, abs(lc + wave));
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), foam * 0.85); }
+        #endif
+        // 잔디 결: 가까운 곳에서만 잘게 얼룩지고, 군데군데 햇빛 받은 연두가 섞인다(바다에는 없다)
+        float gf = (1.0 - smoothstep(16.0, 85.0, length(vViewPosition))) * uGrass * (1.0 - seaK);
         float g1 = teumN(vWp * 4.5), g2 = teumN(vWp * 17.0), g3 = teumN(vWp * 46.0);
         diffuseColor.rgb *= 1.0 + gf * ((g3 - 0.5) * 0.16 + (g2 - 0.5) * 0.12 + (g1 - 0.5) * 0.06);
         diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.16, 1.08, 0.7), gf * smoothstep(0.6, 0.9, g1) * 0.2);`,
           )
           .replace("#include <dithering_fragment>", RIM_GLSL);
     };
-    mat.customProgramCacheKey = () => "teum-ground5-r" + regions;
+    mat.customProgramCacheKey = () => "teum-ground5-r" + regions + "-s" + sea;
   }
 
   /** 부푼 구름 재질: 가장자리가 밝게 번진다 */

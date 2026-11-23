@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 
 import { S } from "../settings";
+import { Land } from "./land";
 import { offset } from "./sphere";
 import { Occupancy } from "./occupancy";
 
@@ -23,6 +24,14 @@ describe("Occupancy", () => {
       const brute = !filled.some((o) => o.v.angleTo(q) * S.R < o.r + pad);
       expect(occ.isFree(q, pad)).toBe(brute);
     }
+  });
+
+  it("바다는 늘 찬 자리 → 뭍이 정해진 지도에서 바다의 빈자리는 없다", () => {
+    const land = new Land({ dist: 0, bear: 0, reach: 90 });
+    const occ = new Occupancy(land);
+    const quarter = (Math.PI * S.R) / 2;
+    expect(occ.isFree(offset(START, quarter - 20, 10), 5)).toBe(true);
+    expect(occ.isFree(offset(START, quarter + 20, 10), 5)).toBe(false);
   });
 
   it("nearCorridor → 통로 반지름 + pad 안이면 true", () => {

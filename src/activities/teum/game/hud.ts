@@ -28,6 +28,7 @@ export class Hud {
   /** 소리 끄기 단추(낼 소리가 있을 때만) */
   private mute: HTMLButtonElement | null = null;
   private readonly parent: HTMLElement;
+  private inStudio = false;
 
   /** 캔버스 위(같은 부모)에 안내 글자와 끌기 동그라미를 만든다 */
   constructor(parent: HTMLElement) {
@@ -185,6 +186,7 @@ export class Hud {
    * 배경 음악이 도는 동안 끌 수 있어야 한다
    */
   setStudio(on: boolean) {
+    this.inStudio = on;
     const display = on ? "none" : "";
     for (const el of [this.hint, this.talk]) el.style.display = display;
     const mute = this.mute;
@@ -196,6 +198,11 @@ export class Hud {
         : "calc(8px + env(safe-area-inset-right))",
       zIndex: on ? "4" : "",
     });
+  }
+
+  /** 꾸미기 씬이 열려 있나 — 게임 위에 따로 얹은 화면(물풍선 놀이)이 같이 숨는다 */
+  get isInStudio(): boolean {
+    return this.inStudio;
   }
 
   /** 지금 말풍선의 글(시험 창구가 읽는다) */
