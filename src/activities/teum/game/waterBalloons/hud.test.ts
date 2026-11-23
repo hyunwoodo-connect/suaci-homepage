@@ -72,6 +72,37 @@ describe("WaterBalloonHud 화살표", () => {
   });
 });
 
+describe("WaterBalloonHud 핀", () => {
+  const shown = (parent: HTMLElement) =>
+    [...parent.querySelectorAll<HTMLElement>('[aria-hidden="true"]')[1].children].filter(
+      (el) => (el as HTMLElement).style.display !== "none",
+    ) as HTMLElement[];
+
+  it("준 핀만 보인다: 그 자리에, 그 진하기로", () => {
+    const { parent, hud } = mount();
+    hud.setPins([
+      { x: 100, y: 200, tint: "#a9ff39", alpha: 1 },
+      { x: 300, y: 500, tint: "#a9ff39", alpha: 0.4 },
+    ]);
+    const pins = shown(parent);
+    expect(pins).toHaveLength(2);
+    expect([pins[0].style.transform, pins[1].style.opacity]).toEqual([
+      "translate(100px, 200px)",
+      "0.4",
+    ]);
+  });
+
+  it("다음에 덜 주거나 진하기가 0 이면 → 남는 핀은 숨는다", () => {
+    const { parent, hud } = mount();
+    hud.setPins([
+      { x: 100, y: 200, tint: "#a9ff39", alpha: 1 },
+      { x: 300, y: 500, tint: "#a9ff39", alpha: 1 },
+    ]);
+    hud.setPins([{ x: 100, y: 200, tint: "#a9ff39", alpha: 0 }]);
+    expect(shown(parent)).toHaveLength(0);
+  });
+});
+
 describe("WaterBalloonHud 성공 판", () => {
   it("처음엔 → 보이지 않는다", () => {
     const { isPanelShown } = mount();

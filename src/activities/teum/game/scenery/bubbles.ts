@@ -23,6 +23,10 @@ interface Bubble {
 
 /** 방울 색: 흰색·분홍·하늘·노랑을 돌려 가며 */
 const BUBBLE_TINTS = [0xffffff, 0xffc4e0, 0xcfe0ff, 0xfff3b0];
+/** 터지며 튕겨 올리는 세기(첫 방울 · 잇달아 터뜨릴 때마다 더)와 빨라지는 정도 — 방울은 "먹으면 빨라지는 것"이다 */
+const POP_LIFT = 2.6,
+  POP_LIFT_STEP = 0.9,
+  POP_BOOST = 0.8;
 
 /** 마을마다 무리 자리를 찾는 고정 난수 번호의 간격(지도의 tries 는 이보다 작다) · 무리 안 방울 번호의 간격(perCluster 는 이보다 작다) */
 const HUB_STRIDE = 40,
@@ -147,12 +151,13 @@ export class Bubbles implements Thing {
         this.comboT = 2.2;
         this.s.events.emit("bubblePopped", { combo });
         if (!held) {
-          const popLift = 2.6 + this.combo * 0.9;
+          const popLift = POP_LIFT + this.combo * POP_LIFT_STEP;
           player.lift(popLift);
+          player.boostAtLeast(POP_BOOST);
         }
         pI.copy(b.v).multiplyScalar(radius);
         fx.burst(pI, 5, 5);
-        hud.sayOnce("bubble", "비눗방울 — 잇달아 터뜨릴수록 높이 튑니다");
+        hud.sayOnce("bubble", "비눗방울 — 먹으면 빨라지고, 잇달아 터뜨릴수록 높이 튀어요");
       }
       // 터진 방울은 다시 생길 때까지 거의 0 크기로 숨기고, 있는 방울은 살짝 일렁인다
       const wobblePhase = time * 2.3 + b.ph,

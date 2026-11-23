@@ -313,6 +313,11 @@ export const SOUND_EFFECTS: SoundTable = {
     random
       ? { key: "snd_pick", volume: 0.5, rate: 1.2 }
       : { key: "snd_pick", volume: 0.4, rate: 1.4 },
+  // 방울 길: 터뜨릴 때마다 한 음씩 오르고, 마지막 방울은 튕겨 오르는 소리
+  trailBubblePopped: ({ step, last }) =>
+    last
+      ? { key: "snd_up", volume: 0.5, rate: 1.25 }
+      : { key: "snd_pick", volume: 0.32, rate: 1 + 0.12 * step, gap: 0.03 },
   // 물풍선: 터지는 물소리에, 먹은 수만큼 조금씩 높아지는 울림(첫 개 0.9 → 마지막 1.5)
   waterBalloonPopped: ({ count, total }) => {
     const rest = total - 1,

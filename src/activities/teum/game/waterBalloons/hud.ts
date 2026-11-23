@@ -3,9 +3,18 @@ import { HUD_FONT } from "../hud";
 import type { EdgeHint, HintBox } from "./rules";
 import { formatElapsed } from "./rules";
 
-// 물풍선 놀이의 화면(DOM, 폰 세로 기준): 위 가운데 개수 알약, 화면 밖 물풍선을 가리키는 물방울 화살표, 다 먹었을 때의 성공 판.
+// 물풍선 놀이의 화면(DOM, 폰 세로 기준): 위 가운데 개수 알약, 화면에 보이는 물풍선 위의 물방울 핀, 화면 밖 물풍선을 가리키는
+// 물방울 화살표, 다 먹었을 때의 성공 판. 핀·화살표·알약의 물방울이 모두 같은 모양이라 "이 표시가 붙은 것이 먹을 것"임을 안다.
 // 무엇을 보일지는 물풍선(waterBalloons.ts)이 정한다 — 여기는 그리고, 눌린 단추를 알리기만 한다.
-// 알약·화살표는 손가락을 받지 않아 끌기를 막지 않는다. 성공 판의 단추만 누를 수 있다(44px 이상)
+// 알약·핀·화살표는 손가락을 받지 않아 끌기를 막지 않는다. 성공 판의 단추만 누를 수 있다(44px 이상)
+
+/** 물풍선 위의 핀 하나: 자리(px — 뾰족한 끝이 가리키는 점)·색(CSS)·진하기(0..1) */
+export interface BalloonPin {
+  x: number;
+  y: number;
+  tint: string;
+  alpha: number;
+}
 
 /** 눌린 것을 알리는 곳 */
 interface WaterBalloonHudHandlers {
@@ -17,13 +26,16 @@ interface WaterBalloonHudHandlers {
 
 const INK = "#2b2e2d",
   LIME = "#a9ff39",
-  CHIP = "#eef1f0",
-  WATER = "#35c8ff";
+  CHIP = "#eef1f0";
 
 /** 화살표가 다니는 칸의 안쪽 여백(px): 위는 개수 알약·소리 단추 아래로, 아래는 옷장 단추·안내 줄 위로 */
 const EDGE_TOP = 78,
   EDGE_BOTTOM = 100,
   EDGE_SIDE = 30;
+/** 핀: 크기(px) · 까딱이는 폭(px)과 빠르기 */
+const PIN_SIZE = 22,
+  PIN_BOB = 3,
+  PIN_BOB_RATE = 4;
 /** 개수가 오를 때 알약이 커져 있는 시간(초)과 그때의 크기 */
 const BUMP_SECONDS = 0.14,
   BUMP_SCALE = 1.24;
@@ -40,6 +52,9 @@ export class WaterBalloonHud {
   private readonly countText: HTMLSpanElement;
   private readonly arrow: HTMLDivElement;
   private readonly arrowDrop: HTMLDivElement;
+  private readonly pinLayer: HTMLDivElement;
+  private readonly pins: HTMLDivElement[] = [];
+  private time = 0;
   private readonly panel: HTMLDivElement;
   private readonly doneLine: HTMLParagraphElement;
   private readonly timeText: HTMLSpanElement;
@@ -81,7 +96,8 @@ export class WaterBalloonHud {
       transform: "translateX(-50%) scale(1)",
       transition: REDUCED_MOTION ? "none" : "transform .3s cubic-bezier(.3,1.7,.5,1)",
     });
-    const drop = droplet(15, WATER);
+    const drop = droplet(16, LIME);
+    drop.style.border = `2px solid ${INK}`;
     // 뾰족한 끝(오른쪽 위)을 위로 세운다
     drop.style.transform = "rotate(-45deg)";
     drop.style.marginTop = "3px";
@@ -101,9 +117,14 @@ export class WaterBalloonHud {
       display: "none",
       filter: "drop-shadow(0 2px 5px rgba(0,0,0,.3))",
     });
-    this.arrowDrop = droplet(30, WATER);
-    this.arrowDrop.style.border = "3px solid #fff";
+    this.arrowDrop = droplet(30, LIME);
+    this.arrowDrop.style.border = `3px solid ${INK}`;
     this.arrow.append(this.arrowDrop);
+
+    // 핀: 화면에 보이는 물풍선마다 하나(필요한 만큼 만들어 돌려 쓴다)
+    this.pinLayer = document.createElement("div");
+    this.pinLayer.setAttribute("aria-hidden", "true");
+    Object.assign(this.pinLayer.style, { position: "absolute", inset: "0" });
 
     // 성공 판: 어떤 바탕 위에서도 읽히게 흰 판에 먹색 테두리
     this.panel = document.createElement("div");
@@ -179,7 +200,8 @@ export class WaterBalloonHud {
     buttons.append(this.again, keep);
     this.panel.append(title, this.doneLine, time, buttons);
 
-    this.root.append(this.pill, this.arrow, this.panel);
+    // 겹치는 차례: 화살표·핀은 알약 아래로, 성공 판이 맨 위
+    this.root.append(this.arrow, this.pinLayer, this.pill, this.panel);
     parent.append(this.root);
   }
 
@@ -206,7 +228,7 @@ export class WaterBalloonHud {
   }
 
   /** 화살표를 그 자리에 그 색으로 둔다. null 이면 숨긴다(물풍선이 화면에 보인다) */
-  pointTo(hint: EdgeHint | null, tint = WATER) {
+  pointTo(hint: EdgeHint | null, tint = LIME) {
     if (!hint) {
       this.arrow.style.display = "none";
       return;
@@ -215,6 +237,29 @@ export class WaterBalloonHud {
     this.arrow.style.display = "block";
     this.arrow.style.transform = `translate(${hint.x}px, ${hint.y}px) rotate(${turn}rad)`;
     this.arrowDrop.style.background = tint;
+  }
+
+  /** 화면에 보이는 물풍선 위에 핀을 둔다(뾰족한 끝이 물풍선을 가리키고 살짝 까딱인다). 준 것만 보인다 */
+  setPins(list: readonly BalloonPin[]) {
+    while (this.pins.length < list.length) {
+      const el = this.addPin();
+      this.pins.push(el);
+    }
+    const bobPhase = this.time * PIN_BOB_RATE,
+      bob = Math.sin(bobPhase) * PIN_BOB;
+    this.pins.forEach((el, i) => {
+      const pin = list[i];
+      if (!pin || pin.alpha <= 0.01) {
+        el.style.display = "none";
+        return;
+      }
+      const top = pin.y - bob;
+      el.style.display = "block";
+      el.style.opacity = pin.alpha.toFixed(2);
+      el.style.transform = `translate(${pin.x}px, ${top}px)`;
+      const drop = el.firstElementChild as HTMLDivElement;
+      drop.style.background = pin.tint;
+    });
   }
 
   /** 성공 판을 띄운다: 먹은 수와 걸린 시간 */
@@ -250,8 +295,9 @@ export class WaterBalloonHud {
     if (this.root.style.display !== display) this.root.style.display = display;
   }
 
-  /** 커진 알약을 제 크기로 돌려놓는다 */
+  /** 커진 알약을 제 크기로 돌려놓는다(핀이 까딱이는 박자도 여기서 센다) */
   update(f: Frame) {
+    this.time += f.dt;
     if (this.bump <= 0) return;
     this.bump -= f.dt;
     if (this.bump <= 0) this.pill.style.transform = "translateX(-50%) scale(1)";
@@ -261,11 +307,36 @@ export class WaterBalloonHud {
   dispose() {
     this.root.remove();
   }
+
+  /* ─── 내부 ─────────────────────────── */
+
+  // 핀 하나: 물방울의 뾰족한 끝을 아래로 돌려, 그 끝이 준 자리에 오게 위로 올려 둔다
+  private addPin(): HTMLDivElement {
+    const el = document.createElement("div");
+    Object.assign(el.style, {
+      position: "absolute",
+      left: "0",
+      top: "0",
+      width: `${PIN_SIZE}px`,
+      height: `${PIN_SIZE}px`,
+      margin: `${-PIN_SIZE * 1.25}px 0 0 ${-PIN_SIZE / 2}px`,
+      display: "none",
+      filter: "drop-shadow(0 2px 4px rgba(0,0,0,.3))",
+    });
+    const drop = droplet(PIN_SIZE, LIME);
+    drop.style.border = `2px solid ${INK}`;
+    // 뾰족한 끝(오른쪽 위)을 아래로
+    drop.style.transform = "rotate(135deg)";
+    el.append(drop);
+    this.pinLayer.append(el);
+    return el;
+  }
 }
 
 /* ─── 내부 ─────────────────────────── */
 
-// CSS 로 그린 물방울: 세 귀를 둥글린 네모 — 남은 한 귀(오른쪽 위)가 뾰족한 끝이다. 흰 점은 물풍선의 반짝임
+// CSS 로 그린 물방울: 세 귀를 둥글린 네모 — 남은 한 귀(오른쪽 위)가 뾰족한 끝이다. 흰 점은 물풍선의 반짝임.
+// 라임은 밝은 바탕에서 묻히므로 쓰는 쪽이 먹색 테두리를 두른다
 function droplet(size: number, tint: string): HTMLDivElement {
   const el = document.createElement("div");
   Object.assign(el.style, {

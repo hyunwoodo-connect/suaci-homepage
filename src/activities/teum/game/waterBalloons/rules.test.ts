@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import type { EdgeHint, HintBox, Point } from "./rules";
-import { edgeHint, formatElapsed, nearestRemaining, touchedBalloons } from "./rules";
+import {
+  edgeHint,
+  formatElapsed,
+  nearestRemaining,
+  pinFade,
+  screenPin,
+  touchedBalloons,
+} from "./rules";
 
 const at = (x: number, y: number, z: number): Point => ({ x, y, z });
 const REACH = 5;
@@ -127,5 +134,33 @@ describe("edgeHint", () => {
 
   it("비스듬히 밖 → 먼저 닿는 변에 서고 칸을 벗어나지 않는다", () => {
     expect(rounded(hint(10, 10, -10))).toEqual([370, 230, -QUARTER]);
+  });
+});
+
+describe("screenPin", () => {
+  // 시야 절반 각의 탄젠트 1(가로·세로), 화면 400×800
+  const pin = (x: number, y: number, z: number) => screenPin(at(x, y, z), 1, 1, 400, 800);
+
+  it("정면 한가운데 → 화면 가운데", () => {
+    expect(pin(0, 0, -10)).toEqual({ x: 200, y: 400 });
+  });
+
+  it("오른쪽 위에 보이는 것 → 화면 오른쪽 위(위가 y 작은 쪽)", () => {
+    expect(pin(5, 5, -10)).toEqual({ x: 300, y: 200 });
+  });
+
+  it("시야 밖이거나 등 뒤 → null(가장자리 화살표가 맡는다)", () => {
+    expect([pin(11, 0, -10), pin(0, -11, -10), pin(0, 0, 10)]).toEqual([null, null, null]);
+  });
+});
+
+describe("pinFade", () => {
+  it("가까우면 안 보이고(물풍선이 바로 보인다) 멀어질수록 진해져 다 보인다", () => {
+    expect([
+      pinFade(10, 30, 70),
+      pinFade(30, 30, 70),
+      pinFade(50, 30, 70),
+      pinFade(200, 30, 70),
+    ]).toEqual([0, 0, 0.5, 1]);
   });
 });
