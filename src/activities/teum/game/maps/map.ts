@@ -141,6 +141,13 @@ interface BrandMap {
   };
 }
 
+/** 물풍선 하나의 자리: 출발점에서 거리(자리표 거리)·방향(도), 그 자리 땅 위 높이(m) */
+export interface WaterBalloonSpot {
+  dist: number;
+  bear: number;
+  alt: number;
+}
+
 /** 지도 하나 */
 export interface GameMap {
   /** 이름(개발에서 ?map= 으로 고른다) */
@@ -169,6 +176,8 @@ export interface GameMap {
   sculptures: SculptureMap;
   creatures: CreatureMap;
   brand: BrandMap;
+  /** 물풍선 놀이: 이 자리의 물풍선을 다 먹으면 성공. 없으면 놀이 없이 떠다니기만 한다 */
+  waterBalloons?: readonly WaterBalloonSpot[];
 }
 
 /** span 안에서 roll(0..1) 만큼의 값 */
