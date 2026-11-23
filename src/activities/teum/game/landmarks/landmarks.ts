@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
 import type { Progress } from "../progress/progress";
-import type { Deco } from "../sculptures/sculptures";
+import type { Deco } from "../sculptures/deco";
 import type { Services } from "../services";
 import { S } from "../settings";
 import { LANDMARK_HELLO, LANDMARK_LINES } from "./lines";

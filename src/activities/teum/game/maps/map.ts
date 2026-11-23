@@ -47,7 +47,7 @@ interface BrandPlacement {
 }
 
 /**
- * 조형물(sculptures): 놓는 여덟 단계(번호는 sculptures.ts 의 단계) 가운데 지도가 정하는 수와 크기.
+ * 조형물(sculptures): 놓는 단계(번호는 sculptures/placement.ts 의 단계) 가운데 지도가 정하는 수와 크기.
  * 5) 높이 사다리는 마을마다 같은 모양(낮은 것 → 큰 것 → 나무 → 열기구)이라 코드에 있다
  */
 interface SculptureMap {
