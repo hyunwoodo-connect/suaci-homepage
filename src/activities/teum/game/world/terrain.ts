@@ -69,8 +69,16 @@ export class Terrain {
   private readonly hillChord: number;
   private readonly near: number[] = [];
 
-  /** 지도의 지형 씨앗·수와 큰 언덕 자리(첫째는 등대 산 — 등대 자리와 같은 자리여야 한다) */
-  constructor(seed: number, counts: GameMap["terrain"], hillSpots: readonly LayoutHill[]) {
+  /**
+   * 지도의 지형 씨앗·수와 큰 언덕 자리(첫째는 등대 산 — 등대 자리와 같은 자리여야 한다).
+   * isLand: 뭍인가 — 바다에 떨어진 꽃 자리·둔덕은 버린다(난수는 그대로 뽑아 뭍의 지형이 바뀌지 않는다)
+   */
+  constructor(
+    seed: number,
+    counts: GameMap["terrain"],
+    hillSpots: readonly LayoutHill[],
+    isLand: (v: THREE.Vector3) => boolean = () => true,
+  ) {
     this.seed = seed;
     const FLN = counts.flowers,
       HLN = counts.mounds,
@@ -80,25 +88,25 @@ export class Terrain {
       fs: number[] = [];
     for (let i = 0; i < FLN; i++) {
       const v = this.rv();
-      fv.push(v);
       const size = 0.35 + this.rnd() * 1.0;
+      if (!isLand(v)) continue;
+      fv.push(v);
       fs.push(size);
     }
     for (const v of fv) this.flowerGrid.add(v);
+    const flowerCount = fv.length;
     this.flowers = {
       v: fv,
       s: fs,
-      lit: new Float32Array(FLN),
-      base: new Array<number>(FLN).fill(0xffffff),
-      g: new Float32Array(FLN),
+      lit: new Float32Array(flowerCount),
+      base: new Array<number>(flowerCount).fill(0xffffff),
+      g: new Float32Array(flowerCount),
     };
     // ---- 둔덕 ----
     const hills: Hills = { v: [], s: [], on: [], c: [] };
     for (let i = 0; i < HLN; i++) {
       const v = this.rv();
-      hills.v.push(v);
       const size = 6 + this.rnd() * this.rnd() * 34;
-      hills.s.push(size);
       const c: [number, number, number][] = [];
       for (let j = 0; j < 5; j++) {
         // [방향, 거리, 크기] — 세 값을 이 순서로 뽑는다
@@ -107,6 +115,9 @@ export class Terrain {
           size2 = 0.3 + this.rnd() * 0.14;
         c.push([dir, far, size2]);
       }
+      if (!isLand(v)) continue;
+      hills.v.push(v);
+      hills.s.push(size);
       hills.c.push(c);
     }
     this.hills = hills;

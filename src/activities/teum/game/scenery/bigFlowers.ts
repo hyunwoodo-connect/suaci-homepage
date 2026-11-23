@@ -44,7 +44,9 @@ export class BigFlowers implements Thing, HasHeights {
     if (!FK.length) return;
     const HV = occ.hubs,
       plan = s.map.bigFlowers;
-    for (let hk = 0; hk < HV.length; hk++)
+    for (let hk = 0; hk < HV.length; hk++) {
+      // 바다에 잠긴 마을은 건너뛴다(먼 뭍까지 찾아가 더 심지 않게)
+      if (!s.land.has(HV[hk])) continue;
       for (let i0 = 0, got = 0; i0 < plan.tries && got < plan.perHub; i0++) {
         const i = hk * HUB_STRIDE + i0,
           distRoll = fr(i, 41),
@@ -69,6 +71,7 @@ export class BigFlowers implements Thing, HasHeights {
         this.near.add(v, reach);
         occ.fill(v, plan.clear);
       }
+    }
   }
 
   /** 고래 길을 정할 때 보는 꼭대기 높이 */

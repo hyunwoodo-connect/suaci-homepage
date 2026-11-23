@@ -73,7 +73,7 @@ export class LogoBalloons {
     for (let hk = 0; hk < HV.length; hk++) {
       const hubBear = 35 + hk * 67;
       const spot = s.occ.hubAt(hk, plan.town.dist, hubBear);
-      this.add(spot, plan.town.alt); // 마을마다 하나
+      if (s.land.has(spot)) this.add(spot, plan.town.alt); // 마을마다 하나(뭍의 마을만)
     }
     for (let i = 0; i < plan.between.count; i++) {
       const farRoll = fr(i, 901),
@@ -81,7 +81,7 @@ export class LogoBalloons {
         bear = 60 * i + 360 * fr(i, 902);
       const hub = HV[i % HV.length];
       const spot = offset(hub, far, bear);
-      this.add(spot, plan.between.alt); // 마을 사이
+      if (s.land.has(spot)) this.add(spot, plan.between.alt); // 마을 사이
     }
   }
 

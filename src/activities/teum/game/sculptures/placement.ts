@@ -44,6 +44,7 @@ interface Placed {
 /** 단계마다 같이 쓰는 것: 찍을 묶음(DK 작은 것·DKB 큰 것·DBAL 열기구)·숲의 나무 종류(TKS)·놓은 것·지도 */
 interface PlaceCtx {
   occ: Services["occ"];
+  land: Services["land"];
   terrain: Services["terrain"];
   regions: Services["regions"];
   plan: GameMap["sculptures"];
@@ -87,6 +88,7 @@ export function placeSculptures(s: Services, trees: Trees, cannons: Cannons, int
   const plan = s.map.sculptures;
   const x: PlaceCtx = {
     occ,
+    land: s.land,
     terrain,
     regions: s.regions,
     plan,
@@ -476,7 +478,7 @@ function putB(x: PlaceCtx, v: THREE.Vector3, alt: number, H: number, i: number) 
     const skipRoll = fr(i, 407);
     if (skipRoll < at.region.balloonSkip * at.w) return false;
   }
-  if (!DBAL || DBAL.n >= BALLOON_N) return false;
+  if (!DBAL || DBAL.n >= BALLOON_N || !x.land.has(v)) return false;
   const gr = terrain.groundAt(v) + alt,
     yaw = 6.28 * fr(i, 355),
     o: Deco = {

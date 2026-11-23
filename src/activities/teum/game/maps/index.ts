@@ -1,3 +1,4 @@
+import { ISLE_MAP } from "./isle";
 import type { GameMap } from "./map";
 import { V78_MAP } from "./v78";
 
@@ -5,7 +6,7 @@ import { V78_MAP } from "./v78";
 // 운영은 늘 DEFAULT_MAP 이고, 개발에서는 ?map=<이름> 으로 고른다
 
 /** 이름 → 지도 */
-export const MAPS: Readonly<Record<string, GameMap>> = { v78: V78_MAP };
+export const MAPS: Readonly<Record<string, GameMap>> = { v78: V78_MAP, isle: ISLE_MAP };
 
 /** 운영이 늘 쓰는 지도 */
 export const DEFAULT_MAP: GameMap = V78_MAP;

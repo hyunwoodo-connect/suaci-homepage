@@ -12,6 +12,7 @@ import type { ModelLibrary } from "./models/library";
 import type { CameraRig } from "./player/camera";
 import type { Player } from "./player/player";
 import type { Culler } from "./world/culler";
+import type { Land } from "./world/land";
 import type { Occupancy } from "./world/occupancy";
 import type { Regions } from "./world/regions";
 import type { Terrain } from "./world/terrain";
@@ -33,6 +34,8 @@ export interface Services {
   terrain: Terrain;
   /** 자리 차지(빈자리·비행 통로·넓은 놀이 자리·마을 중심) */
   occ: Occupancy;
+  /** 뭍과 바다(바다에는 아무것도 놓지 않는다) */
+  land: Land;
   /** 지역(마을마다 색·윤곽·사는 생물) */
   regions: Regions;
   /** 오늘(한국 시간 날짜와 축제 지역 — 판 도중에도 자정에 바뀐다) */

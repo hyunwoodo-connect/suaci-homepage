@@ -72,6 +72,7 @@ import { Culler } from "./world/culler";
 import { Flowers } from "./world/flowers";
 import { Ground } from "./world/ground";
 import { Lakes } from "./world/lakes";
+import { Land } from "./world/land";
 import { Occupancy } from "./world/occupancy";
 import { Places } from "./world/places";
 import { RegionLook } from "./world/regionLook";
@@ -189,7 +190,9 @@ export class Game {
     const layout = cloneLayout(map);
     const mats = new Mats();
     const rng = new Random(seed);
-    const terrain = new Terrain(map.seed, map.terrain, layout.hill);
+    const land = new Land(map.land);
+    const isLand = (v: THREE.Vector3) => land.has(v);
+    const terrain = new Terrain(map.seed, map.terrain, layout.hill, isLand);
     const events = new GameEvents();
     const player = new Player(terrain, events);
     const hudParent = canvas.parentElement ?? document.body;
@@ -197,7 +200,10 @@ export class Game {
     const models = new ModelLibrary(manifest, mats.lookU, scene);
     const fxRng = rng.fork("fx"),
       rippleRng = rng.fork("ripples");
-    const occ = new Occupancy();
+    const occ = new Occupancy(land);
+    const hubSpots = layout.hub.map((h) => from(h.dist, h.bear));
+    // 축제는 뭍의 마을에서만 연다(출발도 그 마을에서 한다)
+    const towns = hubSpots.flatMap((v, i) => (land.has(v) ? [i] : []));
     const s: Services = {
       scene,
       map,
@@ -205,8 +211,9 @@ export class Game {
       layout,
       terrain,
       occ,
+      land,
       regions: new Regions(occ.hubs, map.regions, map.regionEdge),
-      today: new Today(events, map.regions.length, festival),
+      today: new Today(events, towns, festival),
       culler: new Culler(scene, player),
       player,
       camera: new CameraRig(stage.camera, player, terrain),
@@ -218,10 +225,7 @@ export class Game {
       rng,
     };
     this.s = s;
-    for (const h of layout.hub) {
-      const hubV = from(h.dist, h.bear);
-      s.occ.hubs.push(hubV);
-    }
+    for (const hubV of hubSpots) s.occ.hubs.push(hubV);
     // 물건 셰이더가 보는 지역: 마을 중심·색상 돌림 각·테두리
     mats.lookU.regionHub.value = s.occ.hubs;
     mats.lookU.regionHue.value = map.regions.map((r) => THREE.MathUtils.degToRad(r.hue));

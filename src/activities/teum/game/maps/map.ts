@@ -141,6 +141,13 @@ interface BrandMap {
   };
 }
 
+/** 뭍: 이 자리(자리표 거리·방향)를 가운데로 reach 도 안쪽만 뭍이고 나머지는 바다다(바다에는 아무것도 놓지 않는다) */
+export interface MapLand {
+  dist: number;
+  bear: number;
+  reach: number;
+}
+
 /** 물풍선 하나의 자리: 출발점에서 거리(자리표 거리)·방향(도), 그 자리 땅 위 높이(m) */
 export interface WaterBalloonSpot {
   dist: number;
@@ -176,6 +183,8 @@ export interface GameMap {
   sculptures: SculptureMap;
   creatures: CreatureMap;
   brand: BrandMap;
+  /** 뭍과 바다. 없으면 온 행성이 뭍 */
+  land?: MapLand;
   /** 물풍선 놀이: 이 자리의 물풍선을 다 먹으면 성공. 없으면 놀이 없이 떠다니기만 한다 */
   waterBalloons?: readonly WaterBalloonSpot[];
 }

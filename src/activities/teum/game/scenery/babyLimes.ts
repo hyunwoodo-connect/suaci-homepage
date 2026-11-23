@@ -45,7 +45,9 @@ export class BabyLimes implements Thing {
     if (!BL) return;
     // 늘 따라다니므로 가까운 것만 그리기에서 뺀다
     BL.noCull = true;
-    for (let hk = 0; hk < HV.length; hk++)
+    for (let hk = 0; hk < HV.length; hk++) {
+      // 바다에 잠긴 마을은 건너뛴다
+      if (!s.land.has(HV[hk])) continue;
       for (let i0 = 0, got = 0; i0 < plan.tries && got < plan.perHub; i0++) {
         const i = hk * HUB_STRIDE + i0,
           distRoll = fr(i, 81),
@@ -69,6 +71,7 @@ export class BabyLimes implements Thing {
         this.list.push(baby);
         occ.fill(v, plan.clear);
       }
+    }
   }
 
   /** 숨어서 통통 뛰다가, 닿으면 줄지어 따라온다 */
