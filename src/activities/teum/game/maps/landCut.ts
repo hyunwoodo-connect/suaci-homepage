@@ -24,8 +24,9 @@ import type { GameMap, MapLand, MapRegion } from "./map";
 const INLAND = { ride: 12, node: 8, tree: 6 } as const;
 /** 깔때기 그릇·씨앗밭·구름 골짜기는 몸이 넓다(반지름 m) */
 const WIDE_BODY = { funnel: 23, seed: 25, pipe: 20 } as const;
-/** 제트 기류가 이 마디 수보다 짧아지면 뺀다 */
-const JET_MIN_NODES = 15;
+/** 제트 기류가 끝나는 자리는 물가에서 이만큼(m) 안쪽 · 이 마디 수보다 짧아지면 뺀다 */
+const JET_END_INLAND = 250,
+  JET_MIN_NODES = 15;
 /** 바다 지역의 하늘빛 */
 const SEA_SKY = 0x7fd6f2;
 
@@ -134,14 +135,17 @@ function pathOnLand(land: Land, path: Path): boolean {
   return spots.every((v) => land.has(v, INLAND.node));
 }
 
-// 제트 기류는 타면 길 끝까지 실려 간다 — 바다 한가운데에 내려놓지 않게 뭍 위를 지나는 앞부분만 남긴다
+// 제트 기류는 타면 길 끝까지 실려 가고, 끝에서 놓인 뒤에도 그 빠르기로 한참 미끄러진다 — 바다로 내보내지 않게
+// 뭍 위를 지나는 앞부분 가운데 물가에서 넉넉히(JET_END_INLAND) 안쪽에서 끝나는 데까지만 남긴다
 // (마디는 앞에서부터 차례로 놓이므로 뒤를 잘라도 남은 마디의 자리는 그대로다). 너무 짧아지면 뺀다
 function jetsOnLand<J extends LayoutJet>(land: Land, jets: readonly J[]): J[] {
   const out: J[] = [];
   for (const jt of jets) {
     const points = jetPath(jt).points;
     const firstAtSea = points.findIndex((pt) => !land.has(pt.v, INLAND.node));
-    const n = firstAtSea < 0 ? points.length : firstAtSea;
+    const overLand = firstAtSea < 0 ? points : points.slice(0, firstAtSea);
+    const lastInland = overLand.findLastIndex((pt) => land.has(pt.v, JET_END_INLAND));
+    const n = lastInland + 1;
     if (n >= JET_MIN_NODES) out.push({ ...jt, n });
   }
   return out;

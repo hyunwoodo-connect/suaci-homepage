@@ -121,7 +121,9 @@ export function placeSculptures(s: Services, trees: Trees, cannons: Cannons, int
 // 1) 마을마다 기준탑 하나: 멀리서도 저기가 마을임을 안다
 function placeAnchors(x: PlaceCtx) {
   const { HV, occ, plan, st, DECO, landmarks } = x;
-  for (let hk = 0; hk < HV.length; hk++)
+  for (let hk = 0; hk < HV.length; hk++) {
+    // 바다에 잠긴 마을은 기준탑이 없다(빈자리를 찾아 먼 뭍까지 나가 세우지 않게)
+    if (!x.land.has(HV[hk])) continue;
     for (let t = 0; t < plan.anchorTries; t++) {
       const dist = 30 + t * 1.5;
       const bearing = 40 + hk * 67 + t * 37;
@@ -135,6 +137,7 @@ function placeAnchors(x: PlaceCtx) {
         break;
       }
     }
+  }
 }
 
 // 2) 다른 마을로 가는 길목마다 거대한 것 둘이 문이 된다
