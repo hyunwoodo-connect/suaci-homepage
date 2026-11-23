@@ -1,4 +1,4 @@
-// 랜드마크 대사(임시 — 정해지면 이 파일만 바꾼다). 코드는 어느 말을 할지만 고르고, 글은 여기에만 있다
+// 랜드마크 대사. 코드는 어느 말을 할지만 고르고, 글은 여기에만 있다(대사를 바꿀 땐 이 파일만)
 
 /** 지역(지역 이름) → 처음 왔을 때의 인사 */
 export const LANDMARK_HELLO: Readonly<Record<string, string>> = {
@@ -10,11 +10,8 @@ export const LANDMARK_HELLO: Readonly<Record<string, string>> = {
   물가: "물 위를 스치면 빨라져. 조심은 안 해도 돼.",
 };
 
-/** 다시 왔을 때: 이 동네 애를 데려옴 · 다른 동네 애를 데려옴 · 지난번 친구를 두고 옴 · 그냥 또 옴({n} 은 몇 번째) · 인사가 없는 지역 */
+/** 다시 왔을 때({n} 은 몇 번째) · 인사가 없는 지역에 처음 왔을 때 */
 export const LANDMARK_LINES = {
-  local: "어, 우리 동네 애를 데리고 다니네.",
-  guest: "그 친구는 어디서 데려왔어? 여기선 처음 봐.",
-  leftBehind: "지난번 친구는 두고 왔어?",
   again: "{n}번째네. 또 왔구나.",
   hello: "어서 와.",
 } as const;

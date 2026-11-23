@@ -7,12 +7,14 @@ import type { GreyMesh } from "../look";
 import type { Hold } from "../models/library";
 import type { Services } from "../services";
 import { GREY_TOY, S } from "../settings";
-import { from, UP } from "../world/sphere";
+import { from } from "../world/sphere";
+import { standAt } from "./bars";
+import { claimSpots, swapIn } from "./shared";
 
 // 칙 종 — 칙 하면 가까운 것들이 가까운 순서로 울린다. 닿아도 울리고 둘레 꽃이 핀다
 
 /** 종 하나(무리마다 큰 종 하나) */
-export interface Chime {
+interface Chime {
   g: THREE.Group;
   w: THREE.Group;
   ball: GreyMesh;
@@ -66,14 +68,13 @@ export class Chimes implements Thing, Tappable {
       c.v.copy(spot);
       keep.push(c.v);
       const radius = S.R + this.s.terrain.featGround(c.v);
-      c.g.position.copy(c.v).multiplyScalar(radius);
-      c.g.quaternion.setFromUnitVectors(UP, c.v);
+      standAt(c.g, c.v, radius);
     }
   }
 
   /** 자리 차지: 종 둘레 */
   claim() {
-    for (const c of this.list) this.s.occ.fill(c.v, 5);
+    claimSpots(this.s.occ, this.list, 5);
   }
 
   /** 큰 종 모델(저마다 라임으로 물든다). 먼 것은 장면에서 뗀다 */
@@ -82,12 +83,10 @@ export class Chimes implements Thing, Tappable {
     for (const c of this.list) {
       culler.track(c.g, c.v);
       if (!models.has("bell")) continue;
-      const prim = c.w.children.slice(),
-        m = models.fit("bell", 13.5, "h", { ownLime: true });
+      const m = models.fit("bell", 13.5, "h", { ownLime: true });
       m.position.y = m.userData.hh;
-      c.w.add(m);
+      swapIn(models, "bell", c.w, m);
       c.model = m;
-      models.swapWhenReady("bell", prim);
     }
   }
 

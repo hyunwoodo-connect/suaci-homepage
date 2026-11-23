@@ -7,13 +7,13 @@ import type { HeadedSpot } from "../maps/layout";
 import type { Holder } from "../player/player";
 import type { Services } from "../services";
 import { GREY_TOY, S } from "../settings";
-import { along, from, heading, UP } from "../world/sphere";
-import { placeBar } from "./bars";
+import { along, from, heading } from "../world/sphere";
+import { placeBar, standAt } from "./bars";
 
 // 고무줄 — 두 기둥 사이 줄에 부딪히면 쭉 늘어났다가 반대로 튕겨 날아간다
 
 /** 고무줄 하나: 기둥 둘(pa·pb)과 줄 둘(ba·bb), 줄 끝(A·B)·가운데(C)·지금 당겨진 자리(mid) */
-export interface Sling extends HeadedSpot {
+interface Sling extends HeadedSpot {
   pa: THREE.Mesh;
   pb: THREE.Mesh;
   ba: GreyMesh;
@@ -105,10 +105,8 @@ export class Slings implements Thing, Holder {
       pb.copy(sg.v).addScaledVector(sg.side, otherPoleStep).normalize();
       const groundR = S.R + gr;
       const bandR = groundR + 2.4;
-      sg.pa.position.copy(pa).multiplyScalar(groundR);
-      sg.pa.quaternion.setFromUnitVectors(UP, pa);
-      sg.pb.position.copy(pb).multiplyScalar(groundR);
-      sg.pb.quaternion.setFromUnitVectors(UP, pb);
+      standAt(sg.pa, pa, groundR);
+      standAt(sg.pb, pb, groundR);
       sg.A.copy(pa).multiplyScalar(bandR);
       sg.B.copy(pb).multiplyScalar(bandR);
       sg.C.copy(sg.v).multiplyScalar(bandR);

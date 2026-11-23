@@ -8,7 +8,7 @@ import { Occupancy } from "./occupancy";
 const START = new THREE.Vector3(0, 1, 0);
 
 describe("Occupancy", () => {
-  it("isFree → 시제품의 some() 과 같은 답(칸 나눔으로 줄여 봐도)", () => {
+  it("isFree → 하나씩 다 보는 것과 같은 답(칸 나눔으로 줄여 봐도)", () => {
     const occ = new Occupancy();
     const filled: { v: THREE.Vector3; r: number }[] = [];
     for (let i = 0; i < 300; i++) {

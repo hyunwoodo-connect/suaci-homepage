@@ -10,10 +10,10 @@ import { fr } from "../world/hash";
 import type { Height, HasHeights } from "../world/tall";
 import { NearSet } from "./trees";
 
-// 큰 풍선 꽃: 마을마다 몇 송이(지도 bigFlowers — v78 은 예순). 꽃송이를 밟으면 통 튀고, 줄기에 닿으면 움츠렸다가 꽃송이 높이까지 쏘아 올린다
+// 큰 풍선 꽃: 마을마다 몇 송이(지도 bigFlowers). 꽃송이를 밟으면 통 튀고, 줄기에 닿으면 움츠렸다가 꽃송이 높이까지 쏘아 올린다
 
 /** 큰 풍선 꽃 하나 */
-export interface BigFlower {
+interface BigFlower {
   v: THREE.Vector3;
   g: number;
   H: number;

@@ -31,7 +31,7 @@ export interface MapProblem {
 }
 
 /** 땅 위에 자리를 차지하는 것 하나 */
-export interface Footprint {
+interface Footprint {
   /** 무엇(자리표 갈래#차례, 길이면 마디까지) */
   name: string;
   /** 한 덩어리(한 길의 마디들은 같다) — 서로는 겹쳐도 된다 */
@@ -80,7 +80,7 @@ export function checkMap(map: GameMap, manifest: Manifest): MapProblem[] {
 }
 
 /** 지도의 땅 위 자리들(겹침을 셀 때 보는 것) */
-export function footprintsOf(map: GameMap): Footprint[] {
+function footprintsOf(map: GameMap): Footprint[] {
   const L = map.layout,
     out: Footprint[] = [];
   const add = (owner: string, v: THREE.Vector3, r: number, name = owner, attached?: string) =>

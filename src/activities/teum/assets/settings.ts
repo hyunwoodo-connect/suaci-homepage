@@ -1,6 +1,6 @@
 import type { GameEventMap, GameEventName, RideName } from "../game/events";
 
-// 에셋 종류마다의 설정. 시제품 곳곳에 있던 표(KIND·BAKE·SP·색조 tint·줄무늬 pat·조형물 목록)를 한곳에 모았다.
+// 에셋 종류마다의 설정(종류·굽기·생물·색조 tint·줄무늬 pat·조형물 목록)을 한곳에 둔다.
 // 생물·조형물을 늘릴 때: 파일을 raw/ 에 넣고 → tools/catalog.mjs 에 한 줄 → 여기 표에 한 줄.
 // 소리도 같다: 파일을 raw/ 에 넣고 → catalog 의 audio 분류에 한 줄 → 아래 SOUND_EFFECTS(또는 BACKGROUND_MUSIC)에 한 줄.
 
@@ -114,7 +114,7 @@ export interface CreatureSetting {
   habits?: readonly HabitName[];
 }
 
-/** 생물 설정. 무리·하늘·호수로 나오는 것은 이 표의 차례대로 돌려 쓴다(시제품 SP·FLK·호수 순서) */
+/** 생물 설정. 무리·하늘·호수로 나오는 것은 이 표의 차례대로 돌려 쓴다 — 차례가 배치를 정하므로 바꾸지 않는다 */
 export const CREATURES: Readonly<Record<string, CreatureSetting>> = {
   teapot: {
     motion: 1,
@@ -164,7 +164,7 @@ export const MODEL_BAKE: Readonly<Record<string, readonly [number, number, numbe
   );
 
 /** 조형물 한 종류의 설정 */
-export interface SculptureSetting {
+interface SculptureSetting {
   /** large: 14 이상 크게 놓는 것, small: 그보다 작게 놓는 것 */
   size: "large" | "small";
   /** 막지 않는 문: 지나가면 휙 빨라진다(도넛·사탕 문) */
@@ -175,7 +175,7 @@ export interface SculptureSetting {
   bounce?: number;
 }
 
-/** 조형물 설정. 고르는 순서가 배치를 정하므로 순서를 바꾸지 않는다(시제품 DK·DKB 순서) */
+/** 조형물 설정. 고르는 순서가 배치를 정하므로 순서를 바꾸지 않는다 */
 export const SCULPTURES: Readonly<Record<string, SculptureSetting>> = {
   d_cake: { size: "small" },
   d_macaron: { size: "small" },
@@ -260,7 +260,7 @@ export type SoundRule<K extends GameEventName> =
 /** 일어난 일 → 소리 */
 export type SoundTable = { readonly [K in GameEventName]?: SoundRule<K> };
 
-/** 놀이기구가 붙잡을 때(시제품 v78 자리) — 미끄럼틀은 소리 없음 */
+/** 놀이기구가 붙잡을 때 — 미끄럼틀은 소리 없음 */
 const GRAB_SOUND: Readonly<Partial<Record<RideName, SoundCue>>> = {
   rocket: { key: "snd_rocket", volume: 0.6 },
   cannon: { key: "snd_cannon", volume: 0.7 },
@@ -282,8 +282,8 @@ const GREET_SOUND: Readonly<Record<number, string>> = {
 };
 
 /**
- * 일어난 일(game/events) → 효과음. 시제품 v78 의 소리 자리(CHANGES-v65-v78 4장)를 그대로 옮겼다 — 크기·음높이는 아직 다듬지 않았다.
- * 바람 반복음(snd_wind)은 '숨소리 같다'는 지적으로 꺼 두었다(자리만 manifest 에)
+ * 일어난 일(game/events) → 효과음.
+ * 바람 반복음(snd_wind)은 '숨소리 같다'는 지적으로 꺼 두었다(파일은 manifest 에 있다)
  */
 export const SOUND_EFFECTS: SoundTable = {
   grabbed: ({ by }) => GRAB_SOUND[by] ?? null,
@@ -309,24 +309,10 @@ export const SOUND_EFFECTS: SoundTable = {
   },
   landmarkTalked: { key: "snd_quad", volume: 0.5, rate: 0.55, gap: 0.3 },
   regionEntered: { key: "snd_legend", volume: 0.35, rate: 1.2, gap: 3 },
-  // ---- 수집·상자·부탁·도장·이동(아직 알리는 곳이 없다 — 그 흐름이 생기면 바로 난다) ----
-  collected: { key: "snd_stamp", volume: 0.7 },
-  stamped: { key: "snd_stamp", volume: 0.7 },
-  boxPicked: { key: "snd_pick", volume: 0.7 },
   outfitPicked: ({ random }) =>
     random
       ? { key: "snd_pick", volume: 0.5, rate: 1.2 }
       : { key: "snd_pick", volume: 0.4, rate: 1.4 },
-  boxOpened: ({ prize }) => [
-    { key: "snd_open", volume: 0.6 },
-    prize === "blank"
-      ? { key: "snd_blank", volume: 0.5, delay: 0.35, gap: 0.01 }
-      : prize === "physical"
-        ? { key: "snd_win", volume: 0.8, delay: 0.35, gap: 0.01 }
-        : { key: "snd_ring", volume: 0.5, delay: 0.35, gap: 0.01 },
-  ],
-  questDone: { key: "snd_win", volume: 0.7 },
-  travelled: { key: "snd_rocket", volume: 0.6 },
 };
 
 /** 배경 음악(되풀이) */
@@ -337,7 +323,7 @@ export const SOUND_VOLUME: Readonly<Record<SoundChannel, number>> = { bgm: 1, sf
 
 /* ─── 내부 ─────────────────────────── */
 
-// 종 키마다 고정된 음높이 칸(0..7) — 시제품의 글자 해시
+// 종 키마다 고정된 음높이 칸(0..7) — 글자 해시라 판마다 같다
 function speciesPitch(kind: string): number {
   let hash = 0;
   for (let i = 0; i < kind.length; i++) {

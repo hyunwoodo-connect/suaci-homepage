@@ -8,7 +8,7 @@ import { S } from "../settings";
 import type { Ground } from "./ground";
 import { offsetInto, UP } from "./sphere";
 
-// 하늘의 뭉게구름(덩이 다섯이 뭉친 구름 — 수는 지도의 지형, v78 은 260). 뚫고 지나가면 흩어졌다가 다시 뭉친다.
+// 하늘의 뭉게구름(덩이 다섯이 뭉친 구름 — 수는 지도의 지형). 뚫고 지나가면 흩어졌다가 다시 뭉친다.
 // 자리·크기는 world/terrain(지도의 지형 씨앗)이 정하고, 여기는 그 값으로 그리고 흩어지게 한다
 
 const q = new THREE.Quaternion(),
@@ -53,7 +53,7 @@ export class Clouds implements Thing {
     }
     this.m.instanceColor!.needsUpdate = true;
     this.m.instanceMatrix.needsUpdate = true;
-    // 구름 덩이(v78 은 1300)는 하늘 사방에 있어 가까이·시야 안의 것만 그린다. 이 뒤로는 바뀐 덩이만 묶음에 알린다
+    // 구름 덩이는 하늘 사방에 있어 가까이·시야 안의 것만 그린다. 이 뒤로는 바뀐 덩이만 묶음에 알린다
     this.pack = this.s.models.pack(this.m);
     this.pack.capture();
   }

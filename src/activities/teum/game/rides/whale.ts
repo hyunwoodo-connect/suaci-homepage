@@ -84,7 +84,7 @@ export class Whale implements Thing, Holder {
   private armed = true;
   private hinted = false;
   private near = false;
-  /** 한 번이라도 움직였나(처음 프레임에는 고래 자리를 아직 모르는 것으로 쳐서 제 빠르기로 떠난다 — 시제품과 같은 첫 빠르기) */
+  /** 한 번이라도 움직였나(처음 프레임에는 고래 자리를 아직 모르는 것으로 쳐서 제 빠르기로 떠난다) */
   private moved = false;
 
   constructor(
@@ -163,7 +163,7 @@ export class Whale implements Thing, Holder {
     if (this.cool > 0) this.cool -= dt;
     const d = player.p.angleTo(this.v) * S.R;
     if (!this.armed && !this.on && (player.air < REARM_LANDED || d > REARM_AWAY)) this.armed = true;
-    // 다른 놀이기구에 실려 가는 중에도 올라탈 수 있다(시제품). 회오리에 실려 있을 때만은 아니다
+    // 다른 놀이기구에 실려 가는 중에도 올라탈 수 있다. 회오리에 실려 있을 때만은 아니다
     if (
       !this.on &&
       this.armed &&
@@ -228,7 +228,7 @@ export class Whale implements Thing, Holder {
     const near = this.moved && p.angleTo(this.v) * S.R < NEAR_SLOW;
     if (dt > 0) this.moved = true;
     const want = this.on ? RIDE_RATE : near ? SLOW_RATE : 1;
-    // 시제품은 프레임마다 3%·2% 씩 다가간다 — 1/60 초 프레임에서 같고, 프레임이 달라도 빠르기는 같게
+    // 1/60 초 프레임에서 3%·2% 씩 다가가는 빠르기 — 프레임 길이가 달라도 빠르기는 같게
     const rateEase = perFrame(0.03, dt),
       heightEase = perFrame(0.02, dt);
     this.rate += (want - this.rate) * rateEase;

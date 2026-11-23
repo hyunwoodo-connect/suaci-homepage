@@ -7,7 +7,9 @@ import type { Tap, Tappable } from "../core/tap";
 import type { Instancer } from "../models/instancer";
 import type { Services } from "../services";
 import { S } from "../settings";
-import { from, offsetInto, UP } from "../world/sphere";
+import { from, offsetInto } from "../world/sphere";
+import { standAt } from "./bars";
+import { claimSpots, isTouching } from "./shared";
 
 // 봉오리 밭(칙 씨앗밭) — 땅 위에 봉오리를 하나씩 놓는다. 위를 지나가면 봉오리가 퐁 터지며 구름 싹이 솟아 몸을 튕겨 올린다.
 // 밭 안에 칙 하면 그 자리에도 구름 싹이 솟아 발판이 된다(직접 징검다리를 놓는다).
@@ -15,7 +17,7 @@ import { from, offsetInto, UP } from "../world/sphere";
 // 터질 때 줄어들고 다시 맺힐 때 커지는 것은 그 봉오리 하나만 다시 찍는다
 
 /** 봉오리 하나: 자리(밭 가운데에서 방향 a·거리 r), 땅 높이, 다시 맺힐 때까지, 찍은 번호·배율·돌림 */
-export interface Bud {
+interface Bud {
   a: number;
   r: number;
   v: THREE.Vector3;
@@ -30,7 +32,7 @@ export interface Bud {
 }
 
 /** 봉오리 밭 하나 */
-export interface SeedField {
+interface SeedField {
   dist: number;
   bear: number;
   r: number;
@@ -39,7 +41,7 @@ export interface SeedField {
 }
 
 /** 구름 싹 하나(덩이 여덟을 뭉친 구름) */
-export interface Sprout {
+interface Sprout {
   m: THREE.Group;
   v: THREE.Vector3;
   on: boolean;
@@ -163,7 +165,7 @@ export class Seeds implements Thing, Tappable {
 
   /** 자리 차지: 밭 전체 */
   claim() {
-    for (const f of this.fields) this.s.occ.fill(f.v, 27);
+    claimSpots(this.s.occ, this.fields, 27);
   }
 
   /** 꽃봉오리 모델: 봉오리마다 한 번 찍고, 모델이 오면 노란 공을 숨긴다 */
@@ -223,7 +225,7 @@ export class Seeds implements Thing, Tappable {
         const pulsePhase = f.time * 3 + d.a;
         const pulse = 1 + 0.12 * Math.sin(pulsePhase);
         this.scaleBud(d, pulse);
-        if (!player.held && player.air < 3.5 && p.angleTo(d.v) * S.R < 2.6) {
+        if (isTouching(player, d.v, 3.5, 2.6)) {
           d.cool = 9;
           this.sprout(d.v, d.g, 0.5, 1);
           player.lift(5.5);
@@ -268,8 +270,7 @@ export class Seeds implements Thing, Tappable {
       const height = 1.4 * k;
       sp.m.scale.set(width, height, width);
       const sproutR = S.R + sp.g + 0.9 * k;
-      sp.m.position.copy(sp.v).multiplyScalar(sproutR);
-      sp.m.quaternion.setFromUnitVectors(UP, sp.v);
+      standAt(sp.m, sp.v, sproutR);
     }
     for (const sp of this.sprouts.items)
       if (sp.on) {

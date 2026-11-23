@@ -6,12 +6,14 @@ import type { GreyMesh } from "../look";
 import type { Holder } from "../player/player";
 import type { Services } from "../services";
 import { GREY_TOY, S } from "../settings";
-import { from, UP } from "../world/sphere";
+import { from } from "../world/sphere";
+import { standAt } from "./bars";
+import { claimSpots, isTouching } from "./shared";
 
 // 구름 구멍 — 들어가면 멀리 있는 짝 구멍으로 튀어나온다
 
 /** 구멍 하나: pi 짝 번호, k 짝 안에서 0·1 */
-export interface Hole {
+interface Hole {
   g: THREE.Group;
   rim: GreyMesh;
   dist: number;
@@ -79,15 +81,14 @@ export class Holes implements Thing, Holder {
       ho.v.copy(spot);
       keep.push(ho.v);
       const radius = S.R + terrain.featGround(ho.v);
-      ho.g.position.copy(ho.v).multiplyScalar(radius);
-      ho.g.quaternion.setFromUnitVectors(UP, ho.v);
+      standAt(ho.g, ho.v, radius);
       culler.track(ho.g, ho.v);
     }
   }
 
   /** 자리 차지 */
   claim() {
-    for (const ho of this.list) this.s.occ.fill(ho.v, 5);
+    claimSpots(this.s.occ, this.list, 5);
   }
 
   /** 들어가면 빨려 들어갔다가 짝 구멍에서 튀어나온다 */
@@ -97,13 +98,7 @@ export class Holes implements Thing, Holder {
       list = this.list;
     for (const ho of list) {
       if (ho.cool > 0) ho.cool -= dt;
-      else if (
-        !player.held &&
-        !this.warp &&
-        player.air < 1 &&
-        player.p.angleTo(ho.v) * S.R < 2.5 &&
-        player.grab(this)
-      ) {
+      else if (!this.warp && isTouching(player, ho.v, 1, 2.5) && player.grab(this)) {
         const pairAt = ho.pi * 2 + (1 - ho.k);
         this.warp = { a: ho, b: list[pairAt], t: 0, done: false };
         hud.say("구름 구멍 — 멀리 있는 짝 구멍으로 나옵니다");

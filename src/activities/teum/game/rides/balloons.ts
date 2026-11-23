@@ -5,12 +5,14 @@ import type { Tappable } from "../core/tap";
 import type { Services } from "../services";
 import { S } from "../settings";
 import { from, UP } from "../world/sphere";
+import { standAt } from "./bars";
+import { claimSpots, isTouching, swapIn } from "./shared";
 
 // 풍선 — 잡으면 천천히 떠오른다. 끌면 방향을 잡을 수 있고, 칙 하면 놓는다.
 // 붙잡히는 것이 아니라 매달리는 것이라(끌기가 먹는다) 나를 붙잡지 않고 매달림(hang)으로 부탁한다
 
 /** 풍선 하나 */
-export interface Balloon {
+interface Balloon {
   g: THREE.Group;
   dist: number;
   bear: number;
@@ -60,10 +62,7 @@ export class Balloons implements Thing, Tappable {
 
   /** 자리 차지: 풍선 둘레, 그리고 끌어 올리는 길(비행 통로) */
   claim() {
-    for (const b of this.list) {
-      this.s.occ.fill(b.v, 5);
-      this.s.occ.addCorridor(b.v, 8);
-    }
+    claimSpots(this.s.occ, this.list, 5, 8);
   }
 
   /** 풍선 모델. 먼 것은 장면에서 뗀다 */
@@ -74,9 +73,7 @@ export class Balloons implements Thing, Tappable {
       if (!models.has("balloon")) continue;
       const m = models.fit("balloon", 6, "h");
       m.position.y = -0.4;
-      const prim = b.g.children.slice();
-      b.g.add(m);
-      models.swapWhenReady("balloon", prim);
+      swapIn(models, "balloon", b.g, m);
     }
   }
 
@@ -91,7 +88,7 @@ export class Balloons implements Thing, Tappable {
       dt = f.dt;
     for (const b of this.list) {
       if (b.cool > 0) b.cool -= dt;
-      else if (!player.held && !this.ride && player.air < 7 && player.p.angleTo(b.v) * S.R < 3) {
+      else if (!this.ride && isTouching(player, b.v, 7, 3)) {
         this.ride = { b, t: 0 };
         player.hang(b);
         hud.say("풍선 — 천천히 떠오릅니다. 칙 하면 놓습니다");
@@ -137,8 +134,7 @@ export class Balloons implements Thing, Tappable {
       } else {
         const bobPhase = f.time * 1.1 + b.dist;
         const radius = S.R + b.gnd + 5.6 + Math.sin(bobPhase) * 0.3;
-        b.g.position.copy(b.v).multiplyScalar(radius);
-        b.g.quaternion.setFromUnitVectors(UP, b.v);
+        standAt(b.g, b.v, radius);
       }
     }
   }

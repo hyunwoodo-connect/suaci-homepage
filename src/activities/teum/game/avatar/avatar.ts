@@ -7,8 +7,9 @@ import type { Services } from "../services";
 import { LIME, S } from "../settings";
 import { clamp, FWD } from "../world/sphere";
 import { AVATAR_COMPANION } from "./parts";
-import type { PoseFn, PoseInput, RigHandle } from "./rig";
+import type { RigHandle } from "./rig";
 import { setupRig } from "./rig";
+import type { PoseFn, PoseInput } from "./rigPose";
 
 // 나: 자리(me)와 기울기(tiltG) 안에 몸. 뼈대 있는 아바타가 오기 전까지는 도형 몸과 라임 공 고양이가 대신 선다.
 // 몸 자리는 Player.place() 가 정한 세계 자리(P)를 따라가고, 기울기·몸짓·크기는 여기서 정한다

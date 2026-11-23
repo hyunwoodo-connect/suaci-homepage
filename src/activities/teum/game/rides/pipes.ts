@@ -5,11 +5,12 @@ import type { HeadedSpot } from "../maps/layout";
 import type { Services } from "../services";
 import { S } from "../settings";
 import { FWD, from, heading } from "../world/sphere";
+import { claimSpots } from "./shared";
 
 // 구름 골짜기 — 양쪽 벽을 오갈수록 점점 높이 솟는다. 양쪽 벽은 부푼 쿠션(한 번에 그리는 묶음)
 
 /** 골짜기 하나 */
-export interface Pipe extends HeadedSpot {
+interface Pipe extends HeadedSpot {
   v: THREE.Vector3;
   d: THREE.Vector3;
   side: THREE.Vector3;
@@ -96,7 +97,7 @@ export class Pipes implements Thing {
 
   /** 자리 차지: 골짜기 전체 */
   claim() {
-    for (const pp of this.list) this.s.occ.fill(pp.v, 40);
+    claimSpots(this.s.occ, this.list, 40);
   }
 
   /** 벽 쪽으로 달려들 때마다 반대로 튕기며 더 높이 */

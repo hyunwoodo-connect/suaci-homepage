@@ -7,6 +7,7 @@ import { BACKGROUND_MUSIC, SOUND_EFFECTS, SOUND_VOLUME } from "../assets/setting
 import { Avatar } from "./avatar/avatar";
 import { Trail } from "./avatar/trail";
 import { Wardrobe } from "./avatar/wardrobe";
+import { reserveLawn } from "./brand/lawn";
 import { BrandObjects } from "./brand/objects";
 import { Signature } from "./brand/signature";
 import type { Frame, Thing } from "./core/frame";
@@ -151,7 +152,7 @@ export class Game {
   readonly sculptures: Sculptures;
   /** 마을마다 말을 거는 랜드마크 */
   readonly landmarks: Landmarks;
-  /** 이번 판의 기록(랜드마크가 다녀간 것을 남긴다 — 수집·상자·부탁은 구조만) */
+  /** 이번 판의 기록(랜드마크에 다녀간 수·차림) */
   readonly progress: Progress;
   /** 지금 차림(옷은 몸 셰이더, 소품은 뼈) — 기록에 둔다 */
   readonly wardrobe: Wardrobe;
@@ -302,7 +303,7 @@ export class Game {
     this.claimAll();
     this.footsteps = new Footsteps(s);
     // suaci 잔디 로고 자리를 나무·꽃·조형물보다 먼저 맡아 둔다
-    const lawn = Signature.reserveLawn(s);
+    const lawn = reserveLawn(s);
     this.trees = new Trees(s, this.clouds);
     this.bigFlowers = new BigFlowers(s);
     this.balls.fitModels();
@@ -443,17 +444,11 @@ export class Game {
     const dt = Math.min(0.1, elapsed);
     this.frame.dt = dt;
     this.frame.time += dt;
-    for (const t of this.frameOrder) {
-      if (typeof t === "function") t();
-      else t.update(this.frame);
-    }
-    const camera = this.stage.camera;
-    camera.updateMatrixWorld();
-    this.viewProj.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-    this.frustum.setFromProjectionMatrix(this.viewProj);
+    this.runFrame();
+    this.updateFrustum();
     this.s.models.flush(this.frustum, this.s.player.p, this.s.culler.cut);
     this.terrainView.flush(this.frustum);
-    this.stage.renderer.render(this.stage.scene, camera);
+    this.stage.renderer.render(this.stage.scene, this.stage.camera);
   }
 
   /**
@@ -463,17 +458,11 @@ export class Game {
   startViewKeys(): string[] {
     const dt = this.frame.dt;
     this.frame.dt = 0;
-    for (const t of this.frameOrder) {
-      if (typeof t === "function") t();
-      else t.update(this.frame);
-    }
+    this.runFrame();
     this.frame.dt = dt;
-    const camera = this.stage.camera,
-      p = this.s.player.p,
+    const p = this.s.player.p,
       cut = this.s.culler.cut;
-    camera.updateMatrixWorld();
-    this.viewProj.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-    this.frustum.setFromProjectionMatrix(this.viewProj);
+    this.updateFrustum();
     // 생물은 그리는 거리(v·p > 0.9)부터 좁다
     const creatures = this.creatures.list
       .filter((c) => c.v.dot(p) > CREATURE_VIEW_COS)
@@ -535,6 +524,22 @@ export class Game {
   }
 
   /* ─── 내부 ─────────────────────────── */
+
+  // 이번 프레임 값(this.frame)으로 frameOrder 를 차례로 부른다
+  private runFrame() {
+    for (const t of this.frameOrder) {
+      if (typeof t === "function") t();
+      else t.update(this.frame);
+    }
+  }
+
+  // 그리기 직전의 시야(this.frustum)를 지금 카메라 자리로 다시 잰다
+  private updateFrustum() {
+    const camera = this.stage.camera;
+    camera.updateMatrixWorld();
+    this.viewProj.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    this.frustum.setFromProjectionMatrix(this.viewProj);
+  }
 
   // 칙: 화면 좌표를 땅에 쏘아 맞은 자리를 정하고, 정해 둔 차례로 알린다
   private tap(x: number, y: number) {

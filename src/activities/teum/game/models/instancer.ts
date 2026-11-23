@@ -87,7 +87,7 @@ export class Instancer {
     const item: Item = { M: m.clone(), v, sphere: new THREE.Sphere() };
     boundOf(item, this.rw);
     this.items.push(item);
-    // 처음 가까운 것 고르기 전에는 모두 가까운 것으로 본다(시제품도 찍자마자 그렸다)
+    // 처음 가까운 것 고르기 전에는 모두 가까운 것으로 본다(찍자마자 보이게)
     if (!this.everCulled) this.near.push(i);
     return i;
   }

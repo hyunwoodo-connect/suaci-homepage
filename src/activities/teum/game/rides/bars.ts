@@ -13,6 +13,12 @@ export function basis(obj: THREE.Object3D, v: THREE.Vector3, d: THREE.Vector3) {
   obj.quaternion.setFromRotationMatrix(m4);
 }
 
+/** obj 를 행성 중심에서 radius 만큼 떨어진 v 쪽에 곧게(위 = v) 세운다 */
+export function standAt(obj: THREE.Object3D, v: THREE.Vector3, radius: number) {
+  obj.position.copy(v).multiplyScalar(radius);
+  obj.quaternion.setFromUnitVectors(UP, v);
+}
+
 /** 길이 1 짜리 막대를 a 에서 b 까지 걸친다 */
 export function placeBar(m: THREE.Object3D, a: THREE.Vector3, b: THREE.Vector3) {
   dirv.copy(b).sub(a);

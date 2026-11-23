@@ -1,4 +1,4 @@
-// 자리표의 모양: 지도(GameMap)의 layout 이 이 모양이다(v78 은 v78.layout.json).
+// 자리표의 모양: 지도(GameMap)의 layout 이 이 모양이다(기본 지도는 v78.layout.json).
 // 자리는 출발점에서 거리(dist, 넓이 S.wide 배)와 방향(bear, 도)
 
 /** 출발점에서 거리와 방향 */
@@ -28,7 +28,7 @@ export interface LayoutSite extends Spot {
 }
 
 /** 키 큰 솜사탕 나무 */
-export interface LayoutTree extends Spot {
+interface LayoutTree extends Spot {
   t: string;
   H: number;
 }
@@ -39,7 +39,7 @@ export interface RoundSpot extends Spot {
 }
 
 /** 이름 붙은 장소(광장·분수·뽑기터·등대 — 이 차례로 넷) */
-export interface LayoutPlace extends RoundSpot {
+interface LayoutPlace extends RoundSpot {
   name: string;
 }
 

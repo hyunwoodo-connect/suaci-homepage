@@ -12,7 +12,7 @@ import { S } from "../settings";
 // 네 줄을 처음에 만들어 두고 돌려 쓴다. 지루함 감독도 이 줄을 빌려 앞길에 방울을 놓는다(layTrail)
 
 /** 방울 하나 */
-export interface TrailBubble {
+interface TrailBubble {
   m: THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
   v: THREE.Vector3;
   alt: number;
@@ -22,7 +22,7 @@ export interface TrailBubble {
 }
 
 /** 방울 여섯 줄 하나 */
-export interface TrailRow {
+interface TrailRow {
   bs: TrailBubble[];
   live: boolean;
   wait: number;

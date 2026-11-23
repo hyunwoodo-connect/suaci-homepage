@@ -7,7 +7,7 @@ import { Game } from "./Game";
 import { DEFAULT_MAP } from "./maps";
 
 /** start 에 넘기는 것 */
-export interface StartOptions {
+interface StartOptions {
   /** 이번 버전의 에셋 목록 */
   assets: Manifest;
   /** 첫 화면 에셋을 받는 동안(받은 바이트 / 전체). 다 받고 첫 프레임을 그리기 직전에 1 */
@@ -15,7 +15,7 @@ export interface StartOptions {
 }
 
 /** 돌고 있는 게임 */
-export interface RunningGame {
+interface RunningGame {
   /** 멈추고 그리던 것·리스너·DOM 을 치운다 */
   stop(): void;
 }

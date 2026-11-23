@@ -10,7 +10,7 @@ import { FWD, refTInto } from "../world/sphere";
 import type { Terrain } from "../world/terrain";
 
 // 물결과 물방울: 칙 한 자리에 퍼지는 라임 원, 물에 퍼지는 고리, 솟았다 떨어지는 물방울.
-// 원과 물방울은 미리 만들어 두고 돌려 쓴다(시제품은 칠 때마다 메시와 재질을 새로 만들었다)
+// 원과 물방울은 미리 만들어 두고 돌려 쓴다(칠 때마다 메시와 재질을 새로 만들면 가비지가 쌓인다)
 
 /** 퍼지는 원 하나(칙 원·물 고리) */
 interface Puff {
@@ -32,7 +32,7 @@ interface Drop {
   on: boolean;
 }
 
-/** 동시에 퍼지는 칙 원·물 고리·물방울 수(시제품도 물방울은 70 까지였다) */
+/** 동시에 퍼지는 칙 원·물 고리·물방울 수 */
 const TAP_N = 8,
   RING_N = 48,
   DROP_N = 70;

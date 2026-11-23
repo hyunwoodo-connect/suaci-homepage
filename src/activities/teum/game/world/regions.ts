@@ -6,7 +6,7 @@ import type { MapRegion, RegionEdge } from "../maps/map";
 // 배치(조형물 종류·솎기·나무 키)와 그리기(땅 색·물건 색·하늘빛)가 같은 셈을 쓴다
 
 /** 자리 하나의 지역: 차례와 그 지역다운 정도 */
-export interface RegionAt {
+interface RegionAt {
   i: number;
   w: number;
   /** 그 지역 */

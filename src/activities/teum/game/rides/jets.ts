@@ -12,7 +12,7 @@ import { START } from "../world/sphere";
 // 하늘을 가로지르는 분홍 유리 관으로 보이고, 그 안을 흰 줄이 빠르게 흘러간다. 먼 마을에서 광장으로 이어지는 오로라 길은 라임빛
 
 /** 길 위 마디 하나(자리·방향·옆·땅 높이·흐르는 줄의 위상) */
-export interface JetNode {
+interface JetNode {
   v: THREE.Vector3;
   d: THREE.Vector3;
   side: THREE.Vector3;
@@ -21,13 +21,13 @@ export interface JetNode {
 }
 
 /** 제트 기류 하나 */
-export interface Jet extends LayoutJet {
+interface Jet extends LayoutJet {
   nodes: JetNode[];
   tube: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
 }
 
 /** 제트 기류가 흐르는 높이 */
-export const JH = 44;
+const JH = 44;
 
 const ps = new THREE.Vector3(),
   q = new THREE.Quaternion(),

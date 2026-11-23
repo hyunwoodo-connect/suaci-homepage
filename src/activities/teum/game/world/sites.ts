@@ -2,36 +2,26 @@ import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
 import { ease } from "../core/frame";
-import type { LayoutSite } from "../maps/layout";
+import type { Layout, LayoutSite } from "../maps/layout";
 import type { Hold } from "../models/library";
 import { topDir } from "../models/extent";
 import type { Holder } from "../player/player";
 import type { Services } from "../services";
 import { S, WHITE } from "../settings";
+import { buildFerris } from "./ferris";
 import type { Places } from "./places";
 import { ball, Bin, label } from "./shapes";
+import type { Idle } from "./siteIdles";
+import { SITE_IDLES } from "./siteIdles";
 import { from, heading } from "./sphere";
 import type { Height, HasHeights } from "./tall";
 
 // 랜드마크(멀리서 보이는 큰 것)와 쉬는 곳(구석의 조용한 자리) — 종류마다 하나씩만 있다.
 // 가까이 가면 이름표가 뜨고, 한 번 꿀렁 인사하고, 저마다 다르게 움직인다. 속으로는 못 들어간다.
-// 저마다 다른 것(부딪힘·움직임)은 아래 SITE_KINDS 한 표에 있다 — 새 랜드마크는 자리표에 한 줄 + 여기 한 줄(+ 필요하면 동작 하나)
+// 저마다 다른 것(부딪힘·움직임)은 아래 SITE_KINDS 한 표에 있다 — 새 랜드마크는 자리표에 한 줄 + 여기 한 줄(+ 필요하면 siteIdles 에 움직임 하나)
 
 /** 부딪힘: 막힌다(block) · 떠 있는 공처럼 막힌다(float) · 크게 튕긴다(dome) · 미끄러져 내려온다(slide) · 위로 올려 보낸다(stairs) */
 type Collide = "block" | "float" | "dome" | "slide" | "stairs";
-
-/** 가까이 갔을 때의 움직임 */
-type Idle =
-  | "sway"
-  | "spinFaster"
-  | "wheelLights"
-  | "fireworks"
-  | "moonDrift"
-  | "islandFloat"
-  | "embers"
-  | "foam"
-  | "rock"
-  | "stand";
 
 /** 랜드마크 한 종류: 부딪힘과 움직임(없으면 떠 있는 것은 float·나머지는 block, 움직임은 sway) */
 interface SiteKind {
@@ -56,7 +46,7 @@ const SITE_KINDS: Readonly<Record<string, SiteKind>> = {
 };
 
 /** 랜드마크·쉬는 곳 하나 */
-export interface Site extends LayoutSite {
+interface Site extends LayoutSite {
   g: THREE.Group;
   prim: THREE.Mesh;
   lit: number;
@@ -101,8 +91,7 @@ interface SlideRide {
 const SKIP_IN_SIZING = ["site", "tree", "hill", "hub", "place", "lake", "jet"];
 
 const siteCol = new THREE.Color(),
-  top = new THREE.Vector3(),
-  gp = new THREE.Vector3();
+  top = new THREE.Vector3();
 
 /** 랜드마크·쉬는 곳 전체(미끄럼틀은 나를 붙잡는다) */
 export class Sites implements Thing, Holder, HasHeights {
@@ -118,45 +107,8 @@ export class Sites implements Thing, Holder, HasHeights {
     places: Places,
   ) {
     const L = s.layout;
-    // 조형물은 크게 — 다만 옆의 놀이기구·호수·다른 조형물과 겹치지 않는 크기까지만. 떠 있는 것은 그만큼 더 높이
-    {
-      const pts: THREE.Vector3[] = [];
-      for (const [k, list] of Object.entries(L)) {
-        if (SKIP_IN_SIZING.includes(k)) continue;
-        for (const o of list as { dist?: number; bear?: number }[])
-          if (o && typeof o.dist === "number") {
-            const at = from(o.dist, o.bear!);
-            pts.push(at);
-          }
-      }
-      const lk = L.lake.map((l) => ({ v: from(l.dist, l.bear), r: l.r })),
-        sv = L.site.map((st) => from(st.dist, st.bear));
-      // 자리표의 크기를 그 자리에서 바로 키운다 — 뒤의 조형물은 앞에서 이미 키운 크기(o.size)를 보고 정한다
-      L.site.forEach((st, i) => {
-        let k = 1.25;
-        if (st.kind === "land") {
-          k = 1;
-          for (const t of [1.7, 1.45, 1.2]) {
-            const rad = st.size * 0.4 * t;
-            if (
-              st.lift ||
-              (!pts.some((q) => q.angleTo(sv[i]) * S.R < rad + 4) &&
-                !lk.some((l) => l.v.angleTo(sv[i]) * S.R < l.r + rad) &&
-                !L.site.some(
-                  (o, j) => j !== i && sv[j].angleTo(sv[i]) * S.R < rad + o.size * 0.4 + 3,
-                ))
-            ) {
-              k = t;
-              break;
-            }
-          }
-        }
-        st.sc = k;
-        st.size *= k;
-        if (st.kind === "land" && st.r) st.r *= Math.min(1.4, k);
-        if (st.lift) st.lift *= 2.2;
-      });
-    }
+    // 자리표의 크기부터 키운다 — 아래 목록은 키운 크기를 펼쳐 담는다
+    sizeSites(L);
     const BUB = bubbleTex(),
       ringGeo = new THREE.TorusGeometry(1, 0.035, 8, 64);
     this.bin.add(BUB);
@@ -248,7 +200,7 @@ export class Sites implements Thing, Holder, HasHeights {
       const isFerris =
         st.k === "ferris" && models.has("ferris_wheel") && models.has("ferris_stand");
       const m = isFerris
-        ? this.buildFerris(st)
+        ? buildFerris(models, st.sc)
         : models.fit(st.k, st.size, st.by, { ownLime: true });
       m.position.y = m.userData.hh;
       st.g.add(m);
@@ -383,7 +335,8 @@ export class Sites implements Thing, Holder, HasHeights {
       const litGlow = st.lit * 0.35,
         restGlow = st.kind === "rest" ? st.inn * 0.12 : 0;
       u.uLime.value = Math.max(litGlow, restGlow);
-      this.animate(st, m, f);
+      // 가까이 갔을 때 저마다의 움직임
+      SITE_IDLES[st.idle](st, m, f, fx, top);
     }
   }
 
@@ -483,180 +436,50 @@ export class Sites implements Thing, Holder, HasHeights {
         return player.block(st.v, st.core, st.top);
     }
   }
-
-  // 가까이 갔을 때 저마다의 움직임
-  private animate(st: Site, m: Hold, f: Frame) {
-    const u = m.userData,
-      fx = this.s.fx,
-      dt = f.dt,
-      time = f.time;
-    switch (st.idle) {
-      case "spinFaster": {
-        // 다가가면 빨리 돈다
-        m.rotation.y += dt * (0.2 + 2.2 * st.near);
-        const hopPhase = time * 3;
-        const hopWave = Math.sin(hopPhase);
-        m.position.y = u.hh + Math.abs(hopWave) * 0.5 * st.near;
-        break;
-      }
-      case "wheelLights": {
-        // 불빛이 바퀴를 따라 돈다
-        if (u.spin) {
-          u.spin.rotation.z += dt * (0.1 + 0.7 * st.near);
-          for (const qq of u.parts!) qq.userData.uLime.value = st.lit * 0.35;
-        } else {
-          const swayPhase = time * 1.2;
-          m.rotation.z = Math.sin(swayPhase) * 0.06 * st.near;
-        }
-        if (st.near > 0.5 && st.tick <= 0) {
-          st.tick = 0.35;
-          const a = time * 1.4;
-          const rimUp = Math.sin(a) * st.top * 0.42,
-            rimSide = Math.cos(a) * st.top * 0.42;
-          gp.copy(st.pos).addScaledVector(st.v, rimUp).addScaledVector(st.side, rimSide);
-          fx.burst(gp, 1, 3);
-        }
-        break;
-      }
-      case "fireworks":
-        // 지붕에서 불꽃이 터진다
-        if (st.near > 0.5 && st.tick <= 0) {
-          st.tick = 0.9;
-          top.addScaledVector(st.v, 3);
-          fx.burst(top, 12, 12);
-        }
-        break;
-      case "moonDrift": {
-        m.rotation.y += dt * (0.08 + 0.9 * st.near);
-        const floatPhase = time * 0.5;
-        m.position.y = u.hh + Math.sin(floatPhase) * 1.2;
-        if (st.near > 0.5 && st.tick <= 0) {
-          st.tick = 0.5;
-          fx.burst(st.pos, 2, 6);
-        }
-        break;
-      }
-      case "islandFloat": {
-        const floatPhase = time * 0.5 + 2;
-        m.position.y = u.hh + Math.sin(floatPhase) * (1.2 + 2 * st.near);
-        m.rotation.y += dt * 0.05;
-        break;
-      }
-      case "embers":
-        // 불티가 오른다
-        if (st.near > 0.3 && st.tick <= 0) {
-          st.tick = 0.22;
-          fx.burst(st.pos, 1, 4);
-        }
-        break;
-      case "foam":
-        // 거품이 오른다
-        if (st.near > 0.3 && st.tick <= 0) {
-          st.tick = 0.3;
-          fx.burst(top, 1, 2.5);
-        }
-        break;
-      case "rock": {
-        // 흔들린다
-        const swingPhase = time * 1.8;
-        m.rotation.x = Math.sin(swingPhase) * 0.12 * st.near;
-        break;
-      }
-      case "stand":
-        m.rotation.z = 0;
-        break;
-      default: {
-        const swayPhase = time * 2.2 + st.dist;
-        m.rotation.z = Math.sin(swayPhase) * 0.04 * st.near;
-      }
-    }
-  }
-
-  // 관람차: 받침과 바퀴를 따로 세워서 바퀴가 실제로 돈다
-  private buildFerris(st: Site): Hold {
-    const models = this.s.models;
-    const G = new THREE.Group() as Hold,
-      fsK = st.sc || 1,
-      standH = 23 * fsK,
-      wheelH = 34 * fsK,
-      stand = models.fit("ferris_stand", standH, "h", { ownLime: true }),
-      wheel = models.fit("ferris_wheel", wheelH, "h", { ownLime: true });
-    stand.position.y = stand.userData.hh;
-    G.add(stand);
-    stand.updateMatrixWorld(true);
-    // 받침 꼭대기(축)가 뻗은 방향을 찾는다: 위쪽 꼭짓점들이 더 길게 퍼진 쪽.
-    // 받침 상자는 모델을 받기 전이라 원본 상자를 받침 틀의 자리·배율로 옮겨 잰다
-    const standBox = models.box("ferris_stand"),
-      wheelBoxRaw = models.box("ferris_wheel");
-    const sb = placedBox(standBox, stand.matrixWorld),
-      cut = sb.min.y + (sb.max.y - sb.min.y) * 0.84;
-    const axleY = sb.min.y + (sb.max.y - sb.min.y) * 0.9;
-    // 바퀴의 얇은 쪽(바퀴 면에 수직인 쪽)을 축 방향에 맞춘다
-    wheel.updateMatrixWorld(true);
-    const wheelBox = placedBox(wheelBoxRaw, wheel.matrixWorld),
-      wb = new THREE.Vector3();
-    wheelBox.getSize(wb);
-    const thinX = wb.x < wb.z;
-    const pivot = new THREE.Group(),
-      spin = new THREE.Group();
-    pivot.position.y = axleY;
-    wheel.rotation.y = thinX ? Math.PI / 2 : 0;
-    spin.add(wheel);
-    pivot.add(spin);
-    G.add(pivot);
-    models.when("ferris_stand", () => {
-      // 꼭짓점은 관람차 그룹(G) 기준으로 잰다(끼우기 전과 같은 좌표)
-      G.updateMatrixWorld(true);
-      const toG = new THREE.Matrix4().copy(G.matrixWorld).invert(),
-        m = new THREE.Matrix4(),
-        V = new THREE.Vector3();
-      let x0 = 1e9,
-        x1 = -1e9,
-        z0 = 1e9,
-        z1 = -1e9;
-      stand.traverse((o) => {
-        if (!(o instanceof THREE.Mesh)) return;
-        m.multiplyMatrices(toG, o.matrixWorld);
-        const a = o.geometry.attributes.position;
-        for (let i = 0; i < a.count; i += 2) {
-          V.fromBufferAttribute(a, i).applyMatrix4(m);
-          if (V.y > cut) {
-            x0 = Math.min(x0, V.x);
-            x1 = Math.max(x1, V.x);
-            z0 = Math.min(z0, V.z);
-            z1 = Math.max(z1, V.z);
-          }
-        }
-      });
-      const axleX = x1 - x0 > z1 - z0;
-      pivot.rotation.y = axleX ? Math.PI / 2 : 0; // pivot 의 z 축 = 축 방향
-    });
-    G.userData = {
-      k: 1,
-      hh: 0,
-      top: axleY + 17 * fsK,
-      rw: 17 * fsK,
-      uLime: { value: 0 },
-      spin,
-      parts: [stand, wheel],
-    };
-    return G;
-  }
 }
 
 /* ─── 내부 ─────────────────────────── */
 
-// 틀 안의 모델이 원본 상자 그대로 놓였을 때의 상자: 틀 가운데 맞춤(−중심)을 틀 행렬 앞에 곱해 옮긴다
-function placedBox(box: THREE.Box3, holdWorld: THREE.Matrix4): THREE.Box3 {
-  const ct = new THREE.Vector3();
-  box.getCenter(ct);
-  const negCt = ct.negate();
-  const inner = new THREE.Matrix4().makeTranslation(negCt.x, negCt.y, negCt.z);
-  const world = new THREE.Matrix4().multiplyMatrices(holdWorld, inner);
-  return box.clone().applyMatrix4(world);
+// 조형물은 크게 — 다만 옆의 놀이기구·호수·다른 조형물과 겹치지 않는 크기까지만. 떠 있는 것은 그만큼 더 높이.
+// 자리표(layout.site)의 크기를 그 자리에서 바로 키운다(sc·size·r·lift): 뒤의 조형물은 앞에서 이미 키운 크기(o.size)를 보고 정하고,
+// 랜드마크 목록과 그 뒤에 자리표를 읽는 것도 키운 크기를 본다 — 그래서 랜드마크를 만들기 전에 꼭 한 번 부른다
+function sizeSites(L: Layout) {
+  const pts: THREE.Vector3[] = [];
+  for (const [k, list] of Object.entries(L)) {
+    if (SKIP_IN_SIZING.includes(k)) continue;
+    for (const o of list as { dist?: number; bear?: number }[])
+      if (o && typeof o.dist === "number") {
+        const at = from(o.dist, o.bear!);
+        pts.push(at);
+      }
+  }
+  const lk = L.lake.map((l) => ({ v: from(l.dist, l.bear), r: l.r })),
+    sv = L.site.map((st) => from(st.dist, st.bear));
+  L.site.forEach((st, i) => {
+    let k = 1.25;
+    if (st.kind === "land") {
+      k = 1;
+      for (const t of [1.7, 1.45, 1.2]) {
+        const rad = st.size * 0.4 * t;
+        if (
+          st.lift ||
+          (!pts.some((q) => q.angleTo(sv[i]) * S.R < rad + 4) &&
+            !lk.some((l) => l.v.angleTo(sv[i]) * S.R < l.r + rad) &&
+            !L.site.some((o, j) => j !== i && sv[j].angleTo(sv[i]) * S.R < rad + o.size * 0.4 + 3))
+        ) {
+          k = t;
+          break;
+        }
+      }
+    }
+    st.sc = k;
+    st.size *= k;
+    if (st.kind === "land" && st.r) st.r *= Math.min(1.4, k);
+    if (st.lift) st.lift *= 2.2;
+  });
 }
 
-// 말풍선: 나중에 여기서 이야기를 나눈다
+// 쉬는 곳 위에 뜨는 말풍선(점 셋) 그림
 function bubbleTex() {
   const cv = document.createElement("canvas");
   cv.width = cv.height = 128;

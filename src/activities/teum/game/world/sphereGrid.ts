@@ -5,7 +5,7 @@
 // 프레임마다 부르므로 정렬하지 않는다(정렬이 임시 배열을 만들어 가비지가 된다)
 
 /** 단위 벡터 하나(three 의 Vector3 도 된다) */
-export interface UnitLike {
+interface UnitLike {
   x: number;
   y: number;
   z: number;

@@ -7,11 +7,11 @@ import { checkMap } from "./maps/check";
 import type { GameMap } from "./maps/map";
 
 // 개발 중 시험용 — 운영 빌드에서는 NODE_ENV 비교가 상수가 되어 통째로 빠진다.
-// ?seed=숫자: 게임 난수를 고정하고, 시제품과 같은지 보는 시험 창구(window.__teum.probe)를 건다.
+// ?seed=숫자: 게임 난수를 고정하고 시험 창구(window.__teum.probe)를 건다.
 // ?map=이름: 그 지도로 짓는다(maps/index 의 목록). 운영은 늘 기본 지도.
 // ?fest=숫자: 오늘의 축제 지역을 그 지역으로 고정한다(운영은 늘 한국 시간 날짜로).
 // ?quick: 처음 온 사람에게 먼저 뜨는 꾸미기 씬을 건너뛴다.
-// 창구가 돌려주는 모양은 시제품 계측 사본과 같다(배치 목록·몸 상태·놀이기구 자리) — /tmp 의 비교 도구가 읽는다.
+// 지문(tools/fingerprint.mjs)이 배치 목록·몸 상태·놀이기구 자리를 읽어 바꾸기 전후가 같은지 비교한다.
 // 지도 점검 명령(tools/map-check.sh)은 counts·firstScreen·check 를 읽는다
 
 interface DebugWindow {
@@ -253,7 +253,7 @@ function countsOf(g: Game): Record<string, unknown> {
   };
 }
 
-// 놀이기구·장소마다 그 자리(와 높이) — 시제품 계측 사본과 같은 차례·같은 자리
+// 놀이기구·장소마다 그 자리(와 높이). 지문이 이 차례로 순간이동한다 — 차례를 바꾸면 옛 지문과 비교할 수 없다
 function rideTargets(g: Game): unknown[] {
   const out: unknown[] = [],
     S = 520;

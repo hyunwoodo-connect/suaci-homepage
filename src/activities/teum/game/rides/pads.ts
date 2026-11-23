@@ -10,12 +10,13 @@ import type { Services } from "../services";
 import { S } from "../settings";
 import { hopPath } from "../world/paths";
 import { from, UP } from "../world/sphere";
+import { claimSpots } from "./shared";
 
 // 통통 구름 — 위에 오면 높이 튀어 오른다. 징검 구름 — 작은 구름을 통통 밟으며 건너간다.
 // 구름 방석은 모두 같은 모양·같은 색이라 한 번에 그린다(가까운 것만 칸에 채운다)
 
 /** 구름 방석 하나(통통 구름 또는 징검 구름의 한 칸) */
-export interface Pad {
+interface Pad {
   dist?: number;
   bear?: number;
   /** 징검 구름이면 그 줄과 몇 번째 */
@@ -107,10 +108,7 @@ export class Pads implements Thing, Tappable, Echoing {
 
   /** 자리 차지: 방석 둘레, 그리고 튕겨 보내는 길(비행 통로) */
   claim() {
-    for (const pd of this.list) {
-      this.s.occ.fill(pd.v, 5);
-      this.s.occ.addCorridor(pd.v, 8);
-    }
+    claimSpots(this.s.occ, this.list, 5, 8);
   }
 
   /** 칙 둘레의 방석은 가까운 것부터 차례로 울린다 */
@@ -199,7 +197,7 @@ export class Pads implements Thing, Tappable, Echoing {
 }
 
 /** 몽글몽글한 구름 방석 모양: 가운데 큰 덩이 + 둘레 일곱 덩이(그네 의자도 같은 모양을 쓴다) */
-export function cloudPadGeometry(): THREE.BufferGeometry {
+function cloudPadGeometry(): THREE.BufferGeometry {
   const parts = [new THREE.SphereGeometry(0.7, 20, 14)];
   parts[0].scale(1, 0.95, 1);
   parts[0].translate(0, 0.28, 0);

@@ -1,5 +1,3 @@
-import type { BoxSource, Prize, QuestType } from "./progress/save";
-
 // 게임에서 일어나는 일을 알리는 작은 알림판. 놀이기구·생물·만남이 알리기만 하고, 소리(sound/)가 듣는다.
 // 알리는 쪽은 듣는 쪽을 모른다 — 새로 들을 것(소리·기록)이 생겨도 알리는 코드는 그대로다.
 // 프레임마다가 아니라 그 일이 일어난 순간에만 알린다(듣는 이가 없으면 그냥 지나간다)
@@ -71,27 +69,13 @@ export interface GameEventMap {
   dayChanged: { day: number; festival: number };
   /** 옷장에서 하나 골랐다(random: 아무거나 단추) */
   outfitPicked: { random: boolean };
-  // ---- 수집·상자·부탁·도장·이동(구조만 — 아직 알리는 곳이 없다. 기획이 정하면 그 흐름이 알린다) ----
-  /** 처음 친해진 종이 보관함에 남았다 */
-  collected: { kind: string };
-  /** 상자를 얻었다(why: 주운 곳·까닭, boxes: 안 연 상자 수) */
-  boxPicked: { why: BoxSource; boxes: number };
-  /** 상자를 열었다(판정 결과) */
-  boxOpened: { prize: Prize };
-  /** 오늘의 부탁을 받았다 · 끝냈다 */
-  questStarted: { type: QuestType };
-  questDone: { type: QuestType };
-  /** 오늘 도장을 찍었다(count: 이번 주 도장 수) */
-  stamped: { count: number };
-  /** 가 본 지역으로 옮겨 갔다 */
-  travelled: { region: number };
 }
 
 /** 알리는 일의 이름 */
 export type GameEventName = keyof GameEventMap;
 
 /** 듣는 쪽 */
-export type GameListener<K extends GameEventName> = (payload: GameEventMap[K]) => void;
+type GameListener<K extends GameEventName> = (payload: GameEventMap[K]) => void;
 
 /** 알림판: 알리기(emit)와 듣기(on) */
 export class GameEvents {

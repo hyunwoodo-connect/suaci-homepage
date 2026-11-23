@@ -8,7 +8,7 @@ import { chordOf, SphereGrid } from "./sphereGrid";
 // 언덕이 덮으면 안 되는 넓은 놀이 자리, 마을 중심. 놓는 것들은 이 창구로만 묻고 적는다
 
 /** 둥근 자리 하나 */
-export interface Zone {
+interface Zone {
   v: THREE.Vector3;
   r: number;
 }
@@ -26,7 +26,7 @@ class ZoneSet {
     if (r > this.maxR) this.maxR = r;
   }
 
-  /** v 에서 (그 자리 반지름 + pad) 안에 하나라도 있나 — 시제품의 some 과 같은 답 */
+  /** v 에서 (그 자리 반지름 + pad) 안에 하나라도 있나 — 칸으로 줄여 봐도 하나씩 다 보는 것과 같은 답 */
   touches(v: THREE.Vector3, pad: number): boolean {
     const reach = (this.maxR + pad) / S.R;
     const chord = chordOf(reach);

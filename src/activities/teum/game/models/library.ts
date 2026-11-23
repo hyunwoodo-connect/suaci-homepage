@@ -15,7 +15,7 @@ import { styleModel } from "./shader";
 // 재질은 키마다 한 번만 칠해 같이 쓴다(틀마다 복제하지 않는다). 저마다 라임으로 물들어야 하는 틀만 제 재질을 갖는다
 
 /** fit 이 만든 모델 틀이 갖는 값 */
-export interface HoldData {
+interface HoldData {
   /** 틀의 배율 */
   k: number;
   /** 키의 절반(바닥을 땅에 붙이는 높이) */
@@ -34,7 +34,7 @@ export interface HoldData {
 export type Hold = THREE.Group & { userData: HoldData };
 
 /** fit 의 선택 */
-export interface FitOptions {
+interface FitOptions {
   /** 저마다 라임으로 물든다(제 재질을 갖는다) */
   ownLime?: boolean;
   /** 모델이 끼워진 직후 */

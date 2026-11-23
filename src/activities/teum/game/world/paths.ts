@@ -7,7 +7,7 @@ import { from, heading, step } from "./sphere";
 // 길마다 휘는 법(바람길은 sin 으로 굽이, 다리는 한쪽으로 고르게…)은 여기 한곳에 있다
 
 /** 길 위 마디 하나: 자리(v)와 가는 방향(d) */
-export interface PathPoint {
+interface PathPoint {
   v: THREE.Vector3;
   d: THREE.Vector3;
 }

@@ -2,8 +2,9 @@ import type * as THREE from "three";
 
 import type { Random } from "../core/random";
 import type { ModelBatch } from "../models/batch";
+import type { Holder } from "../player/player";
 
-// 생물 하나의 상태. 모양은 종마다 한 번에 그리는 묶음(ModelBatch)이 그리고, 여기에는 자리·상태만 있다.
+// 생물 하나의 상태와, 생물이 보는 다른 것들. 모양은 종마다 한 번에 그리는 묶음(ModelBatch)이 그리고, 여기에는 자리·상태만 있다.
 // 모든 칸을 처음부터 같은 모양으로 채운다(없는 값은 0·null) — 생물마다 칸이 달라지면 JS 엔진이 수를 상자에 담아
 // 매 프레임 가비지를 만든다(재 보니 초당 수 MB)
 
@@ -98,4 +99,23 @@ export interface Sense {
   dA: number;
   scare: boolean;
   seen: boolean;
+}
+
+/** 지나온 자리 하나 */
+interface Footstep {
+  p: THREE.Vector3;
+  a: number;
+}
+
+/** 생물이 보는 다른 것들 */
+export interface CreatureLinks {
+  /** 지나온 자리(줄지어 따라오는 손님이 밟는다): 남은 수와 i 번째로 최근 것 */
+  footsteps: { readonly length: number; at(i: number): Footstep };
+  /** 따라오는 꼬마 라임 수(손님은 그 뒤에 선다) */
+  babyLimes: { joined: number };
+  lakes: { list: readonly { v: THREE.Vector3; r: number }[] };
+  /** 전설을 만난 자리에 도장 */
+  signature: { stampAt(v: THREE.Vector3): void };
+  /** 고래 등에 타면 고래도 만난 것으로 친다 */
+  whale: Holder;
 }

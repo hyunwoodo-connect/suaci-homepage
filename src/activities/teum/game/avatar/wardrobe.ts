@@ -17,7 +17,7 @@ import type { RigHandle } from "./rig";
 const UNDO_MAX = 30;
 
 /** 옷장을 만들 때 */
-export interface WardrobeOptions {
+interface WardrobeOptions {
   /** 기록에 차림이 없는 사람(처음 온 사람)에게 아무 차림이나 입혀 둔다 — 꾸미기 씬에서 완성만 눌러도 넘어가게 */
   dressNewcomer: boolean;
   /** 0 이상 1 미만 난수 */

@@ -6,14 +6,16 @@ import type { Hold } from "../models/library";
 import type { HeldBody, Holder } from "../player/player";
 import type { Services } from "../services";
 import { GREY_TOY, S } from "../settings";
-import { from, UP } from "../world/sphere";
+import { from } from "../world/sphere";
+import { standAt } from "./bars";
+import { claimSpots } from "./shared";
 
 // 깔때기 — 가장자리를 돌며 빨라지다 가운데로 빨려들고, 하늘로 솟구친다.
 // 모델이 오면 회색 고리 다섯 겹 대신 분홍·노랑 소용돌이 그릇을 납작하게 눌러 땅에 깔고 천천히 돌린다
 // (몸이 그릇 벽에 파묻히지 않게 높이는 0.07 배)
 
 /** 깔때기 하나 */
-export interface Funnel {
+interface Funnel {
   g: THREE.Group;
   mat: THREE.MeshStandardMaterial;
   dist: number;
@@ -82,15 +84,14 @@ export class Funnels implements Thing, Holder {
       f.v.copy(spot);
       occ.addZone(f.v, 23);
       const radius = S.R + terrain.featGround(f.v);
-      f.g.position.copy(f.v).multiplyScalar(radius);
-      f.g.quaternion.setFromUnitVectors(UP, f.v);
+      standAt(f.g, f.v, radius);
       this.s.culler.track(f.g, f.v);
     }
   }
 
   /** 자리 차지: 깔때기 전체 */
   claim() {
-    for (const f of this.list) this.s.occ.fill(f.v, 26);
+    claimSpots(this.s.occ, this.list, 26);
   }
 
   /** 소용돌이 그릇: 오면 고리·구멍을 숨기고 그 자리에 눌러 깐다 */
@@ -116,7 +117,7 @@ export class Funnels implements Thing, Holder {
 
   /**
    * 그릇 바닥: 그릇 위(24m 안)에서는 그릇 윗면보다 아래로 내려가지 않는다 — 땅이 그릇보다 낮은 자리에서 몸이 그릇 속에 파묻히던 것을 막는다.
-   * 몸 가운데가 기준이라 발끝까지 올라오게 키의 반만큼(1.15m) 더 띄운다. 날개 다음, 혜성 앞(시제품의 차례)
+   * 몸 가운데가 기준이라 발끝까지 올라오게 키의 반만큼(1.15m) 더 띄운다. 날개 다음, 혜성 앞(프레임 차례 — 앞뒤 놀이기구가 바꾼 높이를 이어 본다)
    */
   readonly floor: Thing = {
     update: () => {

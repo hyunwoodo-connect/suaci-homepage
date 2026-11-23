@@ -9,7 +9,7 @@ import type { Terrain } from "../world/terrain";
 // 나(몸)의 상태와 움직임. 다른 모듈은 이 상태를 직접 바꾸지 않고 아래의 좁은 요청으로만 부탁한다:
 //   튕겨 올리기(bounce·lift·raise·hop·easeLift·standOn·keepAbove) · 빨라지기(boost·boostAtLeast) · 잠깐 방향 안 먹기(stun) ·
 //   방향 틀기(turnTo·lookTo·kick) · 길에 실어 가기(glide·keepOnLine) · 막히기(block·blockBody) · 느려지기(slowDown) ·
-//   붙잡기(grab → 붙잡은 쪽만 몸을 옮기는 손잡이, release — 시제품처럼 여럿이 함께 붙잡을 수 있다) · 날개(giveWings·flap) · 풍선에 매달리기(hang·letGo).
+//   붙잡기(grab → 붙잡은 쪽만 몸을 옮기는 손잡이, release — 여럿이 함께 붙잡을 수 있다) · 날개(giveWings·flap) · 풍선에 매달리기(hang·letGo).
 // 끌기·방향키로 가고, 곧게 오래 날수록 조금씩 빨라지고, 내리막에서 빨라진다. 떠오르면 천천히 활공해 내려온다
 
 /** 끌기 방향(fx 옆, fy 앞)과 세기(m). dragFx 는 손가락으로 끄는 옆 방향만(방향키 빼고 — 몸 기울기가 쓴다) */
@@ -44,7 +44,7 @@ export interface HeldBody {
 }
 
 /** 놓을 때 한꺼번에 주는 것 */
-export interface Release {
+interface Release {
   vel?: THREE.Vector3;
   boost?: number;
   vy?: number;
@@ -92,9 +92,9 @@ export class Player {
   private _dragFx = 0;
   // ---- 붙잡힘·날개·풍선 ----
   /**
-   * 지금 붙잡은 놀이기구들(붙잡은 차례). 시제품은 놀이기구마다 제 'on' 이 따로라, 다른 것에 실려 가는 중에도
-   * 붙잡을 수 있었다(예: 로켓으로 솟다가 고래 등에 올라탄다). 그러면 둘 다 프레임 순서대로 몸을 옮기고,
-   * 저마다 제 끝 조건에서 놓는다 — 그대로 둔다
+   * 지금 붙잡은 놀이기구들(붙잡은 차례). 다른 것에 실려 가는 중에도 붙잡을 수 있다(예: 로켓으로 솟다가
+   * 고래 등에 올라탄다). 그러면 둘 다 프레임 순서대로 몸을 옮기고, 저마다 제 끝 조건에서 놓는다 — 이 겹침이
+   * 놀이의 맛이라 하나만 남기지 않는다
    */
   private readonly holders: Holder[] = [];
   private hanger: object | null = null;
@@ -228,11 +228,11 @@ export class Player {
   get isHanging(): boolean {
     return this.hanger !== null;
   }
-  /** 붙잡은 놀이기구 가운데 카메라에 이것(spin·ride)을 바라는 것이 있나 — 시제품의 '회오리 또는 깔때기'·'고래 또는 혜성' */
+  /** 붙잡은 놀이기구 가운데 카메라에 이것(spin·ride)을 바라는 것이 있나 — '회오리 또는 깔때기'·'고래 또는 혜성' */
   heldWithCamera(mode: "spin" | "ride"): boolean {
     return this.holders.some((h) => h.cameraMode === mode);
   }
-  /** 몸 크기: 붙잡은 것 가운데 가장 작게(구멍 속 0.05 가 대포 0.6 보다 앞선다 — 시제품의 차례와 같다) */
+  /** 몸 크기: 붙잡은 것 가운데 가장 작게(구멍 속 0.05 가 대포 0.6 보다 앞선다) */
   get bodyScale(): number {
     let k = 1;
     for (const h of this.holders) k = Math.min(k, h.bodyScale ?? 1);
@@ -560,10 +560,6 @@ export class Player {
   /** 풍선을 놓는다 */
   letGo(by: object) {
     if (this.hanger === by) this.hanger = null;
-  }
-  /** 매달린 풍선(없으면 null) */
-  get hangingOn(): object | null {
-    return this.hanger;
   }
 
   /** 시험·개발용: 그 자리에 놓는다(높이 air, 보는 쪽 dir) */

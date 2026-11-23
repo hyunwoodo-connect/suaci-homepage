@@ -5,12 +5,13 @@ import type { ModelBatch } from "../models/batch";
 import type { Services } from "../services";
 import { S } from "../settings";
 import { from, offset, UP } from "../world/sphere";
+import { claimSpots } from "./shared";
 
 // 범퍼 밭 — 부딪히면 튕겨 나간다(모델은 버섯).
 // 범퍼 190여 개는 모두 같은 모양이라 도형도 모델도 한 번에 그린다(가까운 것만 넣는다)
 
 /** 범퍼 하나(밭마다 아홉) */
-export interface Bumper {
+interface Bumper {
   dist: number;
   bear: number;
   k: number;
@@ -87,7 +88,7 @@ export class Bumpers implements Thing {
 
   /** 자리 차지: 범퍼 둘레 */
   claim() {
-    for (const b of this.list) this.s.occ.fill(b.v, 5);
+    claimSpots(this.s.occ, this.list, 5);
   }
 
   /** 버섯 모델(모두 한 묶음). 모델이 오면 도형 공을 숨긴다 */

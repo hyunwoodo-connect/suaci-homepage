@@ -30,7 +30,7 @@ export function refTInto(out: THREE.Vector3, v: THREE.Vector3): THREE.Vector3 {
 }
 
 /** v 에서 방향 0 도가 되는 접선 */
-export function refT(v: THREE.Vector3): THREE.Vector3 {
+function refT(v: THREE.Vector3): THREE.Vector3 {
   const out = new THREE.Vector3();
   return refTInto(out, v);
 }
@@ -102,9 +102,4 @@ export function along(v: THREE.Vector3, d: THREE.Vector3, m: number): THREE.Vect
   const arc = m / S.R;
   const stepLen = Math.tan(arc);
   return v.clone().addScaledVector(d, stepLen).normalize();
-}
-
-/** 두 자리 사이의 행성 위 거리(m) */
-export function arcDist(a: THREE.Vector3, b: THREE.Vector3): number {
-  return a.angleTo(b) * S.R;
 }

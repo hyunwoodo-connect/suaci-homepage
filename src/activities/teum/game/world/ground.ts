@@ -11,7 +11,7 @@ import { S } from "../settings";
 // 땅 셰이더 값은 행성·둔덕·큰 언덕이 같이 쓴다(구름 그림자 시간이 함께 흐른다)
 
 /** 땅 셰이더가 같이 쓰는 값 */
-export interface GroundUniforms {
+interface GroundUniforms {
   [name: string]: THREE.IUniform;
   uA: { value: THREE.Color };
   uB: { value: THREE.Color };
@@ -29,7 +29,7 @@ export interface GroundUniforms {
 }
 
 /** 부푼 구름 셰이더가 같이 쓰는 값 */
-export interface PuffUniforms {
+interface PuffUniforms {
   [name: string]: THREE.IUniform;
   uRim: { value: THREE.Color };
   uRimK: { value: number };

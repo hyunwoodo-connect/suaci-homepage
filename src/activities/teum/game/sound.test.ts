@@ -143,10 +143,10 @@ describe("SoundManager", () => {
 
   it("여러 소리 · 늦게 내기(delay)", async () => {
     const { events, sound } = manager({
-      effects: { boxOpened: [{ key: "pop" }, { key: "ding", delay: 0.35 }] },
+      effects: { outfitPicked: [{ key: "pop" }, { key: "ding", delay: 0.35 }] },
     });
     touch();
-    events.emit("boxOpened", { prize: "blank" });
+    events.emit("outfitPicked", { random: false });
     await settle();
     expect(ctx().started.map((s) => s.at)).toEqual([0, 0.35]);
     sound.dispose();

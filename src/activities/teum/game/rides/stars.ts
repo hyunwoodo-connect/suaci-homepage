@@ -7,12 +7,13 @@ import type { ModelBatch } from "../models/batch";
 import type { Services } from "../services";
 import { LIME, S } from "../settings";
 import { from, offset, UP } from "../world/sphere";
+import { claimSpots } from "./shared";
 
 // 별 — 스치면 뒤에 줄줄이 따라붙는다. 칙 하면 불꽃처럼 터졌다가 제자리로 돌아간다.
 // 280 개라 도형도 모델도 한 번에 그린다(제자리의 별은 가까운 것만, 따라오거나 터진 별은 늘)
 
 /** 별 하나. st: 0 제자리, 1 따라옴, 2 터짐 */
-export interface Star {
+interface Star {
   dist: number;
   bear: number;
   k: number;
@@ -29,7 +30,7 @@ export interface Star {
 }
 
 /** 따라오는 별이 줄을 서는 꼬리 기록(점 N 개, 앞에서부터 xyz) */
-export interface TrailPoints {
+interface TrailPoints {
   readonly pos: Float32Array;
   readonly N: number;
 }
@@ -117,7 +118,7 @@ export class Stars implements Thing, Tappable {
 
   /** 자리 차지: 별 자리 둘레 */
   claim() {
-    for (const st of this.list) this.s.occ.fill(st.v, 5);
+    claimSpots(this.s.occ, this.list, 5);
   }
 
   /** 별 모델(모두 한 묶음). 모델이 오면 도형을 숨긴다 */

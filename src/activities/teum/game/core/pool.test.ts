@@ -7,12 +7,6 @@ describe("Ring", () => {
     const r = new Ring(["a", "b", "c"]);
     expect([r.next(), r.next(), r.next(), r.next()]).toEqual(["a", "b", "c", "a"]);
   });
-
-  it("firstOr → 조건에 맞는 첫 것, 없으면 맨 앞", () => {
-    const r = new Ring([1, 2, 3]);
-    expect(r.firstOr((x) => x > 1)).toBe(2);
-    expect(r.firstOr((x) => x > 9)).toBe(1);
-  });
 });
 
 describe("Fifo", () => {
