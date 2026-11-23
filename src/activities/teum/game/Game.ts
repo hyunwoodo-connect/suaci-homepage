@@ -151,7 +151,7 @@ export class Game {
   readonly sculptures: Sculptures;
   /** 마을마다 말을 거는 랜드마크 */
   readonly landmarks: Landmarks;
-  /** 이번 판의 기록(랜드마크가 다녀간 것을 남긴다 — 수집·상자·부탁은 구조만) */
+  /** 이번 판의 기록(랜드마크에 다녀간 수·차림) */
   readonly progress: Progress;
   /** 지금 차림(옷은 몸 셰이더, 소품은 뼈) — 기록에 둔다 */
   readonly wardrobe: Wardrobe;

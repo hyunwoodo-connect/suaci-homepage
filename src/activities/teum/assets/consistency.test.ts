@@ -25,6 +25,10 @@ const INTENTIONALLY_UNUSED: Record<string, string> = {
   ferris:
     "관람차 자리는 이 키가 있는지만 보고, 모양은 받침(ferris_stand)과 바퀴(ferris_wheel)로 따로 세운다",
   lime_half: "라임 반쪽은 놓는 자리가 없다(빛나는 라임 규칙에만 이름이 있다)",
+  snd_stamp: "도장 소리 — 이 소리를 내는 놀이가 없다",
+  snd_open: "상자 여는 소리 — 이 소리를 내는 놀이가 없다",
+  snd_blank: "꽝 소리 — 이 소리를 내는 놀이가 없다",
+  snd_win: "당첨 소리 — 이 소리를 내는 놀이가 없다",
   snd_wind: "바람 반복음은 '숨소리 같다'는 지적으로 꺼 두었다(시제품 v67 — 자리만)",
 };
 

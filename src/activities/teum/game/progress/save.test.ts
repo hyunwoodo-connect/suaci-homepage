@@ -5,38 +5,24 @@ import { LocalSaveStore, MemorySaveStore, SAVE_KEY } from "./store";
 
 describe("readSave", () => {
   it("판이 다르거나 모양이 아니면 → 빈 기록", () => {
-    expect(readSave({ v: 2, boxes: 3 })).toEqual(emptySave());
+    expect(readSave({ v: 2, lm: { 1: { n: 1, day: 1 } } })).toEqual(emptySave());
     expect(readSave("x")).toEqual(emptySave());
   });
 
-  it("깨진 칸만 버리고 나머지는 읽는다(상자는 다섯까지, 데리고 다니기는 셋까지)", () => {
+  it("깨진 칸만 버리고 나머지는 읽는다, 모르는 칸(옛 상자·부탁·지난번 친구)은 버린다", () => {
     const save = readSave({
       v: 1,
-      collected: { teapot: { at: 5 }, card: "x" },
-      party: ["teapot", 3, "card", "c_hat", "c_dice"],
       boxes: 9,
-      lm: { 2: { n: 3, pal: "teapot", day: 10 }, x: { n: 1, day: 1 } },
-      quest: { day: 4, k: "card", r: 2, type: "Z", done: true },
+      quest: { day: 4, k: "card", r: 2 },
+      lm: { 2: { n: 3, pal: "teapot", day: 10 }, x: { n: 1, day: 1 }, 3: { n: "2", day: 1 } },
     });
-    expect(save.collected).toEqual({ teapot: { at: 5 } });
-    expect(save.party).toEqual(["teapot", "card", "c_hat"]);
-    expect(save.boxes).toBe(5);
-    expect(save.lm).toEqual({ 2: { n: 3, pal: "teapot", day: 10 } });
-    expect(save.quest).toEqual({
-      day: 4,
-      k: "card",
-      r: 2,
-      type: "",
-      done: true,
-      told: false,
-      mid: false,
-    });
+    expect(save).toEqual({ v: 1, lm: { 2: { n: 3, day: 10 } }, look: null, dressed: false });
   });
 });
 
 describe("readSave · 차림", () => {
   it("차림이 없던 기록 → look 은 null, 꾸미기 씬은 안 지남", () => {
-    const save = readSave({ v: 1, boxes: 1 });
+    const save = readSave({ v: 1, lm: {} });
     expect(save.look).toBeNull();
     expect(save.dressed).toBe(false);
   });
@@ -54,9 +40,9 @@ describe("SaveStore", () => {
   it("LocalSaveStore: 쓴 것을 다시 읽는다(suaci.teum.save 칸)", async () => {
     const store = new LocalSaveStore();
     const save = emptySave();
-    save.boxes = 2;
+    save.lm[2] = { n: 2, day: 9 };
     await store.save(save);
-    expect(localStorage.getItem(SAVE_KEY)).toContain('"boxes":2');
+    expect(localStorage.getItem(SAVE_KEY)).toContain('"lm":{"2":{"n":2,"day":9}}');
     await expect(store.load()).resolves.toEqual(save);
   });
 
@@ -68,7 +54,7 @@ describe("SaveStore", () => {
   it("MemorySaveStore: 읽은 것을 고쳐도 저장한 것은 그대로(복사본)", async () => {
     const store = new MemorySaveStore();
     const save = await store.load();
-    save.boxes = 4;
+    save.dressed = true;
     await expect(store.load()).resolves.toEqual(emptySave());
   });
 });

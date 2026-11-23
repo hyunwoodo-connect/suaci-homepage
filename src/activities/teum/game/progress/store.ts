@@ -1,8 +1,8 @@
 import type { TeumSave } from "./save";
 import { emptySave, readSave } from "./save";
 
-// 기록을 두는 곳(창구). 지금은 이 기기(localStorage), 나중에 서버로 바꾼다 — 게임은 이 창구만 안다.
-// 서버로 갈 것을 생각해 읽기·쓰기는 Promise 다(지금은 곧바로 끝난다)
+// 기록을 두는 곳(창구): 이 기기(localStorage). 게임은 이 창구만 안다 — 두는 곳을 바꿔도 게임은 그대로다.
+// 읽기·쓰기는 Promise 다(이 기기에서는 곧바로 끝난다)
 
 /** 기록을 두는 곳 */
 export interface SaveStore {

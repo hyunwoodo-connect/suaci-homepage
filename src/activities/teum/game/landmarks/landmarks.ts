@@ -2,16 +2,14 @@ import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
 import type { Progress } from "../progress/progress";
-import type { VisitLine } from "../progress/rules";
-import { visitLandmark } from "../progress/rules";
 import type { Deco } from "../sculptures/sculptures";
 import type { Services } from "../services";
 import { S } from "../settings";
 import { LANDMARK_HELLO, LANDMARK_LINES } from "./lines";
+import { visitLandmark } from "./visits";
 
 // 랜드마크가 말을 건다: 마을마다 선 기준탑(그 지역 종류에서 뽑힌 큰 조형물)이 그 지역의 주인이다.
-// 다가가면 말풍선으로 말을 걸고, 몇 번째 왔는지·누굴 데려왔는지 기록(Progress)에 남긴다. 멀리 갔다 돌아오면 다시 말을 건다.
-// 축제 지역의 도장·부탁, 덤 상자, 길잡이 화살표는 아직 짓지 않았다(구조만 progress/ 에)
+// 다가가면 말풍선으로 말을 걸고, 몇 번째 왔는지 기록(Progress)에 남긴다. 멀리 갔다 돌아오면 다시 말을 건다
 
 /** 말을 거는 거리: 랜드마크 몸 + 16m 안, 다시 말을 걸게 되는 거리: 몸 + 70m 밖. 랜드마크가 없는 마을은 몸을 8m 로 친다 */
 const TALK_REACH = 16,
@@ -32,8 +30,6 @@ export class Landmarks implements Thing {
   private readonly said: boolean[];
   private talkT = 0;
   private talkHk = -1;
-  /** 종 → 사는 지역(지역의 residents) */
-  private readonly homes = new Map<string, number>();
 
   constructor(
     private readonly s: Services,
@@ -41,9 +37,6 @@ export class Landmarks implements Thing {
     private readonly progress: Progress,
   ) {
     this.said = s.occ.hubs.map(() => false);
-    s.map.regions.forEach((r, hk) => {
-      for (const k of r.residents) this.homes.set(k, hk);
-    });
   }
 
   /** 다가가면 말을 걸고, 말풍선을 랜드마크 위에 둔다(카메라 다음) */
@@ -75,15 +68,14 @@ export class Landmarks implements Thing {
 
   /* ─── 내부 ─────────────────────────── */
 
-  // 이번에 할 말: 다녀간 것을 기록하고, 첫 방문이면 그 지역의 인사, 아니면 데려온 친구·몇 번째인지
+  // 이번에 할 말: 다녀간 것을 기록하고, 첫 방문이면 그 지역의 인사, 아니면 몇 번째인지
   private lineFor(hk: number): string {
     const progress = this.progress,
-      day = this.s.today.day,
-      homeOf = (k: string) => this.homes.get(k);
-    const visit = visitLandmark(progress.save, hk, day, homeOf);
+      day = this.s.today.day;
+    const n = visitLandmark(progress.save, hk, day);
     progress.commit();
     const name = this.s.map.regions[hk]?.name ?? "";
-    return textOf(visit.line, visit.n, name);
+    return textOf(n, name);
   }
 
   // 말풍선을 랜드마크 꼭대기 위에: 화면 밖이면 가운데 위
@@ -110,12 +102,9 @@ export class Landmarks implements Thing {
 
 /* ─── 내부 ─────────────────────────── */
 
-// 말 갈래 → 글(대사 파일에서)
-function textOf(line: VisitLine, n: number, region: string): string {
-  if (line === "hello") return LANDMARK_HELLO[region] ?? LANDMARK_LINES.hello;
-  if (line === "again") {
-    const count = String(n);
-    return LANDMARK_LINES.again.replace("{n}", count);
-  }
-  return LANDMARK_LINES[line];
+// 몇 번째 방문 → 글(대사 파일에서): 처음이면 그 지역의 인사
+function textOf(n: number, region: string): string {
+  if (n === 1) return LANDMARK_HELLO[region] ?? LANDMARK_LINES.hello;
+  const count = String(n);
+  return LANDMARK_LINES.again.replace("{n}", count);
 }

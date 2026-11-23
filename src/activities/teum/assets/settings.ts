@@ -309,24 +309,10 @@ export const SOUND_EFFECTS: SoundTable = {
   },
   landmarkTalked: { key: "snd_quad", volume: 0.5, rate: 0.55, gap: 0.3 },
   regionEntered: { key: "snd_legend", volume: 0.35, rate: 1.2, gap: 3 },
-  // ---- 수집·상자·부탁·도장·이동(아직 알리는 곳이 없다 — 그 흐름이 생기면 바로 난다) ----
-  collected: { key: "snd_stamp", volume: 0.7 },
-  stamped: { key: "snd_stamp", volume: 0.7 },
-  boxPicked: { key: "snd_pick", volume: 0.7 },
   outfitPicked: ({ random }) =>
     random
       ? { key: "snd_pick", volume: 0.5, rate: 1.2 }
       : { key: "snd_pick", volume: 0.4, rate: 1.4 },
-  boxOpened: ({ prize }) => [
-    { key: "snd_open", volume: 0.6 },
-    prize === "blank"
-      ? { key: "snd_blank", volume: 0.5, delay: 0.35, gap: 0.01 }
-      : prize === "physical"
-        ? { key: "snd_win", volume: 0.8, delay: 0.35, gap: 0.01 }
-        : { key: "snd_ring", volume: 0.5, delay: 0.35, gap: 0.01 },
-  ],
-  questDone: { key: "snd_win", volume: 0.7 },
-  travelled: { key: "snd_rocket", volume: 0.6 },
 };
 
 /** 배경 음악(되풀이) */
