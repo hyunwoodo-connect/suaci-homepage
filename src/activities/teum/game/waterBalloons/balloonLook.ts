@@ -21,8 +21,9 @@ const KNOT_PROFILE: readonly (readonly [number, number])[] = [
   [0, 0.23],
 ];
 
-// 몸의 반짝임(카메라 기준 법선 normal 로 잰다 — 풍선이 흔들려도 반짝임은 늘 왼쪽 위에 붙어 있다):
-// 콩 모양 하나(wbBig)와 그 아래 점 하나(wbDot), 가장자리의 물빛(wbRim), 그늘에서도 색이 죽지 않게 제 색을 조금 더한다
+// 몸의 색과 반짝임(카메라 기준 법선 normal 로 잰다 — 풍선이 흔들려도 반짝임은 늘 왼쪽 위에 붙어 있다).
+// 몸 색은 장면의 조명을 받지 않는다: 조명이 더해지면 라임이 누렇게 떠 키컬러로 보이지 않는다. 제 색을 그대로 쓰고
+// 아래쪽·가장자리만 조금 어둡게 해 둥근 모양을 낸다(제 색보다 밝아지지 않는다). 흰 반짝임은 콩 모양 하나(wbBig)와 점 하나(wbDot)
 const BALLOON_SHINE_GLSL = `
   vec3 wbAt = normalize(vec3(-0.50, 0.36, 0.79));
   vec3 wbAlong = normalize(cross(wbAt, vec3(0.0, 0.0, 1.0)));
@@ -32,7 +33,8 @@ const BALLOON_SHINE_GLSL = `
   float wbBig = 1.0 - smoothstep(0.82, 1.0, length(wbBean));
   float wbDot = 1.0 - smoothstep(0.075, 0.095, length(normal - normalize(vec3(-0.74, -0.10, 0.66))));
   float wbRim = pow(1.0 - saturate(dot(normal, normalize(vViewPosition))), 2.4);
-  outgoingLight += diffuseColor.rgb * 0.2 + vec3(0.32 * wbRim);
+  float wbShade = (0.84 + 0.16 * smoothstep(-0.7, 0.5, normal.y)) * (1.0 - 0.14 * wbRim);
+  outgoingLight = diffuseColor.rgb * wbShade;
   outgoingLight = mix(outgoingLight, vec3(1.0), 0.94 * max(wbBig, wbDot));
 `;
 
@@ -58,7 +60,7 @@ export function createBalloonGeometry(): THREE.LatheGeometry {
 }
 
 /**
- * 물풍선 재질: 풍선처럼 매끈한 팝 톤에, 카메라에서 본 왼쪽 위의 흰 반짝임과 물빛 가장자리를 얹는다.
+ * 물풍선 재질: 키컬러가 조명에 밀리지 않게 제 색 그대로 칠하고, 카메라에서 본 왼쪽 위에 흰 반짝임을 얹는다.
  * 색은 묶음의 칸마다(instanceColor) 온다
  */
 export function createBalloonMaterial(): THREE.MeshStandardMaterial {
