@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ASSET_BASE, ASSET_VERSION } from "./config";
-import type { Manifest } from "./manifest";
-import { assetUrl, parseManifest, withVariants } from "./manifest";
+import { assetUrl, parseManifest } from "./manifest";
 
 describe("assetUrl", () => {
   it("버전 폴더 안 파일 → 주소/버전/파일", () => {
@@ -33,27 +32,5 @@ describe("parseManifest", () => {
 
   it("객체가 아니면 → 던진다", () => {
     expect(() => parseManifest(null)).toThrow();
-  });
-});
-
-describe("withVariants(이미 올린 버전에 더한 변형)", () => {
-  const base: Manifest = {
-    version: "v10",
-    assets: { flower_pink: { file: "a/flower-pink.glb", category: "a", bytes: 1 } },
-  };
-  const variants: Manifest = {
-    version: "v10",
-    assets: { "flower_pink@candy": { file: "a/flower-pink@candy.glb", category: "a", bytes: 2 } },
-  };
-
-  it("받은 manifest 에 없는 변형 → 더한다", () => {
-    const out = withVariants(base, variants);
-    expect(out.assets["flower_pink@candy"]?.file).toBe("a/flower-pink@candy.glb");
-    expect(out.assets.flower_pink).toBe(base.assets.flower_pink);
-  });
-
-  it("버전이 다르면 → 더하지 않는다", () => {
-    const other = { ...variants, version: "v11" };
-    expect(withVariants(base, other).assets["flower_pink@candy"]).toBeUndefined();
   });
 });

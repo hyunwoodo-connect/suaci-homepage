@@ -44,8 +44,6 @@ export class Flowers implements Thing, Tappable {
   private readonly touched: Uint32Array;
   /** 꽃 수(지도의 지형) */
   private readonly n: number;
-  /** 피지 않는 꽃(놓인 것 밑에 깔린 자리) */
-  private readonly isCovered: Uint8Array;
   private frameNo = 0;
 
   constructor(private readonly s: Services) {
@@ -53,7 +51,6 @@ export class Flowers implements Thing, Tappable {
     this.n = FLN;
     this.slot = new Int32Array(FLN).fill(-1);
     this.touched = new Uint32Array(FLN);
-    this.isCovered = new Uint8Array(FLN);
     const flGeo = (() => {
       const parts = [];
       for (let i = 0; i < 6; i++) {
@@ -123,27 +120,6 @@ export class Flowers implements Thing, Tappable {
     this.cull();
   }
 
-  /**
-   * 놓인 것 밑에 깔린 꽃은 피우지 않는다(다 놓은 뒤 한 번) — isUnder 가 그 자리에 무엇이 놓였나 답한다.
-   * 꽃 자리는 지형 씨앗으로 먼저 정해져서 놓인 것을 모른다: 놀이기구·물건을 뚫고 피지 않게 여기서 거른다
-   */
-  clearUnder(isUnder: (v: THREE.Vector3) => boolean): number {
-    const spots = this.s.terrain.flowers;
-    let hidden = 0;
-    for (let k = 0; k < this.n; k++) {
-      if (!isUnder(spots.v[k])) continue;
-      this.isCovered[k] = 1;
-      hidden++;
-    }
-    this.cull();
-    return hidden;
-  }
-
-  /** 피는 꽃 자리(내려다본 지도가 점으로 찍는다) */
-  shown(): THREE.Vector3[] {
-    return this.s.terrain.flowers.v.filter((_, k) => !this.isCovered[k]);
-  }
-
   /** 칙 둘레의 꽃이 한꺼번에 핀다 */
   onTap(tap: Tap) {
     if (tap.ground) this.s.terrain.lightFlowers(tap.ground, 144);
@@ -200,8 +176,7 @@ export class Flowers implements Thing, Tappable {
       p = this.s.player.p,
       slot = this.slot;
     let n = 0;
-    for (let k = 0; k < this.n; k++)
-      slot[k] = !this.isCovered[k] && spots.v[k].dot(p) > 0.86 ? n++ : -1;
+    for (let k = 0; k < this.n; k++) slot[k] = spots.v[k].dot(p) > 0.86 ? n++ : -1;
     for (let k = 0; k < this.n; k++)
       if (slot[k] >= 0) {
         const l = spots.lit[k];

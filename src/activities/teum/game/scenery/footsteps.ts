@@ -13,18 +13,6 @@ export interface Footstep {
   a: number;
 }
 
-/** 줄 선 차례: 꼬마 라임 → 만난 손님. 첫 자리는 LINE_FIRST 걸음 뒤, 그다음은 LINE_GAP 걸음마다(꼬마 라임은 LINE_BABY 걸음) —
- *  거의 닿을 만큼 붙여, 셋까지는 한 화면에 든다 */
-const LINE_FIRST = 7,
-  LINE_GAP = 7,
-  LINE_BABY = 6;
-
-/** 줄에서 몇 걸음 뒤인가: 앞에 선 꼬마 라임 수(babies), 손님 가운데 차례 i */
-export function lineSteps(babies: number, i: number): number {
-  const babySteps = LINE_BABY * babies;
-  return babySteps + LINE_FIRST + LINE_GAP * i;
-}
-
 /** 남기는 발자취 수 */
 const STEPS = 120;
 /** 이만큼(m) 움직여야 한 걸음 남긴다 — 멈춰도 줄지어 서 있다 */

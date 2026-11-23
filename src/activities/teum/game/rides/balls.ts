@@ -57,11 +57,10 @@ export class Balls implements Thing {
     private readonly targets: BallTargets,
   ) {
     this.beach = beachTexture();
-    // 초현실 팝: 흰 바탕 위 비치볼 무늬, 풍선처럼 매끈하게 — 꾸민 지역이 있는 지도(MAP-03)는 무늬 없이 그 지도의 공 색
-    const ballColor = s.map.garden?.ball;
+    // 초현실 팝: 흰 바탕 위 비치볼 무늬, 풍선처럼 매끈하게
     this.mat = new THREE.MeshStandardMaterial({
-      color: ballColor ?? 0xffffff,
-      map: ballColor === undefined ? this.beach : null,
+      color: 0xffffff,
+      map: this.beach,
       roughness: 0.18,
       metalness: 0,
     });
@@ -95,8 +94,7 @@ export class Balls implements Thing {
   /** 라임 공: 비치볼 껍질 대신 라임 모델 */
   fitModels() {
     const models = this.s.models;
-    // 꾸민 지역이 있는 지도(MAP-03)에는 라임 공이 없다
-    if (!models.has("lime") || this.s.map.garden) return;
+    if (!models.has("lime")) return;
     for (const bi of LIME_BALLS) {
       const b = this.list[bi];
       if (!b) continue;

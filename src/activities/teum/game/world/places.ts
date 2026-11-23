@@ -3,8 +3,6 @@ import * as THREE from "three";
 import type { Frame, Thing } from "../core/frame";
 import { ease } from "../core/frame";
 import type { Tap, Tappable } from "../core/tap";
-import type { Girth } from "../models/extent";
-import { girthOf } from "../models/extent";
 import type { Hold } from "../models/library";
 import type { Services } from "../services";
 import { LIME, S } from "../settings";
@@ -39,14 +37,6 @@ interface PlaceReaction {
   msg: string;
 }
 
-/** 속으로 못 들어가는 장소: 장소 차례 · 모델이 오기 전에 막는 기둥(반지름·높이 m) · 모델에서 잰 높이마다의 굵기 */
-interface Solid {
-  i: number;
-  core: number;
-  top: number;
-  girth: Girth | null;
-}
-
 /** 생물이 서 있을 자리 — 회색 공 */
 interface SpotBall {
   m: THREE.Mesh;
@@ -66,21 +56,6 @@ export class Places implements Thing, Tappable {
   readonly spots: Thing;
   private readonly list: Place[];
   private readonly PLZ: PlaceReaction[];
-  /** 속으로 못 들어가는 장소: 소원 나무·뽑기 기계·등대 */
-  private readonly solids: Solid[] = [
-    { i: 0, core: 6, top: 20, girth: null },
-    { i: 2, core: 4, top: 11, girth: null },
-    { i: 3, core: 12, top: 40, girth: null },
-  ];
-  /**
-   * 광장을 꾸밈이 채우나(MAP-03 정원 — 지도 garden): 분수 탑(티 분수)·뽑기 기계는 꾸밈이 그리고 막고, 소원 나무는 없다.
-   * 그때 광장 나무·분수·뽑기 기계는 자리만 있고 그리지도 반응하지도 않는다(등대는 그대로)
-   */
-  private readonly isPlazaDecor: boolean;
-  /** 반응할 때 라임빛으로 물드나 */
-  private isLimeGlowOn = true;
-  /** 닿거나 누르면 반응하나(숨바꼭질 판 동안은 끈다) */
-  private isReacting = true;
   private readonly lamp: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>;
   private readonly beam: THREE.Mesh<THREE.CylinderGeometry, THREE.MeshBasicMaterial>;
   private readonly spotBalls: SpotBall[] = [];
@@ -171,15 +146,6 @@ export class Places implements Thing, Tappable {
       this.spotBalls.push({ m, ph });
       this.addItem(m, () => offset(list[i].at(), dist, b), 1.4);
     });
-    this.isPlazaDecor = s.map.garden !== undefined;
-    if (this.isPlazaDecor) {
-      for (let i = 0; i < 3; i++) {
-        const prims = this.items[i].obj.children.filter((c) => c instanceof THREE.Mesh);
-        for (const c of prims) c.removeFromParent();
-      }
-      const lighthouseOnly = this.solids.filter((x) => x.i === 3);
-      this.solids.splice(0, this.solids.length, ...lighthouseOnly);
-    }
     for (const it of this.items) this.bin.keep(it.obj);
     this.PV = list.map(() => new THREE.Vector3());
     this.PLZ = [
@@ -237,28 +203,17 @@ export class Places implements Thing, Tappable {
 
   /** 장소 모델(광장 나무·분수·뽑기 기계는 저마다 라임으로 물든다) */
   fitModels() {
-    this.placeModel(3, "lighthouse", 46, "h", false);
-    if (this.isPlazaDecor) return;
     this.placeModel(0, "wishtree", 6.4, "h", true);
     this.placeModel(1, "fountain", 3.4, "w", true);
     this.placeModel(2, "gacha", 2.7, "h", true);
+    this.placeModel(3, "lighthouse", 46, "h", false);
   }
 
   /** 칙 둘레 13m 안의 장소가 반응한다 */
   onTap(tap: Tap) {
     const n = tap.ground;
-    if (!n || !this.isReacting || this.isPlazaDecor) return;
+    if (!n) return;
     for (let i = 0; i < 3; i++) if (n.angleTo(this.PV[i]) * S.R < 13) this.react(i);
-  }
-
-  /** 닿거나 누르면 반응하나(숨바꼭질 판 동안은 끈다 — 꿈틀하는 것은 후보 물건뿐이다. 분수의 물기둥은 그대로 밀어 올린다) */
-  setReacting(on: boolean) {
-    this.isReacting = on;
-  }
-
-  /** 숨바꼭질 판 동안은 장소가 반응해도 라임빛으로 물들지 않는다(판 중에는 라임색이 상자의 것) — 흔들림과 빛 방울은 그대로 */
-  setLimeGlow(on: boolean) {
-    this.isLimeGlowOn = on;
   }
 
   /** 장소 셋: 닿으면 반응하고, 분수는 물기둥이 위로 밀어 올린다 */
@@ -266,23 +221,23 @@ export class Places implements Thing, Tappable {
     const { player, fx, terrain } = this.s,
       { PLZ, PV, items } = this,
       dt = f.dt;
-    // 소원 나무·뽑기 기계·등대는 속으로 못 들어간다 — 모델의 높이마다 굵기대로(소원 나무는 넓은 밑동과 위의 갓까지)
-    if (!player.held) for (const solid of this.solids) this.blockSolid(solid);
-    if (this.isPlazaDecor) return;
+    if (!player.held) {
+      // 소원 나무 줄기와 뽑기 기계도 속으로 못 들어간다
+      player.block(PV[0], 3.2, 20);
+      player.block(PV[2], 4, 11);
+    }
     for (let i = 0; i < 3; i++) {
       const z = PLZ[i],
         dz = player.p.angleTo(PV[i]) * S.R;
       if (z.cool > 0) z.cool -= dt;
-      if (this.isReacting && z.cool <= 0 && player.air < 9 && dz < z.r) this.react(i);
+      if (z.cool <= 0 && player.air < 9 && dz < z.r) this.react(i);
       const faded = z.lit - dt * 0.45;
       z.lit = Math.max(0, faded);
-      const glow = this.isLimeGlowOn ? z.lit : 0,
-        sway = z.lit;
       const md = items[i].model;
       if (md) {
         const shakePhase = f.time * 11;
-        md.rotation.z = Math.sin(shakePhase) * 0.07 * sway;
-        md.userData.uLime.value = glow * 0.3;
+        md.rotation.z = Math.sin(shakePhase) * 0.07 * z.lit;
+        md.userData.uLime.value = z.lit * 0.3;
       }
       if (i === 1 && !player.held && dz < 8.5 && player.air < 9) {
         // 분수에 다가가면 물기둥이 밀어 올려 분수 위로 넘어간다(모델 속으로 들어가지 않게)
@@ -295,10 +250,10 @@ export class Places implements Thing, Tappable {
           fx.burst(gp, 2, 7);
         }
       }
-      if (glow > 0) {
+      if (z.lit > 0) {
         const placeR = S.R + terrain.featGround(PV[i]) + z.top * 0.7;
         gp.copy(PV[i]).multiplyScalar(placeR);
-        const alpha = glow * 0.8;
+        const alpha = z.lit * 0.8;
         fx.glow(gp, 24, alpha);
       }
     }
@@ -340,24 +295,6 @@ export class Places implements Thing, Tappable {
     gr.add(m);
     models.swapWhenReady(k, prim);
     this.items[i].model = m;
-    // 모델이 오면 굵기를 재 둔다(막는 데 쓴다)
-    const solid = this.solids.find((x) => x.i === i);
-    if (!solid) return;
-    // 장소의 틀(gr)은 통째로 키워 놓았다 — 그 배율까지 곱해야 미터가 된다
-    const scale = m.userData.k * gr.scale.x;
-    models.when(k, () => (solid.girth = girthOf(m, scale)));
-  }
-
-  // 속으로 못 들어가는 장소 하나: 모델이 오기 전에는 어림한 기둥으로 막는다
-  private blockSolid(solid: Solid) {
-    const { player, terrain } = this.s,
-      v = this.PV[solid.i];
-    if (!solid.girth) {
-      player.block(v, solid.core, solid.top);
-      return;
-    }
-    const base = terrain.featGround(v);
-    player.blockShape(v, base, solid.girth);
   }
 }
 

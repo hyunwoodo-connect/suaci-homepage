@@ -12,9 +12,6 @@ import { GREY_TOY, S } from "../settings";
 import { along, from, heading } from "../world/sphere";
 import { basis } from "./bars";
 
-/** 비탈에 앉힐 때 보는 밑동 반지름(m) — 지도 terrain.level */
-const SEAT_R = 3;
-
 // 대포 — 들어가면 잠깐 움츠렸다가 멀리 쏘아 올려진다
 
 /** 대포 하나 */
@@ -87,9 +84,7 @@ export class Cannons implements Thing, Holder {
       const aim = heading(c.v, c.head);
       c.d.copy(aim);
       keep.push(c.v);
-      // 비탈에서는 가장 낮은 땅에 앉힌다(지도 terrain.level)
-      const seat = this.s.terrain.seatAt(c.v, SEAT_R);
-      const radius = S.R + seat;
+      const radius = S.R + this.s.terrain.featGround(c.v);
       c.g.position.copy(c.v).multiplyScalar(radius);
       basis(c.g, c.v, c.d);
     }

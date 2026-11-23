@@ -28,10 +28,6 @@ export class Hud {
   /** 소리 끄기 단추(낼 소리가 있을 때만) */
   private mute: HTMLButtonElement | null = null;
   private readonly parent: HTMLElement;
-  /** 숨바꼭질 판 동안 안내 줄·말풍선을 숨긴다 */
-  private quiet = false;
-  /** 꾸미기 씬 동안 같이 숨길 것(미니맵 등 — 지은 쪽이 치운다) */
-  private readonly extras: HTMLElement[] = [];
 
   /** 캔버스 위(같은 부모)에 안내 글자와 끌기 동그라미를 만든다 */
   constructor(parent: HTMLElement) {
@@ -167,11 +163,6 @@ export class Hud {
     this.parent.append(b);
   }
 
-  /** 꾸미기 씬 동안 같이 숨길 화면 요소를 붙인다 */
-  attach(el: HTMLElement) {
-    this.extras.push(el);
-  }
-
   /** 말풍선을 띄운다 */
   showTalk(text: string) {
     this.talkText.textContent = text;
@@ -190,21 +181,21 @@ export class Hud {
   }
 
   /**
-   * 꾸미기 씬 동안은 게임 화면의 것(안내 줄·말풍선·소리 단추)을 모두 숨긴다 — 씬의 단추만 보인다(겹치지 않게). 씬을 닫으면 돌아온다
+   * 꾸미기 씬 동안은 안내 줄·말풍선을 숨기고(씬을 닫으면 돌아온다), 소리 단추는 무대 위 오른쪽 위 단추(아무거나) 왼쪽으로 옮긴다 —
+   * 배경 음악이 도는 동안 끌 수 있어야 한다
    */
   setStudio(on: boolean) {
-    const display = on || this.quiet ? "none" : "";
-    for (const el of [this.hint, this.talk]) el.style.display = display;
-    if (this.mute) this.mute.style.display = on ? "none" : "";
-    const extra = on ? "none" : "";
-    for (const el of this.extras) el.style.display = extra;
-  }
-
-  /** 숨바꼭질 판 동안은 안내 줄·말풍선을 숨긴다(글 설명 없이 한다) */
-  setQuiet(on: boolean) {
-    this.quiet = on;
     const display = on ? "none" : "";
     for (const el of [this.hint, this.talk]) el.style.display = display;
+    const mute = this.mute;
+    if (!mute) return;
+    Object.assign(mute.style, {
+      top: on ? "calc(15px + env(safe-area-inset-top))" : "calc(8px + env(safe-area-inset-top))",
+      right: on
+        ? "calc(66px + env(safe-area-inset-right))"
+        : "calc(8px + env(safe-area-inset-right))",
+      zIndex: on ? "4" : "",
+    });
   }
 
   /** 지금 말풍선의 글(시험 창구가 읽는다) */

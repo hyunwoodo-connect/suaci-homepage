@@ -1,6 +1,5 @@
 // 지도 점검(브라우저 쪽) — map-check.sh 가 부른다.
-// <origin>/events/teum?map=<지도>&seed=<씨앗> 을 폰처럼 열어: 지도 점검 결과 · 지어진 세계의 점검(엉킨 곳 — 흩뿌린 것·숨바꼭질 물건까지) ·
-// 놓인 수 · 첫 화면 목록과 바이트 · 성능 한 번(가만히 10초)을 보여 준다.
+// <origin>/events/teum?map=<지도>&seed=<씨앗> 을 폰처럼 열어: 지도 점검 결과 · 놓인 수 · 첫 화면 목록과 바이트 · 성능 한 번(가만히 10초)을 보여 준다.
 // 성능은 에뮬레이션이다(헤드리스 크롬, 390×844 DPR 3 — 게임은 2로 자른다, CPU 4배 느리게, 개발 서버). 폰 실기가 아니다.
 // 크롬은 깔려 있는 것을 쓴다(puppeteer-core 는 크롬을 받지 않는다): TEUM_CHROME 으로 바꾼다.
 // 사용: node mapCheck.mjs <origin> <map> <seed> [gpu|swiftshader]
@@ -9,8 +8,6 @@ import puppeteer from "puppeteer-core";
 const DEFAULT_CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 /** 재는 시간(초) */
 const SECONDS = 10;
-/** 엉킨 곳을 보여 주는 줄 수(가운데에서 가까운 차례) */
-const TANGLE_LINES = 40;
 
 const [origin, map, seed, modeArg] = process.argv.slice(2);
 if (!origin || !map || !seed) {
@@ -88,8 +85,6 @@ await page.waitForFunction(
 );
 await page.waitForFunction(() => window.__teum.probe.ready(), { timeout: 300000, polling: 500 });
 await new Promise((r) => setTimeout(r, 1500));
-// 지어진 세계의 점검: 씨앗으로 흩뿌린 것과 숨바꼭질 물건까지 실제로 놓인 몸으로 본다(값만 보는 점검은 위의 problems)
-const audit = await page.evaluate(() => window.__teum.map.audit());
 const cdp = await page.createCDPSession();
 await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
 const renderer = await page.evaluate(() => {
@@ -136,25 +131,6 @@ if (built.mapName !== map)
 const problemCount = built.problems.length ? built.problems.length + "건" : "문제 없음";
 console.log(`\n[점검] ${problemCount}`);
 for (const p of built.problems) console.log(`  ${p.kind} — ${p.what}`);
-const tangleCounts = {};
-for (const row of audit.rows) {
-  const key = `${row.group} ${row.kind}`;
-  tangleCounts[key] = (tangleCounts[key] ?? 0) + 1;
-}
-const tangleLine = audit.rows.length
-  ? `${audit.rows.length}곳 — ${line(tangleCounts)}`
-  : "엉킨 곳 없음";
-console.log(`\n[지어진 세계의 점검] 몸 ${audit.bodies}개 · ${tangleLine}`);
-for (const row of audit.rows.slice(0, TANGLE_LINES)) {
-  const where = `(${row.x.toFixed(0)}, ${row.y.toFixed(0)})`;
-  console.log(`  ${row.no}. ${row.kind} — ${row.a} · ${row.b} ${where} ${row.depth.toFixed(1)}m`);
-}
-if (audit.rows.length > TANGLE_LINES)
-  console.log(`  … 그 밖 ${audit.rows.length - TANGLE_LINES}곳`);
-for (const slope of audit.slopes)
-  console.log(`  비탈 — ${slope.id}: 자리 안의 땅 높이 차 ${slope.drop.toFixed(1)}m`);
-if (audit.unmeasured.length)
-  console.log(`  굵기 표에 없는 모델(통째 원기둥으로 봄): ${audit.unmeasured.join(" ")}`);
 console.log(`\n[놓인 수]`);
 for (const [group, o] of Object.entries(built.counts)) console.log(`  ${group}: ${line(o)}`);
 const firstLine = `${built.first.keys.length}개 · ${mb(built.first.bytes)} / 전체 ${mb(built.first.total)}`;

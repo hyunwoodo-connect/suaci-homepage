@@ -6,12 +6,8 @@ import type { Intent } from "./player";
 
 /** 이만큼 움직이면 끌기 */
 const DRAG_PX = 8;
-
-/** 톡(칙)으로 치는 법: 손가락을 대고 ms 안에 떼고, 그 사이 movePx 안으로만 움직였다(판정은 뗄 때) */
-export interface TapRule {
-  ms: number;
-  movePx: number;
-}
+/** 이보다 짧게 떼면 칙 */
+const TAP_MS = 250;
 /** 이만큼 끌면 최대 세기 */
 const FULL_PX = 60;
 
@@ -32,16 +28,9 @@ export class Input {
   private held = false;
   /** 끌기 동그라미를 숨긴다 */
   private readonly hideStick: () => void;
-  /** 이번 누름에서 처음 자리로부터 가장 멀리 움직인 거리(px) */
-  private moved = 0;
 
-  /** onTap: 톡 친 화면 좌표(tap 규칙에 맞을 때만) */
-  constructor(
-    canvas: HTMLCanvasElement,
-    hud: Hud,
-    tap: TapRule,
-    onTap: (x: number, y: number) => void,
-  ) {
+  /** onTap: 짧게 톡 친 화면 좌표 */
+  constructor(canvas: HTMLCanvasElement, hud: Hud, onTap: (x: number, y: number) => void) {
     const { stick, knob } = hud;
     this.hideStick = () => {
       stick.style.display = knob.style.display = "none";
@@ -55,7 +44,6 @@ export class Input {
       this.t0 = performance.now();
       this.drag = false;
       this.dm = 0;
-      this.moved = 0;
       try {
         canvas.setPointerCapture(e.pointerId);
       } catch {}
@@ -65,7 +53,6 @@ export class Input {
       const dx = e.clientX - this.x0,
         dy = e.clientY - this.y0,
         len = Math.hypot(dx, dy);
-      this.moved = Math.max(this.moved, len);
       if (!this.drag && len > DRAG_PX) {
         this.drag = true;
         hud.hideHint();
@@ -85,11 +72,8 @@ export class Input {
     };
     const onUp = (e: PointerEvent) => {
       if (e.pointerId !== this.id) return;
-      const now = performance.now(),
-        held = now - this.t0;
-      // 끌기가 막 시작됐어도(DRAG_PX 넘게) tap.movePx 안이면 톡이다 — 끌다가 손가락 밑으로 지나간 것은 톡이 아니다
-      const isTap = held <= tap.ms && this.moved <= tap.movePx;
-      if (isTap) onTap(e.clientX, e.clientY);
+      const held = performance.now() - this.t0;
+      if (!this.drag && held < TAP_MS) onTap(e.clientX, e.clientY);
       this.id = null;
       this.drag = false;
       this.dm = 0;
@@ -131,14 +115,6 @@ export class Input {
     this.dm = 0;
     this.keys.clear();
     this.hideStick();
-  }
-
-  /** 끌지 않고 손가락을 대고 있는 시간(초, 떼었거나 끌고 있으면 0) — 멈춰서 둘러보기가 본다 */
-  pressSeconds(): number {
-    if (this.id === null || this.drag || this.held) return 0;
-    const now = performance.now(),
-      held = now - this.t0;
-    return held / 1000;
   }
 
   /** 이번 프레임의 끌기(방향키가 눌려 있으면 방향키). 막은 동안은 가만히 */

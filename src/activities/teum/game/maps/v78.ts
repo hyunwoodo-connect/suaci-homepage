@@ -167,7 +167,7 @@ export const V78_MAP: GameMap = {
     firstHerd: 2,
     herds: { tries: 60, dist: [8, 113], clear: 6 },
     festival: 2,
-    roaming: { herds: 16, flocks: 6, jellies: 8 },
+    roaming: { herds: 0, flocks: 0, jellies: 0 },
     townFlocks: { dist: [12, 72] },
     perLake: 2,
     jellies: { at: [], dist: [18, 113] },

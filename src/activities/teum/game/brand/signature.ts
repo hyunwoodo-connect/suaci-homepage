@@ -21,19 +21,7 @@ import type { LogoTextures } from "./logo";
 // 5) 쉬는 곳의 라임 깃발 — 글자 없이 색만. 멀리서 '저기 쉴 곳'이라고 알려 준다
 // 6) 전설의 도장 — 전설의 손님을 만난 자리에 작은 라임 워드마크가 그 방문 동안 남는다. 만난 사람만 가진 흔적
 
-/** 풍선 줄을 잡는 손: 한 팔을 위로 들고(reachUp), 그 손의 세계 자리(reachHand)에 줄 끝이 붙는다 */
-export interface BalloonHand {
-  reachUp(on: boolean): void;
-  reachHand(out: THREE.Vector3): THREE.Vector3;
-}
-
-/** 줄을 잡고 올라가는 동안: 매듭에서 손까지의 줄 길이(m) · 매듭이 풍선 가운데에서 내려온 만큼(m) · 태워 올리는 시간(초) · 풍선이 손 위로 옮겨 오는 시간(초) */
-const RIDE_STRING = 2.4,
-  KNOT_DROP = 2.3,
-  RIDE_SECONDS = 3,
-  RIDE_SETTLE = 0.3;
-
-/** 로고 풍선 하나: 제자리(home)·떠 있는 높이(top)·태워 올리는 중(ride)·다시 뜰 때까지(cool)·크기(k)·줄(str)과 그 길이(len) */
+/** 로고 풍선 하나: 제자리(home)·떠 있는 높이(top)·태워 올리는 중(ride)·다시 뜰 때까지(cool)·크기(k) */
 export interface LogoBalloon {
   g: THREE.Group;
   home: THREE.Vector3;
@@ -45,8 +33,6 @@ export interface LogoBalloon {
   ride: number;
   cool: number;
   k: number;
-  str: THREE.Mesh;
-  len: number;
   /** 높은 풍선이면 그 배율(0 이면 보통 풍선) */
   big: number;
 }
@@ -126,7 +112,6 @@ export class Signature implements Thing {
     lawn: Lawn,
     sites: SiteList,
     rockets: RocketList,
-    private readonly hand: BalloonHand,
   ) {
     this.rng = s.rng.fork("signature");
     this.lawn = lawn;
@@ -179,18 +164,13 @@ export class Signature implements Thing {
         ride: 0,
         cool: 0,
         k: 1,
-        str,
-        len: L,
         big: big || 0,
       };
       this.BAL.push(b);
     };
     const HV = s.occ.hubs,
       plan = s.map.brand.balloons;
-    // 맵만 보기(지도 bare)에는 로고 풍선·잔디 로고가 없다
-    const isBare = s.map.bare === true;
-    const townCount = isBare ? 0 : HV.length;
-    for (let hk = 0; hk < townCount; hk++) {
+    for (let hk = 0; hk < HV.length; hk++) {
       const hubBear = 35 + hk * 67;
       const spot = s.occ.hubAt(hk, plan.town.dist, hubBear);
       mkBal(spot, plan.town.alt); // 마을마다 하나
@@ -204,7 +184,6 @@ export class Signature implements Thing {
       mkBal(spot, plan.between.alt); // 마을 사이
     }
     this.lawnMesh = createLawnMesh(s, lawn, tex.lawn);
-    this.lawnMesh.visible = !isBare;
     // 높은 풍선: 출발 마을에서 가장 가까운 로켓 바로 위(지도 highAlt, v78 은 138m)
     {
       let rk: { v: THREE.Vector3 } | null = null,
@@ -216,7 +195,7 @@ export class Signature implements Thing {
           rk = r;
         }
       }
-      if (rk && !isBare) mkBal(rk.v, plan.highAlt, 4.2);
+      if (rk) mkBal(rk.v, plan.highAlt, 4.2);
     }
     const mistGeo = new THREE.SphereGeometry(1, 16, 12);
     this.geos.push(mistGeo);
@@ -245,9 +224,7 @@ export class Signature implements Thing {
         pGeo = new THREE.CylinderGeometry(0.06, 0.06, 7, 6);
       this.geos.push(tri, pGeo);
       this.mats.push(fMat);
-      // 맵만 보기(지도 bare)에는 쉬는 곳의 라임 깃발도 없다 — 라임은 상자·리본만(MAP-03)
-      const flagSites = isBare ? [] : sites.list;
-      for (const site of flagSites) {
+      for (const site of sites.list) {
         if (site.kind !== "rest") continue;
         const flagFar = (site.r || 6) * 0.95;
         const v = offset(site.v, flagFar, 40),
@@ -380,12 +357,6 @@ export class Signature implements Thing {
   }
 
   // 처음 잡거나 처음 뚫을 때 한 번만 "take suaci."
-  // 줄 길이를 바꾼다(매듭 아래로 length m)
-  private setString(b: LogoBalloon, length: number) {
-    b.str.scale.y = length / b.len;
-    b.str.position.y = -KNOT_DROP - length / 2;
-  }
-
   private sayTakeOnce() {
     this.s.hud.sayOnce("take", "take suaci.");
   }
@@ -402,23 +373,13 @@ export class Signature implements Thing {
     b.g.visible = near && b.k > 0.02;
     if (!near && b.ride <= 0 && b.cool <= 0) return;
     if (b.ride > 0) {
-      // 줄을 잡았다: 한 팔을 위로 들고, 줄 끝이 그 손에 붙은 채 풍선이 위에서 끌어 올린다(줄은 손까지만 — 몸이 줄 중간에 걸리지 않게)
+      // 줄을 잡았다: 풍선이 머리 위에서 끌어 올린다
       b.ride -= dt;
       player.lift(5.4);
-      this.hand.reachUp(true);
-      // 처음 잠깐만 따라오고, 그 뒤로는 줄 끝을 손에 딱 붙인다(따라오기만 하면 솟는 동안 줄 끝이 손에서 뒤처진다)
-      const grip = this.hand.reachHand(q0b),
-        gripAlt = grip.length() - S.R,
-        riding = RIDE_SECONDS - b.ride,
-        pull = riding < RIDE_SETTLE ? ease(14, dt) : 1;
-      grip.normalize();
-      b.v.lerp(grip, pull).normalize();
-      b.top += (gripAlt + RIDE_STRING + KNOT_DROP - b.g0 - b.top) * pull;
-      this.setString(b, RIDE_STRING);
-      if (b.ride <= 0) {
-        b.cool = 22;
-        this.hand.reachUp(false);
-      }
+      const pull = ease(9, dt);
+      b.v.lerp(p, pull).normalize();
+      b.top += (altA + 4.6 - b.g0 - b.top) * pull;
+      if (b.ride <= 0) b.cool = 22;
     } else if (b.cool > 0) {
       // 놓고 나면 풍선은 위로 날아가며 작아지고, 한참 뒤 제자리에 다시 뜬다
       b.cool -= dt;
@@ -430,7 +391,6 @@ export class Signature implements Thing {
         b.k = 0;
         b.v.copy(b.home);
         b.top = b.alt;
-        this.setString(b, b.len);
       } else {
         const grown = b.k + dt * 0.6;
         b.k = Math.min(1, grown);
@@ -468,7 +428,7 @@ export class Signature implements Thing {
         altA < b.g0 + b.top + 1 &&
         altA > b.g0 + 0.8
       ) {
-        b.ride = RIDE_SECONDS;
+        b.ride = 3;
         this.s.events.emit("logoBalloonCaught", {});
         fx.burst(P, 10, 9);
         this.sayTakeOnce();

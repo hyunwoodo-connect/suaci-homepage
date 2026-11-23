@@ -107,16 +107,6 @@ export class Studio implements Thing {
     });
   }
 
-  /** 열려 있나(숨바꼭질이 그동안 판을 멈춘다) */
-  get isOpen(): boolean {
-    return this.open;
-  }
-
-  /** 옷장 단추를 숨긴다(숨바꼭질의 꼭꼭 숨어라·언박싱 동안) */
-  setWearHidden(hidden: boolean) {
-    this.closet.setWearHidden(hidden);
-  }
-
   /** 열고 닫는다. 닫으면 꾸미기 씬을 지났다고 기록한다 */
   show(on: boolean) {
     if (on === this.open) return;

@@ -51,8 +51,7 @@ export class Clouds implements Thing {
       clouds.burst[i] = 0;
       this.setCloud(i, 0);
     }
-    // 뭉게구름이 없는 지도(맵만 보기)는 색 칸이 생기지 않는다
-    if (this.m.instanceColor) this.m.instanceColor.needsUpdate = true;
+    this.m.instanceColor!.needsUpdate = true;
     this.m.instanceMatrix.needsUpdate = true;
     // 구름 덩이(v78 은 1300)는 하늘 사방에 있어 가까이·시야 안의 것만 그린다. 이 뒤로는 바뀐 덩이만 묶음에 알린다
     this.pack = this.s.models.pack(this.m);
@@ -97,11 +96,6 @@ export class Clouds implements Thing {
       this.m.instanceMatrix.needsUpdate = true;
       this.m.instanceColor!.needsUpdate = true;
     }
-  }
-
-  /** 그리지 않는다·다시 그린다(내려다본 지도를 뽑을 때 뭉게구름을 끈다) */
-  setHidden(on: boolean) {
-    this.m.visible = !on;
   }
 
   /** 치운다 */

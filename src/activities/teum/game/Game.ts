@@ -13,16 +13,11 @@ import type { Frame, Thing } from "./core/frame";
 import { Random } from "./core/random";
 import type { Tap, Tappable } from "./core/tap";
 import { Creatures } from "./creatures/creatures";
-import { isAvoidOff, isStudioSkipped } from "./debug";
+import { isStudioSkipped } from "./debug";
 import { GameEvents } from "./events";
 import { Fx } from "./fx/fx";
 import { Petals } from "./fx/petals";
 import { Ripples } from "./fx/ripples";
-import { HideSeek } from "./hideseek/hideseek";
-import { sphereAt, STAGE_HUB } from "./hideseek/spots";
-import { handBodies, stageBodies, treeBody } from "./maps/placed";
-import { halfWidthFromBoxes, stageZones } from "./hideseek/stageZones";
-import { HIDE } from "./hideseek/tuning";
 import { Hud } from "./hud";
 import { Landmarks } from "./landmarks/landmarks";
 import { Mats } from "./look";
@@ -70,17 +65,7 @@ import { Sculptures } from "./sculptures/sculptures";
 import type { Services } from "./services";
 import { S } from "./settings";
 import { SoundManager } from "./sound";
-import { bareOf } from "./maps/bare";
-import { GardenDecor } from "./garden/decor";
-import type { TeaFountain } from "./garden/teaFountain";
-import { teaFountainOf } from "./garden/teaFountain";
-import { MinigameEntry } from "./minigame/entry";
-import { Minimap } from "./minimap/minimap";
-import { defaultMotion } from "./player/motion";
 import { Studio } from "./studio/studio";
-import { CloudIslands } from "./world/cloudIslands";
-import { Gates } from "./world/gates";
-import { Roads } from "./world/roads";
 import { Clouds } from "./world/clouds";
 import { Culler } from "./world/culler";
 import { Flowers } from "./world/flowers";
@@ -89,17 +74,12 @@ import { Lakes } from "./world/lakes";
 import { Occupancy } from "./world/occupancy";
 import { Places } from "./world/places";
 import { RegionLook } from "./world/regionLook";
-import { LandmarkShow } from "./zones/landmark";
-import { PlayedGames } from "./zones/played";
-import { ZoneTracker } from "./zones/tracker";
 import { Regions } from "./world/regions";
 import { Sites } from "./world/sites";
 import { Sky } from "./world/sky";
-import { BodyField } from "./world/bodyField";
 import { from } from "./world/sphere";
 import { createStage } from "./world/stage";
 import type { Stage } from "./world/stage";
-import { terraceSpots } from "./world/terraces";
 import { Terrain } from "./world/terrain";
 import { Today } from "./world/today";
 import { TerrainView } from "./world/terrainView";
@@ -110,8 +90,6 @@ import { TerrainView } from "./world/terrainView";
 //   3) 칙에 반응하는 순서(tapOrder)
 // 세계 위의 것들은 서로의 상태를 직접 만지지 않는다. 필요한 다른 것은 여기서 만들 때 넘겨 준다
 
-/** 숨바꼭질 자리 둘레에 더 비워 두는 거리(m — 흩뿌리는 것이 이만큼 떨어진다) */
-const STAGE_MARGIN = 1;
 /** 첫 화면 고르기: 놓인 자리에서 이만큼 위를 가운데로, 이 반지름의 공이 시야에 걸리면 첫 화면에 받는다(m) */
 const START_VIEW_LIFT = 30,
   START_VIEW_RADIUS = 60,
@@ -129,9 +107,7 @@ export class Game {
   readonly ground: Ground;
   readonly sky: Sky;
   /** 지금 지역의 하늘빛·안개(새 지역에 들어서면 알린다) */
-  /** 지역 하늘빛(존 설정이 없는 지도 — v78) 또는 존 넘나들기(존 설정이 있는 지도 — v79) */
-  readonly regionLook: RegionLook | null;
-  readonly zoneTracker: ZoneTracker | null;
+  readonly regionLook: RegionLook;
   readonly places: Places;
   readonly sites: Sites;
   readonly brand: BrandObjects;
@@ -182,25 +158,6 @@ export class Game {
   /** 꾸미기 씬: 세상을 가리고 아바타만 세워 옷장에서 고른다 */
   readonly studio: Studio;
   readonly signature: Signature;
-  /** 숨바꼭질(메인 퀘스트 시험판) */
-  readonly hideSeek: HideSeek;
-  /** 지도 v2(v79)의 큰 길·문·구름섬(자리표에 그 갈래가 없으면 비어 있다) */
-  readonly roads: Roads;
-  readonly gates: Gates;
-  readonly cloudIslands: CloudIslands;
-  /** 존 랜드마크(빛 기둥·모델·반짝이 — 존 설정이 있는 지도만) · 존 미니게임 기록 */
-  readonly landmarkShows: LandmarkShow[];
-  readonly played: PlayedGames;
-  /** 존 미니게임 입구(존 설정이 있는 지도만) */
-  readonly minigames: MinigameEntry | null;
-  /** 자리표의 꾸밈 decor(정원) — 없으면 빈 것 */
-  readonly gardenDecor: GardenDecor;
-  /** 티 분수(꾸밈에 분수 탑이 있을 때만) */
-  readonly teaFountain: TeaFountain | null;
-  /** 미니맵(지도 값 minimap 이 있을 때만) */
-  readonly minimap: Minimap | null;
-  /** 놓인 것의 몸(채우는 것이 엉키지 않게 놓는 데 썼다 — ?noavoid 면 없다) */
-  readonly placed: BodyField | null;
   readonly bubbleTrail: BubbleTrail;
   readonly director: Director;
   readonly creatures: Creatures;
@@ -209,8 +166,6 @@ export class Game {
   readonly sound: SoundManager;
   private readonly frameOrder: Step[];
   private readonly tapOrder: Tappable[];
-  /** 놀이기구를 모는 누름(날갯짓·풍선 놓기 …)만 — 숨바꼭질 판 동안은 이것만 누름을 받는다 */
-  private readonly rideTaps: Tappable[];
   private readonly ray = new THREE.Raycaster();
   /** 그리기 직전의 시야(여럿을 한 번에 그리는 묶음이 시야 밖의 것을 뺀다) */
   private readonly frustum = new THREE.Frustum();
@@ -224,28 +179,18 @@ export class Game {
     canvas: HTMLCanvasElement,
     manifest: Manifest,
     seed: number,
-    chosen: GameMap,
+    map: GameMap,
     festival: number | null = null,
   ) {
-    const map = chosen.bare ? bareOf(chosen) : chosen;
     const stage = createStage(canvas);
     this.stage = stage;
-    const fog = stage.scene.fog as THREE.Fog | null;
-    if (fog && map.fog) {
-      fog.near = map.fog.near;
-      fog.far = map.fog.far;
-    }
     const scene = stage.scene;
     const layout = cloneLayout(map);
     const mats = new Mats();
-    // 꾸민 지역이 있는 지도(MAP-03): 맵에 노랑이 없다 — 노랑이던 놀이기구는 그 지도의 놀이기구 색, 이동 구멍은 그 색
-    if (map.garden) mats.repaintYellowToys(map.garden.toy, map.garden.hole);
     const rng = new Random(seed);
-    const terrain = new Terrain(map.seed, map.terrain, layout.hill, layout.hub);
+    const terrain = new Terrain(map.seed, map.terrain, layout.hill);
     const events = new GameEvents();
-    // 몸놀림 값 한 벌: 나·카메라가 읽고, 존 넘나들기가 바꾼다(기본값 = 지금 큰 행성 값)
-    const motion = defaultMotion();
-    const player = new Player(terrain, events, motion);
+    const player = new Player(terrain, events);
     const hudParent = canvas.parentElement ?? document.body;
     const hud = new Hud(hudParent);
     const models = new ModelLibrary(manifest, mats.lookU, scene);
@@ -263,7 +208,7 @@ export class Game {
       today: new Today(events, map.regions.length, festival),
       culler: new Culler(scene, player),
       player,
-      camera: new CameraRig(stage.camera, player, terrain, motion),
+      camera: new CameraRig(stage.camera, player, terrain),
       fx: new Fx(scene, player, fxRng, events),
       ripples: new Ripples(scene, rippleRng, terrain, player, events),
       hud,
@@ -283,7 +228,7 @@ export class Game {
     // ---- 장면·땅·하늘 ----
     this.ground = new Ground(s);
     this.sky = new Sky(s, stage.sun);
-    this.regionLook = map.zoneConfigs ? null : new RegionLook(s, this.sky);
+    this.regionLook = new RegionLook(s, this.sky);
     const places = new Places(s);
     this.places = places;
     this.sites = new Sites(s, places);
@@ -328,9 +273,7 @@ export class Game {
     this.avatar = new Avatar(s, this.wings);
     this.trail = new Trail(s);
     this.stars.followTrail(this.trail);
-    // 톡은 0.2초 안에 떼고 그 사이 조금(find.tapMove px)만 움직였을 때 — 끌다가 지나간 것은 톡이 아니다
-    const tapRule = { ms: HIDE.measure.dragTapMs, movePx: HIDE.find.tapMove };
-    this.input = new Input(canvas, hud, tapRule, (x, y) => this.tap(x, y));
+    this.input = new Input(canvas, hud, (x, y) => this.tap(x, y));
     this.sound = new SoundManager({
       events,
       manifest,
@@ -344,26 +287,8 @@ export class Game {
     s.camera.resize(stage.renderer);
     // ---- 놓기: 자리표 → 행성 위 자리 ----
     this.layoutWorld();
-    this.roads = new Roads(s);
-    this.gates = new Gates(s);
-    this.cloudIslands = new CloudIslands(s);
-    // 존 랜드마크: 자리표 랜드마크마다 그 마을 존의 설정으로(모델이 없는 존은 빛 기둥만)
-    this.played = new PlayedGames();
-    const zoneOfHub = (hub: number) => map.zoneConfigs?.find((z) => z.hub === hub);
-    const lands = map.zoneConfigs ? (layout.landmark ?? []) : [];
-    this.landmarkShows = lands.map(
-      (land) => new LandmarkShow(s, land, zoneOfHub(land.region), this.played),
-    );
-    for (const show of this.landmarkShows) show.layout();
-    // 꾸민 지역(MAP-03 티파티 정원)의 꾸밈 — 땅 높이가 정해진 뒤 찍는다
-    this.gardenDecor = new GardenDecor(s);
-    this.gardenDecor.layout();
-    // 광장의 티 분수(분수 탑에 분홍 차·김)
-    this.teaFountain = teaFountainOf(s);
-    this.teaFountain?.layout();
-    // 출발은 오늘의 축제 지역 마을에서(지도가 출발 마을을 정하면 늘 거기서)
-    const startIndex = map.startHub ?? s.today.festival;
-    const startHub = s.occ.hubs[startIndex];
+    // 출발은 오늘의 축제 지역 마을에서
+    const startHub = s.occ.hubs[s.today.festival];
     player.goHome(startHub);
     this.thermals.usePetals(this.petals);
     this.streams.usePetals(this.petals);
@@ -375,8 +300,6 @@ export class Game {
     this.cannons.fitModels();
     this.bumpers.fitModels();
     this.claimAll();
-    const hasHideSeek = map.hideSeek !== false;
-    if (!isAvoidOff() && hasHideSeek) this.reserveStage();
     this.footsteps = new Footsteps(s);
     // suaci 잔디 로고 자리를 나무·꽃·조형물보다 먼저 맡아 둔다
     const lawn = Signature.reserveLawn(s);
@@ -385,14 +308,7 @@ export class Game {
     this.balls.fitModels();
     this.bubbles = new Bubbles(s);
     this.babyLimes = new BabyLimes(s, this.footsteps);
-    // 큰 꽃·비눗방울·꼬마 라임은 여기까지 자리만 골라 맡아 두었다(조형물이 그 자리를 피한다). 조형물을 놓은 뒤에,
-    // 다른 것과 엉키지 않는 것만 심는다 — 뒤에 선 큰 조형물의 머리에 꽃이 박히지 않게
-    const field = isAvoidOff() ? null : this.bodyField();
-    this.placed = field;
-    this.sculptures = new Sculptures(s, this.trees, this.cannons, field);
-    this.bigFlowers.build(field);
-    this.bubbles.build(field);
-    this.babyLimes.build(field);
+    this.sculptures = new Sculptures(s, this.trees, this.cannons);
     this.whale.choosePath([this.trees, this.bigFlowers, this.sculptures, this.sites]);
     const store = new LocalSaveStore();
     this.progress = new Progress(store);
@@ -410,7 +326,7 @@ export class Game {
     this.studio = new Studio(s, this.avatar, this.wardrobe, this.input, hudParent, urlOf);
     this.studio.greetNewcomer(skipStudio);
     this.landmarks = new Landmarks(s, this.sculptures.landmarks, this.progress);
-    this.signature = new Signature(s, lawn, this.sites, this.rockets, this.avatar);
+    this.signature = new Signature(s, lawn, this.sites, this.rockets);
     this.bubbleTrail = new BubbleTrail(s);
     this.creatures = new Creatures(s, {
       footsteps: this.footsteps,
@@ -419,71 +335,7 @@ export class Game {
       signature: this.signature,
       whale: this.whale,
     });
-    const avatar = this.avatar,
-      whale = this.whale,
-      { creatures, babyLimes, stars } = this;
-    this.hideSeek = new HideSeek(
-      s,
-      {
-        input: this.input,
-        studio: this.studio,
-        unbox: {
-          // 커지면 카메라도 그만큼 물러난다(4배 몸이 다 들게)
-          grow: (k, isInstant) => {
-            avatar.grow(k, isInstant);
-            const zoom = 1 + (k - 1) * 0.5;
-            s.camera.setZoom(zoom);
-          },
-          callWhale: (over, dir) => whale.flyBy(over, dir),
-          keepWhaleOff: () => whale.keepOff(),
-        },
-        creatures,
-        whale,
-        cat: avatar,
-        setPlaceGlow: (on) => places.setLimeGlow(on),
-        // 판 동안 화면에 글자를 띄우지 않는다(장소 이름표·쉬는 곳 말풍선)
-        setLabels: (on) => this.sites.setLabels(on),
-        // 판이 도는 동안은 만난 손님·꼬마 라임·별이 따라붙지 않는다
-        setCompany: (on) => {
-          creatures.setFollowing(on);
-          babyLimes.setFollowing(on);
-          stars.setFollowing(on);
-        },
-        // 판 동안은 랜드마크가 인사하지 않고, 장소가 반응하지 않고, 생물이 나를 본체만체한다(꿈틀하는 것은 후보 물건뿐)
-        setReactions: (on) => {
-          this.sites.setGreeting(on);
-          places.setReacting(on);
-          creatures.setReactive(on);
-        },
-      },
-      hudParent,
-    );
-    if (!hasHideSeek) this.hideSeek.sleep();
     this.director = new Director(s, this.bubbleTrail, this.seeds, this.creatures);
-    // 존 미니게임 입구(존 설정이 있는 지도만): 랜드마크 앞 시작 자리 → 연출 → 판 → 결과 → 자유 놀이. 도전장 링크(?zone=)는 그 자리로
-    this.minigames = map.zoneConfigs
-      ? new MinigameEntry(s, { s, hideSeek: this.hideSeek }, this.played)
-      : null;
-    this.minigames?.layout();
-    this.minigames?.landFromLink();
-    const canOpenMap = () => !this.hideSeek.isRoundOn && !this.hideSeek.takesTaps;
-    this.minimap = map.minimap
-      ? new Minimap(s, map.minimap, hudParent, stage.camera, canOpenMap)
-      : null;
-    // 미니맵의 랜드마크 점: 그 존의 게임을 했으면 깜빡이지 않는다
-    const landOf = (i: number) => layout.landmark?.[i];
-    this.minimap?.setDone((i) => {
-      const land = landOf(i);
-      const zone = land ? zoneOfHub(land.region) : undefined;
-      return zone ? this.played.has(zone.id) : false;
-    });
-    // 존 넘나들기: 하늘·안개·빛·몸놀림·배경 소리·지역 이름(존 설정이 있는 지도만)
-    const minimap = this.minimap;
-    const showName = minimap ? (name: string) => minimap.showName(name) : null;
-    this.zoneTracker = map.zoneConfigs
-      ? new ZoneTracker(s, { sky: this.sky, sun: stage.sun, motion, ambient: this.sound, showName })
-      : null;
-    if (field) this.clearFlowers(field);
     this.whale.fitModels();
     this.balloons.fitModels();
     this.stars.fitModels();
@@ -540,9 +392,6 @@ export class Game {
       this.swings.pose,
       // 풍경·생물
       this.sites,
-      this.gardenDecor,
-      ...this.landmarkShows,
-      ...(this.teaFountain ? [this.teaFountain] : []),
       culler,
       this.footsteps,
       this.bubbles,
@@ -554,22 +403,13 @@ export class Game {
       this.bubbleTrail,
       this.director,
       this.creatures,
-      // 데리고 다니는 손님 수만큼 카메라가 높아지고 멀어진다(다 같이 화면에 들어오게)
-      () => camera.setCompany(this.creatures.followers.length),
-      ...(this.regionLook ? [this.regionLook] : []),
-      ...(this.zoneTracker ? [this.zoneTracker] : []),
+      this.regionLook,
       places,
-      this.cloudIslands,
       this.clouds,
       places.lighthouse,
       hud,
       camera,
-      // 미니맵은 카메라가 보는 쪽을 따라 돈다
-      ...(this.minimap ? [this.minimap] : []),
       this.studio,
-      // 숨바꼭질은 따라가는 카메라 뒤에 — 둘러보기·언박싱이 카메라를 잠깐 빌린다
-      this.hideSeek,
-      ...(this.minigames ? [this.minigames] : []),
       this.landmarks,
       places.spots,
       ripples,
@@ -580,10 +420,12 @@ export class Game {
       this.avatar.cat,
       this.stars.models,
     ];
-    this.rideTaps = [this.wings, this.rails, this.swings, this.stars, this.balloons];
     this.tapOrder = [
-      this.hideSeek,
-      ...this.rideTaps,
+      this.wings,
+      this.rails,
+      this.swings,
+      this.stars,
+      this.balloons,
       // 아래는 땅을 눌렀을 때만 반응한다(tap.ground)
       ripples,
       this.flowers,
@@ -621,12 +463,10 @@ export class Game {
   startViewKeys(): string[] {
     const dt = this.frame.dt;
     this.frame.dt = 0;
-    // 두 번 돈다: 숨바꼭질이 첫 프레임 끝에 나를 무대 마을 출발 자리로 옮기므로, 카메라가 그 자리를 따라간 뒤의 시야로 고른다
-    for (let pass = 0; pass < 2; pass++)
-      for (const t of this.frameOrder) {
-        if (typeof t === "function") t();
-        else t.update(this.frame);
-      }
+    for (const t of this.frameOrder) {
+      if (typeof t === "function") t();
+      else t.update(this.frame);
+    }
     this.frame.dt = dt;
     const camera = this.stage.camera,
       p = this.s.player.p,
@@ -690,22 +530,14 @@ export class Game {
     for (const t of this.frameOrder) if (typeof t !== "function") t.dispose();
     this.terrainView.dispose();
     this.brand.dispose();
-    this.roads.dispose();
-    this.gates.dispose();
     this.s.models.dispose();
     this.stage.dispose();
   }
 
   /* ─── 내부 ─────────────────────────── */
 
-  // 칙: 화면 좌표를 땅에 쏘아 맞은 자리를 정하고, 정해 둔 차례로 알린다. 언박싱 중에는 숨바꼭질만 받는다(상자를 여는 누름)
+  // 칙: 화면 좌표를 땅에 쏘아 맞은 자리를 정하고, 정해 둔 차례로 알린다
   private tap(x: number, y: number) {
-    if (this.hideSeek.takesTaps) {
-      this.hideSeek.onTap();
-      return;
-    }
-    // 숨바꼭질: 후보 물건·버섯을 눌렀으면 그것만 반응한다
-    if (this.hideSeek.pick(x, y)) return;
     const ndcX = (x / innerWidth) * 2 - 1,
       ndcY = -(y / innerHeight) * 2 + 1;
     this.ndc.set(ndcX, ndcY);
@@ -713,11 +545,6 @@ export class Game {
     const hits = this.ray.intersectObject(this.ground.planet, false);
     const n = hits.length ? hits[0].point.clone().normalize() : null;
     const tap: Tap = { ground: n, time: this.frame.time };
-    // 숨바꼭질 판 동안은 바닥·장소·꽃이 누름에 반응하지 않는다(누를 수 있는 것과 없는 것이 분명히 갈리게) — 놀이기구를 모는 누름만 받는다
-    if (this.hideSeek.isRoundOn) {
-      for (const t of this.rideTaps) t.onTap(tap);
-      return;
-    }
     if (n) this.s.hud.hideHint();
     for (const t of this.tapOrder) t.onTap(tap);
   }
@@ -729,11 +556,6 @@ export class Game {
     this.ground.layout();
     this.places.layoutPlaces();
     terrain.placeFeatures();
-    // 비탈에 걸린 넓은 것 밑은 평평한 단으로 깎는다(지도 terrain.level) — 언덕 그물을 짓기 전에
-    if (terrain.isLevel) {
-      const spots = terraceSpots(this.s.layout, terrain);
-      terrain.carve(spots);
-    }
     this.terrainView.layoutFeatures();
     const keep: THREE.Vector3[] = [];
     this.places.layoutItems(keep);
@@ -768,59 +590,6 @@ export class Game {
     this.clouds.layout();
   }
 
-  // 놓인 것의 몸(높이마다 굵기): 손으로 놓은 것·숨바꼭질 자리·지금까지 심긴 나무. 채우는 것이 여기에 엉키면 놓지 않는다
-  private bodyField(): BodyField {
-    const { occ, models, map } = this.s,
-      field = new BodyField(),
-      hand = handBodies(map, (kind) => this.rideMembers(kind)),
-      hub = occ.hubs[STAGE_HUB],
-      handTrees = map.layout.tree.length;
-    for (const body of hand) field.add(body);
-    if (hub) {
-      const halfWidthOf = halfWidthFromBoxes((key) => models.boxValues(key));
-      for (const body of stageBodies(hub, halfWidthOf, hand)) field.add(body);
-    }
-    this.trees.list.forEach((t, i) => {
-      const layer = i < handTrees ? "손" : "흩뿌림",
-        body = treeBody(i, t.T.I.key, layer, t.v, t);
-      field.add(body);
-    });
-    return field;
-  }
-
-  // 숨바꼭질이 차지하는 자리(후보 물건·탑·버섯·구경꾼 자리·출발 줄)를 흩뿌리기 전에 맡아 둔다 —
-  // 나무·큰 풍선 꽃·비눗방울·꼬마 라임·조형물·생물 무리가 그 자리와 둘레(STAGE_MARGIN)를 피한다
-  private reserveStage() {
-    const { occ, models } = this.s,
-      hub = occ.hubs[STAGE_HUB];
-    if (!hub) return;
-    const halfWidthOf = halfWidthFromBoxes((key) => models.boxValues(key));
-    for (const zone of stageZones(halfWidthOf)) {
-      const v = new THREE.Vector3(),
-        room = zone.r + STAGE_MARGIN;
-      sphereAt(v, hub, zone.x, zone.y);
-      occ.fill(v, room);
-    }
-  }
-
-  // 놓인 것 밑에 깔린 바닥 꽃은 피우지 않는다: 놓인 것의 땅에 닿은 몸 안, 호수 안, 장소 한가운데.
-  // 꽃 자리는 지형 씨앗으로 먼저 정해져서, 다 놓은 뒤에 거른다
-  private clearFlowers(field: BodyField) {
-    const { map } = this.s,
-      lakes = map.layout.lake.map((l) => ({ v: from(l.dist, l.bear), r: l.r }));
-    this.flowers.clearUnder(
-      (v) => field.covers(v) || lakes.some((l) => l.v.angleTo(v) * S.R < l.r),
-    );
-  }
-
-  /** 한 자리에 여럿 놓이는 놀이기구의 놓인 목록(자리표 갈래로 묻는다 — 몸을 잴 때 무리 전체를 덮게) */
-  rideMembers(kind: string): readonly { v: THREE.Vector3 }[] {
-    if (kind === "bumper") return this.bumpers.list;
-    if (kind === "star") return this.stars.list;
-    if (kind === "pad") return this.pads.list;
-    return [];
-  }
-
   // 자리 차지: 이미 찬 자리와 비행 통로(키 작은 것을 두지 않는 길). 차례는 결과에 영향이 없다
   private claimAll() {
     const claimers = [
@@ -851,15 +620,7 @@ export class Game {
       this.funnels,
       this.seeds,
       this.jets,
-      this.roads,
-      this.gates,
-      this.cloudIslands,
     ];
     for (const c of claimers) c.claim();
-    // 게임 마당(지도 v2): 랜드마크 둘레는 비워 둔다
-    for (const zone of this.s.layout.gameZone ?? []) {
-      const v = from(zone.dist, zone.bear);
-      this.s.occ.fill(v, zone.r);
-    }
   }
 }

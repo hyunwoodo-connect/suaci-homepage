@@ -1,5 +1,5 @@
 {
-  "version": "v10",
+  "version": "v4",
   "assets": {
     "snd_bgm": {
       "file": "audio/bgm/bgm.mp3",
@@ -21,175 +21,10 @@
       "category": "audio/sfx",
       "bytes": 8821
     },
-    "snd_box_allfound": {
-      "file": "audio/sfx/box-allfound.mp3",
-      "category": "audio/sfx",
-      "bytes": 23815
-    },
-    "snd_box_fall_a": {
-      "file": "audio/sfx/box-fall-a.mp3",
-      "category": "audio/sfx",
-      "bytes": 5374
-    },
-    "snd_box_found_a": {
-      "file": "audio/sfx/box-found-a.mp3",
-      "category": "audio/sfx",
-      "bytes": 13941
-    },
-    "snd_box_found_b": {
-      "file": "audio/sfx/box-found-b.mp3",
-      "category": "audio/sfx",
-      "bytes": 2970
-    },
-    "snd_box_giggle_a": {
-      "file": "audio/sfx/box-giggle-a.mp3",
-      "category": "audio/sfx",
-      "bytes": 12844
-    },
-    "snd_box_giggle_b": {
-      "file": "audio/sfx/box-giggle-b.mp3",
-      "category": "audio/sfx",
-      "bytes": 10284
-    },
-    "snd_box_legend": {
-      "file": "audio/sfx/box-legend.mp3",
-      "category": "audio/sfx",
-      "bytes": 43198
-    },
-    "snd_box_phew_a": {
-      "file": "audio/sfx/box-phew-a.mp3",
-      "category": "audio/sfx",
-      "bytes": 10703
-    },
-    "snd_box_phew_b": {
-      "file": "audio/sfx/box-phew-b.mp3",
-      "category": "audio/sfx",
-      "bytes": 15038
-    },
-    "snd_box_sneeze_a": {
-      "file": "audio/sfx/box-sneeze-a.mp3",
-      "category": "audio/sfx",
-      "bytes": 9187
-    },
-    "snd_box_sneeze_b": {
-      "file": "audio/sfx/box-sneeze-b.mp3",
-      "category": "audio/sfx",
-      "bytes": 12897
-    },
-    "snd_box_steps_a": {
-      "file": "audio/sfx/box-steps-a.mp3",
-      "category": "audio/sfx",
-      "bytes": 29301
-    },
-    "snd_box_steps_b": {
-      "file": "audio/sfx/box-steps-b.mp3",
-      "category": "audio/sfx",
-      "bytes": 14778
-    },
-    "snd_box_thud_big": {
-      "file": "audio/sfx/box-thud-big.mp3",
-      "category": "audio/sfx",
-      "bytes": 15404
-    },
-    "snd_box_thud_small": {
-      "file": "audio/sfx/box-thud-small.mp3",
-      "category": "audio/sfx",
-      "bytes": 13941
-    },
     "snd_cannon": {
       "file": "audio/sfx/cannon.mp3",
       "category": "audio/sfx",
       "bytes": 4432
-    },
-    "snd_find_found": {
-      "file": "audio/sfx/find-found.mp3",
-      "category": "audio/sfx",
-      "bytes": 21360
-    },
-    "snd_find_giggle_1": {
-      "file": "audio/sfx/find-giggle-1.mp3",
-      "category": "audio/sfx",
-      "bytes": 11956
-    },
-    "snd_find_giggle_2": {
-      "file": "audio/sfx/find-giggle-2.mp3",
-      "category": "audio/sfx",
-      "bytes": 12897
-    },
-    "snd_find_giggle_3": {
-      "file": "audio/sfx/find-giggle-3.mp3",
-      "category": "audio/sfx",
-      "bytes": 6314
-    },
-    "snd_find_hop": {
-      "file": "audio/sfx/find-hop.mp3",
-      "category": "audio/sfx",
-      "bytes": 5687
-    },
-    "snd_find_rustle": {
-      "file": "audio/sfx/find-rustle.mp3",
-      "category": "audio/sfx",
-      "bytes": 12897
-    },
-    "snd_find_taunt": {
-      "file": "audio/sfx/find-taunt.mp3",
-      "category": "audio/sfx",
-      "bytes": 3493
-    },
-    "snd_find_wrong": {
-      "file": "audio/sfx/find-wrong.mp3",
-      "category": "audio/sfx",
-      "bytes": 12897
-    },
-    "snd_help_cupcake": {
-      "file": "audio/sfx/help-cupcake.mp3",
-      "category": "audio/sfx",
-      "bytes": 12897
-    },
-    "snd_help_key": {
-      "file": "audio/sfx/help-key.mp3",
-      "category": "audio/sfx",
-      "bytes": 5060
-    },
-    "snd_help_mushroom": {
-      "file": "audio/sfx/help-mushroom.mp3",
-      "category": "audio/sfx",
-      "bytes": 7568
-    },
-    "snd_help_rabbit": {
-      "file": "audio/sfx/help-rabbit.mp3",
-      "category": "audio/sfx",
-      "bytes": 10703
-    },
-    "snd_help_soldier": {
-      "file": "audio/sfx/help-soldier.mp3",
-      "category": "audio/sfx",
-      "bytes": 2239
-    },
-    "snd_help_watch": {
-      "file": "audio/sfx/help-watch.mp3",
-      "category": "audio/sfx",
-      "bytes": 24809
-    },
-    "snd_hide_leap": {
-      "file": "audio/sfx/hide-leap.mp3",
-      "category": "audio/sfx",
-      "bytes": 12897
-    },
-    "snd_hide_legend": {
-      "file": "audio/sfx/hide-legend.mp3",
-      "category": "audio/sfx",
-      "bytes": 32959
-    },
-    "snd_hide_ring_on": {
-      "file": "audio/sfx/hide-ring-on.mp3",
-      "category": "audio/sfx",
-      "bytes": 12897
-    },
-    "snd_hide_tap_mist": {
-      "file": "audio/sfx/hide-tap-mist.mp3",
-      "category": "audio/sfx",
-      "bytes": 7568
     },
     "snd_jelly": {
       "file": "audio/sfx/jelly.mp3",
@@ -200,26 +35,6 @@
       "file": "audio/sfx/legend.mp3",
       "category": "audio/sfx",
       "bytes": 24703
-    },
-    "snd_open_drum": {
-      "file": "audio/sfx/open-drum.mp3",
-      "category": "audio/sfx",
-      "bytes": 12897
-    },
-    "snd_open_fizzle": {
-      "file": "audio/sfx/open-fizzle.mp3",
-      "category": "audio/sfx",
-      "bytes": 12897
-    },
-    "snd_open_knock": {
-      "file": "audio/sfx/open-knock.mp3",
-      "category": "audio/sfx",
-      "bytes": 10076
-    },
-    "snd_open_pop": {
-      "file": "audio/sfx/open-pop.mp3",
-      "category": "audio/sfx",
-      "bytes": 2239
     },
     "snd_open": {
       "file": "audio/sfx/open.mp3",
@@ -660,96 +475,6 @@
         0.2430894523859024, 0.4995035231113434
       ]
     },
-    "disguise_glasses": {
-      "file": "hideseek/disguise-glasses.glb",
-      "category": "hideseek",
-      "bytes": 80588,
-      "tris": 5992,
-      "box": [
-        -0.4292374551296234, -0.3422219753265381, -0.4999292492866516, 0.4292495846748352,
-        0.3421725928783417, 0.4992211163043976
-      ]
-    },
-    "flowerpot": {
-      "file": "hideseek/flowerpot.glb",
-      "category": "hideseek",
-      "bytes": 85492,
-      "tris": 3995,
-      "box": [
-        -0.4986652731895447, -0.37099283933639526, -0.4997204542160034, 0.49799707531929016,
-        0.37092700600624084, 0.4997403621673584
-      ]
-    },
-    "gift_pile": {
-      "file": "hideseek/gift-pile.glb",
-      "category": "hideseek",
-      "bytes": 219864,
-      "tris": 8996,
-      "box": [
-        -0.41377177834510803, -0.43265265226364136, -0.4989451467990875, 0.4130449891090393,
-        0.4323902130126953, 0.4997270107269287
-      ]
-    },
-    "hide_basket": {
-      "file": "hideseek/hide-basket.glb",
-      "category": "hideseek",
-      "bytes": 133772,
-      "tris": 6996,
-      "box": [
-        -0.34763920307159424, -0.49996593594551086, -0.45241403579711914, 0.34742623567581177,
-        0.4994336664676666, 0.45155104994773865
-      ]
-    },
-    "hide_jar": {
-      "file": "hideseek/hide-jar.glb",
-      "category": "hideseek",
-      "bytes": 57728,
-      "tris": 3998,
-      "box": [
-        -0.4262060225009918, -0.4999302327632904, -0.4270797073841095, 0.42628273367881775,
-        0.49980872869491577, 0.4264684021472931
-      ]
-    },
-    "hide_ribbon": {
-      "file": "hideseek/hide-ribbon.glb",
-      "category": "hideseek",
-      "bytes": 31364,
-      "tris": 1498,
-      "box": [
-        -0.1607849895954132, -0.3921334743499756, -0.4999277889728546, 0.16099020838737488,
-        0.3922935426235199, 0.49981337785720825
-      ]
-    },
-    "hide_teacup": {
-      "file": "hideseek/hide-teacup.glb",
-      "category": "hideseek",
-      "bytes": 72892,
-      "tris": 5006,
-      "box": [
-        -0.4398266077041626, -0.3142772614955902, -0.49983224272727966, 0.4399736523628235,
-        0.3142016530036926, 0.4990358054637909
-      ]
-    },
-    "limebox": {
-      "file": "hideseek/limebox.glb",
-      "category": "hideseek",
-      "bytes": 160444,
-      "tris": 8000,
-      "box": [
-        -0.32779330015182495, -0.49987083673477173, -0.3334459066390991, 0.327955424785614,
-        0.4997458755970001, 0.33336499333381653
-      ]
-    },
-    "rabbit_mask": {
-      "file": "hideseek/rabbit-mask.glb",
-      "category": "hideseek",
-      "bytes": 76848,
-      "tris": 5002,
-      "box": [
-        -0.15421588718891144, -0.49995723366737366, -0.3988097608089447, 0.15411485731601715,
-        0.49975666403770447, 0.39896345138549805
-      ]
-    },
     "balloon": {
       "file": "rides/balloon.glb",
       "category": "rides",
@@ -878,28 +603,10 @@
         -0.10920083522796631, -0.5, -0.30631023645401, 0.10920083522796631, 0.5, 0.30631023645401
       ]
     },
-    "flower_blue@candy": {
-      "file": "scenery/flowers/flower-blue@candy.glb",
-      "category": "scenery/flowers",
-      "bytes": 67612,
-      "tris": 3498,
-      "box": [
-        -0.10920083522796631, -0.5, -0.30631023645401, 0.10920083522796631, 0.5, 0.30631023645401
-      ]
-    },
     "flower_pink": {
       "file": "scenery/flowers/flower-pink.glb",
       "category": "scenery/flowers",
       "bytes": 81356,
-      "tris": 3500,
-      "box": [
-        -0.11530658602714539, -0.5, -0.320675790309906, 0.11530658602714539, 0.5, 0.320675790309906
-      ]
-    },
-    "flower_pink@candy": {
-      "file": "scenery/flowers/flower-pink@candy.glb",
-      "category": "scenery/flowers",
-      "bytes": 82708,
       "tris": 3500,
       "box": [
         -0.11530658602714539, -0.5, -0.320675790309906, 0.11530658602714539, 0.5, 0.320675790309906
@@ -1560,11 +1267,6 @@
       "file": "sky/sky.jpg",
       "category": "sky",
       "bytes": 95906
-    },
-    "ui_wardrobe": {
-      "file": "ui/ui-wardrobe.webp",
-      "category": "ui",
-      "bytes": 16754
     }
   }
 }

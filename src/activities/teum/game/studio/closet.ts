@@ -49,11 +49,8 @@ const OPTION_LABEL: Readonly<Record<string, string>> = {
   board: "스케이트보드",
 };
 
-/** 옷장 단추 그림(옷걸이에 걸린 라임 티셔츠 — 에셋 키) */
-export const WEAR_ICON_KEY = "ui_wardrobe";
-/** 옷장 단추 지름·그림 한 변(px) */
-const WEAR_BUTTON = 56,
-  WEAR_ICON = 36;
+/** 옷 단추 그림(티셔츠) */
+const SHIRT_ICON = `<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 4 4 6.5 5.6 10.4 7.5 9.6V20h9V9.6l1.9.8L20 6.5 15.5 4a3.5 3.5 0 0 1-7 0z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>`;
 
 /** 눌린 것을 알리는 곳 */
 export interface ClosetHandlers {
@@ -71,9 +68,6 @@ export interface ClosetHandlers {
 /** 옷장 화면 */
 export class Closet {
   private readonly wearButton: HTMLButtonElement;
-  /** 꾸미기 씬이 열려 있나 · 옷장 단추를 밖에서 숨겼나 */
-  private isShown = false;
-  private wearHidden = false;
   private readonly stage: HTMLDivElement;
   private readonly tip: HTMLDivElement;
   private readonly sheet: HTMLDivElement;
@@ -88,19 +82,8 @@ export class Closet {
     private readonly urlOf: (key: string) => string | null,
     private readonly on: ClosetHandlers,
   ) {
-    this.wearButton = roundButton("옷장", "");
-    const icon = document.createElement("img");
-    icon.alt = "";
-    icon.width = icon.height = WEAR_ICON;
-    icon.src = urlOf(WEAR_ICON_KEY) ?? "";
-    icon.draggable = false;
-    icon.style.display = "block";
-    icon.style.margin = "auto";
-    this.wearButton.append(icon);
+    this.wearButton = roundButton("옷장", SHIRT_ICON);
     Object.assign(this.wearButton.style, {
-      width: `${WEAR_BUTTON}px`,
-      height: `${WEAR_BUTTON}px`,
-      background: "#fff",
       position: "fixed",
       left: "calc(14px + env(safe-area-inset-left))",
       bottom: "calc(14px + env(safe-area-inset-bottom))",
@@ -208,19 +191,12 @@ export class Closet {
 
   /** 꾸미기 씬을 열고 닫는다(열면 옷장 단추는 숨는다) */
   show(on: boolean, look: Readonly<AvatarLook>) {
-    this.isShown = on;
-    this.wearButton.style.display = on || this.wearHidden ? "none" : "";
+    this.wearButton.style.display = on ? "none" : "";
     this.stage.style.display = on ? "block" : "none";
     this.sheet.style.transform = on ? "none" : "translateY(105%)";
     if (!on) return;
     this.tip.style.opacity = "1";
     this.draw(look);
-  }
-
-  /** 옷장 단추를 숨긴다(숨바꼭질의 꼭꼭 숨어라·언박싱 동안 — 눌러서 판이 꼬이지 않게) */
-  setWearHidden(hidden: boolean) {
-    this.wearHidden = hidden;
-    this.wearButton.style.display = hidden || this.isShown ? "none" : "";
   }
 
   /** 지금 차림으로 칸을 다시 그린다 */

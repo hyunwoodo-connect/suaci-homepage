@@ -1,11 +1,9 @@
 import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
-import { scatterHubs, within } from "../maps/map";
-import { bubbleBody } from "../maps/placed";
+import { within } from "../maps/map";
 import type { Services } from "../services";
 import { S } from "../settings";
-import type { BodyField } from "../world/bodyField";
 import { fr } from "../world/hash";
 import { offset } from "../world/sphere";
 
@@ -21,12 +19,8 @@ export interface Bubble {
   t: number;
   s: number;
   far?: boolean;
-  /** 무리 번호(한 무리의 방울끼리는 겹쳐도 된다) */
-  c: number;
 }
 
-/** 방울 밑이 이보다 낮으면(m) 땅 위의 것과 닿는다 — 그 방울만 자리를 맡는다 */
-const LOW_BUBBLE = 3;
 /** 방울 색: 흰색·분홍·하늘·노랑을 돌려 가며 */
 const BUBBLE_TINTS = [0xffffff, 0xffc4e0, 0xcfe0ff, 0xfff3b0];
 
@@ -66,8 +60,7 @@ export class Bubbles implements Thing {
     scene.add(this.m);
     const BUBS = this.list,
       HV = occ.hubs;
-    const hubs = scatterHubs(plan, HV.length);
-    for (const hk of hubs)
+    for (let hk = 0; hk < HV.length; hk++)
       for (let c0 = 0, got = 0; c0 < plan.tries && got < plan.perHub && BUBS.length < BUB_N; c0++) {
         const c = hk * HUB_STRIDE + c0,
           distRoll = fr(c, 91),
@@ -91,31 +84,10 @@ export class Bubbles implements Thing {
             ph: 6.28 * fr(seed, 98),
             t: 0,
             s: 1,
-            c,
           };
           BUBS.push(bubble);
         }
       }
-  }
-
-  /**
-   * 고른 방울을 띄운다(조형물까지 다 놓인 뒤). field 를 주면 다른 것과 엉키는 방울은 띄우지 않고,
-   * 낮게 뜬 방울의 자리를 맡아 둔다(꽃 길이 방울 무리를 피한다) — 무리 가운데만 빈자리를 봐서, 퍼진 방울이 놀이기구·조형물에 걸리곤 했다
-   */
-  build(field: BodyField | null) {
-    const BUBS = this.list;
-    if (field) {
-      const kept = BUBS.filter((b, i) => {
-        const body = bubbleBody(i, b.c, b.v, b.r, b.h);
-        if (field.tangles(body)) return false;
-        field.add(body);
-        return true;
-      });
-      BUBS.length = 0;
-      BUBS.push(...kept);
-      // 낮게 뜬 방울만 땅 자리를 맡는다 — 높이 뜬 방울 밑은 비어 있다
-      for (const b of BUBS) if (b.h - b.r < LOW_BUBBLE) this.s.occ.fill(b.v, b.r);
-    }
     this.m.count = BUBS.length;
     for (let i = 0; i < BUBS.length; i++) {
       const tint = BUBBLE_TINTS[i % 4];

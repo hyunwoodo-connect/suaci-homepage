@@ -5,16 +5,10 @@ import { describe, expect, it } from "vitest";
 
 import { PRINTS, printKey } from "../game/avatar/outfit";
 import { AVATAR_BODY, AVATAR_COMPANION, PARTS, thumbKey } from "../game/avatar/parts";
-import { FIND } from "../game/hideseek/findTuning";
-import { LIMEBOX } from "../game/hideseek/limebox";
-import { RIBBON_KEY } from "../game/hideseek/ribbons";
 import { MAPS } from "../game/maps";
-import { WEAR_ICON_KEY } from "../game/studio/closet";
-import { V79_ZONES } from "../game/zones";
 import { CATALOG, RETIRED } from "../tools/catalog.mjs";
-import { variantList } from "../tools/recolorRules.mjs";
 import { ASSET_VERSION } from "./config";
-import manifestJson from "./manifest.v10.json";
+import manifestJson from "./manifest.v4.json";
 import {
   BIG_FLOWERS,
   CREATURES,
@@ -24,7 +18,7 @@ import {
   TREE_CROWN_BASE,
 } from "./settings";
 
-// 배포본 manifest(배포본 사본)와 분류표·코드가 서로 맞는지 본다
+// 배포본 manifest(v4 사본)와 분류표·코드가 서로 맞는지 본다
 
 /** 올라가 있지만 일부러 받지 않는 에셋과 그 까닭 */
 const INTENTIONALLY_UNUSED: Record<string, string> = {
@@ -32,22 +26,6 @@ const INTENTIONALLY_UNUSED: Record<string, string> = {
     "관람차 자리는 이 키가 있는지만 보고, 모양은 받침(ferris_stand)과 바퀴(ferris_wheel)로 따로 세운다",
   lime_half: "라임 반쪽은 놓는 자리가 없다(빛나는 라임 규칙에만 이름이 있다)",
   snd_wind: "바람 반복음은 '숨소리 같다'는 지적으로 꺼 두었다(시제품 v67 — 자리만)",
-  ...retired(
-    "disguise_glasses rabbit_mask",
-    "숨바꼭질 조각 01d 의 '아닌 척하는 상자'가 쓰던 소품 — 조각 02 에서 그 규칙을 지웠다. 다음 에셋 버전에서 뺀다",
-  ),
-  ...retired(
-    "snd_box_sneeze_a snd_box_sneeze_b snd_box_phew_a snd_box_phew_b snd_box_giggle_a snd_box_giggle_b snd_box_steps_b snd_box_fall_a snd_box_thud_small snd_box_found_a snd_box_found_b",
-    "숨바꼭질 조각 01 의 숨은 상자 소리(재채기·휴·킥킥·몰래 걷기·높은 곳에서 굴러떨어짐·톡 쳐서 찾음) — 조각 02 에서 그 규칙을 지웠다(찾음은 snd_find_found). 다음 에셋 버전에서 뺀다",
-  ),
-  ...retired(
-    "snd_help_rabbit snd_help_key snd_help_soldier snd_help_cupcake snd_help_watch snd_hide_ring_on snd_hide_leap",
-    "숨바꼭질 조각 01e 의 생물 도움 소리(토끼·열쇠·병정·컵케이크·시계)와 발밑 고리·뛰어가기 — 조각 02 에서 생물 도움을 지웠다(버섯은 높이 뛰기로 남아 snd_help_mushroom 을 쓴다). 다음 에셋 버전에서 뺀다",
-  ),
-  ...retired(
-    "snd_box_legend snd_hide_legend",
-    "숨바꼭질의 전설(하늘에 나타남·울며 내려옴) 소리 — 조각 02 에서 전설을 지웠다. 다음 에셋 버전에서 뺀다",
-  ),
 };
 
 const assets: Record<string, { category: string; box?: number[] }> = manifestJson.assets;
@@ -61,20 +39,9 @@ describe("manifest 사본", () => {
     expect(manifestJson.version).toBe(ASSET_VERSION);
   });
 
-  it("하늘 말고 모든 키 → 분류표에 같은 분류로 있다(존별 색 바꾸기 변형 <원본>@<존> 은 원본의 분류)", () => {
+  it("하늘 말고 모든 키 → 분류표에 같은 분류로 있다", () => {
     const models = Object.entries(assets).filter(([, a]) => a.category !== "sky");
-    for (const [k, a] of models) {
-      const [base] = k.split("@");
-      expect(CATALOG[base]?.cat, k).toBe(a.category);
-    }
-  });
-
-  it("존별 색 바꾸기 규칙의 변형 → 모두 manifest 에 있다(원본과 같은 크기 상자)", () => {
-    const variants = variantList() as [string, string, unknown][];
-    for (const [key, model] of variants) {
-      expect(assets[key], key).toBeDefined();
-      expect(assets[key].box, key).toEqual(assets[model].box);
-    }
+    for (const [k, a] of models) expect(CATALOG[k]?.cat, k).toBe(a.category);
   });
 
   it("분류표의 모든 키 → manifest 에 있고, 쓰지 않는 옛 에셋은 없다", () => {
@@ -112,22 +79,12 @@ describe("코드가 쓰는 에셋 키", () => {
 
 /* ─── 내부 ─────────────────────────── */
 
-// 같은 까닭으로 받지 않는 키 여럿(띄어 쓴 목록)
-function retired(keys: string, why: string): Record<string, string> {
-  return Object.fromEntries(keys.split(" ").map((k) => [k, why]));
-}
-
 // 설정 표·지도(모든 지도의 자리표·브랜드 오브젝트)·코드의 호출(fit·inst·crit 등에 글자 그대로 넘긴 키)에서 모은다
 function referencedKeys(): Set<string> {
   const maps = Object.values(MAPS);
   const keys = new Set<string>([
     AVATAR_BODY,
     AVATAR_COMPANION,
-    LIMEBOX,
-    WEAR_ICON_KEY,
-    RIBBON_KEY,
-    // 숨바꼭질 후보 물건의 모델(hideseek.data.json 의 props.kinds)
-    ...Object.values(FIND.kinds).map((k) => k.model),
     ...Object.keys(PARTS),
     ...Object.keys(PARTS).map(thumbKey),
     ...PRINTS.map(printKey),
@@ -139,8 +96,6 @@ function referencedKeys(): Set<string> {
     ...maps.flatMap((m) => m.layout.site.map((s) => s.k)).filter((k) => k !== "ferris"),
     ...maps.flatMap((m) => m.layout.tree.map((t) => t.t)),
     ...maps.flatMap((m) => m.brand.objects.map((b) => b.key)),
-    // 존 설정이 고른 색 바꾸기 변형(zones/<id>.ts 의 objects.models)
-    ...V79_ZONES.flatMap((z) => Object.values(z.objects?.models ?? {}).map((m) => m.variant ?? "")),
   ]);
   // 소리 표(assets/settings 의 소리 규칙)에 글자 그대로 적은 소리 키(snd_…)
   const settingsText = fs.readFileSync(path.join(__dirname, "settings.ts"), "utf8");

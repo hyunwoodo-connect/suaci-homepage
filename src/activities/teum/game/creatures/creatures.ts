@@ -5,51 +5,30 @@ import { CREATURES, herdSpecies, lakeSpecies, skySpecies } from "../../assets/se
 import type { Frame, Thing } from "../core/frame";
 import { ease } from "../core/frame";
 import type { Random } from "../core/random";
-import { HIDE } from "../hideseek/tuning";
 import { within } from "../maps/map";
 import type { ModelBatch } from "../models/batch";
 import type { Holder } from "../player/player";
 import type { Services } from "../services";
 import { S } from "../settings";
-import { lineSteps } from "../scenery/footsteps";
 import { fr } from "../world/hash";
 import { from, offset, offsetInto } from "../world/sphere";
 import type { Creature, CreatureRole, Pose, Sense } from "./creature";
-import { DAYS } from "./days";
-import { CAP_WOBBLE_SECONDS } from "./daysGround";
 import type { Habit, HabitCtx } from "./habits";
 import { HABITS } from "./habits";
 import { away, face, go } from "./moves";
-import { Puffs } from "./puffs";
-import { roamPlan } from "./roaming";
-import type { Circle } from "./resident";
-import { BREATH, BREATH_SECONDS, createResident, LOOK_SECONDS, LOOK_SWING } from "./resident";
-import { Town } from "./town";
-
-/** 숨바꼭질 판에 부른 땅 위 무리가 서는 모양(m): 둘러설 때의 반지름 · 한 줄로 설 때의 간격 */
-const GUEST_RING = 2.8,
-  GUEST_ROW_GAP = 2.6;
 
 // 생물: 놀이기구가 아니라 손님이다. 저마다 제 할 일을 하다가 나를 알아채고, 동작이 끊기지 않고 이어진다. 이름은 없다.
 // 땅 위의 손님(걷는 찻주전자·카드 병정·뛰는 버섯…), 셋씩 낮게 도는 하늘 무리(열쇠·날개 하트·편지·찻잔·종), 해파리 우산,
 // 호수의 헤엄치는 것(물고기·일각고래·물개), 그리고 자리를 옮기지 않는 전설의 손님(라임 사슴·날개 달린 왕관).
 // 종의 생김새·크기·걸음새·버릇은 설정 표(assets/settings 의 CREATURES) 한곳에, 어디에 몇 무리인지는 지도(creatures)에 있고,
 // 여기는 갈래(땅·하늘·해파리·호수)마다의 공통 상태 기계와 놓는 규칙만 둔다. 종마다 다른 것은 버릇(habits)에게 묻는다.
-// 그리기는 종마다 한 묶음(ModelBatch): 가까이 보이는 것만 매 프레임 채워 그린다.
-// 숨바꼭질 판 영역에는 주민이 산다: 판에 부른 생물(invite·seat)은 하루 세 가지를 돌려 가며 하고, 나를 알아보고 인사하고, 판에서 일어난 일에
-// 반응한다(town — 종마다의 하루는 days). 버섯에 올라탈 때처럼 숨바꼭질이 맡아 옮기는 동안은 자리를 숨바꼭질이 정한다(escort, 끝나면 dismiss).
-// 판이 도는 동안은 만난 손님이 줄지어 따라오지 않는다(setFollowing).
-// 어느 생물이든 가만히 멈춰 있지 않는다: 서 있을 때도 숨을 쉬고(크기) 두리번거린다
+// 그리기는 종마다 한 묶음(ModelBatch): 가까이 보이는 것만 매 프레임 채워 그린다
 
 /** 내가 멀어지면 내 앞쪽으로 옮겨 가는 무리 */
 interface RoamGroup {
   mem: Creature[];
   kind: "herd" | "flock" | "jelly";
   ctr: THREE.Vector3;
-  /** 사는 지역(마을 차례) — 이 지역 안에서만 옮겨 다닌다 */
-  home: number;
-  /** 옮길 자리를 못 찾았을 때 다시 찾아보기까지(초) */
-  wait: number;
 }
 
 /** 지나온 자리 하나 */
@@ -64,16 +43,7 @@ export interface CreatureLinks {
   footsteps: { readonly length: number; at(i: number): Footstep };
   /** 따라오는 꼬마 라임 수(손님은 그 뒤에 선다) */
   babyLimes: { joined: number };
-  lakes: {
-    list: readonly {
-      v: THREE.Vector3;
-      r: number;
-      /** 바다(지도 v2) · 물빛(초콜릿 시내) · 어느 지역의 물 */
-      isSea: boolean;
-      tint?: string;
-      region?: number;
-    }[];
-  };
+  lakes: { list: readonly { v: THREE.Vector3; r: number }[] };
   /** 전설을 만난 자리에 도장 */
   signature: { stampAt(v: THREE.Vector3): void };
   /** 고래 등에 타면 고래도 만난 것으로 친다 */
@@ -91,8 +61,6 @@ interface Species {
   scaredTo: string;
 }
 
-/** 내게 반응하지 않는 동안 생물이 아는 나와의 거리(m — 어떤 버릇도 닿지 않게 멀리) */
-const UNNOTICED = 1e6;
 /** 가까이 있는 것만 움직이는 경계(시제품: v·p < 0.8 이면 쉰다)와, 다시 고르기 전까지 버틸 여유 */
 const REST_COS = 0.8,
   ACTIVE_MARGIN = 60,
@@ -100,43 +68,13 @@ const REST_COS = 0.8,
   REBUILD_MOVE = 30,
   REBUILD_TIME = 1;
 
-/** 전설의 손님 몸에서 번지는 은은한 빛: 크기(m)·가장 진할 때·한 번 번지는 빠르기(rad/s) */
-const LEGEND_GLOW_SIZE = 7,
-  LEGEND_GLOW = 0.3,
-  LEGEND_GLOW_RATE = 0.45;
-/** 전설의 손님은 풀을 뜯지 않는다: 고개를 들고 먼 곳을 본다(고개 높이) · 고개를 좌우로 돌리는 폭(두리번의 배)과 빠르기(두리번의 몫) */
-const LEGEND_GAZE = 0.75,
-  LEGEND_LOOK = 1.4,
-  LEGEND_LOOK_PACE = 0.35;
-/** 해파리 우산: 나를 보면 우산을 접었다 펴는 시간(초)·다시 하기까지(초) · 내가 밑을 지나가면 피해 오르는 높이(m)와 그 거리(m) · 호수 위를 맴돌 때 호수를 찾는 거리(m) */
-const JELLY_FOLD_SECONDS = 1.3,
-  JELLY_GREET_AGAIN = 30,
-  JELLY_DODGE = 2.2,
-  JELLY_DODGE_REACH = 3.5,
-  JELLY_LAKE_REACH = 60,
-  JELLY_LEASH = 40;
-/** 호수의 것들: 나를 보면 크게 뛰는 높이(배)·다시 하기까지(초) · 물가에 고개를 내미는 간격(초, 이 사이)과 시간(초) · 서로 쫓는 간격(초, 이 사이)·시간(초)·빠르기(m/s) */
-const FISH_GREET_LEAP = 1.6,
-  FISH_GREET_AGAIN = 30,
-  FISH_PEEK_MIN = 14,
-  FISH_PEEK_MAX = 24,
-  FISH_PEEK_SECONDS = 2.2,
-  FISH_CHASE_MIN = 9,
-  FISH_CHASE_MAX = 18,
-  FISH_CHASE_SECONDS = 2.6,
-  FISH_CHASE_SPEED = 3.4;
-/** 인사하는 거리(m — 판 영역 밖의 생물도 주민과 같은 거리에서 나를 알아본다) */
-const GREET_REACH = 12;
 /**
- * 숨바꼭질 판 영역에는 주민만 산다(주민이 아닌 생물은 인사도 안 하고 한 종이 다섯을 넘게 만든다) — 그 밖의 생물을 놓을 때 판 영역 반경에 더 두는 여유(m):
- * 땅 위 무리(둘러선 자리 + 돌아다니는 거리) · 하늘 무리(도는 반지름에 더한다) · 해파리(떠다니는 거리)
+ * 따라오는 손님 줄: 내 발자취(한 걸음 0.3m) 위에 한 줄로 선다. 아기 라임(여섯 걸음 간격)이 있으면 그 뒤부터.
+ * 첫 손님은 FOLLOW_FIRST 걸음 뒤, 그다음은 FOLLOW_GAP 걸음마다 — 손님끼리 거의 닿을 만큼 붙여, 셋까지는 한 화면에 든다
  */
-const STAGE_HERD_ROOM = 12,
-  STAGE_FLOCK_ROOM = 4,
-  STAGE_JELLY_ROOM = JELLY_LEASH + 4;
-/** 숨쉬기의 빠르기(rad/s) · 두리번의 빠르기(rad/s) */
-const BREATH_RATE = (2 * Math.PI) / BREATH_SECONDS,
-  LOOK_RATE = (2 * Math.PI) / LOOK_SECONDS;
+const FOLLOW_FIRST = 7,
+  FOLLOW_GAP = 7,
+  BABY_GAP = 6;
 
 const fAim = new THREE.Vector3(),
   cf = new THREE.Vector3(),
@@ -180,16 +118,6 @@ export class Creatures implements Thing {
   private lastJumps = -1;
   private nowTime = 0;
   private readonly restCut: number;
-  /**
-   * 나와 어울리나(숨바꼭질 판 동안은 끈다): 끄면 다가오지도, 기대지도, 달아나지도, 앞장서 뛰지도, 내 둘레를 돌지도, 나를 튕기지도 않는다 —
-   * 판 영역의 주민은 그래도 나를 알아보고 인사하고 길을 비켜 준다. 그 밖의 생물은 나를 아주 멀리 있는 것으로 친다
-   */
-  private isReactive = true;
-  /** 판 영역에 사는 주민과 그 몸짓에 붙는 작은 효과 */
-  private readonly town: Town;
-  private readonly puffs: Puffs;
-  /** 만난 손님이 줄지어 따라와도 되나 */
-  private canFollow = true;
 
   constructor(
     private readonly s: Services,
@@ -206,8 +134,6 @@ export class Creatures implements Thing {
     };
     const restAngle = Math.acos(REST_COS) + ACTIVE_MARGIN / S.R;
     this.restCut = Math.cos(restAngle);
-    this.puffs = new Puffs(s.scene);
-    this.town = new Town(s, { meet: (c) => this.meet(c) }, this.puffs);
     this.place();
     this.activeMark = new Uint8Array(this.list.length);
     s.events.on("dayChanged", ({ festival }) => this.setFestival(festival));
@@ -217,7 +143,7 @@ export class Creatures implements Thing {
   /** 따라오지 않는 생물 하나라도 14m 안에 있나(무리는 무리 중심으로 본다) — 지루함 감독이 '새로 마주친 순간'을 센다 */
   isAnyNear(p: Readonly<THREE.Vector3>): boolean {
     for (const c of this.list) {
-      if (c.st === "follow" || c.st === "guide" || c.gone) continue;
+      if (c.st === "follow" || c.gone) continue;
       const at = c.hv || c.v;
       if (at.dot(p) > 0.9996 && p.angleTo(at) * S.R < 14) return true;
     }
@@ -233,14 +159,9 @@ export class Creatures implements Thing {
     this.nowTime = f.time;
     x.dt = dt;
     x.time = f.time;
-    // 전설의 손님 곁에는 늘 빛가루가 인다(지난 프레임에 보였던 자리에서). 가끔 몸에서 은은한 빛이 번진다
-    for (const c of this.legends) {
-      if (!c.visible) continue;
-      if (c.rng.next() < dt * 5) this.s.fx.burst(c.pos, 2, 4);
-      const glowPhase = f.time * LEGEND_GLOW_RATE + c.an.x,
-        glow = Math.sin(glowPhase) * LEGEND_GLOW;
-      if (glow > 0) this.s.fx.glow(c.pos, LEGEND_GLOW_SIZE, glow);
-    }
+    // 전설의 손님 곁에는 늘 빛가루가 인다(지난 프레임에 보였던 자리에서)
+    for (const c of this.legends)
+      if (c.visible && c.rng.next() < dt * 5) this.s.fx.burst(c.pos, 2, 4);
     // 순간 이동은 빠르기로 치지 않는다
     const sp = (p.angleTo(this.pPrev) * S.R) / Math.max(dt, 1e-3);
     if (sp < 60) this.pspd += (sp - this.pspd) * 0.25;
@@ -250,45 +171,29 @@ export class Creatures implements Thing {
       rush = !held && this.pspd > 7;
     if (x.visit.t > 0) x.visit.t -= dt;
     for (const grp of this.roam) {
-      if (grp.wait > 0) {
-        grp.wait -= dt;
-        continue;
-      }
       const d = grp.ctr.angleTo(p) * S.R;
       cw.copy(grp.ctr).sub(p);
       const behind = cw.dot(player.h) < 0;
-      if (d > ROAM.far || (d > ROAM.behind && behind)) this.placeRoam(grp, false);
+      if (d > 250 || (d > 150 && behind)) this.placeRoam(grp, false);
     }
     if (player.isHeldBy(this.links.whale)) this.met.add("whale");
-    this.town.begin(dt, f.time, this.pspd, this.isReactive);
     this.refreshActive();
     for (const b of this.batches) b.begin();
     const altA = player.P.length() - S.R;
     for (const i of this.active) {
       const c = this.list[i];
-      if (c.st === "guide") {
-        // 숨바꼭질이 맡은 동안: 자리는 숨바꼭질이 정한다 — 선 몸짓으로 그린다
-        c.amt -= c.amt * ease(7, dt);
-        this.put(c, dt);
-        continue;
-      }
       if (c.v.dot(p) < REST_COS && c.st !== "follow" && c.st !== "fly") {
         c.visible = false;
         continue;
       } // 아주 먼 것은 쉬게 둔다
-      // 주민은 판이 도는 동안에도 나를 알아본다. 그 밖의 생물은 판 동안 나를 본체만체한다
-      const isNoticing = this.isReactive || c.res !== null,
-        dP = isNoticing ? c.v.angleTo(p) * S.R : UNNOTICED,
+      const dP = c.v.angleTo(p) * S.R,
         dA = altA - c.a;
       const pose = this.pose;
       pose.amt = 0;
       pose.head = 0;
       if (c.st === "follow") this.follow(c, pose);
-      else if (c.res) this.town.live(c, dP, dA, pose);
-      else if (c.role === "herd") {
-        this.herd(c, dP, dA, calm, rush, pose);
-        this.town.fend(c);
-      } else if (c.role === "flock") this.flock(c, dP, dA, pose);
+      else if (c.role === "herd") this.herd(c, dP, dA, calm, rush, pose);
+      else if (c.role === "flock") this.flock(c, dP, dA, pose);
       else if (c.role === "fish") this.fish(c, dP, calm, rush, pose);
       else this.jelly(c, dP, dA);
       const amtEase = ease(7, dt),
@@ -298,198 +203,13 @@ export class Creatures implements Thing {
       this.put(c, dt);
     }
     for (const b of this.batches) b.end();
-    this.puffs.update(dt);
-  }
-
-  /** 판에 부를 손님 무리를 만든다(숨바꼭질 — 자리는 seat 이 정한다). 판 영역의 주민이 된다. 모델이 없는 종이면 빈 목록 */
-  invite(species: string, count: number): Creature[] {
-    const set = CREATURES[species],
-      here = this.s.occ.hubs[0],
-      out: Creature[] = [];
-    const dir = this.list.length % 2 ? 1 : -1;
-    for (let j = 0; j < count; j++) {
-      const o: Partial<Creature> = set?.sky
-        ? { ctr: here, rad: 10, dir, alt: 3, ang: -dir * j * 14, slot: j, st: "fly", calm: true }
-        : { gait: set?.herd?.gait ?? "walk", st: "graze", hv: here, calm: true };
-      const role = set?.sky ? "flock" : "herd";
-      const c = this.crit(species, role, here, o);
-      if (!c) continue;
-      out.push(c);
-      if (!DAYS[species]) continue;
-      c.res = createResident();
-      this.town.add(c);
-    }
-    if (this.activeMark.length < this.list.length) {
-      const grown = new Uint8Array(this.list.length);
-      grown.set(this.activeMark);
-      this.activeMark = grown;
-    }
-    return out;
-  }
-
-  /**
-   * 손님 무리를 그 자리(가운데 at)에 새로 앉힌다: 땅 위 무리는 둘러서고(row 면 한 줄로), 하늘 무리는 orbit(m) 둘레·땅에서 alt(m) 높이에 뜬다.
-   * 주민은 거기서 제 하루를 새로 시작한다(서면 안 되는 자리면 밖으로 옮긴다). 데려다주던 것도 제자리로 온다
-   */
-  seat(
-    group: readonly Creature[],
-    at: THREE.Vector3,
-    orbit: number | null,
-    alt: number | null,
-    row: boolean,
-  ) {
-    const ctr = at.clone().normalize(),
-      ground = this.s.terrain.groundAt(ctr),
-      squad = group.length > 1 ? this.town.newSquad() : 0;
-    const mid = (group.length - 1) / 2;
-    group.forEach((c, j) => {
-      if (c.st === "follow") return;
-      c.want = 1;
-      c.met = false;
-      c.vt = 0;
-      c.vc = 0;
-      c.hop = 0;
-      c.hopV = 0;
-      c.pitch = 0;
-      c.sink = 0;
-      if (c.role === "flock") {
-        const ringBearing = (j * 360) / group.length + 20;
-        c.ctr = ctr;
-        c.rad = orbit ?? c.rad;
-        c.alt = alt ?? c.alt;
-        c.g0 = ground;
-        c.ang = ringBearing;
-        offsetInto(c.v, ctr, c.rad, c.ang);
-        c.a = ground + c.alt;
-        c.st = c.res ? "live" : "fly";
-        this.town.settle(c, ctr, squad, j, group.length, c.alt);
-        return;
-      }
-      const across = (j - mid) * GUEST_ROW_GAP,
-        dist = row ? Math.abs(across) : GUEST_RING,
-        ringBearing = (j * 360) / group.length + 20,
-        rowBearing = across < 0 ? 290 : 110,
-        bearing = row ? rowBearing : ringBearing;
-      c.hv = ctr;
-      c.inRow = row;
-      offsetInto(c.home, ctr, dist, bearing);
-      c.v.copy(c.home);
-      c.a = this.s.terrain.groundAt(c.v);
-      c.st = c.res ? "live" : "graze";
-      c.t = c.rng.range(1, 6);
-      c.still = 0;
-      c.led = false;
-      c.bowed = false;
-      this.town.settle(c, ctr, squad, j, group.length, 0);
-    });
-    this.lastTime = -1e9;
-  }
-
-  /**
-   * 숨바꼭질에 맡긴다(버섯에 올라탈 때처럼): 이 생물은 제 할 일을 멈추고, 자리(v·a)와 보는 쪽(f)을 숨바꼭질이 프레임마다 정한다 —
-   * 여기서는 선 몸짓으로 그리기만 한다. 다 하면 dismiss
-   */
-  escort(c: Creature) {
-    c.st = "guide";
-    c.hop = 0;
-    c.hopV = 0;
-    c.sink = 0;
-    c.pitch = 0;
-    c.roll = 0;
-    c.yaw = 0;
-    c.squash = 1;
-    c.swell = 1;
-    this.lastTime = -1e9;
-  }
-
-  /** 맡긴 일이 끝났다: 제 갈 길을 간다(주민은 제 하루로, 땅 위 무리는 집으로 걸어가고, 하늘 무리는 제 궤도로 돌아간다) */
-  dismiss(c: Creature) {
-    if (c.st !== "guide") return;
-    c.vt = 0;
-    c.vc = 28;
-    c.still = 0;
-    c.st = c.res ? "live" : c.role === "flock" ? "fly" : "home";
-  }
-
-  /** 올라선 것을 튕겨 낸 버섯: 갓이 한참 출렁인다 */
-  wobble(c: Creature) {
-    if (c.res) c.res.wobble = CAP_WOBBLE_SECONDS;
-  }
-
-  /**
-   * 나와 어울리나(숨바꼭질 판 동안은 끈다): 끄면 생물이 다가오지도, 기대지도, 달아나지도, 앞장서 뛰지도, 내 둘레를 돌지도 않는다.
-   * 판 영역의 주민은 꺼도 나를 알아보고 인사하고 길을 비켜 준다
-   */
-  setReactive(on: boolean) {
-    this.isReactive = on;
-  }
-
-  // ---- 판 영역의 주민(숨바꼭질이 부른다 — 뜻은 town) ----
-
-  /** 판 영역: 가운데·반경(m)과 리본 달린 물건(자리와 반지름 m) — 주민은 그 둘레 room(m) 안에 서지도 지나가지도 않는다 */
-  setStage(hub: THREE.Vector3, radius: number, keepOff: readonly Circle[], room: number) {
-    this.town.setStage(hub, radius, keepOff, room);
-  }
-
-  /** "꼭꼭 숨어라" 동안 광장 근처 주민이 눈을 가리듯 등을 돌린다 · 끝나면 돌아선다 */
-  turnAway(on: boolean) {
-    this.town.turnAway(on);
-  }
-
-  /** 상자를 찾았다(at: 그 물건 자리): 가까운 주민이 그쪽을 보고 좋아한다 */
-  cheer(at: THREE.Vector3) {
-    this.town.cheer(at);
-  }
-
-  /** 꽝을 열었다(at: 그 물건 자리): 가까운 주민이 힐끗 보고 갸웃한다 */
-  puzzle(at: THREE.Vector3) {
-    this.town.puzzle(at);
-  }
-
-  /** 메롱 이사: 날아가는 상자(세계 자리)를 주민이 눈으로 쫓는다 · null 이면 그만 */
-  watch(box: THREE.Vector3 | null) {
-    this.town.watch(box);
-  }
-
-  /** 상자가 숨어 있는 물건들의 자리 — 곁의 주민이 가끔 힐끗거린다 */
-  setHiding(spots: readonly THREE.Vector3[]) {
-    this.town.setHiding(spots);
-  }
-
-  /** 넷을 다 찾았다: 주민이 at 둘레에 둥글게 모인다 */
-  gather(at: THREE.Vector3) {
-    this.town.gather(at);
-  }
-
-  /** 판이 끝났다: 주민이 제 하루로 돌아간다 */
-  release() {
-    this.town.release();
-  }
-
-  /**
-   * 만난 손님이 줄지어 따라와도 되나(숨바꼭질 판이 도는 동안은 아니다 — 내 뒤에는 찾은 상자만 선다).
-   * 끄면 따라오던 손님은 제 갈 길을 간다
-   */
-  setFollowing(on: boolean) {
-    this.canFollow = on;
-    if (on) return;
-    // 따라오는 것은 땅 위 무리뿐이다 — 집으로 걸어간다
-    for (const c of this.followers) {
-      c.order = -1;
-      c.st = "home";
-    }
-    this.followers.length = 0;
-  }
-
-  /** 그리지 않는다·다시 그린다(내려다본 지도를 뽑을 때 생물을 끈다) */
-  setHidden(on: boolean) {
-    for (const batch of this.batches) batch.setHidden(on);
+    // 데리고 다니는 손님 수만큼 카메라가 높아지고 멀어진다(다 같이 화면에 들어오게)
+    this.s.camera.setCompany(this.followers.length);
   }
 
   /** 치운다(그리는 묶음은 모델 창구가 치운다) */
   dispose() {
     this.list.length = 0;
-    this.puffs.dispose();
   }
 
   /* ─── 내부: 갈래마다의 상태 기계 ─────────────────────────── */
@@ -499,8 +219,8 @@ export class Creatures implements Thing {
     const dt = this.ctx.dt,
       steps = this.links.footsteps;
     const lastHist = steps.length - 1;
-    // 줄 차례(꼬마 라임 → 손님)는 발자취가 정한다
-    const trailIndex = lineSteps(this.links.babyLimes.joined, c.order);
+    const babies = BABY_GAP * this.links.babyLimes.joined,
+      trailIndex = babies + FOLLOW_FIRST + FOLLOW_GAP * c.order;
     const histIndex = Math.min(lastHist, trailIndex);
     const hg = histIndex >= 0 ? steps.at(histIndex) : undefined;
     if (hg) {
@@ -526,12 +246,9 @@ export class Creatures implements Thing {
     }
     pose.head = 0.3;
     const pitchEase = ease(8, dt),
-      sinkEase = ease(10, dt),
-      yawEase = ease(4, dt);
+      sinkEase = ease(10, dt);
     c.pitch += (0 - c.pitch) * pitchEase;
     c.sink += (0 - c.sink) * sinkEase;
-    // 따라올 때는 두리번거리던 고개를 앞으로 돌린다
-    c.yaw += (0 - c.yaw) * yawEase;
     if (c.gait === "hop") {
       if (c.hop > 0 || c.hopV > 0) {
         c.hop += c.hopV * dt;
@@ -566,7 +283,7 @@ export class Creatures implements Thing {
         c.hopV = 0;
       }
     }
-    const scare = !c.calm && dP < 9 && rush && Math.abs(dA) < 6,
+    const scare = dP < 9 && rush && Math.abs(dA) < 6,
       seen = dP < 13 && Math.abs(dA) < 7;
     const sense = this.sense;
     sense.dP = dP;
@@ -603,10 +320,9 @@ export class Creatures implements Thing {
         c.st = "graze";
         c.t = c.rng.range(2, 5);
       } else if (st === "graze") {
-        pose.head = c.legend ? LEGEND_GAZE : -1;
+        pose.head = -1;
         c.t -= dt;
-        // 줄지어 선 무리는 제자리를 지킨다(돌아다니면 줄이 풀린다)
-        if (c.t <= 0 && !c.inRow) {
+        if (c.t <= 0) {
           c.st = "wander";
           // 난수 순서: 거리 → 방향
           const wanderDist = c.rng.range(1, 5.5);
@@ -705,13 +421,6 @@ export class Creatures implements Thing {
       c.hopV = 4;
       c.hop = 0.01;
     } // 뛰는 손님은 걸음 대신 통통
-    // 풀을 뜯으며 서 있을 때도 가만있지 않는다: 좌우로 두리번(전설의 손님은 더 크게, 천천히 고개를 돌린다)
-    const pace = c.legend ? LEGEND_LOOK_PACE : 1,
-      swing = c.legend ? LOOK_SWING * LEGEND_LOOK : LOOK_SWING,
-      sweep = x.time * LOOK_RATE * pace + c.an.x,
-      lookTo = c.st === "graze" ? swing * Math.sin(sweep) : 0,
-      lookEase = ease(4, dt);
-    c.yaw += (lookTo - c.yaw) * lookEase;
   }
 
   // 하늘을 도는 셋: 제 궤도를 돌다가, 버릇(visit)이 있으면 다가온 나를 찾아와 몸 둘레를 돈다
@@ -753,11 +462,7 @@ export class Creatures implements Thing {
       dt = x.dt,
       p = this.s.player.p,
       ripples = this.s.ripples;
-    if (c.cd > 0) c.cd -= dt;
-    if (c.vt > 0) c.vt -= dt;
-    const isStill = c.st === "visit" || c.st === "peek",
-      cruise = c.vt > 0 ? FISH_CHASE_SPEED : 1.3,
-      wsp = c.st === "jump" ? 5.5 : isStill ? 0 : c.st === "dive" ? 4.5 : cruise;
+    const wsp = c.st === "jump" ? 5.5 : c.st === "visit" ? 0 : c.st === "dive" ? 4.5 : 1.3;
     c.ph += dt * (5 + wsp * 2.2);
     if (wsp > 0) {
       c.ang! += ((c.dir! * wsp) / c.rad!) * 57.3 * dt;
@@ -789,28 +494,6 @@ export class Creatures implements Thing {
         c.jt = c.rng.range(4, 9);
         this.splash(c, 4);
       }
-      // 나를 보면 물 위로 크게 한 번 뛴다(한 번 하면 한동안 다시 안 한다)
-      if (dP < GREET_REACH && c.cd <= 0 && c.st === "swim") {
-        c.st = "jump";
-        c.t = 0;
-        c.rs = FISH_GREET_LEAP;
-        c.cd = FISH_GREET_AGAIN;
-        this.splash(c, 6);
-      }
-      // 가끔 서로 쫓아 빠르게 맴돌고(물결이 인다), 가끔 물가 쪽으로 고개를 내밀고 구경한다
-      c.vc -= dt;
-      if (c.vt > 0) c.rt -= dt * 3;
-      if (c.vc <= 0 && c.st === "swim") {
-        const isChase = c.rng.next() < 0.5;
-        c.vc = isChase
-          ? c.rng.range(FISH_CHASE_MIN, FISH_CHASE_MAX)
-          : c.rng.range(FISH_PEEK_MIN, FISH_PEEK_MAX);
-        if (isChase) c.vt = FISH_CHASE_SECONDS;
-        else {
-          c.st = "peek";
-          c.t = 0;
-        }
-      }
       if (dP < 12 && calm) {
         c.still += dt;
         if (c.still > 1.5) {
@@ -827,33 +510,14 @@ export class Creatures implements Thing {
     } else if (c.st === "jump") {
       // 물 위로 뛰어올랐다가 머리부터 들어간다
       c.t += dt;
-      const k = c.t / 0.95,
-        leap = c.rs || 1;
-      c.a = 0.25 + 9 * leap * k * (1 - k);
+      const k = c.t / 0.95;
+      c.a = 0.25 + 9 * k * (1 - k);
       c.pitch = 0.95 * (1 - 2 * k);
       pose.amt = 1;
       if (k >= 1) {
         c.st = "swim";
-        c.rs = 1;
         this.splash(c, 5);
       }
-    } else if (c.st === "peek") {
-      // 물가 쪽(헤엄치던 원의 바깥)으로 고개를 내밀고 구경한다
-      cv.copy(c.v).multiplyScalar(2).sub(c.home).normalize();
-      const turn = ease(3, dt),
-        bobPhase = x.time * 2,
-        peekAlt = 0.5 + 0.08 * Math.sin(bobPhase),
-        altEase = ease(4, dt);
-      face(c, cv, turn);
-      c.a += (peekAlt - c.a) * altEase;
-      c.pitch += (0.4 - c.pitch) * altEase;
-      pose.amt = 0.15;
-      c.t += dt;
-      if (scare) {
-        c.st = "dive";
-        c.t = 0;
-        this.splash(c, 5);
-      } else if (c.t > FISH_PEEK_SECONDS) c.st = "swim";
     } else if (c.st === "visit") {
       // 멈춰 선 사람 쪽으로 몸을 돌리고 고개를 내밀어 방울을 분다
       const turn = ease(3, dt);
@@ -911,31 +575,12 @@ export class Creatures implements Thing {
     const drift = dt * 0.12;
     cw.copy(c.f).applyAxisAngle(c.v, drift);
     c.f.copy(cw);
-    // 호수 곁에 사는 해파리는 호수 위를 맴돈다(home 이 호수 한가운데)
-    const leash = c.rad || JELLY_LEASH;
-    if (c.v.angleTo(c.home) * S.R > leash) face(c, c.home, 0.05);
+    if (c.v.angleTo(c.home) * S.R > 40) face(c, c.home, 0.05);
     const glide = (0.6 * dt) / S.R;
     c.v.addScaledVector(c.f, glide).normalize();
-    // 나를 보면 우산을 한 번 접었다 편다(한 번 하면 한동안 다시 안 한다)
-    if (c.cd > 0) c.cd -= dt;
-    if (c.t > 0) c.t -= dt;
-    else if (dP < GREET_REACH && Math.abs(dA) < GREET_REACH && c.cd <= 0) {
-      c.t = JELLY_FOLD_SECONDS;
-      c.cd = JELLY_GREET_AGAIN;
-    }
-    const folded = c.t > 0 ? 1 - c.t / JELLY_FOLD_SECONDS : 1,
-      foldTurn = folded * Math.PI * 2,
-      fold = c.t > 0 ? Math.sin(foldTurn) : 0,
-      foldEase = ease(10, dt);
-    c.squash += (1 + 0.24 * fold - c.squash) * foldEase;
-    // 내가 밑을 지나가면 살짝 위로 피한다
-    const isUnder = dP < JELLY_DODGE_REACH && dA < 0 && dA > -8,
-      dodgeTo = isUnder ? JELLY_DODGE : 0,
-      dodgeEase = ease(2.5, dt);
-    c.rs += (dodgeTo - c.rs) * dodgeEase;
     const pulsePhase = c.ph - 1.9;
     const swayPhase = x.time * 0.3 + c.an.x;
-    c.a = c.base! + c.rs + 0.8 * Math.sin(pulsePhase) + Math.sin(swayPhase) * 0.8;
+    c.a = c.base! + 0.8 * Math.sin(pulsePhase) + Math.sin(swayPhase) * 0.8;
     if (c.hop !== 0 || c.hopV !== 0) {
       c.hopV += (-60 * c.hop - 7 * c.hopV) * dt;
       c.hop += c.hopV * dt;
@@ -958,8 +603,7 @@ export class Creatures implements Thing {
 
   /* ─── 내부: 그리기·만나기 ─────────────────────────── */
 
-  // 보는 쪽으로 세우고, 돌리고(yaw) 숙이고(pitch) 기울이고(roll), 땅 높이·뛰기·가라앉기를 더해 묶음에 넣는다.
-  // 어느 생물이든 숨을 쉰다(크기가 조금씩 커졌다 작아진다) — 서 있어도 구조물처럼 보이지 않게
+  // 보는 쪽으로 세우고, 숙이고(pitch) 기울이고(roll), 땅 높이·뛰기·가라앉기를 더해 묶음에 넣는다
   private put(c: Creature, dt: number) {
     const visEase = ease(5, dt);
     c.vis += (c.want - c.vis) * visEase;
@@ -971,23 +615,19 @@ export class Creatures implements Thing {
     cf.crossVectors(c.v, cx).normalize();
     cm.makeBasis(cf, c.v, cx);
     cq.setFromRotationMatrix(cm);
-    if (c.pitch || c.roll || c.yaw) {
-      ceu.set(c.roll, c.yaw, c.pitch, "YXZ");
+    if (c.pitch || c.roll) {
+      ceu.set(c.roll, 0, c.pitch);
       cq2.setFromEuler(ceu);
       cq.multiply(cq2);
     }
-    const breathPhase = this.nowTime * BREATH_RATE + c.an.x,
-      breath = 1 + BREATH * Math.sin(breathPhase),
-      grown = c.swell * breath;
-    // 납작해지거나 부풀어도 발은 땅에 붙어 있다
-    const lift = B.hh * grown * c.squash * (1 - c.sink);
+    const lift = B.hh * (1 - c.sink);
     const radius = S.R + c.a + c.hop + lift;
     c.pos.copy(c.v).multiplyScalar(radius);
-    const scale = B.k * c.vis * grown;
+    const scale = B.k * c.vis;
     c.an.y = c.ph;
     c.an.z = c.amt;
     c.an.w = c.head;
-    B.push(c.pos, cq, scale, c.an, 0, c.squash);
+    B.push(c.pos, cq, scale, c.an);
   }
 
   // 만났다: 처음 보는 종류면 더 크게 반짝. 전설의 손님을 만난 자리에는 그 방문 동안 작은 라임 워드마크가 남는다
@@ -1014,7 +654,7 @@ export class Creatures implements Thing {
   // 줄지어 따라오기에 넣는다(여섯까지)
   private join(c: Creature): boolean {
     const FOL = this.followers;
-    if (!this.canFollow || FOL.length >= 6 || c.order >= 0) return false;
+    if (FOL.length >= 6 || c.order >= 0) return false;
     c.order = FOL.length;
     FOL.push(c);
     c.st = "follow";
@@ -1130,7 +770,7 @@ export class Creatures implements Thing {
       const dist = within(herds.dist, far);
       const bearing = 360 * fr(i, 202);
       const v = occ.hubAt(hk, dist, bearing);
-      if (!occ.isFree(v, herds.clear) || this.isInStage(v, STAGE_HERD_ROOM)) continue;
+      if (!occ.isFree(v, herds.clear)) continue;
       occ.fill(v, 5);
       const key = kinds[got % kinds.length],
         count = 1 + (got % 2);
@@ -1152,11 +792,11 @@ export class Creatures implements Thing {
       HV = occ.hubs,
       FLK = skySpecies(),
       LAKE = lakeSpecies();
+    const mkHerd = (hv: THREE.Vector3, n: number) => this.mkHerd(hv, n);
     // 땅 위의 손님: 첫 무리는 출발하자마자 눈앞에 — 그날 축제 지역에 사는 첫 종
     const festival = s.today.festival;
     const startStep = plan.firstHerdAhead / S.R;
     const v0 = p.clone().addScaledVector(h, startStep).normalize();
-    this.leaveStage(v0, STAGE_HERD_ROOM);
     occ.fill(v0, 5);
     const firstKey = s.map.regions[festival]?.herds[0];
     if (firstKey) this.mkHerd(v0, 0, firstKey, plan.firstHerd);
@@ -1168,42 +808,35 @@ export class Creatures implements Thing {
       const extra = own * plan.festival;
       if (hk === festival) this.festivalHerds = this.placeHerds(hk, own, extra);
     }
-    // 어디로 가든 앞길에 손님이 있게: 지역마다 그 지역에 사는 종으로 떠도는 무리를 몇씩 둔다(땅 무리·하늘 무리·해파리 — 그 지역에 사는 갈래만).
-    // 떠도는 무리는 제 지역 안에서만, 내가 멀어지면 내 앞쪽으로 조용히 옮겨 간다 — 마을에서 멀리 나와도 그 지역다운 손님을 만난다
-    const skyKeys = FLK.map((q) => q.key);
-    for (let hk = 0; hk < HV.length; hk++) {
-      const hub = HV[hk],
-        region = s.map.regions[hk],
-        roaming = roamPlan(region, plan.roaming, skyKeys);
-      roaming.herds.forEach(({ key, count }) => {
-        const mem = this.mkHerd(hub, this.herdN, key, count),
-          ctr = hub.clone();
-        this.herdN++;
-        this.roam.push({ mem, kind: "herd", ctr, home: hk, wait: 0 });
-      });
-      roaming.flocks.forEach((key, i) => {
-        const grp: RoamGroup = { mem: [], kind: "flock", ctr: hub.clone(), home: hk, wait: 0 },
-          j0 = hk * FLOCK_STRIDE + i,
-          rad = 14 + 16 * fr(j0, 243),
-          dir = i % 2 ? 1 : -1,
-          alt = 4 + 6 * fr(j0, 244),
-          a0 = 360 * fr(j0, 245);
-        for (let j = 0; j < 3; j++) {
-          const ang = a0 - dir * j * 14;
-          const o = { ctr: grp.ctr, rad, dir, alt, ang, slot: j, st: "fly", g0: 0 };
-          const c = this.crit(key, "flock", grp.ctr, o);
-          if (c) grp.mem.push(c);
-        }
-        this.roam.push(grp);
-      });
-      for (let i = 0; i < roaming.jellies; i++) {
-        const grp: RoamGroup = { mem: [], kind: "jelly", ctr: hub.clone(), home: hk, wait: 0 };
-        const c = this.crit("umbrella", "jelly", grp.ctr, { base: 6 });
-        if (c) grp.mem.push(c);
-        this.roam.push(grp);
-      }
+    // 어디로 가든 앞길에 손님이 있게: 떠도는 무리는 내가 멀어지면 내 앞쪽 먼 곳으로 조용히 옮겨 간다
+    for (let i = 0; i < plan.roaming.herds; i++) {
+      const herdN = i + 1;
+      const here = p.clone();
+      const mem = mkHerd(here, herdN);
+      this.roam.push({ mem, kind: "herd", ctr: here });
     }
-    for (const grp of this.roam) this.placeRoam(grp, true);
+    for (let i = 0; i < plan.roaming.flocks; i++) {
+      const grp: RoamGroup = { mem: [], kind: "flock", ctr: p.clone() },
+        rad = 14 + 16 * fr(i, 243),
+        dir = i % 2 ? 1 : -1,
+        alt = 4 + 6 * fr(i, 244),
+        a0 = 360 * fr(i, 245);
+      const kind = FLK[i % FLK.length];
+      for (let j = 0; j < 3; j++) {
+        const ang = a0 - dir * j * 14;
+        const o = { ctr: grp.ctr, rad, dir, alt, ang, slot: j, st: "fly", g0: 0 };
+        const c = this.crit(kind.key, "flock", grp.ctr, o);
+        if (c) grp.mem.push(c);
+      }
+      this.roam.push(grp);
+    }
+    for (let i = 0; i < plan.roaming.jellies; i++) {
+      const grp: RoamGroup = { mem: [], kind: "jelly", ctr: p.clone() };
+      const c = this.crit("umbrella", "jelly", grp.ctr, { base: 6 });
+      if (c) grp.mem.push(c);
+      this.roam.push(grp);
+    }
+    for (const grp of this.roam) this.placeRoam(grp, true); // 빈자리를 못 찾아도 어딘가에는 놓는다
     // 하늘 무리: 마을 하늘을 셋씩 낮게 돈다(마을마다 몇 무리, 하늘 종을 돌려 가며)
     for (let hk = 0; hk < HV.length; hk++)
       for (let q0 = 0; q0 < s.map.regions[hk].flocks; q0++) {
@@ -1215,9 +848,7 @@ export class Creatures implements Thing {
           rad = 14 + 16 * fr(i, 213),
           dir = q0 % 2 ? 1 : -1,
           alt = 4 + 6 * fr(i, 214),
-          a0 = 360 * fr(i, 215),
-          flockRoom = rad + STAGE_FLOCK_ROOM;
-        this.leaveStage(ctr, flockRoom);
+          a0 = 360 * fr(i, 215);
         const kindAt = q0 % FLK.length;
         const kind = FLK[kindAt];
         const g0 = s.terrain.groundAt(ctr);
@@ -1250,20 +881,14 @@ export class Creatures implements Thing {
       }
     }
     // 호수: 호수마다 몇씩, 호수 종을 돌려 가며 수면에서 원을 그리며 헤엄친다
-    // 바다(지도 v2)는 그 지역에 사는 물 종만 seaSwimmers 마리, 초콜릿 시내(tint)에는 아무도 없다
     this.links.lakes.list.forEach((l, i) => {
-      const count = l.isSea ? (plan.seaSwimmers ?? 0) : l.tint ? 0 : plan.perLake;
-      const residents = l.region === undefined ? null : s.map.regions[l.region]?.residents;
-      const own = residents ? LAKE.filter((k) => residents.includes(k.key)) : [];
-      const pool = own.length ? own : LAKE;
-      for (let j = 0; j < count; j++) {
-        const ringShare = l.isSea ? 0.15 + 0.7 * ((j * 0.37) % 1) : 0.4 + 0.25 * j;
-        const rad = 3 + (j % 3) * 1.5;
-        const pondDist = l.r * ringShare;
+      for (let j = 0; j < plan.perLake; j++) {
+        const rad = 3 + j * 1.5;
+        const pondDist = l.r * (0.4 + 0.25 * j);
         const pondBearing = i * 67 + j * 170;
         const pondAt = offset(l.v, pondDist, pondBearing);
-        const kindAt = (i + j) % pool.length;
-        const kind = pool[kindAt];
+        const kindAt = (i + j) % LAKE.length;
+        const kind = LAKE[kindAt];
         const dir = j ? -1 : 1;
         const c = this.crit(kind.key, "fish", pondAt, { st: "swim", rad, dir });
         if (!c) continue;
@@ -1275,17 +900,8 @@ export class Creatures implements Thing {
     });
     // 해파리: 마을 둘레와 마을 사이 하늘
     const jl = (v: THREE.Vector3) => {
-      this.leaveStage(v, STAGE_JELLY_ROOM);
       const c = this.crit("umbrella", "jelly", v, {});
-      if (!c) return;
-      c.base = s.terrain.groundAt(c.v) + 5.5;
-      // 호수가 가까우면 그 위를 맴돈다
-      const lake = this.links.lakes.list.find(
-        (l) => !l.isSea && l.v.angleTo(c.v) * S.R < JELLY_LAKE_REACH,
-      );
-      if (!lake) return;
-      c.home.copy(lake.v);
-      c.rad = lake.r;
+      if (c) c.base = s.terrain.groundAt(c.v) + 5.5;
     };
     const jellies = plan.jellies;
     for (const [d, b] of jellies.at) {
@@ -1348,8 +964,6 @@ export class Creatures implements Thing {
       gait: "walk",
       hv: null,
       legend: 0,
-      calm: false,
-      inRow: false,
       ctr: null,
       rad: 0,
       dir: 0,
@@ -1371,10 +985,6 @@ export class Creatures implements Thing {
       led: false,
       vt: 0,
       vc: 0,
-      swell: 1,
-      squash: 1,
-      yaw: 0,
-      res: null,
     };
     const c: Creature = Object.assign(base, o);
     const faceBearing = 360 * rng.next();
@@ -1405,62 +1015,22 @@ export class Creatures implements Thing {
     return sp;
   }
 
-  // 떠도는 무리를 옮긴다. 처음에는 제 마을 둘레 아무 데나, 그다음부터는 내 앞쪽(ROAM.ahead m)에 — 제 지역 안이고, 판 영역 밖이고,
-  // (땅 무리면) 빈 자리인 데로만. 내가 제 지역에서 멀리 있거나 그런 자리가 없으면 그 자리에 둔 채 ROAM.retry 초 뒤에 다시 본다
+  // 떠도는 무리를 옮긴다: 처음엔 내 둘레 아무 데나, 그 뒤엔 내 앞쪽 먼 곳(가는 방향 쪽으로 좁혔다)
   private placeRoam(grp: RoamGroup, first: boolean) {
-    const { player, occ, regions } = this.s,
-      hub = occ.hubs[grp.home],
+    const { player, occ } = this.s,
+      p = player.p,
       r = this.rng;
-    if (!first && player.p.angleTo(hub) * S.R > ROAM.homeReach) {
-      grp.wait = ROAM.retry;
-      return;
-    }
-    const flockRoom = (grp.mem[0]?.rad ?? 0) + STAGE_FLOCK_ROOM,
-      room =
-        grp.kind === "herd" ? STAGE_HERD_ROOM : grp.kind === "flock" ? flockRoom : STAGE_JELLY_ROOM;
-    let isFound = false;
-    for (let k = 0; k < ROAM.tries && !isFound; k++) {
+    for (let k = 0; k < 24; k++) {
       if (first) {
-        // 난수 순서: 거리 → 방향. 넓이에 고르게(멀수록 드물지 않게)
-        const roll = r.next(),
-          spread = Math.sqrt(roll),
-          dist = ROAM.around[0] + (ROAM.around[1] - ROAM.around[0]) * spread,
-          bearing = 360 * r.next();
-        offsetInto(cv, hub, dist, bearing);
-      } else this.ahead(ROAM.ahead[0], ROAM.ahead[1], ROAM.spread);
-      const isHome = regions.nearest(cv) === grp.home,
-        isOpen = grp.kind !== "herd" || occ.isFree(cv, 6);
-      isFound = isHome && isOpen && !this.isInStage(cv, room);
+        // 난수 순서: 거리 → 방향
+        const dist = r.range(25, 210);
+        const bearing = 360 * r.next();
+        offsetInto(cv, p, dist, bearing);
+      } else this.ahead(110, 190, 0.6);
+      if (grp.kind !== "herd" || occ.isFree(cv, 6)) break;
     }
-    if (!isFound && !first) {
-      grp.wait = ROAM.retry;
-      return;
-    }
-    // 처음 놓을 때는 못 찾았어도 어딘가에는 둔다(판 영역 밖으로만 밀어낸다)
-    this.leaveStage(cv, room);
     this.setGroup(grp, cv);
     if (!first) this.activate(grp);
-  }
-
-  // 그 자리가 숨바꼭질 판 영역(반경 + room m) 안인가
-  private isInStage(v: THREE.Vector3, room: number): boolean {
-    const hub = this.s.occ.hubs[HIDE.stage.hub];
-    return hub !== undefined && v.angleTo(hub) * S.R < HIDE.stage.radius + room;
-  }
-
-  // 그 자리가 판 영역 안이면 가운데에서 멀어지는 쪽으로 반경 + room(m) 밖까지 옮긴다(판 영역에는 주민만 산다)
-  private leaveStage(v: THREE.Vector3, room: number) {
-    const hub = this.s.occ.hubs[HIDE.stage.hub];
-    if (!hub || !this.isInStage(v, room)) return;
-    const along = v.dot(hub);
-    cw.copy(v).addScaledVector(hub, -along);
-    // 한가운데면 아무 쪽으로나
-    if (cw.lengthSq() < 1e-12) cw.set(hub.y, hub.z, hub.x).cross(hub);
-    cw.normalize();
-    const arc = (HIDE.stage.radius + room + 0.5) / S.R,
-      near = Math.cos(arc),
-      far = Math.sin(arc);
-    v.copy(hub).multiplyScalar(near).addScaledVector(cw, far).normalize();
   }
 
   // 가는 쪽에서 ±spread 라디안, dmin~dmax 앞의 자리를 cv 에
@@ -1485,8 +1055,6 @@ export class Creatures implements Thing {
       if (c.st === "follow" || c.st === "lead" || c.st === "beckon") return;
       c.led = false;
       c.bowed = false;
-      // 새 자리에서는 작게 시작해 자란다(눈앞에 툭 나타나지 않게)
-      c.vis = 0;
       if (c.role === "herd") {
         c.hv = ctr;
         const bearing = (j * 360) / grp.mem.length + 20;
@@ -1519,21 +1087,6 @@ export class Creatures implements Thing {
 
 /** 종마다 그리는 묶음 하나의 칸 수(가장 많은 종도 이 안에 든다) */
 const CAPACITY = 128;
-/**
- * 떠도는 무리: 이보다 멀어지면(m) · 내 뒤로 이보다 멀어지면(m) 앞으로 옮긴다 · 옮겨 가는 자리(내 앞 m, 이 사이)와 좌우 폭(rad) —
- * 앞자리를 넓게 펼쳐야 무리들이 한꺼번에 지나가 버리지 않는다(좁으면 다 같이 뒤로 가는 빈 구간이 생긴다) ·
- * 처음 놓는 자리(제 마을에서 m, 이 사이) · 내가 제 마을에서 이보다 멀면(m) 따라오지 않는다 · 자리를 찾아보는 횟수 · 다시 찾아보기까지(초)
- */
-const ROAM = {
-  far: 260,
-  behind: 60,
-  ahead: [70, 240],
-  spread: 0.35,
-  around: [40, 300],
-  homeReach: 620,
-  tries: 24,
-  retry: 1.5,
-} as const;
 /** 마을마다 자리를 찾는 고정 난수 번호의 간격(땅 무리·하늘 무리·해파리 — 지도의 tries·perHub 는 이보다 작다) */
 const HERD_STRIDE = 70,
   FLOCK_STRIDE = 9,

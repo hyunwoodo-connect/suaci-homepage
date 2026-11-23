@@ -4,8 +4,7 @@ import type { Frame, Thing } from "../core/frame";
 import { ease } from "../core/frame";
 import type { LayoutSite } from "../maps/layout";
 import type { Hold } from "../models/library";
-import type { Girth } from "../models/extent";
-import { girthOf, topDir } from "../models/extent";
+import { topDir } from "../models/extent";
 import type { Holder } from "../player/player";
 import type { Services } from "../services";
 import { S, WHITE } from "../settings";
@@ -83,8 +82,6 @@ export interface Site extends LayoutSite {
   fz?: number;
   sl?: number;
   collide: Collide;
-  /** 모델에서 잰 높이마다의 굵기(막히는 것만 — 모델이 오면 잰다) */
-  girth: Girth | null;
   idle: Idle;
   /** 시계 방향 접선(관람차 불빛이 바퀴 테를 도는 쪽) — 자리가 정해지면 채운다 */
   side: THREE.Vector3;
@@ -101,21 +98,7 @@ interface SlideRide {
 }
 
 // 이 갈래의 자리는 조형물 크기를 정할 때 보지 않는다(따로 피하거나 겹쳐도 되는 것)
-const SKIP_IN_SIZING = [
-  "site",
-  "tree",
-  "hill",
-  "hub",
-  "place",
-  "lake",
-  "jet",
-  // v79 의 새 갈래(점이 아니라 넓이·기획용 자리 — 키울 크기를 막지 않는다)
-  "landmark",
-  "gameZone",
-  "gate",
-  "sea",
-  "cloudIsland",
-];
+const SKIP_IN_SIZING = ["site", "tree", "hill", "hub", "place", "lake", "jet"];
 
 const siteCol = new THREE.Color(),
   top = new THREE.Vector3(),
@@ -123,10 +106,6 @@ const siteCol = new THREE.Color(),
 
 /** 랜드마크·쉬는 곳 전체(미끄럼틀은 나를 붙잡는다) */
 export class Sites implements Thing, Holder, HasHeights {
-  /** 이름표·말풍선을 보이나 */
-  private isLabeled = true;
-  /** 가까이 가면 꿀렁 인사하나(숨바꼭질 판 동안은 끈다 — 꿈틀하는 것은 후보 물건뿐이다) */
-  private isGreeting = true;
   readonly rideName = "slide";
   readonly list: Site[];
   /** 미끄럼틀을 타는 동안에도 몸 크기는 그대로 */
@@ -143,7 +122,7 @@ export class Sites implements Thing, Holder, HasHeights {
     {
       const pts: THREE.Vector3[] = [];
       for (const [k, list] of Object.entries(L)) {
-        if (SKIP_IN_SIZING.includes(k) || !Array.isArray(list)) continue;
+        if (SKIP_IN_SIZING.includes(k)) continue;
         for (const o of list as { dist?: number; bear?: number }[])
           if (o && typeof o.dist === "number") {
             const at = from(o.dist, o.bear!);
@@ -154,8 +133,6 @@ export class Sites implements Thing, Holder, HasHeights {
         sv = L.site.map((st) => from(st.dist, st.bear));
       // 자리표의 크기를 그 자리에서 바로 키운다 — 뒤의 조형물은 앞에서 이미 키운 크기(o.size)를 보고 정한다
       L.site.forEach((st, i) => {
-        // 크기가 정해져 온 것(MAP-03 정원의 쉼터 — 높이 그대로)은 키우지 않는다
-        if (st.sc !== undefined) return;
         let k = 1.25;
         if (st.kind === "land") {
           k = 1;
@@ -253,7 +230,6 @@ export class Sites implements Thing, Holder, HasHeights {
         hit: 0,
         tag,
         collide,
-        girth: null,
         idle: kind.idle ?? "sway",
         side: new THREE.Vector3(),
       };
@@ -262,16 +238,6 @@ export class Sites implements Thing, Holder, HasHeights {
   }
 
   /** 모델을 끼운다(꼭대기·몸 반지름·쉬는 곳 고리를 모델 크기로). 먼 것은 장면에서 뗀다 */
-  /** 이름표와 쉬는 곳 말풍선을 보이거나 숨긴다(숨바꼭질 판 동안은 숨긴다 — 화면에 글자를 띄우지 않는다) */
-  setLabels(on: boolean) {
-    this.isLabeled = on;
-  }
-
-  /** 가까이 가거나 부딪히면 꿀렁 인사하나(숨바꼭질 판 동안은 끈다) */
-  setGreeting(on: boolean) {
-    this.isGreeting = on;
-  }
-
   fitModels() {
     const { models, culler } = this.s;
     for (const st of this.list) {
@@ -296,9 +262,6 @@ export class Sites implements Thing, Holder, HasHeights {
       const prim = [st.prim];
       if (isFerris) models.when("ferris_stand", () => models.swapWhenReady("ferris_wheel", prim));
       else models.swapWhenReady(st.k, prim);
-      // 막히는 것은 모델의 높이마다 굵기대로 막는다(관람차는 납작한 바퀴라 둥근 굵기로 치면 옆이 빈 벽이 된다 — 어림한 기둥 그대로)
-      if (st.collide === "block" && !isFerris)
-        models.when(st.k, () => (st.girth = girthOf(m, m.userData.k)));
     }
     // 미끄럼틀: 내려가는 방향 = 탑의 반대쪽(탑이 어느 쪽인지는 모델의 꼭짓점으로 안다)
     const sl = this.list.find((x) => x.k === "slide");
@@ -356,7 +319,7 @@ export class Sites implements Thing, Holder, HasHeights {
       st.near += (nearTarget - st.near) * ease(3, dt);
       const helloLeft = st.hello - dt * 0.9;
       st.hello = Math.max(0, helloLeft);
-      if (nr && !st.wasNear && this.isGreeting) {
+      if (nr && !st.wasNear) {
         st.hello = 1;
         this.s.events.emit("landmarkGreeted", { kind: st.k });
         if (st.cool <= 0) {
@@ -366,12 +329,10 @@ export class Sites implements Thing, Holder, HasHeights {
       }
       st.wasNear = nr;
       st.tag.material.opacity = st.near;
-      st.tag.visible = this.isLabeled;
-      if (st.bub) st.bub.visible = this.isLabeled;
       // 부딪힘
       if (!held) {
         const bump = this.collide(st, dg, d3);
-        if (bump && st.hit <= 0 && this.isGreeting) {
+        if (bump && st.hit <= 0) {
           st.hit = 0.6;
           st.lit = 1;
           st.hello = 1;
@@ -518,11 +479,8 @@ export class Sites implements Thing, Holder, HasHeights {
         const sliceR = Math.sqrt(sliceSqSafe) + 1;
         return player.blockBody(st.v, sliceR);
       }
-      default: {
-        if (!st.girth) return player.block(st.v, st.core, st.top);
-        const base = this.s.terrain.groundAt(st.v);
-        return player.blockShape(st.v, base, st.girth);
-      }
+      default:
+        return player.block(st.v, st.core, st.top);
     }
   }
 

@@ -77,11 +77,6 @@ export class ModelLibrary {
     return Boolean(this.manifest.assets[k]?.box);
   }
 
-  /** 원본 크기 상자의 값 [minX, minY, minZ, maxX, maxY, maxZ] */
-  boxValues(k: string): readonly number[] {
-    return this.manifest.assets[k].box!;
-  }
-
   /** 원본 크기 상자 */
   box(k: string): THREE.Box3 {
     const b = this.manifest.assets[k].box!;

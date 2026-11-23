@@ -1,4 +1,3 @@
-import type { Content } from "./hideseek/tuning";
 import type { BoxSource, Prize, QuestType } from "./progress/save";
 
 // 게임에서 일어나는 일을 알리는 작은 알림판. 놀이기구·생물·만남이 알리기만 하고, 소리(sound/)가 듣는다.
@@ -68,53 +67,10 @@ export interface GameEventMap {
   regionEntered: { region: number };
   /** 랜드마크가 말을 걸었다(region: 그 마을의 지역 차례) */
   landmarkTalked: { region: number };
-  /** 존 랜드마크에 다가갔다(60m 안 — 다가올 때 한 번). sound: 그 존이 정한 소리(없으면 null) */
-  landmarkApproached: { zone: string; sound: string | null };
-  /** 존 미니게임 입구: 시작 자리에 올라섰다 · 판이 끝났다 */
-  minigameStarted: { zone: string; game: string };
-  minigameEnded: { zone: string; game: string };
   /** 한국 시간으로 날이 바뀌었다(festival: 새 축제 지역) */
   dayChanged: { day: number; festival: number };
   /** 옷장에서 하나 골랐다(random: 아무거나 단추) */
   outfitPicked: { random: boolean };
-  // ---- 숨바꼭질 ----
-  /** 꼭꼭 숨어라: 상자들이 숨을 곳으로 흩어져 달려간다 */
-  hideStarted: Record<string, never>;
-  /** 넷을 다 찾았다(칸 넷이 번쩍인다) */
-  hideAllFound: Record<string, never>;
-  /** 금색 상자가 하늘에서 떨어지기 시작했다(휘파람) */
-  hideBonusFalling: Record<string, never>;
-  /** 보너스 상자가 하늘에서 떨어져 내려앉았다 */
-  hideBonusLanded: Record<string, never>;
-  /** 언박싱: 상자가 들썩했다 */
-  hideBoxShaken: Record<string, never>;
-  /** 언박싱: 상자가 열렸다(content: 내용물) */
-  hideBoxOpened: { content: Content };
-  /** 언박싱: 상자 속 상자가 열렸다(empty: 셋째 — 비었다) */
-  hideNestedPopped: { empty: boolean };
-  // ---- 숨바꼭질 조각 02 '찾는 손맛' ----
-  /** 뜨거워 차가워의 키득(which: 세 가지 가운데 몇째, pan: 화면에서 본 좌우 -1..1, volume: 거리로 정한 크기 0..1, rate: 음높이 배수) */
-  findGiggled: { which: number; pan: number; volume: number; rate: number };
-  /** 숨은 물건이 바스락거린다(내가 warm.near 안에 있다) */
-  findRustled: { pan: number; volume: number };
-  /** 후보 물건을 눌렀다: 미스트가 날아간다(far: 너무 멀어 아무 일도 없다) */
-  findTapped: { far: boolean };
-  /** 꽝: 물건이 말랑하게 찌그러졌다 */
-  findMissed: Record<string, never>;
-  /** 근처 상자가 빼꼼 나와 메롱 · 다른 물건으로 폴짝 이사 */
-  findTaunted: { pan: number };
-  findHopped: { pan: number };
-  /** 상자를 찾았다 — 물건에서 튀어나온다(count: 찾은 수) */
-  findFound: { count: number };
-  // ---- 숨바꼭질 조각 03 '열어 보기' ----
-  /** 두근: 물건이 덜컹했다(step: 몇째 덜컹 0..) · 덜컹이 시작됐다(북 굴림) */
-  openKnocked: { step: number; pan: number };
-  openRolled: { pan: number };
-  /** 결과가 갈렸다: 팡(찾음) · 푸슉(꽝) */
-  openPopped: { pan: number };
-  openFizzled: { pan: number };
-  /** 버섯이 나를 쏘아 올렸다 */
-  mushroomJumped: Record<string, never>;
   // ---- 수집·상자·부탁·도장·이동(구조만 — 아직 알리는 곳이 없다. 기획이 정하면 그 흐름이 알린다) ----
   /** 처음 친해진 종이 보관함에 남았다 */
   collected: { kind: string };

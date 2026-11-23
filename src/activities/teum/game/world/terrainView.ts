@@ -4,17 +4,13 @@ import type { Thing } from "../core/frame";
 import type { Services } from "../services";
 import { S } from "../settings";
 import type { Ground } from "./ground";
-import { offsetInto, UP } from "./sphere";
-import type { Feature } from "./terrain";
+import { UP } from "./sphere";
 
 // 지형 그림: 땅과 같은 풀밭으로 이어지는 완만한 둔덕(700)과 큰 언덕·등대 산.
 // 높이는 world/terrain 이 갖고, 여기는 그 값대로 그리기만 한다.
 // 시제품의 솜 뭉치 덩어리(둔덕·비탈 위)와 바닥 솜 뭉치는 늘 숨겨져 있어(visible=false) 만들지 않는다.
 // 둔덕 700 개를 매 프레임 다 그리면(삼각형 112만) 폰이 버거워, 켜진 것 가운데 가까운 것(다른 것과 같은 기준)이면서
 // 시야 안의 것만 그리기 직전에 칸에 채운다. 끈 둔덕은 아예 그리지 않는다(시제품은 0 크기로 그렸다)
-
-/** 단이 깎인 언덕 그물: 가운데에서 바깥으로 고리 수 · 한 바퀴 칸 수(큰 언덕 끝에서 칸이 7m 쯤) */
-const CARVED = { rings: 64, around: 144 } as const;
 
 const q = new THREE.Quaternion(),
   m4 = new THREE.Matrix4(),
@@ -60,17 +56,10 @@ export class TerrainView implements Thing {
     });
   }
 
-  /** 큰 언덕 모양: 자락이 행성 곡면에 붙도록 실제 크기로 만든다. 단이 깎인 언덕은 높이를 그대로 따라 그물로 짓는다 */
+  /** 큰 언덕 모양: 자락이 행성 곡면에 붙도록 실제 크기로 만든다 */
   layoutFeatures() {
     this.s.terrain.features.forEach((f, i) => {
       const mesh = this.features[i];
-      if (f.terraces.length) {
-        mesh.position.set(0, 0, 0);
-        mesh.quaternion.identity();
-        mesh.geometry.dispose();
-        mesh.geometry = this.carvedGeo(f);
-        return;
-      }
       mesh.position.copy(f.v).multiplyScalar(S.R);
       mesh.quaternion.setFromUnitVectors(UP, f.v);
       const pts: THREE.Vector2[] = [];
@@ -136,47 +125,6 @@ export class TerrainView implements Thing {
     const floats = n * 16;
     attr.addUpdateRange(0, floats);
     attr.needsUpdate = true;
-  }
-
-  // 단이 깎인 언덕: 가운데에서 둥글게 퍼지는 그물(세계 좌표) — 꼭짓점마다 지형 높이(featureAt)를 그대로 쓴다
-  private carvedGeo(f: Feature): THREE.BufferGeometry {
-    const { terrain } = this.s;
-    const pos: number[] = [],
-      idx: number[] = [];
-    const p = new THREE.Vector3();
-    const rowLen = CARVED.around + 1;
-    for (let k = 0; k <= CARVED.rings; k++) {
-      const r = (f.s * k) / CARVED.rings;
-      for (let j = 0; j <= CARVED.around; j++) {
-        const bear = (j * 360) / CARVED.around;
-        offsetInto(p, f.v, r, bear);
-        const y = terrain.featureAt(f, p) - 0.05;
-        const radius = S.R + y;
-        p.multiplyScalar(radius);
-        pos.push(p.x, p.y, p.z);
-        if (k === 0 || j === CARVED.around) continue;
-        const a = (k - 1) * rowLen + j,
-          b = k * rowLen + j;
-        const a1 = a + 1,
-          b1 = b + 1;
-        idx.push(a, b, a1, a1, b, b1);
-      }
-    }
-    const geo = new THREE.BufferGeometry();
-    const position = new THREE.Float32BufferAttribute(pos, 3);
-    geo.setAttribute("position", position);
-    geo.setIndex(idx);
-    geo.computeVertexNormals();
-    // 감는 차례가 안쪽을 보면 뒤집는다(빛이 바깥에서 받게)
-    const normals = geo.getAttribute("normal");
-    const outer = rowLen + 1;
-    p.fromBufferAttribute(normals, outer);
-    if (p.dot(f.v) < 0) {
-      idx.reverse();
-      geo.setIndex(idx);
-      geo.computeVertexNormals();
-    }
-    return geo;
   }
 
   /** 자리 차지: 큰 언덕 둘레 */

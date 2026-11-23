@@ -2,13 +2,9 @@ import * as THREE from "three";
 
 import { ease } from "../core/frame";
 import type { GameEvents, RideName } from "../events";
-import type { Girth } from "../models/extent";
-import { girthAt } from "../models/extent";
 import { FLIGHT, S } from "../settings";
 import { clamp, offset, START } from "../world/sphere";
 import type { Terrain } from "../world/terrain";
-import type { Motion } from "./motion";
-import { DEFAULT_MOTION } from "./motion";
 
 // 나(몸)의 상태와 움직임. 다른 모듈은 이 상태를 직접 바꾸지 않고 아래의 좁은 요청으로만 부탁한다:
 //   튕겨 올리기(bounce·lift·raise·hop·easeLift·standOn·keepAbove) · 빨라지기(boost·boostAtLeast) · 잠깐 방향 안 먹기(stun) ·
@@ -56,14 +52,6 @@ export interface Release {
   /** 놓는 순간 몸을 땅에서 띄운다(air = 0.01) */
   hop?: boolean;
 }
-
-/** 출발 자리: 마을 중심에서 이만큼(m)·이 방위(°) 떨어져 중심을 보고 선다(숨바꼭질의 숨는 자리도 이 자리에서 잰다) */
-export const HOME_DIST = 20,
-  HOME_BEAR = 200;
-
-/** 내 몸: 가운데에서 위아래로 이만큼(m) · 옆으로 이만큼(m) — 높이마다 굵기가 다른 몸통에 부딪힐 때 쓴다 */
-const BODY_REACH = 0.9,
-  BODY_HALF = 0.5;
 
 /** 이만큼 빠르게 솟으면 '솟구쳤다' · 이만큼 높이 떠 있다가 땅에 닿으면 '내려앉았다' */
 const ROSE_VY = 6,
@@ -119,11 +107,9 @@ export class Player {
   private readonly body: HeldBody;
 
   /** events: 붙잡힘·놓임·날림·튕김을 알리는 알림판 */
-  /** motion: 몸놀림 값(존이 바꾼다 — 없으면 기본값) */
   constructor(
     private readonly terrain: Terrain,
     private readonly events: GameEvents,
-    private readonly motion: Readonly<Motion> = DEFAULT_MOTION,
   ) {
     // 붙잡은 쪽이 쓰는 손잡이: 몸의 벡터는 그대로 건네고, 높이·위아래 속도는 이 몸의 값을 읽고 쓴다
     const body = {
@@ -262,7 +248,7 @@ export class Player {
   // ---- 프레임 ----
   /** 출발점으로: 그 마을 중심(center, 없으면 광장) 곁에서 중심을 보고 선다 */
   goHome(center: THREE.Vector3 = START) {
-    const home = offset(center, HOME_DIST, HOME_BEAR);
+    const home = offset(center, 20, 200);
     this._p.copy(home);
     this._h.copy(center).sub(this._p);
     const hRadial = this._h.dot(this._p);
@@ -341,7 +327,7 @@ export class Player {
       const slTarget = clamp(slopePush, -0.35, 1.0);
       const slEase = 1 - Math.exp(slDecay);
       this.sl += (slTarget - this.sl) * slEase;
-      const stepAngle = (this.motion.speed / S.R) * tot * dt;
+      const stepAngle = (S.speed / S.R) * tot * dt;
       p.applyAxisAngle(axis, stepAngle).normalize();
       const hRadial = h.dot(p);
       h.addScaledVector(p, -hRadial).normalize();
@@ -349,8 +335,8 @@ export class Player {
     // 떠오름과 내려앉음 — 천천히 활공해 내려온다(날개가 있으면 더 천천히)
     if (this.wingT > 0) this.wingT -= dt;
     const winged = this.wingT > 0;
-    const G = winged ? FLIGHT.wingGravity : this.motion.gravity,
-      VT = winged ? FLIGHT.wingFallLimit : this.motion.fallLimit;
+    const G = winged ? FLIGHT.wingGravity : FLIGHT.gravity,
+      VT = winged ? FLIGHT.wingFallLimit : FLIGHT.fallLimit;
     const frozen = this.holders.some((h) => h.freezesGravity === true);
     if (!frozen && (this._air > 0 || this._vy > 0)) {
       this._vy -= G * dt;
@@ -522,32 +508,6 @@ export class Player {
     return hit;
   }
 
-  /**
-   * 높이마다 굵기가 다른 몸통(밑동이 넓고 위에 갓이 있는 나무·탑)에 보이는 대로 막힌다: 내 몸이 걸친 높이에서 가장 굵은 곳만큼.
-   * base 는 그 몸통 바닥의 높이(m). 그 높이에 몸통이 없으면(꼭대기보다 위) 막지 않는다
-   */
-  blockShape(v: THREE.Vector3, base: number, girth: Girth): boolean {
-    const mid = this._alt - base,
-      from = mid - BODY_REACH,
-      to = mid + BODY_REACH,
-      widest = girthAt(girth, from, to);
-    if (widest <= 0) return false;
-    const core = widest + BODY_HALF;
-    return this.blockBody(v, core);
-  }
-
-  /** v 둘레 reach(m) 밖으로는 나가지 못한다(버섯으로 떠 있는 동안 — 내려앉을 곳을 조금만 옮길 수 있다) */
-  leash(v: THREE.Vector3, reach: number) {
-    const p = this._p,
-      angle = p.angleTo(v),
-      most = reach / S.R;
-    if (angle <= most) return;
-    axis.crossVectors(v, p).normalize();
-    p.copy(v).applyAxisAngle(axis, most).normalize();
-    const hRadial = this._h.dot(p);
-    this._h.addScaledVector(p, -hRadial).normalize();
-  }
-
   // ---- 요청: 붙잡기 ----
   /** 놀이기구가 나를 붙잡는다(다른 것이 붙잡고 있어도 — 그러면 둘 다 몸을 옮긴다). 손잡이를 돌려준다 */
   grab(h: Holder): HeldBody {
@@ -606,7 +566,7 @@ export class Player {
     return this.hanger;
   }
 
-  /** 그 자리에 놓는다(높이 air, 보는 쪽 dir) — 시험·개발 창구와 숨바꼭질 언박싱(광장으로 옮길 때)이 쓴다 */
+  /** 시험·개발용: 그 자리에 놓는다(높이 air, 보는 쪽 dir) */
   teleport(v: THREE.Vector3, dir: THREE.Vector3 | null, air: number) {
     this._p.copy(v).normalize();
     if (dir) this._h.copy(dir);

@@ -1,24 +1,17 @@
 import * as THREE from "three";
 
-import { GIRTHS } from "../models/girth";
 import { SCULPTURES, sculptureKeys } from "../../assets/settings";
 import type { Frame, Thing } from "../core/frame";
 import { within } from "../maps/map";
-import { sculptureBody, treeBody } from "../maps/placed";
-import type { Body } from "../maps/tangles";
 import type { Instancer } from "../models/instancer";
 import type { Cannons } from "../rides/cannons";
-import { NearSet, trunkOf } from "../scenery/trees";
+import { NearSet } from "../scenery/trees";
 import type { Trees } from "../scenery/trees";
 import type { Services } from "../services";
 import { S } from "../settings";
-import type { BodyField } from "../world/bodyField";
 import { fr } from "../world/hash";
 import { along, offset } from "../world/sphere";
 import type { Height, HasHeights } from "../world/tall";
-
-/** 굵기 표에 없는 조형물의 밑동 반지름(키의 몫) */
-const FOOT_SHARE = 0.15;
 
 // 조형물: 고르게 뿌리지 않는다. 마을 기준탑(그 마을의 랜드마크) → 길목의 문 → 가로수 터널 → 숲 덩어리 → 높이 사다리 → 열기구 왕관 → 사이 채움
 // → 외딴 거대 조형물 → 지역의 하늘 열기구. 큰 것(14 이상)은 크게 놓으려고 뽑은 열두 가지에서, 작은 것은 여섯 가지에서 —
@@ -57,27 +50,12 @@ interface PlaceStats {
   fill: number;
   lone: number;
   sky: number;
-  /** 손으로 놓은 것과 엉켜 곁으로 옮긴 틀(기준탑·문·높이 사다리) */
-  moved: number;
 }
-
-/** 조형물 몸통이 막는 반지름: 너비 반의 이 몫(둥글지 않은 것도 있어 조금 안쪽까지는 들어간다) */
-const BODY_SHARE = 0.85;
 
 /** 지역 한가운데 쪽으로 이만큼 넘으면 그 지역 종류만 고른다 */
 const REGION_POOL = 0.25;
 
 /** 작은 것·큰 것·열기구 한 종류에 찍는 수 */
-/** 엉킨 틀을 옮길 때 찾아보는 거리(m — 가까운 고리부터) · 고리마다 방향 수 */
-const NUDGE_RINGS = [8, 16, 24, 32, 40, 50, 60, 72, 86, 100, 116, 132, 150],
-  NUDGE_TURNS = 12;
-/** 옮겨도 되는 가장 먼 거리(m): 문·높이 사다리는 제 틀을 벗어나지 않게 가까이만, 마을 기준탑은 그 마을 안이면 된다 */
-const NUDGE_REACH = 40,
-  NUDGE_ANCHOR = 150;
-/** 기준탑이 둘레를 비우는 몫(다른 것보다 붙어 서도 된다) — 기준탑인지도 이 값으로 안다 */
-const ANCHOR_SPACING = 0.35;
-/** 엉키는 자리를 거를 때 외딴 것을 더 찾아보는 배수 */
-const LONE_MORE = 3;
 const SMALL_N = 520,
   LARGE_N = 120,
   BALLOON_N = 160;
@@ -95,7 +73,6 @@ export class Sculptures implements Thing, HasHeights {
     fill: 0,
     lone: 0,
     sky: 0,
-    moved: 0,
   };
   /** 마을마다의 랜드마크: 그 마을 기준탑(지역 종류에서 뽑힌 큰 조형물). 못 놓은 마을은 비어 있다 */
   readonly landmarks: (Deco | undefined)[] = [];
@@ -106,7 +83,6 @@ export class Sculptures implements Thing, HasHeights {
     private readonly s: Services,
     trees: Trees,
     cannons: Cannons,
-    field: BodyField | null,
   ) {
     const { models, occ, terrain, player } = s;
     const DK: Instancer[] = [];
@@ -140,22 +116,14 @@ export class Sculptures implements Thing, HasHeights {
       !HV.some((hv) => hv.angleTo(v) * S.R < 24 + r) && p.angleTo(v) * S.R > 16 + r;
     const regions = s.regions,
       between = plan.between;
-    // 채우는 것(숲 나무·사이 채움·외딴 것)은 무엇과든 엉키면 놓지 않는다.
-    // 틀을 잡는 것(기준탑·문·가로수·높이 사다리)은 손으로 놓은 것·숨바꼭질 자리와 엉킬 때만 다음 자리로 간다(틀끼리는 붙어 서도 된다)
-    let isFiller = false;
-    const isFixed = (other: Body) => other.layer !== "흩뿌림";
     // 지역 한가운데 쪽(0.25 넘게)이면 그 지역에 서는 종류 가운데서만 고른다
-    // 지도가 strict 면 지역 한가운데 쪽에서만, 그 지역 종류만(없으면 놓지 않는다)
-    const isStrict = plan.strict === true;
     const pick = (list0: Instancer[], v: THREE.Vector3, i: number, cap: number) => {
       let list = list0;
       const at = regions.of(v);
-      if (isStrict && at.w <= REGION_POOL) return null;
       if (at.w > REGION_POOL) {
         const pool = list0 === DKB ? at.region.big : at.region.small;
         const inRegion = list0.filter((I) => pool.includes(I.key));
         if (inRegion.length) list = inRegion;
-        else if (isStrict) return null;
       }
       let best: Instancer | null = null,
         bs = -1e9;
@@ -183,47 +151,24 @@ export class Sculptures implements Thing, HasHeights {
       const reach = o.r + 1;
       this.near.add(o.v, reach);
     };
-    const putD = (spot: THREE.Vector3, H: number, i: number, k?: number) => {
+    const putD = (v: THREE.Vector3, H: number, i: number, k?: number) => {
       // 지역마다 빽빽함이 다르고, 어느 지역도 아닌 사이는 성기다(기준탑·문·외딴 것·높이 사다리는 솎지 않는다)
       if (!k && (i < 9800 || i >= 9900)) {
-        const at = regions.of(spot);
+        const at = regions.of(v);
         const skipRoll = fr(i, 403);
         if (skipRoll < at.region.skip * at.w) return false;
         if (at.w < 0.1 && fr(i, 404) < between.skip) return false;
       }
-      const I = H >= 14 && DKB.length ? pick(DKB, spot, i, LARGE_N) : pick(DK, spot, i, SMALL_N);
+      const I = H >= 14 && DKB.length ? pick(DKB, v, i, LARGE_N) : pick(DK, v, i, SMALL_N);
       if (!I) return false;
       const r = I.rw * H;
       const spacing = k || 0.8;
       const clearance = r * spacing + 1.5;
       const corridorPad = H > 25 ? r * 0.7 : 1;
-      const isOpen = (at: THREE.Vector3) =>
-        occ.isFree(at, clearance) && clearHub(at, r) && !occ.nearCorridor(at, corridorPad);
-      if (!isOpen(spot)) return false;
-      const sunk = -H * 0.02,
-        isGate = isGateOf(I.key);
-      const bodyAt = (at: THREE.Vector3) =>
-        sculptureBody(DECO.length, I.key, I.rw, at, H, sunk, isGate);
-      let v = spot,
-        body = bodyAt(spot);
-      if (isFiller) {
-        if (field?.tangles(body)) return false;
-      } else if (field?.tangles(body, isFixed)) {
-        // 틀을 잡는 것: 종류·크기는 그대로, 손으로 놓은 것과 엉키지 않는 가장 가까운 자리로 조금 옮긴다(없으면 제자리)
-        const reach = k === ANCHOR_SPACING ? NUDGE_ANCHOR : NUDGE_REACH,
-          moved = nudge(spot, reach, (at) => isOpen(at) && !field.tangles(bodyAt(at), isFixed));
-        if (moved) {
-          v = moved;
-          body = bodyAt(moved);
-          st.moved++;
-        }
-      }
-      field?.add(body);
+      if (!occ.isFree(v, clearance) || !clearHub(v, r) || occ.nearCorridor(v, corridorPad))
+        return false;
       const set = SCULPTURES[I.key];
-      // 비탈에서는 밑동(굵기 표의 맨 아래 토막)이 다 땅에 닿게 가장 낮은 땅에 세운다(지도 terrain.level)
-      const footShare = GIRTHS[I.key]?.[0] ?? FOOT_SHARE;
-      const foot = footShare * H;
-      const gr = terrain.seatGroundAt(v, foot),
+      const gr = terrain.groundAt(v),
         yaw = 6.28 * fr(i, 308),
         o: Deco = {
           v,
@@ -234,7 +179,7 @@ export class Sculptures implements Thing, HasHeights {
           r,
           sq: 0,
           i: 0,
-          gate: isGateOf(I.key),
+          gate: Boolean(set?.isGate) && set?.size === "large",
           spins: Boolean(set?.isSpinning),
           bounce: set?.bounce ?? 1,
           floats: false,
@@ -257,20 +202,12 @@ export class Sculptures implements Thing, HasHeights {
         if (at.w < 0.1 && fr(i, 406) < between.treeSkip) return false;
         H *= 1 + (at.region.treeHeight - 1) * at.w;
       }
-      const regionTree = at.region.tree;
-      const own = at.w > REGION_POOL && regionTree ? trees.kindOf(regionTree) : null;
-      if (isStrict && !own) return false;
+      const own = at.w > REGION_POOL ? trees.kindOf(at.region.tree) : null;
       const T = own ?? TKS[i % TKS.length];
       if (!T || T.I.n >= 300 || !occ.isFree(v, 7) || !clearHub(v, 6) || occ.nearCorridor(v, 3))
         return false;
       const canopyR = T.I.rw * H;
       if (H < 86 && occ.nearCorridor(v, canopyR)) H = 88 + 24 * fr(i, 339); // 통로 위에 걸리는 갓은 지나갈 수 있게 높인다
-      // 몸은 (통로 위로 높인 뒤의) 마지막 키로 잰다
-      const shape = { H, tr: trunkOf(H), cr: T.I.rw * H, cb: T.cb * H },
-        body = treeBody(trees.list.length, T.I.key, "흩뿌림", v, shape);
-      const counted = isFiller ? undefined : isFixed;
-      if (field?.tangles(body, counted)) return false;
-      field?.add(body);
       const yaw = 6.28 * fr(i, 337);
       trees.plant(v, H, T, yaw);
       return true;
@@ -283,11 +220,6 @@ export class Sculptures implements Thing, HasHeights {
         if (skipRoll < at.region.balloonSkip * at.w) return false;
       }
       if (!DBAL || DBAL.n >= BALLOON_N) return false;
-      // 채우는 열기구(숲 위·왕관·하늘)는 무엇과든 엉키면 띄우지 않는다. 높이 사다리의 열기구는 틀이라 손으로 놓은 것만 본다
-      const body = sculptureBody(DECO.length, DBAL.key, DBAL.rw, v, H, alt, false),
-        counted = isFiller ? undefined : isFixed;
-      if (field?.tangles(body, counted)) return false;
-      field?.add(body);
       const gr = terrain.groundAt(v) + alt,
         yaw = 6.28 * fr(i, 355),
         o: Deco = {
@@ -317,15 +249,14 @@ export class Sculptures implements Thing, HasHeights {
         const heightRoll = fr(hk, 361);
         const height = within(plan.anchorHeight, heightRoll);
         const seed = 9000 + hk * 50 + t;
-        if (putD(spot, height, seed, ANCHOR_SPACING)) {
+        if (putD(spot, height, seed, 0.35)) {
           st.anchor++;
           this.landmarks[hk] = DECO[DECO.length - 1];
           break;
         }
       }
-    // 2) 다른 마을로 가는 길목마다 거대한 것 둘이 문이 된다(지도가 끄면 없다)
-    const gateHubs = plan.gates === false ? 0 : HV.length;
-    for (let a = 0; a < gateHubs; a++)
+    // 2) 다른 마을로 가는 길목마다 거대한 것 둘이 문이 된다
+    for (let a = 0; a < HV.length; a++)
       for (let b = 0; b < HV.length; b++) {
         if (a === b) continue;
         const ang = HV[a].angleTo(HV[b]);
@@ -371,7 +302,6 @@ export class Sculptures implements Thing, HasHeights {
           if (putT(v, height, seed)) st.avenue++;
         }
     });
-    isFiller = true;
     // 4) 숲 덩어리: 가운데가 가장 높고 가장자리로 갈수록 낮다. 숲 위에는 열기구
     const grove = (c0: THREE.Vector3, gi: number) => {
       const topRoll = fr(gi, 371);
@@ -414,10 +344,8 @@ export class Sculptures implements Thing, HasHeights {
       grove(c0, gi);
       gi++;
     }
-    isFiller = false;
-    // 5) 높이 사다리: 낮은 것 → 큰 것 → 나무 → 열기구. 밟고 올라간다(지도가 끄면 없다)
-    const ladderHubs = plan.ladder === false ? 0 : HV.length;
-    for (let hk = 0; hk < ladderHubs; hk++) {
+    // 5) 높이 사다리: 낮은 것 → 큰 것 → 나무 → 열기구. 밟고 올라간다
+    for (let hk = 0; hk < HV.length; hk++) {
       const b0 = 200 + hk * 53,
         base = occ.hubAt(hk, 44, b0),
         dir = offset(base, 6, b0).sub(base);
@@ -445,7 +373,6 @@ export class Sculptures implements Thing, HasHeights {
       const highBalloonSeed = 520 + hk;
       if (putB(highBalloonAt, 150, 34, highBalloonSeed)) st.ladder++;
     }
-    isFiller = true;
     // 6) 열기구 왕관: 마을 둘레 하늘에 높낮이를 달리해 두른다
     const crown = plan.crown,
       crownStep = 360 / crown.perHub;
@@ -481,9 +408,7 @@ export class Sculptures implements Thing, HasHeights {
     }
     // 8) 외딴 곳의 거대한 조형물 몇 개
     const lone = plan.lone;
-    // 엉키는 자리를 거르는 만큼 더 찾아본다(외딴 것은 본디 홀로 선다)
-    const loneTries = field ? lone.tries * LONE_MORE : lone.tries;
-    for (let i = 0; i < loneTries && st.lone < lone.count; i++) {
+    for (let i = 0; i < lone.tries && st.lone < lone.count; i++) {
       const spot = dv(i, 311);
       const heightRoll = fr(i, 313);
       const height = within(lone.height, heightRoll);
@@ -562,8 +487,8 @@ export class Sculptures implements Thing, HasHeights {
           fx.burst(P, 9, 9);
         }
       } // 도넛·사탕 문: 막지 않는다. 지나가면 휙 빨라진다
-      else if (a < o.H * 0.82 && d < o.r * BODY_SHARE) {
-        const blockR = o.r * BODY_SHARE;
+      else if (a < o.H * 0.82 && d < o.r * 0.6) {
+        const blockR = o.r * 0.6;
         player.blockBody(o.v, blockR);
         if (o.sq < 0.3) this.squash(o, 0.5);
       } // 몸통은 막힌다
@@ -577,25 +502,4 @@ export class Sculptures implements Thing, HasHeights {
     o.sq = k;
     this.squashing.add(o);
   }
-}
-
-// 지나가라고 세운 문인가(큰 조형물 가운데 문으로 정한 것)
-function isGateOf(key: string): boolean {
-  const set = SCULPTURES[key];
-  return Boolean(set?.isGate) && set?.size === "large";
-}
-
-// 엉킨 자리 곁의 빈자리: reach(m) 안에서 가까운 고리부터 돌아가며 isOpen 인 첫 자리. 없으면 null
-function nudge(
-  spot: THREE.Vector3,
-  reach: number,
-  isOpen: (at: THREE.Vector3) => boolean,
-): THREE.Vector3 | null {
-  for (const ring of NUDGE_RINGS)
-    for (let turn = 0; ring <= reach && turn < NUDGE_TURNS; turn++) {
-      const bearing = (turn / NUDGE_TURNS) * 360,
-        at = offset(spot, ring, bearing);
-      if (isOpen(at)) return at;
-    }
-  return null;
 }

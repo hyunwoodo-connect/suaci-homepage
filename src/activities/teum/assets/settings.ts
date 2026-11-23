@@ -1,5 +1,4 @@
 import type { GameEventMap, GameEventName, RideName } from "../game/events";
-import type { Content } from "../game/hideseek/tuning";
 
 // 에셋 종류마다의 설정. 시제품 곳곳에 있던 표(KIND·BAKE·SP·색조 tint·줄무늬 pat·조형물 목록)를 한곳에 모았다.
 // 생물·조형물을 늘릴 때: 파일을 raw/ 에 넣고 → tools/catalog.mjs 에 한 줄 → 여기 표에 한 줄.
@@ -250,27 +249,7 @@ export interface SoundCue {
   rate?: number | readonly [number, number];
   gap?: number;
   delay?: number;
-  /** 좌우(-1 왼쪽 … 1 오른쪽 — 없으면 가운데) */
-  pan?: number;
-  /** 파일의 한 토막만 낸다: 시작(초)과 길이(초) — 한 파일에 든 세 번의 두드림을 하나씩 꺼낼 때 */
-  from?: number;
-  span?: number;
 }
-
-/**
- * 열어 보기의 두근 소리. 넘겨받은 두 파일을 재 보니(10ms 마다의 가장 큰 값):
- * open-knock 은 두드림 셋이 0.02·0.47·0.69초에 따로 서 있고, open-drum 은 셋으로 끊기지 않고 0.28초부터 끝까지 이어지는 북 굴림이다.
- * 덜컹 세 번(0.14·0.11·0.08초)에 맞추려고 두드림을 하나씩 꺼내 덜컹마다 내고(갈수록 높게), 북 굴림은 그 밑에 작게 깐다
- */
-const OPEN_KNOCKS: readonly (readonly [number, number])[] = [
-  [0, 0.12],
-  [0.45, 0.12],
-  [0.67, 0.1],
-];
-/** 두드림이 덜컹마다 높아지는 폭(빠르기 배수에 더한다) */
-const OPEN_KNOCK_RISE = 0.13;
-/** 북 굴림에서 쓰는 토막(초) — 덜컹이 시작될 때 깔아 결과가 갈릴 때쯤 끝난다 */
-const OPEN_ROLL = { from: 0.28, span: 0.42 } as const;
 
 /** 일어난 일 하나에 낼 소리: 늘 같은 소리, 여러 소리, 또는 그 일의 값을 보고 고르는 규칙(null 이면 소리 없음) */
 export type SoundRule<K extends GameEventName> =
@@ -293,24 +272,6 @@ const GRAB_SOUND: Readonly<Partial<Record<RideName, SoundCue>>> = {
   hole: { key: "snd_palin", volume: 0.6, rate: 0.7 },
   sling: { key: "snd_up", volume: 0.5, rate: 1.3 },
 };
-
-/** 언박싱 내용물이 펼쳐질 때 여는 소리 뒤에 나는 소리(상자 속 상자는 저마다 열릴 때 따로) */
-const HIDE_CONTENT_SOUND: Readonly<Partial<Record<Content, SoundCue>>> = {
-  lime: { key: "snd_boing", volume: 0.5, rate: 1.6, delay: 0.25, gap: 0.01 },
-  bubbles: { key: "snd_ring", volume: 0.45, rate: 1.7, delay: 0.2, gap: 0.01 },
-  giant: { key: "snd_up", volume: 0.55, rate: 0.7, delay: 0.2, gap: 0.01 },
-  whale: { key: "snd_whale", volume: 0.6, delay: 0.3, gap: 0.01 },
-};
-
-/** 뜨거워 차가워의 키득 셋(번갈아 낸다) — 크기는 잰 평균 음량(-27dB · -19dB · -15dB)을 맞춘 것 */
-const FIND_GIGGLES: readonly { key: string; volume: number }[] = [
-  { key: "snd_find_giggle_1", volume: 1 },
-  { key: "snd_find_giggle_2", volume: 0.6 },
-  { key: "snd_find_giggle_3", volume: 0.45 },
-];
-
-/** 후보 물건을 눌렀을 때 미스트 줄기가 날아가는 소리 */
-const TAP_MIST: SoundCue = { key: "snd_hide_tap_mist", volume: 0.55 };
 
 /** 생물 인사: 몸 휘는 방식(motion)마다 소리, 두 발(5)은 통통 튀는 소리. 종마다 음높이가 조금씩 다르다 */
 const GREET_SOUND: Readonly<Record<number, string>> = {
@@ -348,8 +309,6 @@ export const SOUND_EFFECTS: SoundTable = {
   },
   landmarkTalked: { key: "snd_quad", volume: 0.5, rate: 0.55, gap: 0.3 },
   regionEntered: { key: "snd_legend", volume: 0.35, rate: 1.2, gap: 3 },
-  // 존 랜드마크에 다가갈 때 그 존의 소리(존 설정 sound.landmark — manifest 에 없으면 조용히)
-  landmarkApproached: (p) => (p.sound ? { key: p.sound, volume: 0.6, gap: 4 } : null),
   // ---- 수집·상자·부탁·도장·이동(아직 알리는 곳이 없다 — 그 흐름이 생기면 바로 난다) ----
   collected: { key: "snd_stamp", volume: 0.7 },
   stamped: { key: "snd_stamp", volume: 0.7 },
@@ -367,51 +326,6 @@ export const SOUND_EFFECTS: SoundTable = {
         : { key: "snd_ring", volume: 0.5, delay: 0.35, gap: 0.01 },
   ],
   questDone: { key: "snd_win", volume: 0.7 },
-  // ---- 숨바꼭질 — 기획이 넘긴 소리(snd_box_…). 소리가 없는 순간(금색 상자가 떨어질 때·언박싱)은 있던 효과음을 빌려 쓴다 ----
-  hideStarted: { key: "snd_box_steps_a", volume: 0.7, rate: [0.95, 1.1] },
-  hideAllFound: { key: "snd_box_allfound", volume: 0.7 },
-  hideBonusFalling: { key: "snd_up", volume: 0.5, rate: 1.8 },
-  hideBonusLanded: { key: "snd_box_thud_big", volume: 0.9 },
-  hideBoxShaken: { key: "snd_boing", volume: 0.4, rate: 0.8 },
-  hideBoxOpened: ({ content }) => {
-    const open = { key: "snd_open", volume: 0.6 };
-    const then = HIDE_CONTENT_SOUND[content];
-    return then ? [open, then] : open;
-  },
-  hideNestedPopped: ({ empty }) =>
-    empty ? { key: "snd_blank", volume: 0.5 } : { key: "snd_open", volume: 0.45, rate: 1.4 },
-  // ---- 숨바꼭질 조각 02 — 기획이 넘긴 소리(snd_find_… teum-handoff/slice-02/sounds). 좌우와 크기는 상자가 있는 쪽·거리대로 ----
-  findGiggled: ({ which, pan, volume, rate }) => {
-    const giggle = FIND_GIGGLES[which % FIND_GIGGLES.length];
-    return { key: giggle.key, volume: giggle.volume * volume, rate, pan, gap: 0.3 };
-  },
-  findRustled: ({ pan, volume }) => ({
-    key: "snd_find_rustle",
-    volume: 0.95 * volume,
-    pan,
-    gap: 0.3,
-  }),
-  findTapped: ({ far }) => (far ? null : TAP_MIST),
-  findMissed: { key: "snd_find_wrong", volume: 0.95 },
-  findTaunted: ({ pan }) => ({ key: "snd_find_taunt", volume: 0.7, pan }),
-  findHopped: ({ pan }) => ({ key: "snd_find_hop", volume: 0.5, pan }),
-  findFound: { key: "snd_find_found", volume: 0.9 },
-  openKnocked: ({ step, pan }) => {
-    const [from, span] = OPEN_KNOCKS[step % OPEN_KNOCKS.length];
-    return {
-      key: "snd_open_knock",
-      volume: 0.9,
-      rate: 1 + OPEN_KNOCK_RISE * step,
-      pan,
-      from,
-      span,
-    };
-  },
-  openRolled: ({ pan }) => ({ key: "snd_open_drum", volume: 0.4, pan, ...OPEN_ROLL }),
-  openPopped: ({ pan }) => ({ key: "snd_open_pop", volume: 1, pan }),
-  openFizzled: ({ pan }) => ({ key: "snd_open_fizzle", volume: 0.85, pan }),
-  // 기획이 넘긴 소리(teum-handoff/assets/sounds-01e) — 크기는 잰 평균 음량에 맞춘 것
-  mushroomJumped: { key: "snd_help_mushroom", volume: 0.65 },
   travelled: { key: "snd_rocket", volume: 0.6 },
 };
 

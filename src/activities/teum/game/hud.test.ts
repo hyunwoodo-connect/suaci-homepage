@@ -38,15 +38,22 @@ describe("Hud 소리 끄기 단추", () => {
 });
 
 describe("Hud 꾸미기 씬", () => {
-  it("열면 → 안내 줄·말풍선·소리 단추가 모두 숨고(씬의 단추만), 닫으면 → 돌아온다", () => {
+  it("열면 → 안내 줄·말풍선은 숨고 소리 단추는 남아 무대 위로, 닫으면 → 제자리", () => {
     const parent = document.createElement("div");
     const hud = new Hud(parent);
     hud.showMuteToggle(false, () => {});
     const mute = parent.querySelector("button")!;
+    const before = mute.style.right;
     hud.setStudio(true);
-    const open = [hud.hint.style.display, hud.talk.style.display, mute.style.display];
+    const open = [
+      hud.hint.style.display,
+      hud.talk.style.display,
+      mute.style.display,
+      mute.style.zIndex,
+    ];
     hud.setStudio(false);
-    expect(open).toEqual(["none", "none", "none"]);
-    expect([hud.hint.style.display, mute.style.display]).toEqual(["", ""]);
+    expect(open).toEqual(["none", "none", "", "4"]);
+    expect([hud.hint.style.display, mute.style.right, mute.style.zIndex]).toEqual(["", before, ""]);
+    hud.dispose();
   });
 });

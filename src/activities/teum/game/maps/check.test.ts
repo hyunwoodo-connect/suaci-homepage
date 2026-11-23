@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import type { Manifest } from "../../assets/manifest";
-import manifestJson from "../../assets/manifest.v10.json";
+import manifestJson from "../../assets/manifest.v4.json";
 import { checkMap } from "./check";
 import { MAPS } from "./index";
 import type { GameMap } from "./map";
 import { V78_MAP } from "./v78";
-import { V79_MAP } from "./v79";
 
 // 지도 점검: 등록된 지도는 모두 깨끗하고, 흔한 실수(겹치게·물 위·행성 밖·없는 에셋·차례 바꿈)는 잡는다
 
@@ -27,14 +26,6 @@ function kindsOf(map: GameMap): string[] {
 describe("checkMap", () => {
   it.each(Object.entries(MAPS))("등록된 지도 %s → 문제 없음", (_, map) => {
     expect(checkMap(map, manifest)).toEqual([]);
-  });
-
-  it("고를 때만 받는 지도 v79(티파티 정원) → 기획에 넘긴 하나(징검 구름 두 줄의 마디 겹침 — RESULT-MAP-03) 말고 문제 없음", () => {
-    const reported = ["hop#0.6 · hop#1.3"];
-    const problems = checkMap(V79_MAP, manifest).filter(
-      (p) => !reported.some((what) => p.what.startsWith(what)),
-    );
-    expect(problems).toEqual([]);
   });
 
   it("대포 둘을 한 자리에 → 겹침", () => {

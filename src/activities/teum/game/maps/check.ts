@@ -18,7 +18,6 @@ import type { Spot } from "./layout";
 import type { GameMap, HubScatter, Span } from "./map";
 
 // 지도 점검: 지도 값만 보고(게임을 짓지 않고) 잘못 놓인 것을 찾는다. 시험(maps.test)과 지도 점검 명령이 부른다.
-// 씨앗으로 흩뿌린 것과 숨바꼭질 물건까지 보는 점검은 지어진 세계에서 한다(maps/audit — 여기의 자리(footprintsOf)를 손으로 놓은 것의 몸으로 쓴다)
 // ① 겹침 — 땅 위에 자리를 차지하는 것끼리 몸이 겹친다(하늘에 뜬 것·한 길의 마디끼리·바람길 끝에 잇는 것은 뺀다)
 // ② 물 위 — 땅에 서는 것의 가운데가 호수 안이다
 // ③ 범위 밖 — 거리·방향이 행성 밖이거나 숫자가 아니다, 차례(마을·장소·바람길)가 없는 것을 가리킨다
@@ -266,7 +265,7 @@ function checkAssets(map: GameMap, manifest: Manifest, out: MapProblem[]) {
       if (!Object.hasOwn(SCULPTURES, k)) missing(`${name}: ${k} — 조형물 설정표에 없다`);
       else if (!has(k)) missing(`${name}: ${k}`);
     }
-    if (r.tree !== null && !Object.hasOwn(TREE_CROWN_BASE, r.tree))
+    if (!Object.hasOwn(TREE_CROWN_BASE, r.tree))
       missing(`${name}: ${r.tree} — 나무 종류 표에 없다`);
     for (const k of new Set([...r.herds, ...r.residents])) {
       if (!Object.hasOwn(CREATURES, k)) missing(`${name}: ${k} — 생물 설정표에 없다`);

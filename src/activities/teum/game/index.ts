@@ -4,8 +4,7 @@ import type { LoadedAsset } from "../assets/load";
 import type { Manifest } from "../assets/manifest";
 import { devFestival, devMap, devSeed, exposeGame } from "./debug";
 import { Game } from "./Game";
-import { DEFAULT_MAP, LAZY_MAPS, lazyMapName } from "./maps";
-import type { GameMap } from "./maps/map";
+import { DEFAULT_MAP } from "./maps";
 
 /** start 에 넘기는 것 */
 export interface StartOptions {
@@ -25,37 +24,12 @@ export interface RunningGame {
  * 게임을 시작한다: 세계를 만들고 배치를 끝낸 뒤, 첫 화면 에셋(아바타와 그 차림·하늘·시작 자리 가까이 놓인 모델과 생물)을 받고 나서 그리기 시작한다.
  * 차림은 기록을 읽어야 알므로 첫 화면은 기록을 읽은 뒤에 고른다. 나머지 에셋은 뒤에서 받고, 오는 대로 제자리에 선다.
  */
-export function start(canvas: HTMLCanvasElement, options: StartOptions): RunningGame {
-  const lazyName = lazyMapName();
-  if (!lazyName) {
-    const map = devMap() ?? DEFAULT_MAP;
-    return launch(canvas, options, map);
-  }
-  // 고를 때만 받는 지도: 받은 뒤에 짓는다(그사이 멈추면 짓지 않는다)
-  let running: RunningGame | null = null,
-    stopped = false;
-  LAZY_MAPS[lazyName]()
-    .then((map) => {
-      if (!stopped) running = launch(canvas, options, map);
-    })
-    .catch((err) => console.error("teum map", lazyName, err));
-  return {
-    stop() {
-      stopped = true;
-      running?.stop();
-    },
-  };
-}
-
-/* ─── 내부 ─────────────────────────── */
-
-// 지도 하나로 게임을 짓고 돌린다
-function launch(
+export function start(
   canvas: HTMLCanvasElement,
   { assets, onProgress }: StartOptions,
-  map: GameMap,
 ): RunningGame {
   const seed = devSeed() ?? randomSeed();
+  const map = devMap() ?? DEFAULT_MAP;
   const festival = devFestival();
   const game = new Game(canvas, assets, seed, map, festival);
   let stopped = false,
@@ -118,6 +92,8 @@ function launch(
     },
   };
 }
+
+/* ─── 내부 ─────────────────────────── */
 
 // 운영은 판마다 다른 씨앗
 function randomSeed(): number {

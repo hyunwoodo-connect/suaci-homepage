@@ -1,12 +1,10 @@
 import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
-import { scatterHubs, within } from "../maps/map";
-import { babyLimeBody } from "../maps/placed";
+import { within } from "../maps/map";
 import type { Instancer } from "../models/instancer";
 import type { Services } from "../services";
 import { S } from "../settings";
-import type { BodyField } from "../world/bodyField";
 import { fr } from "../world/hash";
 import type { Footsteps } from "./footsteps";
 
@@ -32,17 +30,13 @@ export class BabyLimes implements Thing {
   readonly list: Baby[] = [];
   /** 따라오는 수(만난 손님은 이 뒤에 줄 선다) */
   joined = 0;
-  /** 따라와도 되나(숨바꼭질 판이 도는 동안은 아니다 — 따라오던 것은 제자리에서 기다린다) */
-  private canFollow = true;
   private readonly BL: Instancer | null;
-  /** 고른 자리(build 가 놓는다) */
-  private readonly spots: { v: THREE.Vector3; ph: number }[] = [];
 
   constructor(
     private readonly s: Services,
     private readonly footsteps: Footsteps,
   ) {
-    const { models, occ } = s;
+    const { models, occ, terrain } = s;
     const HV = occ.hubs,
       plan = s.map.babyLimes,
       count = HV.length * plan.perHub;
@@ -51,8 +45,7 @@ export class BabyLimes implements Thing {
     if (!BL) return;
     // 늘 따라다니므로 가까운 것만 그리기에서 뺀다
     BL.noCull = true;
-    const hubs = scatterHubs(plan, HV.length);
-    for (const hk of hubs)
+    for (let hk = 0; hk < HV.length; hk++)
       for (let i0 = 0, got = 0; i0 < plan.tries && got < plan.perHub; i0++) {
         const i = hk * HUB_STRIDE + i0,
           distRoll = fr(i, 81),
@@ -62,33 +55,20 @@ export class BabyLimes implements Thing {
           v = occ.hubAt(hk, dist, bearing);
         if (!occ.isFree(v, plan.clear)) continue;
         got++;
-        const ph = 6.28 * fr(i, 83);
-        this.spots.push({ v, ph });
+        const ground = terrain.groundAt(v);
+        const baby: Baby = {
+          v,
+          g: ground,
+          ph: 6.28 * fr(i, 83),
+          join: false,
+          order: 0,
+          pos: v.clone(),
+          a: 0,
+          i: BL.stamp(v, ground, 1.4, 0),
+        };
+        this.list.push(baby);
         occ.fill(v, plan.clear);
       }
-  }
-
-  /** 고른 자리에 놓는다(조형물까지 다 놓인 뒤). field 를 주면 다른 것과 엉키는 것은 놓지 않는다 */
-  build(field: BodyField | null) {
-    const BL = this.BL;
-    if (!BL) return;
-    for (const { v, ph } of this.spots) {
-      const body = babyLimeBody(this.list.length, v);
-      if (field?.tangles(body)) continue;
-      field?.add(body);
-      const ground = this.s.terrain.groundAt(v);
-      this.list.push({
-        v,
-        g: ground,
-        ph,
-        join: false,
-        order: 0,
-        pos: v.clone(),
-        a: 0,
-        i: BL.stamp(v, ground, 1.4, 0),
-      });
-    }
-    this.spots.length = 0;
   }
 
   /** 숨어서 통통 뛰다가, 닿으면 줄지어 따라온다 */
@@ -109,7 +89,7 @@ export class BabyLimes implements Thing {
           height = b.g + hop,
           yaw = time * 1.2 + b.ph;
         BL.put(b.i, b.v, height, 1.4, yaw);
-        if (this.canFollow && !held && player.air < 4 && p.angleTo(b.v) * S.R < 2.6) {
+        if (!held && player.air < 4 && p.angleTo(b.v) * S.R < 2.6) {
           b.join = true;
           b.order = this.joined++;
           this.s.events.emit("babyJoined", { count: this.joined });
@@ -130,13 +110,13 @@ export class BabyLimes implements Thing {
             }
         }
       } else {
-        // 줄 선 순서만큼 뒤의 발자취를 따라간다(따라오지 못하는 동안은 그 자리에서 통통 뛰며 기다린다)
+        // 줄 선 순서만큼 뒤의 발자취를 따라간다
         const lastStep = hist.length - 1,
           trailGap = 6 * (b.order + 1),
           gapIndex = Math.min(lastStep, trailGap),
           hgt = hist[gapIndex],
           followRate = -9 * f.dt,
-          follow = this.canFollow ? 1 - Math.exp(followRate) : 0;
+          follow = 1 - Math.exp(followRate);
         b.pos.lerp(hgt.p, follow).normalize();
         b.a += (hgt.a - 0.7 - b.a) * follow;
         const hopPhase = time * 7 + b.order * 1.3,
@@ -146,11 +126,6 @@ export class BabyLimes implements Thing {
         BL.put(b.i, b.pos, height, 1.2, yaw);
       }
     }
-  }
-
-  /** 따라와도 되나(숨바꼭질 판이 도는 동안은 끈다 — 새로 따라붙지 않고, 따라오던 것은 그 자리에서 기다린다) */
-  setFollowing(on: boolean) {
-    this.canFollow = on;
   }
 
   /** 찍어 둔 묶음은 모델 자리(ModelLibrary)가 치운다 */
