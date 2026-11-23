@@ -67,6 +67,8 @@ import type { Services } from "./services";
 import { S } from "./settings";
 import { SoundManager } from "./sound";
 import { Studio } from "./studio/studio";
+import type { WaterBalloons } from "./waterBalloons/waterBalloons";
+import { createWaterBalloons } from "./waterBalloons/waterBalloons";
 import { Clouds } from "./world/clouds";
 import { Culler } from "./world/culler";
 import { Flowers } from "./world/flowers";
@@ -163,6 +165,8 @@ export class Game {
   readonly bubbleTrail: BubbleTrail;
   readonly director: Director;
   readonly creatures: Creatures;
+  /** 물풍선 놀이(지도에 물풍선 자리가 있을 때만 — 없으면 null) */
+  readonly waterBalloons: WaterBalloons | null;
   readonly input: Input;
   /** 소리판(알림판을 듣는다 — 소리를 정하기 전에는 아무것도 하지 않는다) */
   readonly sound: SoundManager;
@@ -347,6 +351,9 @@ export class Game {
     this.wings.fitModels();
     this.funnels.fitModels();
     this.seeds.fitModels();
+    // 물풍선 놀이는 맨 마지막에 만든다 — 세계의 배치·난수 차례에 끼어들지 않게(자리 차지도 하지 않는다)
+    this.waterBalloons = createWaterBalloons(s, hudParent);
+    const balloonGame = this.waterBalloons ? [this.waterBalloons] : [];
     // 찍어 둔 묶음(조형물·나무·꽃·봉오리…)도 가까운 것만 칸에 채운다 — 장면에서 떼는 것과 같은 기준·같은 때
     s.culler.onCull((cut) => models.cull(player.p as THREE.Vector3, cut));
     // ---- 한 프레임의 순서 ----
@@ -408,6 +415,7 @@ export class Game {
       this.bubbleTrail,
       this.director,
       this.creatures,
+      ...balloonGame,
       this.regionLook,
       places,
       this.clouds,

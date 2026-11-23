@@ -45,6 +45,17 @@ interface Probe {
   firstScreen(): { keys: string[]; bytes: number; total: number };
   /** 지은 지도의 지도 점검 */
   check(): MapProblem[];
+  /** 물풍선 놀이: 먹은 수·전체 수·걸린 시간·단계, 물풍선마다 자리(단위 벡터)·땅 위 높이·먹었나. 놀이가 없는 지도는 빈 목록 */
+  waterBalloons(): WaterBalloonsProbe;
+}
+
+/** 시험 창구가 돌려주는 물풍선 놀이의 지금 */
+interface WaterBalloonsProbe {
+  eaten: number;
+  total: number;
+  seconds: number;
+  stage: string;
+  list: { v: number[]; alt: number; eaten: boolean }[];
 }
 
 /** 시험용 주소 인자 ?nodir: 지루함 감독과 방울 길을 끈다(빈 구간을 감독 없이 잴 때). 운영에선 늘 false */
@@ -195,6 +206,21 @@ function createProbe(g: Game, firstScreen: readonly string[]): Probe {
       return { keys: [...firstScreen], bytes, total };
     },
     check: () => checkMap(g.s.map, g.s.models.manifest),
+    waterBalloons: () => waterBalloonsOf(g),
+  };
+}
+
+// 물풍선 놀이의 지금. 자리는 행성 위 단위 벡터, alt 는 그 자리 땅 위 높이(m, 지도 값)
+function waterBalloonsOf(g: Game): WaterBalloonsProbe {
+  const wb = g.waterBalloons;
+  if (!wb) return { eaten: 0, total: 0, seconds: 0, stage: "none", list: [] };
+  const round = wb.round;
+  return {
+    eaten: round.count,
+    total: round.total,
+    seconds: n6(round.seconds),
+    stage: round.stage,
+    list: wb.list.map((b, i) => ({ v: v6(b.v), alt: n6(b.alt), eaten: round.eaten[i] })),
   };
 }
 
