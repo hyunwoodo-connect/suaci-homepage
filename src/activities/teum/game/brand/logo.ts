@@ -49,7 +49,7 @@ export function createLogoTextures(): LogoTextures {
 
 /* ─── 내부 ─────────────────────────── */
 
-// 시제품처럼 SVG 글자를 data: 주소로 바꿔 그린다(같은 그림 크기·비율이 나오게)
+// SVG 글자를 data: 주소로 바꿔 그린다(같은 그림 크기·비율이 나오게)
 async function loadLogo(): Promise<HTMLImageElement | null> {
   const res = await fetch(LOGO_URL);
   if (!res.ok) return null;

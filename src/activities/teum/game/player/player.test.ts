@@ -103,7 +103,7 @@ describe("Player 붙잡기", () => {
   const cannon: Holder = { rideName: "cannon", bodyScale: 0.6 },
     whirl: Holder = { rideName: "whirl", cameraMode: "spin" };
 
-  it("다른 것이 붙잡고 있어도 → 새 놀이기구도 붙잡는다(시제품처럼 둘 다 몸을 옮긴다)", () => {
+  it("다른 것이 붙잡고 있어도 → 새 놀이기구도 붙잡는다(둘 다 몸을 옮긴다)", () => {
     const pl = flatPlayer();
     const a = pl.grab(cannon),
       b = pl.grab(whirl);

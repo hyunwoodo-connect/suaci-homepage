@@ -7,7 +7,7 @@ import { from } from "./sphere";
 import { chordOf, SphereGrid } from "./sphereGrid";
 
 // 지형(높이만): 꽃 자리, 완만한 둔덕, 하늘의 뭉게구름 자리, 큰 언덕과 등대 산.
-// 자리는 지도의 지형 씨앗(v78 은 7)으로 뽑는다 — 뽑는 순서(꽃 자리 → 둔덕 → 구름 → 큰 언덕)가 곧 지형이라 바꾸지 않는다.
+// 자리는 지도의 지형 씨앗으로 뽑는다 — 뽑는 순서(꽃 자리 → 둔덕 → 구름 → 큰 언덕)가 곧 지형이라 바꾸지 않는다.
 // 그리는 것은 world/terrainView·world/clouds·world/flowers 가 이 값을 보고 한다
 
 /** 큰 언덕 비탈에 얹는 솜 뭉치 수 */
@@ -210,7 +210,7 @@ export class Terrain {
     return gr;
   }
 
-  /** v 둘레(현 길이² × R² < distSq)의 꽃이 한꺼번에 핀다 — 시제품의 2(1 − v·b)R² < d² 와 같은 셈 */
+  /** v 둘레(현 길이² × R² < distSq)의 꽃이 한꺼번에 핀다 — 2(1 − v·b)R² < d² 와 같은 셈 */
   lightFlowers(v: THREE.Vector3, distSq: number) {
     const fl = this.flowers,
       reach = Math.sqrt(distSq) / S.R;

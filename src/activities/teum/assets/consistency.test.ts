@@ -29,7 +29,7 @@ const INTENTIONALLY_UNUSED: Record<string, string> = {
   snd_open: "상자 여는 소리 — 이 소리를 내는 놀이가 없다",
   snd_blank: "꽝 소리 — 이 소리를 내는 놀이가 없다",
   snd_win: "당첨 소리 — 이 소리를 내는 놀이가 없다",
-  snd_wind: "바람 반복음은 '숨소리 같다'는 지적으로 꺼 두었다(시제품 v67 — 자리만)",
+  snd_wind: "바람 반복음은 '숨소리 같다'는 지적으로 꺼 두었다",
 };
 
 const assets: Record<string, { category: string; box?: number[] }> = manifestJson.assets;

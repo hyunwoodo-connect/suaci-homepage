@@ -10,7 +10,7 @@ describe("Random", () => {
     expect([b.next(), b.next(), b.next()]).toEqual(xs);
   });
 
-  it("mulberry32 → 시제품 시험 도구와 같은 첫 값(씨앗 42)", () => {
+  it("mulberry32 → 정해 둔 첫 값(씨앗 42)", () => {
     expect(new Random(42).next()).toBeCloseTo(0.6011037519201636, 12);
   });
 

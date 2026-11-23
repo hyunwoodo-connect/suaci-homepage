@@ -11,7 +11,7 @@ import {
 } from "./settings";
 
 describe("herdSpecies", () => {
-  it("무리로 나오는 생물 → 시제품 순서(찻주전자부터 컵케이크까지)", () => {
+  it("무리로 나오는 생물 → 정한 순서(찻주전자부터 컵케이크까지)", () => {
     expect(herdSpecies().map((s) => s.key)).toEqual([
       "teapot",
       "c_watch",
