@@ -10,6 +10,7 @@ import type { Services } from "../services";
 import { S } from "../settings";
 import { hopPath } from "../world/paths";
 import { from, UP } from "../world/sphere";
+import { claimSpots } from "./shared";
 
 // 통통 구름 — 위에 오면 높이 튀어 오른다. 징검 구름 — 작은 구름을 통통 밟으며 건너간다.
 // 구름 방석은 모두 같은 모양·같은 색이라 한 번에 그린다(가까운 것만 칸에 채운다)
@@ -107,10 +108,7 @@ export class Pads implements Thing, Tappable, Echoing {
 
   /** 자리 차지: 방석 둘레, 그리고 튕겨 보내는 길(비행 통로) */
   claim() {
-    for (const pd of this.list) {
-      this.s.occ.fill(pd.v, 5);
-      this.s.occ.addCorridor(pd.v, 8);
-    }
+    claimSpots(this.s.occ, this.list, 5, 8);
   }
 
   /** 칙 둘레의 방석은 가까운 것부터 차례로 울린다 */

@@ -7,6 +7,8 @@ import type { Holder } from "../player/player";
 import type { Services } from "../services";
 import { GREY_TOY, S } from "../settings";
 import { from, UP } from "../world/sphere";
+import { standAt } from "./bars";
+import { claimSpots, isTouching } from "./shared";
 
 // 로켓 풍선 — 올라타면 덜덜 떨다가 하늘 끝까지 솟구친다
 
@@ -82,18 +84,14 @@ export class Rockets implements Thing, Holder {
       o.gnd = terrain.featGround(o.v);
       keep.push(o.v);
       const groundR = S.R + o.gnd;
-      o.g.position.copy(o.v).multiplyScalar(groundR);
-      o.g.quaternion.setFromUnitVectors(UP, o.v);
+      standAt(o.g, o.v, groundR);
       culler.track(o.g, o.v);
     }
   }
 
   /** 자리 차지: 몸 둘레, 그리고 솟구치는 길(비행 통로) */
   claim() {
-    for (const o of this.list) {
-      this.s.occ.fill(o.v, 5);
-      this.s.occ.addCorridor(o.v, 8);
-    }
+    claimSpots(this.s.occ, this.list, 5, 8);
   }
 
   /** 올라타면 떨다가 솟구친다 */
@@ -103,7 +101,7 @@ export class Rockets implements Thing, Holder {
       p = player.p;
     for (const o of this.list) {
       if (o.cool > 0) o.cool -= dt;
-      else if (!player.held && !this.ride && player.air < 3 && p.angleTo(o.v) * S.R < 3.2) {
+      else if (!this.ride && isTouching(player, o.v, 3, 3.2)) {
         if (player.grab(this)) {
           this.ride = { o, t: 0 };
           hud.say("로켓 풍선 — 하늘 끝까지 솟구칩니다");
@@ -168,8 +166,7 @@ export class Rockets implements Thing, Holder {
         o.g.quaternion.setFromUnitVectors(UP, p);
       } else {
         const groundR = S.R + o.gnd;
-        o.g.position.copy(o.v).multiplyScalar(groundR);
-        o.g.quaternion.setFromUnitVectors(UP, o.v);
+        standAt(o.g, o.v, groundR);
       }
     }
   }

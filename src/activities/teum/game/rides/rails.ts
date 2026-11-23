@@ -7,6 +7,7 @@ import type { LayoutPath } from "../maps/layout";
 import type { Services } from "../services";
 import { S } from "../settings";
 import { railPath } from "../world/paths";
+import { claimSpots } from "./shared";
 
 // 무지개 레일 — 닿으면 붙어 점점 빠르게 미끄러지고, 칙 하면 뛰어오른다. 레일은 구슬을 꿴 것 같은 마디(한 번에 그리는 묶음)
 
@@ -101,10 +102,7 @@ export class Rails implements Thing, Tappable {
 
   /** 자리 차지: 마디 둘레, 그리고 레일 길(비행 통로) */
   claim() {
-    for (const nd of this.rnodes) {
-      this.s.occ.fill(nd.v, 5);
-      this.s.occ.addCorridor(nd.v, 10);
-    }
+    claimSpots(this.s.occ, this.rnodes, 5, 10);
   }
 
   /** 레일 위에서 칙 하면 뛰어오른다 */

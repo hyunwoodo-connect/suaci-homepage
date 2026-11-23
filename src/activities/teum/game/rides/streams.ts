@@ -9,6 +9,7 @@ import { S } from "../settings";
 import type { Path } from "../world/paths";
 import { streamPath } from "../world/paths";
 import { FWD } from "../world/sphere";
+import { claimSpots } from "./shared";
 
 // 바람길 — 들어가면 흐름에 실려 굽이굽이 간다. 그 위로 꽃잎이 구르며 흘러간다.
 // 꽃잎은 마디마다 둘. 가까운 마디의 것만 칸에 채워 그린다(멀리 있는 것은 어차피 안개에 묻힌다)
@@ -111,11 +112,7 @@ export class Streams implements Thing {
 
   /** 자리 차지: 마디 둘레, 그리고 실어 가는 길(비행 통로) */
   claim() {
-    for (const st of this.list)
-      for (const nd of st.nodes) {
-        this.s.occ.fill(nd.v, 5);
-        this.s.occ.addCorridor(nd.v, 10);
-      }
+    for (const st of this.list) claimSpots(this.s.occ, st.nodes, 5, 10);
   }
 
   /** 흘러가는 꽃잎에 꽃잎 모양을 쓴다(상승 기류와 같은 것) */

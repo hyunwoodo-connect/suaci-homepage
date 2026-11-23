@@ -8,6 +8,7 @@ import { from } from "../world/sphere";
 import type { Bumpers } from "./bumpers";
 import type { Chimes } from "./chimes";
 import type { Pillars } from "./pillars";
+import { claimSpots } from "./shared";
 
 // 큰 공 — 밀면 굴러가고, 굴러가다 종과 기둥을 건드린다. 굴릴수록 커지고, 세 배쯤 되면 펑 터져 다시 작아진다.
 // 셋은 라임: 혼자 천천히 굴러다닌다
@@ -88,7 +89,7 @@ export class Balls implements Thing {
 
   /** 자리 차지: 처음 자리 둘레 */
   claim() {
-    for (const b of this.list) this.s.occ.fill(b.v, 5);
+    claimSpots(this.s.occ, this.list, 5);
   }
 
   /** 라임 공: 비치볼 껍질 대신 라임 모델 */

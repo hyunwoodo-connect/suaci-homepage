@@ -7,6 +7,8 @@ import { LOOK } from "../look";
 import type { Services } from "../services";
 import { GREY_TOY, S } from "../settings";
 import { from, refTInto, UP } from "../world/sphere";
+import { standAt } from "./bars";
+import { claimSpots } from "./shared";
 
 // 상승 기류 — 소용돌이치며 올라가는 바람 기둥. 안에 있는 동안 계속 떠오른다.
 // 기류 기둥: 비스듬한 띠가 돌면서 올라가는 반투명 원통. 위로 갈수록 넓어지며 사라진다. 그 안을 꽃잎이 나선으로 오른다
@@ -110,10 +112,8 @@ export class Thermals implements Thing {
       // 기둥(높이 64)의 가운데가 땅 위 32.5 에 오게 세운다
       const columnR = groundR + 32.5;
       const baseR = groundR + 0.5;
-      th.col.position.copy(th.v).multiplyScalar(columnR);
-      th.col.quaternion.setFromUnitVectors(UP, th.v);
-      th.base.position.copy(th.v).multiplyScalar(baseR);
-      th.base.quaternion.setFromUnitVectors(UP, th.v);
+      standAt(th.col, th.v, columnR);
+      standAt(th.base, th.v, baseR);
       culler.track(th.col, th.v);
       culler.track(th.base, th.v);
     }
@@ -121,10 +121,7 @@ export class Thermals implements Thing {
 
   /** 자리 차지: 기둥 둘레, 그리고 떠오르는 길(비행 통로) */
   claim() {
-    for (const th of this.list) {
-      this.s.occ.fill(th.v, 5);
-      this.s.occ.addCorridor(th.v, 8);
-    }
+    claimSpots(this.s.occ, this.list, 5, 8);
   }
 
   /** 꽃잎 모양을 받는다(바람길과 같은 얇은 잎). 꽃잎마다 꽃밭 색을 돌려 칠한다 */

@@ -6,6 +6,7 @@ import type { Hold } from "../models/library";
 import type { Services } from "../services";
 import { S } from "../settings";
 import { from, UP } from "../world/sphere";
+import { claimSpots } from "./shared";
 
 // 날개 — 주우면 한동안 천천히 떨어지고, 칙 할 때마다 날갯짓해서 올라간다.
 // 모델이 오면 코드로 그린 흰 판 두 장 대신 나비 날개를 쓴다. 등에 붙는 것과 땅에 놓인 아이템이 같은 모델이고,
@@ -66,7 +67,7 @@ export class Wings implements Thing, Tappable {
 
   /** 자리 차지 */
   claim() {
-    for (const w of this.items) this.s.occ.fill(w.v, 5);
+    claimSpots(this.s.occ, this.items, 5);
   }
 
   /** 나비 날개 모델: 흰 판 대신 등과 아이템에 끼운다. 날갯짓은 키마다 같이 쓰는 변형 값으로 */

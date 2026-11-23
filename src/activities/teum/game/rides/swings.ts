@@ -11,6 +11,7 @@ import type { Services } from "../services";
 import { GREY_TOY, S, WHITE } from "../settings";
 import { clamp, from, heading, UP } from "../world/sphere";
 import { placeBar } from "./bars";
+import { claimSpots, isTouching } from "./shared";
 
 // 그네 구름 — 매달려 흔들리다 손을 떼는 순간 날아간다. 기둥 둘과 가로대 대신 둥근 아치 하나, 구름 방석에 두 줄
 
@@ -128,10 +129,7 @@ export class Swings implements Thing, Holder, Tappable {
 
   /** 자리 차지: 몸 둘레, 그리고 날아가는 길(비행 통로) */
   claim() {
-    for (const sw of this.list) {
-      this.s.occ.fill(sw.v, 5);
-      this.s.occ.addCorridor(sw.v, 8);
-    }
+    claimSpots(this.s.occ, this.list, 5, 8);
   }
 
   /** 매달려 있으면 칙 해서 뛰어내린다 */
@@ -142,11 +140,10 @@ export class Swings implements Thing, Holder, Tappable {
   /** 매달리면 점점 크게 흔들리고, 손을 떼거나 칙 하면 그 기세로 날아간다 */
   update(f: Frame) {
     const { player, mats, hud } = this.s,
-      dt = f.dt,
-      p = player.p;
+      dt = f.dt;
     for (const sw of this.list) {
       if (sw.cool > 0) sw.cool -= dt;
-      else if (!player.held && !this.ride && player.air < 3 && p.angleTo(sw.v) * S.R < 3) {
+      else if (!this.ride && isTouching(player, sw.v, 3, 3)) {
         if (player.grab(this)) {
           const dir = player.vel.dot(sw.d) >= 0 ? 1 : -1;
           this.ride = { sw, t: 0, dir, touched: false, kick: false };

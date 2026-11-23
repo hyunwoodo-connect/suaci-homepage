@@ -8,6 +8,7 @@ import type { Services } from "../services";
 import { S } from "../settings";
 import { rowPath } from "../world/paths";
 import { FWD, UP } from "../world/sphere";
+import { claimSpots } from "./shared";
 
 // 기둥 줄 — 지나가면 하나씩 불이 켜지며 솟는다.
 // 풍선 꽃: 줄기 하나에 꽃잎 일곱. 지나가면 줄기가 자라고 꽃이 활짝 핀다(줄기는 길이만 늘어나서 모양이 뭉개지지 않는다).
@@ -143,7 +144,7 @@ export class Pillars implements Thing, Tappable, Echoing {
 
   /** 자리 차지: 기둥 둘레 */
   claim() {
-    for (const pl of this.list) this.s.occ.fill(pl.v, 5);
+    claimSpots(this.s.occ, this.list, 5);
   }
 
   /** 칙 둘레의 기둥은 가까운 것부터 차례로 켜진다 */

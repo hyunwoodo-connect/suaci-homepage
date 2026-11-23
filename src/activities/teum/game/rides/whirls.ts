@@ -7,7 +7,9 @@ import type { Holder } from "../player/player";
 import type { Services } from "../services";
 import { S } from "../settings";
 import { afterStreamAt } from "../world/paths";
-import { from, UP } from "../world/sphere";
+import { from } from "../world/sphere";
+import { standAt } from "./bars";
+import { claimSpots, isTouching } from "./shared";
 import type { Streams } from "./streams";
 
 // 회오리 — 닿으면 빙글빙글 빨려 올라갔다가 튕겨 나간다
@@ -71,31 +73,26 @@ export class Whirls implements Thing, Holder {
       w.v.copy(spot);
       keep.push(w.v);
       const radius = S.R + this.s.terrain.featGround(w.v);
-      w.g.position.copy(w.v).multiplyScalar(radius);
-      w.g.quaternion.setFromUnitVectors(UP, w.v);
+      standAt(w.g, w.v, radius);
       this.s.culler.track(w.g, w.v);
     }
   }
 
   /** 자리 차지: 회오리 둘레, 그리고 튕겨 보내는 길(비행 통로) */
   claim() {
-    for (const w of this.list) {
-      this.s.occ.fill(w.v, 5);
-      this.s.occ.addCorridor(w.v, 8);
-    }
+    claimSpots(this.s.occ, this.list, 5, 8);
   }
 
   /** 닿으면 빨려 들어가 돌며 솟는다 */
   update(f: Frame) {
     const { player, camera, hud } = this.s,
-      dt = f.dt,
-      p = player.p;
+      dt = f.dt;
     for (const w of this.list) {
       const riding = this.ride !== null && this.ride.w === w;
       const spinRate = riding ? 7 : 1.6;
       w.spin.rotation.y += dt * spinRate;
       if (w.cool > 0) w.cool -= dt;
-      else if (!player.held && player.air < 12 && p.angleTo(w.v) * S.R < 5) {
+      else if (isTouching(player, w.v, 12, 5)) {
         // 같은 프레임에 둘에 닿으면 뒤의 것이 이긴다(먼저 붙잡은 것을 이어받는다)
         const body = this.ride ? player.bodyFor(this) : player.grab(this);
         if (body) {

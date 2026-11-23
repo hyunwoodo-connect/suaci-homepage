@@ -6,7 +6,9 @@ import type { Hold } from "../models/library";
 import type { HeldBody, Holder } from "../player/player";
 import type { Services } from "../services";
 import { GREY_TOY, S } from "../settings";
-import { from, UP } from "../world/sphere";
+import { from } from "../world/sphere";
+import { standAt } from "./bars";
+import { claimSpots } from "./shared";
 
 // 깔때기 — 가장자리를 돌며 빨라지다 가운데로 빨려들고, 하늘로 솟구친다.
 // 모델이 오면 회색 고리 다섯 겹 대신 분홍·노랑 소용돌이 그릇을 납작하게 눌러 땅에 깔고 천천히 돌린다
@@ -82,15 +84,14 @@ export class Funnels implements Thing, Holder {
       f.v.copy(spot);
       occ.addZone(f.v, 23);
       const radius = S.R + terrain.featGround(f.v);
-      f.g.position.copy(f.v).multiplyScalar(radius);
-      f.g.quaternion.setFromUnitVectors(UP, f.v);
+      standAt(f.g, f.v, radius);
       this.s.culler.track(f.g, f.v);
     }
   }
 
   /** 자리 차지: 깔때기 전체 */
   claim() {
-    for (const f of this.list) this.s.occ.fill(f.v, 26);
+    claimSpots(this.s.occ, this.list, 26);
   }
 
   /** 소용돌이 그릇: 오면 고리·구멍을 숨기고 그 자리에 눌러 깐다 */

@@ -11,6 +11,7 @@ import type { Services } from "../services";
 import { GREY_TOY, S } from "../settings";
 import { along, from, heading } from "../world/sphere";
 import { basis } from "./bars";
+import { isTouching, swapIn } from "./shared";
 
 // 대포 — 들어가면 잠깐 움츠렸다가 멀리 쏘아 올려진다
 
@@ -109,7 +110,6 @@ export class Cannons implements Thing, Holder {
     for (const c of this.list) {
       culler.track(c.g, c.v);
       if (!models.has("cannon")) continue;
-      const prim = c.g.children.slice();
       const m: Hold = models.fit("cannon", 10.5, "h", {
         ownLime: true,
         onArrive: () => {
@@ -120,9 +120,8 @@ export class Cannons implements Thing, Holder {
         },
       });
       m.position.y = m.userData.hh;
-      c.g.add(m);
+      swapIn(models, "cannon", c.g, m);
       c.model = m;
-      models.swapWhenReady("cannon", prim);
     }
   }
 
@@ -132,7 +131,7 @@ export class Cannons implements Thing, Holder {
       dt = f.dt;
     for (const c of this.list) {
       if (c.cool > 0) c.cool -= dt;
-      else if (!player.held && !this.ride && player.air < 2 && player.p.angleTo(c.v) * S.R < 3.4) {
+      else if (!this.ride && isTouching(player, c.v, 2, 3.4)) {
         if (player.grab(this)) {
           this.ride = { c, t: 0 };
           hud.say("대포 — 멀리 쏘아 올려집니다");

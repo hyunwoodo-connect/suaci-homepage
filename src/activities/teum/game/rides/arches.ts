@@ -6,6 +6,7 @@ import type { LayoutArch } from "../maps/layout";
 import type { Services } from "../services";
 import { S } from "../settings";
 import { archPath } from "../world/paths";
+import { claimSpots } from "./shared";
 import type { PathNode } from "./streams";
 
 // 구름 다리 — 끝에서 올라타면 높은 아치를 타고 넘어간다. 마디마다 방석 같은 발판이 놓인다
@@ -97,10 +98,7 @@ export class Arches implements Thing {
 
   /** 자리 차지: 마디 둘레, 그리고 다리 길(비행 통로) */
   claim() {
-    for (const nd of this.anodes) {
-      this.s.occ.fill(nd.v, 5);
-      this.s.occ.addCorridor(nd.v, 10);
-    }
+    claimSpots(this.s.occ, this.anodes, 5, 10);
   }
 
   /** 마디 높이에 붙어 넘어간다 */

@@ -9,6 +9,7 @@ import type { Services } from "../services";
 import { GREY_TOY, S } from "../settings";
 import { chainPath } from "../world/paths";
 import { basis } from "./bars";
+import { claimSpots } from "./shared";
 import type { Streams } from "./streams";
 
 // 고리 줄 — 통과하면 그 방향으로 슝 밀려 올라간다. 줄을 타면 하늘까지 간다
@@ -81,10 +82,7 @@ export class Rings implements Thing, Tappable, Echoing {
 
   /** 자리 차지: 고리 둘레, 그리고 고리 길(비행 통로) */
   claim() {
-    for (const r of this.list) {
-      this.s.occ.fill(r.v, 5);
-      this.s.occ.addCorridor(r.v, 8);
-    }
+    claimSpots(this.s.occ, this.list, 5, 8);
   }
 
   /** 칙 둘레의 고리는 가까운 것부터 차례로 울린다 */
