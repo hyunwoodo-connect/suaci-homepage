@@ -11,7 +11,7 @@ import { railPath } from "../world/paths";
 // 무지개 레일 — 닿으면 붙어 점점 빠르게 미끄러지고, 칙 하면 뛰어오른다. 레일은 구슬을 꿴 것 같은 마디(한 번에 그리는 묶음)
 
 /** 레일 마디: 자리·방향·옆·땅 높이, 오르내리는 높이(hh) */
-export interface RailNode {
+interface RailNode {
   v: THREE.Vector3;
   d: THREE.Vector3;
   side: THREE.Vector3;
@@ -20,7 +20,7 @@ export interface RailNode {
 }
 
 /** 레일 하나 */
-export interface Rail extends LayoutPath {
+interface Rail extends LayoutPath {
   nodes: RailNode[];
 }
 

@@ -9,7 +9,7 @@ import { FWD, from, heading } from "../world/sphere";
 // 구름 골짜기 — 양쪽 벽을 오갈수록 점점 높이 솟는다. 양쪽 벽은 부푼 쿠션(한 번에 그리는 묶음)
 
 /** 골짜기 하나 */
-export interface Pipe extends HeadedSpot {
+interface Pipe extends HeadedSpot {
   v: THREE.Vector3;
   d: THREE.Vector3;
   side: THREE.Vector3;

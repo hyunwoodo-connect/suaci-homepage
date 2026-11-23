@@ -14,13 +14,13 @@ import type { Height, HasHeights } from "../world/tall";
 // 위에 내려앉으면 통 튀고, 갓 옆으로는 갓에, 갓 아래로는 줄기에 막힌다. 눌리면 꿀렁
 
 /** 키 큰 나무 한 종류: 찍는 묶음과 갓이 시작하는 높이(키 대비) */
-export interface TreeKind {
+interface TreeKind {
   I: Instancer;
   cb: number;
 }
 
 /** 키 큰 솜사탕 나무 하나: 갓 반지름(cr)·갓 높이(cb)·줄기 반지름(tr) */
-export interface Tree {
+interface Tree {
   v: THREE.Vector3;
   g: number;
   H: number;

@@ -7,7 +7,7 @@ import { GREY_TOY, LIME } from "./settings";
 // 시제품은 다 만든 뒤 한꺼번에 칠했지만(setLook), 톤이 하나로 정해져 각자 만들 때 이 값으로 칠한다
 
 /** 놀이기구 종류(색을 따로 두는 갈래) */
-export type ToyKind =
+type ToyKind =
   | "ring"
   | "pillar"
   | "chime"

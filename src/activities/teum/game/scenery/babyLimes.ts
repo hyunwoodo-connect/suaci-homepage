@@ -11,7 +11,7 @@ import type { Footsteps } from "./footsteps";
 // 꼬마 라임: 마을마다 몇씩(지도 babyLimes — v78 은 둘) 여기저기 숨어 있다가, 닿으면 졸졸 따라온다(줄 선 순서만큼 뒤의 발자취를 따라간다)
 
 /** 꼬마 라임 하나 */
-export interface Baby {
+interface Baby {
   v: THREE.Vector3;
   g: number;
   ph: number;

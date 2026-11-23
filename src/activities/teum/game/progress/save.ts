@@ -6,10 +6,10 @@ import { readLook } from "../avatar/outfit";
 // 모르는 칸은 버린다). 어디에 두는지는 store 가 정한다
 
 /** 저장 모양의 판 */
-export const SAVE_VERSION = 1;
+const SAVE_VERSION = 1;
 
 /** 랜드마크(마을) 하나에 다녀간 기록: 몇 번째인지, 마지막으로 온 날 */
-export interface LandmarkVisit {
+interface LandmarkVisit {
   n: number;
   day: number;
 }

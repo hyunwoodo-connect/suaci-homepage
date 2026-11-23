@@ -9,7 +9,7 @@ import { S } from "../settings";
 import { fr } from "../world/hash";
 import { offset, offsetInto, START, UP } from "../world/sphere";
 import type { Lawn } from "./lawn";
-import { createLawnMesh, reserveLawn } from "./lawn";
+import { createLawnMesh } from "./lawn";
 import { createLogoTextures } from "./logo";
 import type { LogoTextures } from "./logo";
 
@@ -22,7 +22,7 @@ import type { LogoTextures } from "./logo";
 // 6) 전설의 도장 — 전설의 손님을 만난 자리에 작은 라임 워드마크가 그 방문 동안 남는다. 만난 사람만 가진 흔적
 
 /** 로고 풍선 하나: 제자리(home)·떠 있는 높이(top)·태워 올리는 중(ride)·다시 뜰 때까지(cool)·크기(k) */
-export interface LogoBalloon {
+interface LogoBalloon {
   g: THREE.Group;
   home: THREE.Vector3;
   v: THREE.Vector3;
@@ -38,7 +38,7 @@ export interface LogoBalloon {
 }
 
 /** 깃발을 꽂는 쉬는 곳(Sites 의 한 줄) */
-export interface RestSite {
+interface RestSite {
   k: string;
   kind: string;
   v: THREE.Vector3;
@@ -47,7 +47,7 @@ export interface RestSite {
 }
 
 /** 쉬는 곳 깃발 */
-export interface Flag {
+interface Flag {
   s: RestSite;
   fl: THREE.Mesh;
   inn: boolean;
@@ -100,11 +100,6 @@ export class Signature implements Thing {
   private readonly geos: THREE.BufferGeometry[] = [];
   private readonly mats: THREE.Material[] = [];
   private readonly objects: THREE.Object3D[] = [];
-
-  /** 잔디 로고 자리를 나무·꽃·조형물보다 먼저 맡아 둔다 */
-  static reserveLawn(s: Services): Lawn {
-    return reserveLawn(s);
-  }
 
   /** 서명을 놓는다(풍경을 다 놓고 고래 길을 정한 뒤, 방울 길보다 먼저) */
   constructor(

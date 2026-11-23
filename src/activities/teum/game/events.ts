@@ -75,7 +75,7 @@ export interface GameEventMap {
 export type GameEventName = keyof GameEventMap;
 
 /** 듣는 쪽 */
-export type GameListener<K extends GameEventName> = (payload: GameEventMap[K]) => void;
+type GameListener<K extends GameEventName> = (payload: GameEventMap[K]) => void;
 
 /** 알림판: 알리기(emit)와 듣기(on) */
 export class GameEvents {

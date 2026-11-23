@@ -3,7 +3,7 @@ import * as THREE from "three";
 // 오너가 확인한 맵 값과 기본 색. 한곳에 두고 모두가 읽기만 한다
 
 /** 맵에서 정한 값 */
-export interface Settings {
+interface Settings {
   /** 행성 반지름 */
   R: number;
   /** 놀이 사이 넓이(자리표 거리에 곱한다) */
@@ -47,8 +47,6 @@ export const FLIGHT = Object.freeze({
 
 /** 키컬러 라임 */
 export const LIME = 0xa9ff39;
-/** 톤을 칠하기 전 바탕색 */
-export const BG = 0xe6e9e8;
 /** 톤을 칠하기 전 놀이기구 색 */
 export const GREY_TOY = 0xb9bdbc;
 /** 흰색(바꾸지 않는다) */

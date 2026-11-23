@@ -10,7 +10,7 @@ import { from, offset, UP } from "../world/sphere";
 // 범퍼 190여 개는 모두 같은 모양이라 도형도 모델도 한 번에 그린다(가까운 것만 넣는다)
 
 /** 범퍼 하나(밭마다 아홉) */
-export interface Bumper {
+interface Bumper {
   dist: number;
   bear: number;
   k: number;

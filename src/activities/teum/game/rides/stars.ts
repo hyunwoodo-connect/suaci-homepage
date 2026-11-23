@@ -12,7 +12,7 @@ import { from, offset, UP } from "../world/sphere";
 // 280 개라 도형도 모델도 한 번에 그린다(제자리의 별은 가까운 것만, 따라오거나 터진 별은 늘)
 
 /** 별 하나. st: 0 제자리, 1 따라옴, 2 터짐 */
-export interface Star {
+interface Star {
   dist: number;
   bear: number;
   k: number;
@@ -29,7 +29,7 @@ export interface Star {
 }
 
 /** 따라오는 별이 줄을 서는 꼬리 기록(점 N 개, 앞에서부터 xyz) */
-export interface TrailPoints {
+interface TrailPoints {
   readonly pos: Float32Array;
   readonly N: number;
 }

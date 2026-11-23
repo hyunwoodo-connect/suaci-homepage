@@ -11,14 +11,14 @@ import type { PathNode } from "./streams";
 // 구름 다리 — 끝에서 올라타면 높은 아치를 타고 넘어간다. 마디마다 방석 같은 발판이 놓인다
 
 /** 다리 마디: 아치 높이(hh), 그 마디 발판의 자리·돌림·크기(M) */
-export interface ArchNode extends Omit<PathNode, "ph"> {
+interface ArchNode extends Omit<PathNode, "ph"> {
   hh: number;
   a: LayoutArch;
   M: THREE.Matrix4;
 }
 
 /** 구름 다리 하나 */
-export interface Arch extends LayoutArch {
+interface Arch extends LayoutArch {
   nodes: ArchNode[];
 }
 

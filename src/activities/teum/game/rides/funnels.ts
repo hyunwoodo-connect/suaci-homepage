@@ -13,7 +13,7 @@ import { from, UP } from "../world/sphere";
 // (몸이 그릇 벽에 파묻히지 않게 높이는 0.07 배)
 
 /** 깔때기 하나 */
-export interface Funnel {
+interface Funnel {
   g: THREE.Group;
   mat: THREE.MeshStandardMaterial;
   dist: number;

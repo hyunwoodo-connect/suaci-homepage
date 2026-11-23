@@ -35,7 +35,7 @@ export interface RigHandle {
 }
 
 /** 아바타를 끼울 자리: 기울기 그룹(tiltG)과 오기 전까지 서 있던 도형 몸 */
-export interface RigSlots {
+interface RigSlots {
   tiltG: THREE.Group;
   body: THREE.Object3D;
   nose: THREE.Object3D;

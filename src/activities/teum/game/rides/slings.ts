@@ -13,7 +13,7 @@ import { placeBar } from "./bars";
 // 고무줄 — 두 기둥 사이 줄에 부딪히면 쭉 늘어났다가 반대로 튕겨 날아간다
 
 /** 고무줄 하나: 기둥 둘(pa·pb)과 줄 둘(ba·bb), 줄 끝(A·B)·가운데(C)·지금 당겨진 자리(mid) */
-export interface Sling extends HeadedSpot {
+interface Sling extends HeadedSpot {
   pa: THREE.Mesh;
   pb: THREE.Mesh;
   ba: GreyMesh;

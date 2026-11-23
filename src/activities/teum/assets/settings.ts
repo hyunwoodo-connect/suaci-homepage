@@ -164,7 +164,7 @@ export const MODEL_BAKE: Readonly<Record<string, readonly [number, number, numbe
   );
 
 /** 조형물 한 종류의 설정 */
-export interface SculptureSetting {
+interface SculptureSetting {
   /** large: 14 이상 크게 놓는 것, small: 그보다 작게 놓는 것 */
   size: "large" | "small";
   /** 막지 않는 문: 지나가면 휙 빨라진다(도넛·사탕 문) */

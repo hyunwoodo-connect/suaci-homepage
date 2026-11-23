@@ -13,7 +13,7 @@ import type { Pillars } from "./pillars";
 // 셋은 라임: 혼자 천천히 굴러다닌다
 
 /** 큰 공 하나 */
-export interface Ball {
+interface Ball {
   m: THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
   dist: number;
   bear: number;
@@ -27,7 +27,7 @@ export interface Ball {
 }
 
 /** 굴러가는 공이 건드리는 것들 */
-export interface BallTargets {
+interface BallTargets {
   chimes: Chimes;
   pillars: Pillars;
   bumpers: Bumpers;

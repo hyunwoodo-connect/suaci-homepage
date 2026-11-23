@@ -8,7 +8,7 @@ import { chordOf, SphereGrid } from "./sphereGrid";
 // 언덕이 덮으면 안 되는 넓은 놀이 자리, 마을 중심. 놓는 것들은 이 창구로만 묻고 적는다
 
 /** 둥근 자리 하나 */
-export interface Zone {
+interface Zone {
   v: THREE.Vector3;
   r: number;
 }

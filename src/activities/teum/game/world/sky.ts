@@ -8,7 +8,7 @@ import type { Services } from "../services";
 // 하늘 공은 늘 카메라를 감싸고(카메라를 따라간다), 위쪽은 내가 선 자리의 위다
 
 /** 하늘 셰이더 값 */
-export interface SkyUniforms {
+interface SkyUniforms {
   [name: string]: THREE.IUniform;
   uTop: { value: THREE.Color };
   uHor: { value: THREE.Color };

@@ -28,7 +28,7 @@ export interface LayoutSite extends Spot {
 }
 
 /** 키 큰 솜사탕 나무 */
-export interface LayoutTree extends Spot {
+interface LayoutTree extends Spot {
   t: string;
   H: number;
 }
@@ -39,7 +39,7 @@ export interface RoundSpot extends Spot {
 }
 
 /** 이름 붙은 장소(광장·분수·뽑기터·등대 — 이 차례로 넷) */
-export interface LayoutPlace extends RoundSpot {
+interface LayoutPlace extends RoundSpot {
   name: string;
 }
 

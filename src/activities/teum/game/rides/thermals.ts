@@ -12,7 +12,7 @@ import { from, refTInto, UP } from "../world/sphere";
 // 기류 기둥: 비스듬한 띠가 돌면서 올라가는 반투명 원통. 위로 갈수록 넓어지며 사라진다. 그 안을 꽃잎이 나선으로 오른다
 
 /** 기류 하나 */
-export interface Thermal {
+interface Thermal {
   dist: number;
   bear: number;
   v: THREE.Vector3;

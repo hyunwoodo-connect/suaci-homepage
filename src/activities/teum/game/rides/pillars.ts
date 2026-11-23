@@ -15,7 +15,7 @@ import { FWD, UP } from "../world/sphere";
 // 불이 꺼진 기둥은 모양이 그대로라, 불이 켜졌거나 막 꺼진 것만 다시 찍는다
 
 /** 풍선 꽃 기둥 하나 */
-export interface Pillar {
+interface Pillar {
   r: LayoutRow;
   i: number;
   v: THREE.Vector3;

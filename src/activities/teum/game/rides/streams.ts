@@ -23,7 +23,7 @@ export interface PathNode {
 }
 
 /** 바람길 하나: 마디들과 끝 자리·방향(고리 줄·회오리가 이어 붙는다) */
-export interface Stream extends LayoutPath {
+interface Stream extends LayoutPath {
   nodes: PathNode[];
 }
 

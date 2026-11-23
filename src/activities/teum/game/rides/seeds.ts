@@ -15,7 +15,7 @@ import { from, offsetInto, UP } from "../world/sphere";
 // 터질 때 줄어들고 다시 맺힐 때 커지는 것은 그 봉오리 하나만 다시 찍는다
 
 /** 봉오리 하나: 자리(밭 가운데에서 방향 a·거리 r), 땅 높이, 다시 맺힐 때까지, 찍은 번호·배율·돌림 */
-export interface Bud {
+interface Bud {
   a: number;
   r: number;
   v: THREE.Vector3;
@@ -30,7 +30,7 @@ export interface Bud {
 }
 
 /** 봉오리 밭 하나 */
-export interface SeedField {
+interface SeedField {
   dist: number;
   bear: number;
   r: number;
@@ -39,7 +39,7 @@ export interface SeedField {
 }
 
 /** 구름 싹 하나(덩이 여덟을 뭉친 구름) */
-export interface Sprout {
+interface Sprout {
   m: THREE.Group;
   v: THREE.Vector3;
   on: boolean;

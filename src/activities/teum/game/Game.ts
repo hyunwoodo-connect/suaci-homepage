@@ -7,6 +7,7 @@ import { BACKGROUND_MUSIC, SOUND_EFFECTS, SOUND_VOLUME } from "../assets/setting
 import { Avatar } from "./avatar/avatar";
 import { Trail } from "./avatar/trail";
 import { Wardrobe } from "./avatar/wardrobe";
+import { reserveLawn } from "./brand/lawn";
 import { BrandObjects } from "./brand/objects";
 import { Signature } from "./brand/signature";
 import type { Frame, Thing } from "./core/frame";
@@ -302,7 +303,7 @@ export class Game {
     this.claimAll();
     this.footsteps = new Footsteps(s);
     // suaci 잔디 로고 자리를 나무·꽃·조형물보다 먼저 맡아 둔다
-    const lawn = Signature.reserveLawn(s);
+    const lawn = reserveLawn(s);
     this.trees = new Trees(s, this.clouds);
     this.bigFlowers = new BigFlowers(s);
     this.balls.fitModels();

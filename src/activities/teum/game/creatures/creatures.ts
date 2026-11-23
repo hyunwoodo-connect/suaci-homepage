@@ -38,7 +38,7 @@ interface Footstep {
 }
 
 /** 생물이 보는 다른 것들 */
-export interface CreatureLinks {
+interface CreatureLinks {
   /** 지나온 자리(줄지어 따라오는 손님이 밟는다): 남은 수와 i 번째로 최근 것 */
   footsteps: { readonly length: number; at(i: number): Footstep };
   /** 따라오는 꼬마 라임 수(손님은 그 뒤에 선다) */
@@ -92,9 +92,9 @@ const fAim = new THREE.Vector3(),
 export class Creatures implements Thing {
   readonly list: Creature[] = [];
   /** 만난 종류(처음 만나면 더 크게 반짝) */
-  readonly met = new Set<string>();
+  private readonly met = new Set<string>();
   /** 줄지어 따라오는 손님 */
-  readonly followers: Creature[] = [];
+  private readonly followers: Creature[] = [];
   private readonly roam: RoamGroup[] = [];
   private readonly legends: Creature[] = [];
   private readonly species = new Map<string, Species>();

@@ -21,7 +21,7 @@ export interface MotionUniforms {
 }
 
 /** 모델 재질 하나가 갖는 톤 값 */
-export interface ModelLookOptions {
+interface ModelLookOptions {
   key: string;
   lookU: LookUniforms;
   /** 라임으로 물드는 정도(묶음이면 쓰지 않는다) */

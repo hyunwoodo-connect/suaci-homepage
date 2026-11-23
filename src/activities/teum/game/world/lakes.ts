@@ -10,7 +10,7 @@ import { fromInto, UP } from "./sphere";
 // 호수 — 수면을 스치면 빨라지고 물결이 남는다. 행성 곡면을 따라 붙는 얇은 덮개
 
 /** 호수 하나 */
-export interface Lake extends RoundSpot {
+interface Lake extends RoundSpot {
   m: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
   v: THREE.Vector3;
 }

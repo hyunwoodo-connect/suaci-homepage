@@ -15,7 +15,7 @@ import { basis } from "./bars";
 // 대포 — 들어가면 잠깐 움츠렸다가 멀리 쏘아 올려진다
 
 /** 대포 하나 */
-export interface Cannon extends HeadedSpot {
+interface Cannon extends HeadedSpot {
   g: THREE.Group;
   barrel: GreyMesh;
   v: THREE.Vector3;

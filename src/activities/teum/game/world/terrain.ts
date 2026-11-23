@@ -14,7 +14,7 @@ import { chordOf, SphereGrid } from "./sphereGrid";
 const FEATURE_TUFTS = 16;
 
 /** 바닥의 꽃 자리: 자리(v)·크기(s)·피어난 정도(lit)·제 색(base)·땅 높이(g) */
-export interface FlowerSpots {
+interface FlowerSpots {
   v: THREE.Vector3[];
   s: number[];
   lit: Float32Array;
@@ -23,7 +23,7 @@ export interface FlowerSpots {
 }
 
 /** 둔덕: 자리·크기·켜짐(놀이 자리를 덮는 것은 끈다)·둘레 솜 다섯 [방향, 거리, 크기] */
-export interface Hills {
+interface Hills {
   v: THREE.Vector3[];
   s: number[];
   on: boolean[];
@@ -31,7 +31,7 @@ export interface Hills {
 }
 
 /** 뭉게구름 자리: 크기·높이·방향·덩이마다 흔들림·가운데·흩어진 정도 */
-export interface CloudSpots {
+interface CloudSpots {
   v: THREE.Vector3[];
   s: number[];
   h: number[];
@@ -42,7 +42,7 @@ export interface CloudSpots {
 }
 
 /** 큰 언덕(첫째는 등대 산): 반지름 s, 높이 H, 비탈 솜 뭉치 [방향, 거리, 크기] */
-export interface Feature {
+interface Feature {
   s: number;
   H: number;
   v: THREE.Vector3;

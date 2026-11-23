@@ -11,7 +11,7 @@ import { from, UP } from "../world/sphere";
 // 로켓 풍선 — 올라타면 덜덜 떨다가 하늘 끝까지 솟구친다
 
 /** 로켓 하나 */
-export interface Rocket {
+interface Rocket {
   g: THREE.Group;
   mat: THREE.MeshStandardMaterial;
   dist: number;

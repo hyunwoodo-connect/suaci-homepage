@@ -10,7 +10,7 @@ import { from, UP } from "../world/sphere";
 // 붙잡히는 것이 아니라 매달리는 것이라(끌기가 먹는다) 나를 붙잡지 않고 매달림(hang)으로 부탁한다
 
 /** 풍선 하나 */
-export interface Balloon {
+interface Balloon {
   g: THREE.Group;
   dist: number;
   bear: number;

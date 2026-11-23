@@ -12,11 +12,6 @@ export class Ring<T> {
     this.i++;
     return item;
   }
-
-  /** 아직 안 쓴(조건에 맞는) 것이 있으면 그것, 없으면 맨 앞 것 — 방울 길처럼 비어 있는 줄부터 쓸 때 */
-  firstOr(isFree: (item: T) => boolean): T {
-    return this.items.find(isFree) ?? this.items[0];
-  }
 }
 
 /**

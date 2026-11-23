@@ -1,10 +1,10 @@
 import { ASSET_BASE, ASSET_VERSION } from "./config";
 
 /** 원본 모델의 크기 상자 [minX, minY, minZ, maxX, maxY, maxZ] — `tools/bounds.mjs` 가 three Box3 와 같은 셈으로 만든다 */
-export type AssetBox = readonly [number, number, number, number, number, number];
+type AssetBox = readonly [number, number, number, number, number, number];
 
 /** manifest.json 의 에셋 한 줄 */
-export interface AssetEntry {
+interface AssetEntry {
   /** 버전 폴더 안 경로 (`creatures/common/teapot.glb`) */
   file: string;
   category: string;

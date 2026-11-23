@@ -44,7 +44,7 @@ export interface HeldBody {
 }
 
 /** 놓을 때 한꺼번에 주는 것 */
-export interface Release {
+interface Release {
   vel?: THREE.Vector3;
   boost?: number;
   vy?: number;
@@ -560,10 +560,6 @@ export class Player {
   /** 풍선을 놓는다 */
   letGo(by: object) {
     if (this.hanger === by) this.hanger = null;
-  }
-  /** 매달린 풍선(없으면 null) */
-  get hangingOn(): object | null {
-    return this.hanger;
   }
 
   /** 시험·개발용: 그 자리에 놓는다(높이 air, 보는 쪽 dir) */

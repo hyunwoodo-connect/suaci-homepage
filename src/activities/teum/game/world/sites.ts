@@ -56,7 +56,7 @@ const SITE_KINDS: Readonly<Record<string, SiteKind>> = {
 };
 
 /** 랜드마크·쉬는 곳 하나 */
-export interface Site extends LayoutSite {
+interface Site extends LayoutSite {
   g: THREE.Group;
   prim: THREE.Mesh;
   lit: number;

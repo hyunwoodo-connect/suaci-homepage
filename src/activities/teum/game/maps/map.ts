@@ -20,20 +20,20 @@ export interface HubScatter {
 }
 
 /** 구역: 출발점에서 본 방향(도) 범위와 이름 */
-export interface MapZone {
+interface MapZone {
   name: string;
   from: number;
   to: number;
 }
 
 /** 장소 곁 생물 자리 공: [장소 차례(layout.place), 거리 m, 방향] */
-export type PlaceSpot = readonly [number, number, number];
+type PlaceSpot = readonly [number, number, number];
 
 /** 전설의 손님 자리: [마을 차례(layout.hub), 거리 m, 방향] */
-export type LegendSpot = readonly [number, number, number];
+type LegendSpot = readonly [number, number, number];
 
 /** suaci 프로모션 오브젝트(로고·제품) 하나의 자리 */
-export interface BrandPlacement {
+interface BrandPlacement {
   /** manifest 에셋 키(분류 brand) */
   key: string;
   /** 출발점에서 거리(자리표 거리)와 방향(도) */
@@ -50,7 +50,7 @@ export interface BrandPlacement {
  * 조형물(sculptures): 놓는 여덟 단계(번호는 sculptures.ts 의 단계) 가운데 지도가 정하는 수와 크기.
  * 5) 높이 사다리는 마을마다 같은 모양(낮은 것 → 큰 것 → 나무 → 열기구)이라 코드에 있다
  */
-export interface SculptureMap {
+interface SculptureMap {
   /** 1) 마을 기준탑 높이와 자리를 찾아보는 횟수 — 이 탑이 그 마을의 랜드마크다(지역 종류에서 뽑힌다) */
   anchorHeight: Span;
   anchorTries: number;
@@ -108,7 +108,7 @@ export interface RegionEdge {
 }
 
 /** 생물(creatures): 어디에 몇 무리 — 마을마다 사는 종과 수는 지역(regions)이 정하고, 여기는 놓는 거리와 수 */
-export interface CreatureMap {
+interface CreatureMap {
   /** 출발하자마자 눈앞(이만큼 앞, m)에 첫 무리 — 그날 축제 지역에 사는 첫 종이 firstHerd 마리 */
   firstHerdAhead: number;
   firstHerd: number;
@@ -128,7 +128,7 @@ export interface CreatureMap {
 }
 
 /** 브랜드(brand): 프로모션 오브젝트·잔디 로고·로고 풍선 */
-export interface BrandMap {
+interface BrandMap {
   /** 놓을 프로모션 오브젝트 — 오너가 정하면 채운다 */
   objects: readonly BrandPlacement[];
   /** 잔디 로고 자리를 찾아보는 출발점에서의 거리(m) — 가장 빈 풀밭을 고른다 */

@@ -13,7 +13,7 @@ import type { Streams } from "./streams";
 // 회오리 — 닿으면 빙글빙글 빨려 올라갔다가 튕겨 나간다
 
 /** 회오리 하나 */
-export interface Whirl extends LayoutWhirl {
+interface Whirl extends LayoutWhirl {
   g: THREE.Group;
   spin: THREE.Group;
   v: THREE.Vector3;

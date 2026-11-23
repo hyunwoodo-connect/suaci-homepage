@@ -1,7 +1,6 @@
 import * as THREE from "three";
 
 import type { Thing } from "../core/frame";
-import type { Hold } from "../models/library";
 import type { Services } from "../services";
 import { from } from "../world/sphere";
 
@@ -16,7 +15,6 @@ interface ItemRegistry {
 
 /** 브랜드 오브젝트들. 놓기만 하고 움직이지 않는다 */
 export class BrandObjects implements Thing {
-  readonly holds: Hold[] = [];
   private readonly groups: THREE.Group[] = [];
 
   /** 지도의 brand.objects 를 놓는다. manifest 에 없는 것은 건너뛴다(모델이 오면 그 자리에 선다) */
@@ -30,7 +28,6 @@ export class BrandObjects implements Thing {
       gr.add(m);
       const lift = b.lift ?? 0;
       places.addItem(gr, () => from(b.dist, b.bear), lift);
-      this.holds.push(m);
       this.groups.push(gr);
     }
   }

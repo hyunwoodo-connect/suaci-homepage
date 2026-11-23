@@ -11,7 +11,7 @@ import { from, UP } from "../world/sphere";
 // 구름 구멍 — 들어가면 멀리 있는 짝 구멍으로 튀어나온다
 
 /** 구멍 하나: pi 짝 번호, k 짝 안에서 0·1 */
-export interface Hole {
+interface Hole {
   g: THREE.Group;
   rim: GreyMesh;
   dist: number;

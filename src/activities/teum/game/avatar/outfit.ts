@@ -8,24 +8,10 @@ import { PART_SLOTS, PARTS } from "./parts";
 export const PRINTS = ["daisy", "ditsy", "stripe", "patch", "rose", "gingham"] as const;
 
 /** 치마 단색(무늬 대신) */
-export const SKIRT_COLORS = [
-  "#2b2e2d",
-  "#ff5a1f",
-  "#ffd400",
-  "#1e8fff",
-  "#a9ff39",
-  "#ff8fbd",
-] as const;
+const SKIRT_COLORS = ["#2b2e2d", "#ff5a1f", "#ffd400", "#1e8fff", "#a9ff39", "#ff8fbd"] as const;
 
 /** 신발 색 */
-export const SHOE_COLORS = [
-  "#2b2e2d",
-  "#ff3d2e",
-  "#ffd400",
-  "#a9ff39",
-  "#8a5cff",
-  "#b5651d",
-] as const;
+const SHOE_COLORS = ["#2b2e2d", "#ff3d2e", "#ffd400", "#a9ff39", "#8a5cff", "#b5651d"] as const;
 
 /** 옷장 탭: 옷 셋과 소품 칸 다섯 */
 export const LOOK_TABS = ["top", "bot", "shoe", ...PART_SLOTS] as const;

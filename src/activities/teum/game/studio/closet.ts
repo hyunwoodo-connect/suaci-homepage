@@ -53,7 +53,7 @@ const OPTION_LABEL: Readonly<Record<string, string>> = {
 const SHIRT_ICON = `<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 4 4 6.5 5.6 10.4 7.5 9.6V20h9V9.6l1.9.8L20 6.5 15.5 4a3.5 3.5 0 0 1-7 0z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>`;
 
 /** 눌린 것을 알리는 곳 */
-export interface ClosetHandlers {
+interface ClosetHandlers {
   /** 세상의 옷장 단추 */
   onOpen(): void;
   onPick(tab: LookTab, value: string): void;

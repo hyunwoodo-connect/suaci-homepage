@@ -15,7 +15,7 @@ import { placeBar } from "./bars";
 // 그네 구름 — 매달려 흔들리다 손을 떼는 순간 날아간다. 기둥 둘과 가로대 대신 둥근 아치 하나, 구름 방석에 두 줄
 
 /** 그네 하나: 아치(pa)·줄 둘·앉는 구름, 줄이 매달린 곳(piv)·방석이 있는 곳(end) */
-export interface Swing extends HeadedSpot {
+interface Swing extends HeadedSpot {
   pa: GreyMesh;
   rope: GreyMesh;
   rope2: GreyMesh;

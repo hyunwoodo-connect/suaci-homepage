@@ -12,7 +12,7 @@ import { from, UP } from "../world/sphere";
 // 날갯짓은 모델을 접었다 펴는 정점 변형(하늘 무리와 같은 3번 방식) — 그 변형에는 날개마다 다른 위상이 쓰이지 않아 모두 한 값으로 같이 휜다
 
 /** 주울 수 있는 날개 하나 */
-export interface WingItem {
+interface WingItem {
   g: THREE.Group;
   dist: number;
   bear: number;

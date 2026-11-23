@@ -12,7 +12,7 @@ import { from, UP } from "../world/sphere";
 // 칙 종 — 칙 하면 가까운 것들이 가까운 순서로 울린다. 닿아도 울리고 둘레 꽃이 핀다
 
 /** 종 하나(무리마다 큰 종 하나) */
-export interface Chime {
+interface Chime {
   g: THREE.Group;
   w: THREE.Group;
   ball: GreyMesh;
