@@ -7,8 +7,16 @@ import { KEY_AT_GLSL } from "../keyColor";
 /** 같은 묶음 셰이더(인스턴스 속성)를 쓰는지 알리는 정의 이름 */
 export const BATCH_DEFINE = "TEUM_BATCH";
 
-/** 꼭짓점 셰이더 머리: 조각 셰이더로 넘기는 값(처음 자리 vOp · 물건 원점 vRo · 세계 자리 vKeyAt)과 몸 휘기 값 */
+/**
+ * 꼭짓점 셰이더 머리: 조각 셰이더로 넘기는 값(처음 자리 vOp · 물건 원점 vRo · 세계 자리 vKeyAt · 지역 색 값 vReg·vRegPaint)과 몸 휘기 값.
+ * 지역 색 값: vReg 의 xy 는 색상을 돌리는 각의 코사인·사인, z 는 그 지역다운 정도(0..1), w 가 1 이면 지역 색을 입는다.
+ * vRegPaint 는 그 마을의 물감 방향(분홍 0.52rad 이 돌아간 자리)
+ */
 export const VERTEX_HEAD = `varying vec3 vOp; varying vec3 vRo; varying vec3 vKeyAt; uniform float uAk; uniform float uAx;
+#if TEUM_REGIONS > 0
+uniform vec3 uHubV[TEUM_REGIONS]; uniform float uRegH[TEUM_REGIONS]; uniform vec2 uRegE; uniform float uRegK;
+varying vec4 vReg; varying vec2 vRegPaint;
+#endif
 #ifdef ${BATCH_DEFINE}
 attribute vec4 aAn; attribute float aLime; varying float vLime;
 #define TEUM_AN aAn
@@ -18,13 +26,26 @@ uniform vec4 uAn;
 #endif
 `;
 
-/** begin_vertex 자리에 넣는다: 넘길 값을 채우고, 몸 휘는 방식(uAk)에 따라 꼭짓점을 옮긴다 */
+/**
+ * begin_vertex 자리에 넣는다: 넘길 값을 채우고, 몸 휘는 방식(uAk)에 따라 꼭짓점을 옮긴다.
+ * 지역 색 값(가장 가까운 마을·돌리는 각)은 물건이 선 자리로 정해져 물건마다 하나다 — 조각마다 마을을 찾지 않게 여기서 한 번만 센다
+ * (나·고래·탈 것·라임은 uRegK 0, 생물은 몸 휘기 uAk 로, 몸에 붙은 것은 원점이라 빠진다)
+ */
 export const BEND_GLSL = `#include <begin_vertex>
   vOp = position;
   #ifdef USE_INSTANCING
   vRo = (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
   #else
   vRo = (modelMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+  #endif
+  #if TEUM_REGIONS > 0
+  vReg = vec4(1.0, 0.0, 0.0, 0.0); vRegPaint = vec2(0.8678, 0.4969);
+  if (uRegK > 0.5 && uAk < 0.5 && dot(vRo, vRo) > 1.0) {
+    vec3 rn = normalize(vRo); float rb = -1.0, rh = 0.0;
+    for (int i = 0; i < TEUM_REGIONS; i++) { float dH = dot(rn, uHubV[i]); if (dH > rb) { rb = dH; rh = uRegH[i]; } }
+    float rw = smoothstep(uRegE.x, uRegE.x + uRegE.y, rb), ra = rh * rw;
+    vReg = vec4(cos(ra), sin(ra), rw, 1.0); vRegPaint = vec2(cos(0.52 + ra), sin(0.52 + ra));
+  }
   #endif
   #ifdef ${BATCH_DEFINE}
   vLime = aLime;

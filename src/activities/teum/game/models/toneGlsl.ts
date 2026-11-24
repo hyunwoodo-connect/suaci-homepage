@@ -7,7 +7,7 @@ import { BATCH_DEFINE } from "./bendGlsl";
 /** 조각 셰이더 머리: 톤·지역·라임·물결 값. 라임 물드는 정도는 묶음이면 인스턴스 값(vLime), 아니면 재질 값(uLime) */
 export const FRAGMENT_HEAD = `uniform float uSat; uniform float uWash; uniform vec3 uTint; uniform float uTK; uniform float uPat; uniform float uPY; uniform vec3 uTint2; varying vec3 vOp; varying vec3 vRo; varying vec3 vKeyAt; uniform float uAk; uniform vec4 uFlood; uniform float uFloodK; uniform float uKeyK;
 #if TEUM_REGIONS > 0
-uniform vec3 uHubV[TEUM_REGIONS]; uniform float uRegH[TEUM_REGIONS]; uniform vec2 uRegE; uniform float uRegK;
+varying vec4 vReg; varying vec2 vRegPaint;
 #endif
 #ifdef ${BATCH_DEFINE}
 varying float vLime;
@@ -32,26 +32,23 @@ export const TONE_GLSL = `#include <map_fragment>
       diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), uWash);`;
 
 /**
- * 지역 색: 물건이 선 자리(인스턴스 원점 vRo)에서 가장 가까운 마을의 각만큼 YIQ 색상을 돌린다. 흰색은 그대로(색이 없다).
- * 그러고도 라임 둘레에 남는 색(노랑·초록·청록 — YIQ 에서 라임 쪽 반원)은 그 마을의 물감(분홍이 돌아간 자리, 분홍은 0.52rad) 쪽으로
+ * 지역 색: 물건이 선 자리에서 가장 가까운 마을의 각만큼 YIQ 색상을 돌린다(각은 꼭짓점 셰이더가 물건마다 한 번 세어 넘긴다 — vReg).
+ * 흰색은 그대로(색이 없다). 그러고도 라임 둘레에 남는 색(노랑·초록·청록 — YIQ 에서 라임 쪽 반원)은 그 마을의 물감(vRegPaint) 쪽으로
  * 돌려세운다: 라임은 키컬러만 쓴다(look.ts 톤 규칙 ①).
  * 노랑 쪽(rs 가 양수)은 더 넓게 거른다 — 호박색 같은 주황빛 노랑도 화면에서는 조명을 받아 노랑으로 보인다. 주황(0.28rad)·귤색은 남는다.
  * 지역 사이에서는 채도를 조금 낮춰 지역이 더 또렷하다
  */
 export const REGION_GLSL = `
       #if TEUM_REGIONS > 0
-      if (uRegK > 0.5 && uAk < 0.5 && dot(vRo, vRo) > 1.0) {
-        // 가장 가까운 마을(rb 는 그 마을과 이루는 각의 코사인)과 그 마을이 돌리는 각
-        vec3 rn = normalize(vRo), rc = diffuseColor.rgb; float rb = -1.0, rh = 0.0;
-        for (int i = 0; i < TEUM_REGIONS; i++) { float dH = dot(rn, uHubV[i]); if (dH > rb) { rb = dH; rh = uRegH[i]; } }
-        float rw = smoothstep(uRegE.x, uRegE.x + uRegE.y, rb), ra = rh * rw, cs = cos(ra), sn = sin(ra);
+      if (vReg.w > 0.5) {
+        vec3 rc = diffuseColor.rgb; float cs = vReg.x, sn = vReg.y, rw = vReg.z;
         // 색을 YIQ 로 옮겨 색상(iq)만 돌린다
         vec3 yiq = vec3(dot(rc, vec3(0.299, 0.587, 0.114)), dot(rc, vec3(0.596, -0.274, -0.322)), dot(rc, vec3(0.211, -0.523, 0.312)));
         vec2 iq = vec2(yiq.y * cs - yiq.z * sn, yiq.y * sn + yiq.z * cs);
         // 라임 둘레 색인가(rk: 라임 쪽과 이루는 각의 코사인, rs: 노랑 쪽이면 양수) → 그 마을의 물감 쪽으로
         float rm = length(iq); vec2 ru = iq / max(rm, 0.0001); float rk = dot(ru, vec2(-0.118, -0.993)), rs = 0.993 * ru.x - 0.118 * ru.y;
         float rival = mix(smoothstep(-0.05, 0.12, rk), smoothstep(-0.2, -0.08, rk), step(0.0, rs)) * smoothstep(0.02, 0.08, rm);
-        iq = mix(iq, vec2(cos(0.52 + ra), sin(0.52 + ra)) * rm, rival);
+        iq = mix(iq, vRegPaint * rm, rival);
         rc = vec3(yiq.x + 0.956 * iq.x + 0.621 * iq.y, yiq.x - 0.272 * iq.x - 0.647 * iq.y, yiq.x - 1.106 * iq.x + 1.703 * iq.y);
         diffuseColor.rgb = clamp(mix(vec3(yiq.x), rc, mix(0.6, 1.0, rw)), 0.0, 1.0);
       }

@@ -61,7 +61,8 @@ const SEA_GLSL = `
         { float lc = dot(normalize(vWp), uLandC) - uLandCos;
           float wave = 0.004 * sin(uT * 0.9 + tn * 9.0);
           seaK = 1.0 - smoothstep(-0.006, 0.006, lc + wave);
-          float swell = teumN(tq * 70.0 + vec3(uT * 0.06, uT * 0.04, 0.0));
+          // 물결 얼룩은 바다 조각에서만 센다(뭍에서는 쓰이지 않는다)
+          float swell = 0.5; if (seaK > 0.0) swell = teumN(tq * 70.0 + vec3(uT * 0.06, uT * 0.04, 0.0));
           vec3 water = mix(vec3(0.07, 0.4, 0.95), vec3(0.2, 0.56, 1.0), ck) * (0.9 + 0.2 * swell);
           vec3 sand = vec3(1.0, 0.95, 0.81) * (0.97 + 0.06 * tn);
           diffuseColor.rgb = mix(sand, diffuseColor.rgb, smoothstep(0.0, 0.04, lc));
@@ -70,12 +71,15 @@ const SEA_GLSL = `
           diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), foam * 0.85); }
         #endif`;
 
-// 잔디 결: 가까운 곳에서만 잘게 얼룩지고, 군데군데 햇빛 받은 자리가 밝다(바다에는 없다). 연두를 섞지 않는다 — 라임 둘레 색은 쓰지 않는다
+// 잔디 결: 가까운 곳에서만 잘게 얼룩지고, 군데군데 햇빛 받은 자리가 밝다(바다에는 없다). 연두를 섞지 않는다 — 라임 둘레 색은 쓰지 않는다.
+// 결이 보이지 않는 조각(85m 밖·바다)에서는 얼룩 셋을 세지 않는다 — 땅은 화면의 절반을 덮어서 조각마다의 셈이 그대로 비용이다
 const GRASS_GLSL = `
         float gf = (1.0 - smoothstep(16.0, 85.0, length(vViewPosition))) * uGrass * (1.0 - seaK);
-        float g1 = teumN(vWp * 4.5), g2 = teumN(vWp * 17.0), g3 = teumN(vWp * 46.0);
-        diffuseColor.rgb *= 1.0 + gf * ((g3 - 0.5) * 0.16 + (g2 - 0.5) * 0.12 + (g1 - 0.5) * 0.06);
-        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 1.1, gf * smoothstep(0.6, 0.9, g1) * 0.2);`;
+        if (gf > 0.0) {
+          float g1 = teumN(vWp * 4.5), g2 = teumN(vWp * 17.0), g3 = teumN(vWp * 46.0);
+          diffuseColor.rgb *= 1.0 + gf * ((g3 - 0.5) * 0.16 + (g2 - 0.5) * 0.12 + (g1 - 0.5) * 0.06);
+          diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 1.1, gf * smoothstep(0.6, 0.9, g1) * 0.2);
+        }`;
 
 /** 땅의 색 — color_fragment 자리에 넣는다: 체커 → 바다 → 잔디 결 */
 export const GROUND_COLOR_GLSL = `#include <color_fragment>${CHECKER_GLSL}${SEA_GLSL}${GRASS_GLSL}`;

@@ -120,7 +120,7 @@ export function styleModel(mat: THREE.MeshStandardMaterial, o: ModelLookOptions)
   };
   mat.customProgramCacheKey = () => {
     const regions = regionCount();
-    const kind = isBody ? "teum-look12-body-r" : o.batch ? "teum-look12-batch-r" : "teum-look12-r";
+    const kind = isBody ? "teum-look13-body-r" : o.batch ? "teum-look13-batch-r" : "teum-look13-r";
     return kind + regions;
   };
   mat.needsUpdate = true;
