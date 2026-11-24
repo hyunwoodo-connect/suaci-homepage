@@ -40,6 +40,8 @@ export class Signature implements Thing {
   readonly lawn: Lawn;
   readonly lawnMesh: THREE.Mesh;
   readonly FLAGS: Flag[];
+  /** 워드마크 모양만 남긴 그림(바탕은 비어 있다) — 물풍선도 이것을 두른다 */
+  readonly wordmark: THREE.Texture;
   private readonly balloons: LogoBalloons;
   private readonly mists: Mists;
   private readonly flags: RestFlags;
@@ -57,6 +59,7 @@ export class Signature implements Thing {
     this.lawn = lawn;
     const tex = createLogoTextures();
     this.tex = tex;
+    this.wordmark = tex.lawn;
     const balloons = new LogoBalloons(s, tex, rng);
     this.balloons = balloons;
     this.BAL = balloons.list;

@@ -352,7 +352,7 @@ export class Game {
     this.funnels.fitModels();
     this.seeds.fitModels();
     // 물풍선 놀이는 맨 마지막에 만든다 — 세계의 배치·난수 차례에 끼어들지 않게(자리 차지도 하지 않는다)
-    this.waterBalloons = createWaterBalloons(s, hudParent);
+    this.waterBalloons = createWaterBalloons(s, hudParent, this.signature.wordmark);
     const balloonGame = this.waterBalloons ? [this.waterBalloons] : [];
     // 찍어 둔 묶음(조형물·나무·꽃·봉오리…)도 가까운 것만 칸에 채운다 — 장면에서 떼는 것과 같은 기준·같은 때
     s.culler.onCull((cut) => models.cull(player.p as THREE.Vector3, cut));

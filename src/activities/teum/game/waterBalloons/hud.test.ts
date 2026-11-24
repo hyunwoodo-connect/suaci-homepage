@@ -42,6 +42,21 @@ describe("WaterBalloonHud 개수 알약", () => {
     ]);
   });
 
+  it("먹은 만큼 → 알약이 왼쪽부터 라임으로 찬다(다 먹으면 온통 라임)", () => {
+    const { parent, hud } = mount();
+    const pill = parent.querySelector<HTMLElement>('[role="status"]')!;
+    const fills: string[] = [];
+    for (const count of [0, 3, 10]) {
+      hud.setCount(count, 10);
+      fills.push(pill.style.background);
+    }
+    expect(fills).toEqual([
+      "linear-gradient(90deg, #a9ff39 0%, rgba(255,255,255,.95) 0%)",
+      "linear-gradient(90deg, #a9ff39 30%, rgba(255,255,255,.95) 30%)",
+      "linear-gradient(90deg, #a9ff39 100%, rgba(255,255,255,.95) 100%)",
+    ]);
+  });
+
   it("수가 0 으로 돌아가면(한 번 더) → 커지지 않는다", () => {
     const { parent, hud } = mount();
     const pill = parent.querySelector<HTMLElement>('[role="status"]')!;
@@ -118,6 +133,18 @@ describe("WaterBalloonHud 성공 판", () => {
     expect(["성공!", "물풍선 10개를 다 먹었어요", "2분 31초"].every((s) => text.includes(s))).toBe(
       true,
     );
+  });
+
+  it("성공 판 → 키컬러 한 장에 suaci 워드마크가 있다", () => {
+    const { parent, hud } = mount();
+    hud.showSuccess(10, 20);
+    const panel = parent.querySelector<HTMLElement>('[role="dialog"]')!;
+    const mark = panel.querySelector("img");
+    expect([panel.style.background, mark?.alt, mark?.getAttribute("src")]).toEqual([
+      "rgb(169, 255, 57)",
+      "suaci",
+      "/brand/logo-black.svg",
+    ]);
   });
 
   it("'한 번 더'·'계속 놀기' → 누른 것을 알린다", () => {

@@ -1,3 +1,4 @@
+import { LOGO_URL } from "../brand/logo";
 import type { Frame } from "../core/frame";
 import { HUD_FONT } from "../hud";
 import type { EdgeHint, HintBox } from "./rules";
@@ -26,7 +27,7 @@ interface WaterBalloonHudHandlers {
 
 const INK = "#2b2e2d",
   LIME = "#a9ff39",
-  CHIP = "#eef1f0";
+  PAPER = "rgba(255,255,255,.95)";
 
 /** 화살표가 다니는 칸의 안쪽 여백(px): 위는 개수 알약·소리 단추 아래로, 아래는 옷장 단추·안내 줄 위로 */
 const EDGE_TOP = 78,
@@ -41,8 +42,8 @@ const BUMP_SECONDS = 0.14,
   BUMP_SCALE = 1.24;
 /** 화살표 물방울의 뾰족한 끝이 처음 가리키는 쪽(오른쪽 위)을 오른쪽(0)으로 돌려 놓는 각 */
 const TIP_OFFSET = Math.PI / 4;
-/** 움직임 줄이기를 켠 기기에서는 알약·성공 판이 튀지 않고 바로 바뀐다 */
-const REDUCED_MOTION =
+/** 움직임 줄이기를 켠 기기인가 — 알약·성공 판이 튀지 않고 바로 바뀌고, 끝 장면의 라임 물결도 퍼지지 않고 바로 다 물든다 */
+export const REDUCED_MOTION =
   typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** 물풍선 놀이의 화면 */
@@ -87,7 +88,7 @@ export class WaterBalloonHud {
       alignItems: "center",
       gap: "9px",
       borderRadius: "999px",
-      background: "rgba(255,255,255,.95)",
+      background: PAPER,
       boxShadow: "0 2px 10px rgba(0,0,0,.14)",
       fontSize: "16px",
       fontWeight: "700",
@@ -126,7 +127,7 @@ export class WaterBalloonHud {
     this.pinLayer.setAttribute("aria-hidden", "true");
     Object.assign(this.pinLayer.style, { position: "absolute", inset: "0" });
 
-    // 성공 판: 어떤 바탕 위에서도 읽히게 흰 판에 먹색 테두리
+    // 성공 판: 키컬러 한 장 — 판이 끝나고 마지막으로 보는 것이 라임이게. 라임 위 글자는 먹색이고(브랜드 규칙) 맨 위에 suaci 워드마크
     this.panel = document.createElement("div");
     this.panel.setAttribute("role", "dialog");
     this.panel.setAttribute("aria-label", "물풍선 놀이 성공");
@@ -136,8 +137,8 @@ export class WaterBalloonHud {
       top: "40%",
       width: "min(312px, calc(100vw - 40px))",
       boxSizing: "border-box",
-      padding: "26px 18px 18px",
-      background: "#fff",
+      padding: "22px 18px 18px",
+      background: LIME,
       border: `3px solid ${INK}`,
       borderRadius: "28px",
       boxShadow: `0 7px 0 ${INK}`,
@@ -150,22 +151,22 @@ export class WaterBalloonHud {
         ? "none"
         : "opacity .18s, transform .34s cubic-bezier(.3,1.6,.5,1)",
     });
+    const wordmark = document.createElement("img");
+    wordmark.src = LOGO_URL;
+    wordmark.alt = "suaci";
+    Object.assign(wordmark.style, { display: "block", height: "20px", margin: "0 auto 6px" });
     const title = document.createElement("div");
     title.textContent = "성공!";
     Object.assign(title.style, {
-      display: "inline-block",
-      padding: "0 22px 4px",
-      borderRadius: "999px",
-      background: LIME,
-      fontSize: "50px",
-      lineHeight: "1.2",
+      fontSize: "56px",
+      lineHeight: "1.15",
       fontWeight: "900",
       letterSpacing: "-0.02em",
       transform: "rotate(-4deg)",
     });
     this.doneLine = document.createElement("p");
     Object.assign(this.doneLine.style, {
-      margin: "16px 0 0",
+      margin: "10px 0 0",
       fontSize: "16px",
       lineHeight: "1.45",
       fontWeight: "600",
@@ -175,7 +176,7 @@ export class WaterBalloonHud {
       margin: "10px 0 0",
       padding: "9px 12px",
       borderRadius: "14px",
-      background: CHIP,
+      background: "#fff",
       display: "flex",
       alignItems: "baseline",
       justifyContent: "center",
@@ -193,21 +194,24 @@ export class WaterBalloonHud {
     time.append(timeLabel, this.timeText);
     const buttons = document.createElement("div");
     Object.assign(buttons.style, { display: "flex", gap: "8px", marginTop: "16px" });
-    this.again = panelButton("한 번 더", LIME);
+    this.again = panelButton("한 번 더", INK, "#fff");
     this.again.addEventListener("click", () => on.onAgain());
-    const keep = panelButton("계속 놀기", CHIP);
+    const keep = panelButton("계속 놀기", "#fff", INK);
     keep.addEventListener("click", () => on.onKeepPlaying());
     buttons.append(this.again, keep);
-    this.panel.append(title, this.doneLine, time, buttons);
+    this.panel.append(wordmark, title, this.doneLine, time, buttons);
 
     // 겹치는 차례: 화살표·핀은 알약 아래로, 성공 판이 맨 위
     this.root.append(this.arrow, this.pinLayer, this.pill, this.panel);
     parent.append(this.root);
   }
 
-  /** 먹은 수를 적는다. 수가 올랐으면 알약이 통 하고 커졌다 돌아온다 */
+  /** 먹은 수를 적는다. 먹은 만큼 알약이 왼쪽부터 라임으로 차고(다 먹으면 온통 라임), 수가 올랐으면 통 하고 커졌다 돌아온다 */
   setCount(count: number, total: number) {
     this.countText.textContent = `${count} / ${total}`;
+    const share = (count / total) * 100,
+      filled = Math.round(share);
+    this.pill.style.background = `linear-gradient(90deg, ${LIME} ${filled}%, ${PAPER} ${filled}%)`;
     const spoken = `물풍선 ${total}개 가운데 ${count}개`;
     this.pill.setAttribute("aria-label", spoken);
     if (count > this.count) {
@@ -351,8 +355,8 @@ function droplet(size: number, tint: string): HTMLDivElement {
   return el;
 }
 
-// 성공 판의 단추(높이 48px, 둘이 판을 반씩 나눈다)
-function panelButton(text: string, background: string): HTMLButtonElement {
+// 성공 판의 단추(높이 48px, 둘이 판을 반씩 나눈다). 라임 판 위라 먹색·흰색만 쓴다(라임 글자는 읽히지 않는다)
+function panelButton(text: string, background: string, color: string): HTMLButtonElement {
   const b = document.createElement("button");
   b.type = "button";
   b.textContent = text;
@@ -363,7 +367,7 @@ function panelButton(text: string, background: string): HTMLButtonElement {
     borderRadius: "999px",
     padding: "0 12px",
     background,
-    color: INK,
+    color,
     fontFamily: HUD_FONT,
     fontSize: "16px",
     fontWeight: "700",

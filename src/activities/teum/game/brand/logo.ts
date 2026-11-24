@@ -4,7 +4,7 @@ import * as THREE from "three";
 // 풍선은 키컬러 라임 바탕에 먹색 워드마크(라임 위 글자는 먹색 — 브랜드 규칙), 잔디·도장은 워드마크 모양만 남긴 흰 글자에 재질 색(라임)을 곱한다
 
 /** 로고 파일 주소(사이트 public/) */
-const LOGO_URL = "/brand/logo-black.svg";
+export const LOGO_URL = "/brand/logo-black.svg";
 /** 로고 viewBox 크기 */
 const LW = 1608,
   LH = 400;

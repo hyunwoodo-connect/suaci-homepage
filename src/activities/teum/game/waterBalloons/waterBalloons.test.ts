@@ -5,6 +5,7 @@ import { Random } from "../core/random";
 import type { GameEventMap } from "../events";
 import { GameEvents } from "../events";
 import { Hud } from "../hud";
+import { FLOOD_ALL, FLOOD_OFF, Mats } from "../look";
 import type { GameMap, WaterBalloonSpot } from "../maps/map";
 import type { Holder } from "../player/player";
 import { Player } from "../player/player";
@@ -35,6 +36,7 @@ function world(spots: readonly WaterBalloonSpot[] | undefined) {
   const parent = document.createElement("div");
   const hud = new Hud(parent);
   const scene = new THREE.Scene();
+  const mats = new Mats();
   const sceneBefore = scene.children.length,
     domBefore = parent.childElementCount;
   const s = {
@@ -47,12 +49,13 @@ function world(spots: readonly WaterBalloonSpot[] | undefined) {
     fx: { burst: () => {} },
     hud,
     rng: new Random(7),
+    mats,
   } as unknown as Services;
   const popped: GameEventMap["waterBalloonPopped"][] = [],
     cleared: GameEventMap["waterBalloonsCleared"][] = [];
   events.on("waterBalloonPopped", (e) => popped.push(e));
   events.on("waterBalloonsCleared", (e) => cleared.push(e));
-  const game = createWaterBalloons(s, parent);
+  const game = createWaterBalloons(s, parent, new THREE.Texture());
   let time = 0;
   /** 한 프레임: 입력 → 몸 → 물풍선 */
   const frame = (intent = STILL) => {
@@ -212,7 +215,7 @@ describe("물풍선 성공 뒤", () => {
       w.jumpTo(w.game, i);
       w.frame();
     }
-    for (let i = 0; i < 90; i++) w.frame();
+    for (let i = 0; i < 120; i++) w.frame();
     return w;
   }
   const press = (w: ReturnType<typeof cleared>, name: string) =>
@@ -288,6 +291,77 @@ describe("물풍선 성공 뒤", () => {
       "over",
       3,
     ]);
+  });
+});
+
+describe("끝 장면의 라임 물결", () => {
+  /** 톤 값의 물결: 가운데(xyz)와 물결 끝의 코사인(w) */
+  const floodOf = (w: ReturnType<typeof playing>) => w.s.mats.lookU.flood.value;
+  /** 셋을 다 먹는다(마지막은 2 번) */
+  function eatAll() {
+    const w = playing();
+    for (const i of [0, 1, 2]) {
+      w.jumpTo(w.game, i);
+      w.frame();
+    }
+    return w;
+  }
+  const press = (w: ReturnType<typeof playing>, name: string) =>
+    [...w.parent.querySelectorAll("button")].find((b) => b.textContent === name)!.click();
+
+  it("다 먹기 전 → 물결이 없다", () => {
+    const w = playing();
+    w.jumpTo(w.game, 0);
+    w.frame();
+    w.frame();
+    expect(floodOf(w).w).toBe(FLOOD_OFF);
+  });
+
+  it("마지막을 먹으면 → 그 물풍선 자리에서 물결이 퍼지기 시작한다", () => {
+    const w = eatAll();
+    w.frame();
+    const flood = floodOf(w),
+      last = w.game.list[2].v;
+    expect([flood.x, flood.y, flood.z]).toEqual([last.x, last.y, last.z]);
+    expect(flood.w).toBeLessThan(1);
+    expect(flood.w).toBeGreaterThan(0.99);
+  });
+
+  it("시간이 갈수록 → 물결이 넓어진다(코사인이 준다)", () => {
+    const w = eatAll();
+    w.frame();
+    const early = floodOf(w).w;
+    for (let i = 0; i < 60; i++) w.frame();
+    expect(floodOf(w).w).toBeLessThan(early);
+  });
+
+  it("오래 뒤 → 온 행성이 물든다", () => {
+    const w = eatAll();
+    for (let i = 0; i < 60 * 6; i++) w.frame();
+    expect(floodOf(w).w).toBe(FLOOD_ALL);
+  });
+
+  it("한 번 더 → 섬이 제 색으로 돌아온다", () => {
+    const w = eatAll();
+    for (let i = 0; i < 120; i++) w.frame();
+    press(w, "한 번 더");
+    w.frame();
+    expect(floodOf(w).w).toBe(FLOOD_OFF);
+  });
+
+  it("계속 놀기 → 물든 채로 남고 끝까지 퍼진다", () => {
+    const w = eatAll();
+    for (let i = 0; i < 120; i++) w.frame();
+    press(w, "계속 놀기");
+    for (let i = 0; i < 60 * 6; i++) w.frame();
+    expect(floodOf(w).w).toBe(FLOOD_ALL);
+  });
+
+  it("치우면 → 물결도 걷힌다", () => {
+    const w = eatAll();
+    w.frame();
+    w.game.dispose();
+    expect(floodOf(w).w).toBe(FLOOD_OFF);
   });
 });
 
