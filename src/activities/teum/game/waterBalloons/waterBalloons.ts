@@ -1,7 +1,6 @@
 import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
-import type { Random } from "../core/random";
 import type { WaterBalloonSpot } from "../maps/map";
 import type { Services } from "../services";
 import { S } from "../settings";
