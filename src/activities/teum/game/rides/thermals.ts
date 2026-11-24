@@ -72,6 +72,8 @@ export class Thermals implements Thing {
       transparent: true,
       depthWrite: false,
       side: THREE.DoubleSide,
+      // 한 가지 색이라 앞뒤를 어느 차례로 겹쳐도 같은 그림이다 — 두 번 나눠 그릴 까닭이 없다(나누면 three 가 프레임마다 셰이더를 다시 고른다)
+      forceSinglePass: true,
       vertexShader:
         "varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
       fragmentShader: `varying vec2 vUv; uniform float uT; uniform vec3 uCol;
