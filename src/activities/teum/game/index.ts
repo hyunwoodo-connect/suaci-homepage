@@ -92,7 +92,7 @@ export function start(
       onProgress?.(1);
       last = performance.now();
       raf = requestAnimationFrame(tick);
-      return loader.loadMany(later, deliver);
+      return loader.loadMany(later, deliver).then(() => game.restArrived());
     })
     .catch((err) => console.error("teum", err));
   return {

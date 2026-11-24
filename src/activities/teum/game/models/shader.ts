@@ -137,6 +137,9 @@ function dropMap(mat: THREE.MeshStandardMaterial, key: (typeof UNUSED_MAPS)[numb
   const tex = mat[key];
   if (!tex) return;
   mat[key] = null;
+  // 남겨 쓰는 칸(색·그늘·빛·투명)이 같은 그림을 가리키면 떼기만 한다(그늘을 금속·거칠기 그림에 같이 담는 에셋이 올 수 있다)
+  const kept = [mat.map, mat.aoMap, mat.emissiveMap, mat.alphaMap];
+  if (kept.includes(tex)) return;
   tex.dispose();
   const image: unknown = tex.image;
   if (typeof ImageBitmap !== "undefined" && image instanceof ImageBitmap) image.close();

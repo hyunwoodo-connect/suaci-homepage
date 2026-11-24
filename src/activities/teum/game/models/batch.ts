@@ -29,7 +29,8 @@ export class ModelBatch {
   rw: number;
   /** 모델이 와서 그릴 수 있다 */
   ready = false;
-  private readonly meshes: THREE.InstancedMesh[] = [];
+  /** 장면에 올린 묶음 메시들(모델이 오면 생긴다) */
+  readonly meshes: THREE.InstancedMesh[] = [];
   private readonly an: THREE.InstancedBufferAttribute[] = [];
   private readonly lime: THREE.InstancedBufferAttribute[] = [];
   private n = 0;

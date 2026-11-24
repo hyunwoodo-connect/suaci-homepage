@@ -33,6 +33,10 @@ const NO_DIP: Dip = { cos: 1, sin: 0 };
 export class Instancer {
   /** 모델의 메시마다 하나(모델이 오면 생긴다) */
   readonly ims: THREE.InstancedMesh[] = [];
+  /** 장면에 올린 묶음 메시들(ModelBatch 와 같은 이름 — 둘을 같이 훑는 쪽이 쓴다) */
+  get meshes(): readonly THREE.InstancedMesh[] {
+    return this.ims;
+  }
   private readonly items: Item[] = [];
   /** 가까운 것(마지막 cull 때 고른 번호) */
   private near: number[] = [];

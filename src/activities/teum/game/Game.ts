@@ -174,8 +174,10 @@ export class Game {
   private readonly frameOrder: Step[];
   /** 느린 기기에서 화면 배율을 낮추는 조절(시작 배율은 그리는 틀이 정한 값) */
   private readonly pixels: PixelBudget;
-  /** 지난 프레임에 에셋이 아직 자리를 잡는 중이었나(다 도착한 순간을 알아챈다) */
-  private wasSettling = false;
+  /** 뒤에서 받는 나머지 에셋이 아직 오는 중인가(시작하는 쪽이 restArrived 로 끝을 알린다) */
+  private isRestComing = true;
+  /** 나머지 에셋이 다 온 뒤 꾸미기 씬 뒤에서 데우기를 아직 하지 않았나(한 번만 한다) */
+  private owesWarm = false;
   private readonly tapOrder: Tappable[];
   private readonly ray = new THREE.Raycaster();
   /** 그리기 직전의 시야(여럿을 한 번에 그리는 묶음이 시야 밖의 것을 뺀다) */
@@ -474,6 +476,12 @@ export class Game {
     return isStudioSkipped() || this.wardrobe.hasDressed;
   }
 
+  /** 뒤에서 받던 나머지 에셋 받기가 끝났다(받지 못한 것이 있어도 끝난 것이다 — 그것을 기다리며 멈춰 있지 않는다) */
+  restArrived() {
+    this.isRestComing = false;
+    this.owesWarm = true;
+  }
+
   /**
    * 그리기 전에 데운다(불러오는 화면 뒤에서 한 번, 먼저 받을 에셋을 받은 뒤): 받은 그림을 모두 GPU 에 올리고, 멀리 있어 장면에서 떼어 둔
    * 것까지 한 번 다 그려 셰이더·도형을 올려 둔 다음, 첫 화면을 그린다. 그러지 않으면 처음 보는 것이 화면에 들어오는 프레임마다
@@ -581,8 +589,9 @@ export class Game {
     camera.layers.enableAll();
     renderer.setScissor(0, 0, 1, 1);
     renderer.setScissorTest(true);
+    const everything = () => this.s.culler.withEverything(() => renderer.render(scene, camera));
     try {
-      this.s.culler.withEverything(() => renderer.render(scene, camera));
+      this.s.models.withEmptyShown(everything);
     } finally {
       renderer.setScissorTest(false);
       renderer.setScissor(0, 0, whole.x, whole.y);
@@ -597,19 +606,24 @@ export class Game {
     this.terrainView.flush(this.frustum);
   }
 
-  // 처음 온 사람이 꾸미는 동안 나머지 에셋이 뒤에서 다 도착했으면, 세상으로 나가기 전에 한 번 더 데운다.
-  // 꾸미기 씬은 가만히 있는 화면이라 이때 한 프레임 늦어도 보이지 않는다. 세상에 나온 뒤라면 하지 않는다(그 한 프레임이 끊긴다)
+  // 에셋이 아직 자리를 잡는 중인가: 뒤에서 받는 것이 남았거나, 도착한 그림을 아직 다 올리지 못했다
+  private get isSettling(): boolean {
+    return this.isRestComing || this.s.models.hasCold;
+  }
+
+  // 처음 온 사람이 꾸미는 동안 나머지 에셋이 뒤에서 다 도착했으면(그림도 다 올렸으면), 세상으로 나가기 전에 한 번 더 데운다.
+  // 꾸미기 씬은 가만히 있는 화면이라 이때 한 프레임 늦어도 보이지 않는다. 세상에 나온 뒤라면 하지 않는다(그 한 프레임이 끊긴다).
+  // 한 번만 한다 — 나중에 옷장을 열어 부품이 하나씩 도착할 때마다 다시 하지 않는다
   private warmBehindStudio() {
-    const isSettling = this.s.models.isSettling,
-      hasJustSettled = this.wasSettling && !isSettling;
-    this.wasSettling = isSettling;
-    if (hasJustSettled && this.s.hud.isInStudio) this.warmScene();
+    if (!this.owesWarm || this.s.models.hasCold) return;
+    this.owesWarm = false;
+    if (this.s.hud.isInStudio) this.warmScene();
   }
 
   // 프레임이 계속 느린 기기에서는 화면 배율을 낮춘다(core/pixelBudget.ts). elapsed: 지난 프레임부터 흐른 실제 시간(초).
   // 에셋이 아직 오는 동안은 재지 않는다 — 받아서 세우고 올리느라 느린 것을 기기가 느린 것으로 읽으면 안 된다
   private fitPixels(elapsed: number) {
-    if (this.s.models.isSettling) return;
+    if (this.isSettling) return;
     const intervalMs = elapsed * 1000,
       ratio = this.pixels.feed(intervalMs);
     // 배율을 바꾸면 그리는 판의 크기도 같이 바뀐다(화면에 놓인 크기는 그대로)
