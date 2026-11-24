@@ -101,4 +101,11 @@ describe("checkMap", () => {
     });
     expect(kindsOf(map)).toEqual(["모양"]);
   });
+
+  it("구름 구멍이 홀수면(짝 없는 구멍) → 모양", () => {
+    const map = edited((m) => {
+      m.layout.hole.pop();
+    });
+    expect(kindsOf(map)).toEqual(["모양"]);
+  });
 });

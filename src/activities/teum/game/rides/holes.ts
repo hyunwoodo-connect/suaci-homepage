@@ -98,10 +98,14 @@ export class Holes implements Thing, Holder {
       list = this.list;
     for (const ho of list) {
       if (ho.cool > 0) ho.cool -= dt;
-      else if (!this.warp && isTouching(player, ho.v, 1, 2.5) && player.grab(this)) {
-        const pairAt = ho.pi * 2 + (1 - ho.k);
-        this.warp = { a: ho, b: list[pairAt], t: 0, done: false };
-        hud.say("구름 구멍 — 멀리 있는 짝 구멍으로 나옵니다");
+      else if (!this.warp && isTouching(player, ho.v, 1, 2.5)) {
+        const pairAt = ho.pi * 2 + (1 - ho.k),
+          pair: Hole | undefined = list[pairAt];
+        // 짝 없는 구멍(자리표의 구멍이 홀수)은 나올 곳이 없어 빨아들이지 않는다
+        if (pair && player.grab(this)) {
+          this.warp = { a: ho, b: pair, t: 0, done: false };
+          hud.say("구름 구멍 — 멀리 있는 짝 구멍으로 나옵니다");
+        }
       }
       const dimmed = ho.lit - dt * 0.8;
       ho.lit = Math.max(0, dimmed);
