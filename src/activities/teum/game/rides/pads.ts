@@ -6,16 +6,18 @@ import { ECHO_REACH, echoTime } from "../core/tap";
 import { keyify } from "../keyColor";
 import { LOOK } from "../look";
 import type { LayoutHop } from "../maps/layout";
+import { uploadFirst } from "../models/upload";
 import type { Services } from "../services";
 import { S } from "../settings";
 import type { Dip } from "../world/culler";
 import { dipOf, horizonCos } from "../world/culler";
 import { hopPath } from "../world/paths";
+import type { Sight } from "../world/sight";
 import { from, UP } from "../world/sphere";
 import { claimSpots, cloudPadGeometry } from "./shared";
 
 // 통통 구름 — 위에 오면 높이 튀어 오른다. 징검 구름 — 작은 구름을 통통 밟으며 건너간다.
-// 구름 방석은 모두 같은 모양·같은 색이라 한 번에 그린다(가까운 것만 칸에 채운다)
+// 구름 방석은 모두 같은 모양·같은 색이라 한 번에 그린다: 가까운 것 가운데 화면에 걸치는 것(sight.ts)만 그리기 직전에 칸에 채운다
 
 /** 구름 방석 하나(통통 구름 또는 징검 구름의 한 칸) */
 interface Pad {
@@ -34,15 +36,18 @@ interface Pad {
   dip: Dip;
   /** 칙 했을 때 울릴 시각(-1 이면 없음) */
   ringAt: number;
-  /** 이번 프레임 방석 가운데(빛을 둔다) */
+  /** 이번 프레임 방석 가운데(빛을 둔다)와 너비·높이 */
   pos: THREE.Vector3;
+  w: number;
+  h: number;
   /** 땅에 세운 돌림(자리를 정할 때 한 번) */
   q: THREE.Quaternion;
 }
 
 const tmp = new THREE.Vector3(),
   sc = new THREE.Vector3(),
-  m4 = new THREE.Matrix4();
+  m4 = new THREE.Matrix4(),
+  ball = new THREE.Sphere();
 /** 밟히는 거리(통통 구름 4.4m, 징검 구름 3.6m)보다 확실히 먼 것은 거리 셈(acos)을 건너뛴다 — 경계는 아래 셈이 정한다 */
 const PAD_ARC = 4.4 / S.R,
   HOP_ARC = 3.6 / S.R;
@@ -57,9 +62,16 @@ export class Pads implements Thing, Tappable, Echoing {
   private readonly geo: THREE.BufferGeometry;
   private readonly mat: THREE.MeshStandardMaterial;
   private readonly mesh: THREE.InstancedMesh;
+  /** 이번 프레임에 가까운 방석(그리기 직전에 이 가운데 화면에 걸치는 것만 칸에 채운다) */
+  private readonly near: Pad[] = [];
+  /** 방석 가운데에서 본 둘레(너비 1 일 때) */
+  private readonly reach: number;
 
   constructor(private readonly s: Services) {
     this.geo = cloudPadGeometry();
+    this.geo.computeBoundingSphere();
+    const bound = this.geo.boundingSphere!;
+    this.reach = bound.center.length() + bound.radius;
     // 통통 구름과 징검 구름은 톤에서 같은 귤색이다(LOOK.pad)
     this.mat = new THREE.MeshStandardMaterial({
       color: LOOK.pad,
@@ -145,8 +157,9 @@ export class Pads implements Thing, Tappable, Echoing {
       dt = f.dt,
       p = player.p,
       cut = culler.cut,
-      eye = culler.eye;
-    let n = 0;
+      eye = culler.eye,
+      near = this.near;
+    near.length = 0;
     for (const pd of this.list) {
       const reachCos = pd.hop ? COS_HOP : COS_PAD;
       if (pd.cool > 0) pd.cool -= dt;
@@ -160,24 +173,34 @@ export class Pads implements Thing, Tappable, Echoing {
       const breathPhase = f.time * 2.6 + pd.v.x * 40;
       const k = (1 - Math.sin(squashPhase) * 0.55) * (1 + 0.05 * Math.sin(breathPhase)),
         w = (pd.size || 4.6) * (1 + (1 - k) * 0.5); // 가만히 있을 때도 숨 쉬듯 부푼다
-      const height = 2.3 * k;
+      pd.w = w;
+      pd.h = 2.3 * k;
       const radius = S.R + pd.g + 0.9 * k;
       pd.pos.copy(pd.v).multiplyScalar(radius);
       const along = pd.v.dot(p),
         seen = horizonCos(eye, pd.dip);
-      if (along > cut && along > seen) {
-        sc.set(w, height, w);
-        m4.compose(pd.pos, pd.q, sc);
-        this.mesh.setMatrixAt(n++, m4);
-      }
+      if (along > cut && along > seen) near.push(pd);
       if (pd.sq > 0) {
         const size = pd.hop ? 7 : 11;
         const alpha = Math.sin(squashPhase);
         fx.glow(pd.pos, size, alpha);
       }
     }
+  }
+
+  /** 그리기 직전: 가까운 방석 가운데 화면에 걸치는 것만 칸에 채워 올린다 */
+  flush(sight: Sight) {
+    let n = 0;
+    for (const pd of this.near) {
+      ball.center.copy(pd.pos);
+      ball.radius = pd.w * this.reach;
+      if (!sight.sees(ball)) continue;
+      sc.set(pd.w, pd.h, pd.w);
+      m4.compose(pd.pos, pd.q, sc);
+      this.mesh.setMatrixAt(n++, m4);
+    }
     this.mesh.count = n;
-    this.mesh.instanceMatrix.needsUpdate = true;
+    uploadFirst(this.mesh.instanceMatrix, n);
   }
 
   /** 치운다 */
@@ -221,6 +244,8 @@ function newPad(o: Partial<Pad>): Pad {
     dip: dipOf(PAD_TOP),
     ringAt: -1,
     pos: new THREE.Vector3(),
+    w: 0,
+    h: 0,
     q: new THREE.Quaternion(),
   };
 }

@@ -4,6 +4,7 @@ import type { Manifest } from "../../assets/manifest";
 import { MODEL_BAKE } from "../../assets/settings";
 import type { LookUniforms } from "../look";
 import type { Dip } from "../world/culler";
+import type { Sight } from "../world/sight";
 import { ModelBatch } from "./batch";
 import { extentBy } from "./extent";
 import { Instancer } from "./instancer";
@@ -297,10 +298,10 @@ export class ModelLibrary {
   }
 
   /** 그리기 직전: 모든 묶음에서 가까운 것(p 에서 cut 보다 가깝고 지평선 너머가 아닌 것) 가운데 시야 안의 것만 남긴다 */
-  flush(frustum: THREE.Frustum, p: Readonly<THREE.Vector3>, cut: number, eye: Dip) {
-    for (const I of this.instancers) I.flush(frustum);
-    for (const B of this.batches) B.flush(frustum);
-    for (const P of this.packs) P.flush(frustum, p, cut, eye);
+  flush(sight: Sight, p: Readonly<THREE.Vector3>, cut: number, eye: Dip) {
+    for (const I of this.instancers) I.flush(sight);
+    for (const B of this.batches) B.flush(sight);
+    for (const P of this.packs) P.flush(sight, p, cut, eye);
   }
 
   /** 찍어 둔 묶음·한꺼번에 그리는 묶음을 치운다 */

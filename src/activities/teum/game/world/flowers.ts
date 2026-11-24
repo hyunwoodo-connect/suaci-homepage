@@ -11,12 +11,15 @@ import { S } from "../settings";
 import type { Dip } from "./culler";
 import { dipOf, horizonCos } from "./culler";
 import { fr } from "./hash";
+import type { Sight } from "./sight";
 import { UP } from "./sphere";
 import { SphereGrid } from "./sphereGrid";
 
 // 바닥의 꽃(수는 지도의 지형): 한 송이 = 꽃잎 여섯 장 + 가운데 심 + 줄기. 지나가면 라임으로 부풀어 피고, 천천히 제 색으로 돌아온다.
 // 꽃 자리·피어난 정도는 world/terrain 의 꽃 자리 값(lit)이고, 다른 것(종·장소·칙)이 피우면 그 값만 바꾼다.
-// 가까운 꽃만 칸에 담아 그린다(20 프레임마다, v·p > 0.86 이면서 지평선 너머가 아닌 것 — culler.ts)
+// 가까운 꽃(20 프레임마다, v·p > 0.86 이면서 지평선 너머가 아닌 것 — culler.ts)을 담아 두고(headM·stemM·tint),
+// 그 가운데 화면에 걸치는 것(sight.ts)만 그리기 직전에 앞 칸으로 모아 그린다.
+// 세로 화면은 둘레의 일부만 비추므로, 담아 둔 것을 다 그리면 꼭짓점 셈의 대부분이 화면 밖 꽃에 쓰인다
 
 type FlowerMesh<G extends THREE.BufferGeometry> = THREE.InstancedMesh<
   G,
@@ -27,6 +30,8 @@ type FlowerMesh<G extends THREE.BufferGeometry> = THREE.InstancedMesh<
 const MAX_REACH = 1.3 + 1.35 * 1.5 + 0.05;
 /** 꽃 꼭대기의 땅 위 높이(m, 가장 큰 꽃이 활짝 핀 것보다 넉넉히) — 지평선 너머인지 볼 때 쓴다 */
 const FLOWER_TOP = 3;
+/** 꽃잎 끝까지의 거리(꽃 크기 1 일 때): 꽃잎은 가운데에서 1.1 까지 뻗고 끝이 살짝 들린다 */
+const PETAL_REACH = 1.15;
 
 const flQ = new THREE.Quaternion(),
   flQ2 = new THREE.Quaternion(),
@@ -35,15 +40,26 @@ const flQ = new THREE.Quaternion(),
   m4 = new THREE.Matrix4(),
   sc = new THREE.Vector3(),
   ps = new THREE.Vector3(),
-  tc = new THREE.Color();
+  tc = new THREE.Color(),
+  ball = new THREE.Sphere();
 
 /** 바닥의 꽃 */
 export class Flowers implements Thing, Tappable {
   private readonly petals: FlowerMesh<THREE.BufferGeometry>;
   private readonly core: FlowerMesh<THREE.SphereGeometry>;
   private readonly stem: FlowerMesh<THREE.CylinderGeometry>;
-  /** 가까운 꽃만 그린다: 꽃 번호 → 그리는 칸(-1 이면 안 그림) */
+  /** 꽃잎·심·줄기 묶음(같이 세고 같이 올린다) */
+  private readonly parts: THREE.InstancedMesh[];
+  private readonly tints: THREE.InstancedBufferAttribute;
+  /** 가까운 꽃만 담는다: 꽃 번호 → 담아 둔 칸(-1 이면 안 담음) */
   private readonly slot: Int32Array;
+  /** 담아 둔 칸마다: 꽃 머리 행렬(꽃잎·심이 같이 쓴다) · 줄기 행렬 · 꽃잎 색 · 꽃 머리에서 본 둘레(m) */
+  private readonly headM: Float32Array;
+  private readonly stemM: Float32Array;
+  private readonly tint: Float32Array;
+  private readonly reach: Float32Array;
+  /** 담아 둔 칸 수 */
+  private staged = 0;
   private readonly grid = new SphereGrid(0.02);
   private readonly near: number[] = [];
   /** 이번 프레임에 피운 꽃(같은 프레임에 다시 시들게 하지 않는다) */
@@ -58,6 +74,12 @@ export class Flowers implements Thing, Tappable {
     const FLN = s.terrain.flowers.v.length;
     this.n = FLN;
     this.slot = new Int32Array(FLN).fill(-1);
+    const matrixFloats = FLN * 16,
+      colorFloats = FLN * 3;
+    this.headM = new Float32Array(matrixFloats);
+    this.stemM = new Float32Array(matrixFloats);
+    this.tint = new Float32Array(colorFloats);
+    this.reach = new Float32Array(FLN);
     this.touched = new Uint32Array(FLN);
     const flat = dipOf(FLOWER_TOP);
     this.dips = Array.from({ length: FLN }, () => flat);
@@ -112,7 +134,11 @@ export class Flowers implements Thing, Tappable {
         );
       keyShader(sh, s.mats.lookU.flood);
     };
-    for (const m of [this.petals, this.core, this.stem]) {
+    const tintSlots = new Float32Array(colorFloats);
+    this.tints = new THREE.InstancedBufferAttribute(tintSlots, 3);
+    this.petals.instanceColor = this.tints;
+    this.parts = [this.petals, this.core, this.stem];
+    for (const m of this.parts) {
       m.frustumCulled = false;
       m.count = 0;
       s.scene.add(m);
@@ -149,7 +175,6 @@ export class Flowers implements Thing, Tappable {
       { p, air } = this.s.player,
       dt = f.dt;
     this.frameNo++;
-    let dirty = false;
     if (air < 5) {
       const reachChord = MAX_REACH / S.R;
       for (const k of this.grid.query(p, reachChord, this.near)) {
@@ -157,7 +182,6 @@ export class Flowers implements Thing, Tappable {
         if (2 * (1 - p.dot(spots.v[k])) * S.R * S.R >= reach * reach) continue;
         lit[k] = 1;
         this.touched[k] = this.frameNo;
-        dirty = true;
         this.setFlower(k, 1);
       }
     }
@@ -167,11 +191,44 @@ export class Flowers implements Thing, Tappable {
       const faded = l - dt * 0.14;
       const nl = Math.max(0, faded);
       lit[k] = nl;
-      dirty = true;
       const bloom = nl * nl * (3 - 2 * nl);
       this.setFlower(k, bloom);
     }
-    if (dirty) this.upload();
+  }
+
+  /** 그리기 직전: 담아 둔 가까운 꽃 가운데 화면에 걸치는 것만 앞 칸으로 모아 올린다 */
+  flush(sight: Sight) {
+    const { headM, stemM, tint, reach } = this;
+    const petalSlots = this.petals.instanceMatrix.array,
+      coreSlots = this.core.instanceMatrix.array,
+      stemSlots = this.stem.instanceMatrix.array,
+      tintSlots = this.tints.array;
+    let n = 0;
+    for (let sl = 0; sl < this.staged; sl++) {
+      const from = sl * 16,
+        centreAt = from + 12;
+      ball.center.fromArray(headM, centreAt);
+      ball.radius = reach[sl];
+      if (!sight.sees(ball)) continue;
+      const to = n * 16;
+      for (let j = 0; j < 16; j++) {
+        const head = headM[from + j];
+        petalSlots[to + j] = head;
+        coreSlots[to + j] = head;
+        stemSlots[to + j] = stemM[from + j];
+      }
+      const tintFrom = sl * 3,
+        tintTo = n * 3;
+      tintSlots[tintTo] = tint[tintFrom];
+      tintSlots[tintTo + 1] = tint[tintFrom + 1];
+      tintSlots[tintTo + 2] = tint[tintFrom + 2];
+      n++;
+    }
+    for (const m of this.parts) {
+      m.count = n;
+      uploadFirst(m.instanceMatrix, n);
+    }
+    uploadFirst(this.tints, n);
   }
 
   /** 치운다 */
@@ -184,7 +241,7 @@ export class Flowers implements Thing, Tappable {
     }
   }
 
-  // 가까운 꽃(지평선 너머는 빼고)만 칸에 담아 다시 그린다
+  // 가까운 꽃(지평선 너머는 빼고)을 다시 골라 담는다
   private cull() {
     const spots = this.s.terrain.flowers,
       p = this.s.player.p,
@@ -204,18 +261,10 @@ export class Flowers implements Thing, Tappable {
         const bloom = l * l * (3 - 2 * l);
         this.setFlower(k, bloom);
       }
-    for (const m of [this.petals, this.core, this.stem]) m.count = n;
-    this.upload();
+    this.staged = n;
   }
 
-  // 바뀐 꽃을 GPU 로 올린다: 그리는 칸(가까운 꽃)만 — 묶음 전체(꽃 자리 수만큼)를 보내지 않는다
-  private upload() {
-    const shown = this.petals.count;
-    for (const m of [this.petals, this.core, this.stem]) uploadFirst(m.instanceMatrix, shown);
-    if (this.petals.instanceColor) uploadFirst(this.petals.instanceColor, shown);
-  }
-
-  // 꽃 하나를 그린다. e: 0 평소, 1 활짝 핀 상태
+  // 꽃 하나를 담아 둔 칸에 찍는다(담지 않은 꽃이면 아무것도 안 한다). e: 0 평소, 1 활짝 핀 상태
   private setFlower(k: number, e: number) {
     const sl = this.slot[k];
     if (sl < 0) return;
@@ -240,15 +289,19 @@ export class Flowers implements Thing, Tappable {
     ps.copy(v).multiplyScalar(headRadius);
     sc.set(sz, sz, sz);
     m4.compose(ps, flQ2, sc);
-    this.petals.setMatrixAt(sl, m4);
-    this.core.setMatrixAt(sl, m4);
+    const at = sl * 16;
+    m4.toArray(this.headM, at);
     const stemRadius = S.R + gr - 0.15;
     ps.copy(v).multiplyScalar(stemRadius);
     const stemLength = st + 0.15;
     sc.set(1, stemLength, 1);
     m4.compose(ps, q, sc);
-    this.stem.setMatrixAt(sl, m4);
-    const petalColor = tc.set(spots.base[k]).lerp(this.s.mats.lime, e);
-    this.petals.setColorAt(sl, petalColor);
+    m4.toArray(this.stemM, at);
+    const petalColor = tc.set(spots.base[k]).lerp(this.s.mats.lime, e),
+      tintAt = sl * 3;
+    petalColor.toArray(this.tint, tintAt);
+    // 꽃 머리에서 본 둘레: 꽃잎 끝(크기의 1.15 배)과 줄기 밑동 가운데 먼 쪽
+    const petalReach = sz * PETAL_REACH;
+    this.reach[sl] = Math.max(petalReach, stemLength);
   }
 }

@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { S } from "../settings";
 import type { Dip } from "../world/culler";
 import { dipOf, horizonCos } from "../world/culler";
+import type { Sight } from "../world/sight";
 import { uploadFirst } from "./upload";
 
 // 한 번 놓고 거의 움직이지 않는 같은 도형 여럿(레일 구슬·쿠션 벽·구름 다리 발판·뭉게구름)을 그리기 직전에
@@ -67,7 +68,7 @@ export class StaticPack {
   }
 
   /** 그리기 직전: p 에서 cut 보다 가깝고 눈(eye)에서 지평선 너머가 아닌 것 가운데 시야 안의 것만 앞 칸으로 모은다 */
-  flush(frustum: THREE.Frustum, p: Readonly<THREE.Vector3>, cut: number, eye: Dip) {
+  flush(sight: Sight, p: Readonly<THREE.Vector3>, cut: number, eye: Dip) {
     const mesh = this.mesh,
       arr = mesh.instanceMatrix.array,
       colArr = mesh.instanceColor ? mesh.instanceColor.array : null;
@@ -79,7 +80,7 @@ export class StaticPack {
       dir.copy(sphere.center).normalize();
       const along = dir.dot(p),
         seen = horizonCos(eye, this.dips[i]);
-      if (along <= cut || along <= seen || !frustum.intersectsSphere(sphere)) continue;
+      if (along <= cut || along <= seen || !sight.sees(sphere)) continue;
       const from = i * 16,
         to = k * 16;
       for (let j = 0; j < 16; j++) arr[to + j] = this.mats[from + j];

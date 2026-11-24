@@ -10,13 +10,15 @@ import { S } from "../settings";
 import type { Dip } from "../world/culler";
 import { dipOf, horizonCos } from "../world/culler";
 import { rowPath } from "../world/paths";
+import type { Sight } from "../world/sight";
 import { FWD, UP } from "../world/sphere";
 import { claimSpots } from "./shared";
 
 // 기둥 줄 — 지나가면 하나씩 불이 켜지며 솟는다.
 // 풍선 꽃: 줄기 하나에 꽃잎 일곱. 지나가면 줄기가 자라고 꽃이 활짝 핀다(줄기는 길이만 늘어나서 모양이 뭉개지지 않는다).
 // 줄기·꽃잎·꽃 심을 각각 한 번에 그린다(기둥 360여 개 × 아홉 조각을 낱개로 두면 장면이 무거워진다).
-// 불이 꺼진 기둥은 모양이 그대로라, 불이 켜졌거나 막 꺼진 것만 다시 찍는다
+// 불이 꺼진 기둥은 모양이 그대로라, 불이 켜졌거나 막 꺼진 것만 다시 찍는다.
+// 가까운 기둥을 담아 두고(stemM·petalM·coreM), 그 가운데 화면에 걸치는 것(sight.ts)만 그리기 직전에 앞 칸으로 모아 그린다
 
 /** 풍선 꽃 기둥 하나 */
 interface Pillar {
@@ -34,7 +36,7 @@ interface Pillar {
   headQ: THREE.Quaternion;
   /** 이번 프레임 꽃 자리(빛을 둔다) */
   head: THREE.Vector3;
-  /** 그리는 칸(-1 이면 지금 안 그림) */
+  /** 담아 둔 칸(-1 이면 지금 안 담음) */
   slot: number;
   /** 지난번에 찍을 때 불이 켜져 있었나(꺼지는 순간 한 번 더 찍는다) */
   drawnLit: boolean;
@@ -42,16 +44,23 @@ interface Pillar {
   dip: Dip;
 }
 
-/** 꽃잎 수 */
-const PETALS = 7;
+/** 꽃잎 수 · 기둥 하나의 꽃잎 행렬 값 수 */
+const PETALS = 7,
+  PETAL_FLOATS = PETALS * 16;
+/** 꽃 머리의 둘레(꽃 크기 1 일 때, m): 꽃잎 가운데가 1.2, 꽃잎 반 길이가 0.95 */
+const HEAD_REACH = 2.2;
+/** 담아 둔 칸마다의 둘레 공 값 수: 가운데(3) · 반지름 */
+const BALL = 4;
 
 const fz = new THREE.Vector3(),
+  mid = new THREE.Vector3(),
   bx = new THREE.Vector3(),
   hy = new THREE.Vector3(),
   m4 = new THREE.Matrix4(),
   headM = new THREE.Matrix4(),
   sc = new THREE.Vector3(),
-  col = new THREE.Color();
+  col = new THREE.Color(),
+  ball = new THREE.Sphere();
 /** 기둥에 닿는 거리(5.6m)보다 확실히 먼 것은 거리 셈(acos)을 건너뛴다 — 경계는 아래 셈이 정한다 */
 const TOUCH_ARC = 5.6 / S.R;
 const COS_TOUCH = Math.cos(TOUCH_ARC) - 1e-9;
@@ -67,6 +76,16 @@ export class Pillars implements Thing, Tappable, Echoing {
   private readonly stems: THREE.InstancedMesh;
   private readonly petals: THREE.InstancedMesh;
   private readonly cores: THREE.InstancedMesh;
+  private readonly stemTints: THREE.InstancedBufferAttribute;
+  private readonly petalTints: THREE.InstancedBufferAttribute;
+  /** 담아 둔 칸마다: 줄기 행렬 · 꽃잎 일곱 행렬 · 심 행렬 · 줄기와 꽃잎의 색 · 둘레 공 */
+  private readonly stemM: Float32Array;
+  private readonly petalM: Float32Array;
+  private readonly coreM: Float32Array;
+  private readonly tint: Float32Array;
+  private readonly balls: Float32Array;
+  /** 담아 둔 칸 수 */
+  private staged = 0;
   /** 꽃 그룹 안에서 꽃잎 일곱·심의 자리(꽃 행렬 뒤에 곱한다) */
   private readonly petalLocal: THREE.Matrix4[] = [];
   private readonly coreLocal = new THREE.Matrix4();
@@ -117,6 +136,17 @@ export class Pillars implements Thing, Tappable, Echoing {
     this.stems = newInstances(this.stemGeo, this.bodyMat, n);
     this.petals = newInstances(this.petalGeo, this.bodyMat, petalCount);
     this.cores = newInstances(this.petalGeo, this.core, n);
+    this.stemTints = newTints(this.stems, n);
+    this.petalTints = newTints(this.petals, petalCount);
+    const matrixFloats = n * 16,
+      petalFloats = n * PETAL_FLOATS,
+      colorFloats = n * 3,
+      ballFloats = n * BALL;
+    this.stemM = new Float32Array(matrixFloats);
+    this.petalM = new Float32Array(petalFloats);
+    this.coreM = new Float32Array(matrixFloats);
+    this.tint = new Float32Array(colorFloats);
+    this.balls = new Float32Array(ballFloats);
     s.scene.add(this.stems, this.petals, this.cores);
   }
 
@@ -147,7 +177,7 @@ export class Pillars implements Thing, Tappable, Echoing {
         pl.headQ.setFromRotationMatrix(m4);
       }
     }
-    // 처음엔 모두 그린다. 그 뒤로는 가까운 것만 칸에 채운다(나머지 것들과 같은 기준·같은 때)
+    // 처음엔 모두 담는다. 그 뒤로는 가까운 것만 담는다(나머지 것들과 같은 기준·같은 때)
     this.fill(-1);
     this.s.culler.onCull((cut) => this.fill(cut));
   }
@@ -187,7 +217,6 @@ export class Pillars implements Thing, Tappable, Echoing {
       dt = f.dt,
       p = player.p;
     this.lastTime = f.time;
-    let changed = false;
     for (const pl of this.list) {
       const close = player.air < 7 && p.dot(pl.v) > COS_TOUCH && p.angleTo(pl.v) * S.R < 5.6;
       if (close) {
@@ -201,13 +230,62 @@ export class Pillars implements Thing, Tappable, Echoing {
       if (!isLit && !pl.drawnLit) continue;
       this.shape(pl, f.time);
       pl.drawnLit = isLit;
-      changed = true;
       if (isLit) {
         const alpha = pl.lit * 0.8;
         fx.glow(pl.head, 6.5, alpha);
       }
     }
-    if (changed) this.flag();
+  }
+
+  /** 그리기 직전: 담아 둔 가까운 기둥 가운데 화면에 걸치는 것만 앞 칸으로 모아 올린다 */
+  flush(sight: Sight) {
+    const { stemM, petalM, coreM, tint, balls } = this;
+    const stemSlots = this.stems.instanceMatrix.array,
+      petalSlots = this.petals.instanceMatrix.array,
+      coreSlots = this.cores.instanceMatrix.array,
+      stemTintSlots = this.stemTints.array,
+      petalTintSlots = this.petalTints.array;
+    let n = 0;
+    for (let sl = 0; sl < this.staged; sl++) {
+      const ballAt = sl * BALL;
+      ball.center.fromArray(balls, ballAt);
+      ball.radius = balls[ballAt + 3];
+      if (!sight.sees(ball)) continue;
+      const from = sl * 16,
+        to = n * 16;
+      for (let j = 0; j < 16; j++) {
+        stemSlots[to + j] = stemM[from + j];
+        coreSlots[to + j] = coreM[from + j];
+      }
+      const petalFrom = sl * PETAL_FLOATS,
+        petalTo = n * PETAL_FLOATS;
+      for (let j = 0; j < PETAL_FLOATS; j++) petalSlots[petalTo + j] = petalM[petalFrom + j];
+      const tintAt = sl * 3,
+        red = tint[tintAt],
+        green = tint[tintAt + 1],
+        blue = tint[tintAt + 2];
+      const stemTintAt = n * 3;
+      stemTintSlots[stemTintAt] = red;
+      stemTintSlots[stemTintAt + 1] = green;
+      stemTintSlots[stemTintAt + 2] = blue;
+      const firstPetal = n * PETALS;
+      for (let k = 0; k < PETALS; k++) {
+        const petalTintAt = (firstPetal + k) * 3;
+        petalTintSlots[petalTintAt] = red;
+        petalTintSlots[petalTintAt + 1] = green;
+        petalTintSlots[petalTintAt + 2] = blue;
+      }
+      n++;
+    }
+    const petalCount = n * PETALS;
+    this.stems.count = n;
+    this.cores.count = n;
+    this.petals.count = petalCount;
+    uploadFirst(this.stems.instanceMatrix, n);
+    uploadFirst(this.cores.instanceMatrix, n);
+    uploadFirst(this.petals.instanceMatrix, petalCount);
+    uploadFirst(this.stemTints, n);
+    uploadFirst(this.petalTints, petalCount);
   }
 
   /** 치운다 */
@@ -222,7 +300,7 @@ export class Pillars implements Thing, Tappable, Echoing {
     this.core.dispose();
   }
 
-  // 가까운 것(v·p > cut)이면서 지평선 너머가 아닌 것만 칸에 채운다
+  // 가까운 것(v·p > cut)이면서 지평선 너머가 아닌 것만 담는다
   private fill(cut: number) {
     const p = this.s.player.p,
       eye = this.s.culler.eye;
@@ -233,13 +311,10 @@ export class Pillars implements Thing, Tappable, Echoing {
       pl.slot = along > cut && along > seen ? n++ : -1;
       if (pl.slot >= 0) this.shape(pl, this.lastTime);
     }
-    this.stems.count = n;
-    this.cores.count = n;
-    this.petals.count = n * PETALS;
-    this.flag();
+    this.staged = n;
   }
 
-  // 기둥 하나의 줄기·꽃잎·심을 지금 불빛대로 찍는다(그리는 칸이 있을 때만)
+  // 기둥 하나의 줄기·꽃잎·심을 지금 불빛대로 담아 둔 칸에 찍는다(담지 않은 기둥이면 빛 자리만 정한다)
   private shape(pl: Pillar, time: number) {
     const e = pl.lit * pl.lit * (3 - 2 * pl.lit);
     const hgt = pl.base * (1 + e * 0.9);
@@ -248,37 +323,46 @@ export class Pillars implements Thing, Tappable, Echoing {
     if (pl.slot < 0) return;
     const { mats } = this.s;
     col.copy(mats.toy.pillar).lerp(mats.lime, e);
+    const at = pl.slot * 16,
+      tintAt = pl.slot * 3;
+    col.toArray(this.tint, tintAt);
     sc.set(1, hgt, 1);
     m4.compose(pl.root, pl.q, sc);
-    this.stems.setMatrixAt(pl.slot, m4);
-    this.stems.setColorAt(pl.slot, col);
+    m4.toArray(this.stemM, at);
     const pulsePhase = time * 10 + pl.i;
     const bloom = (0.72 + 0.7 * e) * (1 + 0.1 * Math.sin(pulsePhase) * e);
     sc.setScalar(bloom);
     headM.compose(pl.head, pl.headQ, sc);
-    const first = pl.slot * PETALS;
+    const first = pl.slot * PETAL_FLOATS;
     for (let k = 0; k < PETALS; k++) {
       m4.multiplyMatrices(headM, this.petalLocal[k]);
-      const at = first + k;
-      this.petals.setMatrixAt(at, m4);
-      this.petals.setColorAt(at, col);
+      const petalAt = first + k * 16;
+      m4.toArray(this.petalM, petalAt);
     }
     m4.multiplyMatrices(headM, this.coreLocal);
-    this.cores.setMatrixAt(pl.slot, m4);
-  }
-
-  private flag() {
-    // 그리는 칸(가까운 기둥)만 올린다
-    for (const m of [this.stems, this.petals, this.cores]) {
-      uploadFirst(m.instanceMatrix, m.count);
-      if (m.instanceColor) uploadFirst(m.instanceColor, m.count);
-    }
+    m4.toArray(this.coreM, at);
+    // 둘레 공: 밑동과 꽃 머리의 가운데에서, 줄기 절반에 꽃 머리 둘레를 더한 만큼
+    const halfLift = headLift / 2,
+      headReach = bloom * HEAD_REACH,
+      ballAt = pl.slot * BALL;
+    mid.copy(pl.root).addScaledVector(pl.v, halfLift);
+    mid.toArray(this.balls, ballAt);
+    this.balls[ballAt + 3] = halfLift + headReach;
   }
 }
 
 /* ─── 내부 ─────────────────────────── */
 
-// 한 번에 그리는 묶음 하나(가까운 것만 칸을 채우므로 three 의 화면 밖 거르기는 끈다)
+// 묶음의 인스턴스 색 칸(기둥마다 라임으로 켜진 정도가 달라 재질 색 대신 쓴다)
+function newTints(mesh: THREE.InstancedMesh, count: number): THREE.InstancedBufferAttribute {
+  const floats = count * 3;
+  const slots = new Float32Array(floats);
+  const tints = new THREE.InstancedBufferAttribute(slots, 3);
+  mesh.instanceColor = tints;
+  return tints;
+}
+
+// 한 번에 그리는 묶음 하나(그릴 것만 칸을 채우므로 three 의 화면 밖 거르기는 끈다)
 function newInstances(
   geo: THREE.BufferGeometry,
   mat: THREE.Material,
