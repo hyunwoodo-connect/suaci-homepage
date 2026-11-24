@@ -83,6 +83,7 @@ import { Regions } from "./world/regions";
 import { Sites } from "./world/sites";
 import { Sky } from "./world/sky";
 import { from } from "./world/sphere";
+import { withAllShown } from "./world/reveal";
 import { Sight } from "./world/sight";
 import { createStage } from "./world/stage";
 import type { Stage } from "./world/stage";
@@ -579,8 +580,9 @@ export class Game {
     renderer.render(scene, camera);
   }
 
-  // 장면의 모든 것을 한 번 그려 셰이더·도형·그림을 GPU 에 올린다: 멀리 있어 떼어 둔 것까지 붙이고, 화면 한 점에만 그린다
-  // (정점만 지나가면 올라간다. 화면에는 남지 않는다). 꾸미기 씬이 열려 있으면 카메라가 그 씬만 보므로 그동안은 세상까지 다 보게 한다
+  // 장면의 모든 것을 한 번 그려 셰이더·도형·그림을 GPU 에 올린다: 멀리 있어 떼어 둔 것을 붙이고, 일이 있을 때만 나타나려고
+  // 숨겨 둔 것(대포 방울·등대 불빛·회오리…)까지 보이게 해서, 화면 한 점에만 그린다(정점만 지나가면 올라간다. 화면에는 남지 않는다).
+  // 꾸미기 씬이 열려 있으면 카메라가 그 씬만 보므로 그동안은 세상까지 다 보게 한다
   private warmScene() {
     const { renderer, scene, camera } = this.stage;
     const seen = camera.layers.mask,
@@ -589,9 +591,10 @@ export class Game {
     camera.layers.enableAll();
     renderer.setScissor(0, 0, 1, 1);
     renderer.setScissorTest(true);
-    const everything = () => this.s.culler.withEverything(() => renderer.render(scene, camera));
+    const draw = () => renderer.render(scene, camera),
+      drawAll = () => withAllShown(scene, draw);
     try {
-      this.s.models.withEmptyShown(everything);
+      this.s.culler.withEverything(drawAll);
     } finally {
       renderer.setScissorTest(false);
       renderer.setScissor(0, 0, whole.x, whole.y);

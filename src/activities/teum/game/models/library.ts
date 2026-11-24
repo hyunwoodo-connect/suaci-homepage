@@ -171,25 +171,6 @@ export class ModelLibrary {
     return this.cold.shift();
   }
 
-  /**
-   * 모델 묶음을 빈 것까지 모두 보이게 한 채로 run 을 부르고, 원래대로 돌려놓는다. 평소에는 하나도 안 그리는 묶음을 장면에서
-   * 건너뛰는데, 데울 때(Game.warmScene)는 그것들도 지나가야 셰이더와 도형이 GPU 에 올라간다(칸이 0 이라 그려지는 것은 없다)
-   */
-  withEmptyShown(run: () => void) {
-    const hidden: THREE.Object3D[] = [];
-    for (const group of [...this.instancers, ...this.batches])
-      for (const mesh of group.meshes) {
-        if (mesh.visible) continue;
-        mesh.visible = true;
-        hidden.push(mesh);
-      }
-    try {
-      run();
-    } finally {
-      for (const mesh of hidden) mesh.visible = false;
-    }
-  }
-
   /** 도착했지만 아직 GPU 에 올리지 못한 그림이 남았나 */
   get hasCold(): boolean {
     return this.cold.length > 0;
