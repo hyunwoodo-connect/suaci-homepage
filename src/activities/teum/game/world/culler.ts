@@ -94,6 +94,37 @@ export class Culler {
     this.holder.children.push(o);
   }
 
+  /**
+   * 맡은 것을 멀리 있는 것까지 모두 장면에 붙이고 화면 밖 거르기도 끈 채로 run 을 부른 뒤, 원래대로 돌려놓는다 —
+   * 그리기 전에 한 번 다 그려 셰이더·도형·그림을 GPU 에 올려 둘 때 쓴다(Game.warmUp)
+   */
+  withEverything(run: () => void) {
+    const kids = this.holder.children,
+      near = kids.slice(),
+      unculled: THREE.Object3D[] = [];
+    kids.length = 0;
+    for (const t of this.list) {
+      t.o.parent = this.holder;
+      kids.push(t.o);
+      t.o.traverse((o) => {
+        if (!o.frustumCulled) return;
+        o.frustumCulled = false;
+        unculled.push(o);
+      });
+    }
+    try {
+      run();
+    } finally {
+      for (const o of unculled) o.frustumCulled = true;
+      for (const t of this.list) t.o.parent = null;
+      kids.length = 0;
+      for (const o of near) {
+        o.parent = this.holder;
+        kids.push(o);
+      }
+    }
+  }
+
   /** 기준을 다시 정할 때마다 부른다(찍어 둔 묶음·꽃처럼 칸을 따로 채우는 것) */
   onCull(fn: (cut: number) => void) {
     this.listeners.push(fn);

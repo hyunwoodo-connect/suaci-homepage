@@ -40,6 +40,9 @@ interface ModelLookOptions {
   batch: boolean;
 }
 
+/** 모델 재질에서 쓰지 않는 그림 */
+const UNUSED_MAPS = ["metalnessMap", "roughnessMap", "normalMap"] as const;
+
 /** 제 색을 지키는 등장인물: 나(몸·입는 부품)와 고래 — 지역 색으로 돌리지도, 끝 장면에 물들이지도 않는다 */
 const PART_KEYS = Object.keys(PARTS);
 const CAST = new Set([AVATAR_BODY, ...PART_KEYS, "whale"]);
@@ -64,8 +67,9 @@ export function styleModel(mat: THREE.MeshStandardMaterial, o: ModelLookOptions)
   // 어떤 에셋의 재질인지(그리기 호출을 셀 때 이름으로 본다)
   mat.name = o.key;
   mat.metalness = 0;
-  mat.metalnessMap = null;
-  mat.roughnessMap = null;
+  // 금속·거칠기·요철 그림은 쓰지 않는다: 톤이 광택을 정하고, 요철 그림은 넣어도 화면에서 구별되지 않는데 모델마다 한 장씩 GPU 에 올라가고
+  // 조각마다 셈이 든다. 풀어 낸 그림은 모델마다 두 장(1~4MB 씩)이라 놓기만 하지 않고 바로 비운다 — 폰은 메모리가 차면 끊긴다
+  for (const unused of UNUSED_MAPS) dropMap(mat, unused);
   mat.roughness = LOOK.modelRough;
   if (o.batch) mat.defines = { ...mat.defines, [BATCH_DEFINE]: "" };
   const { uAn, uAk, uAx } = o.motion;
@@ -124,4 +128,19 @@ export function styleModel(mat: THREE.MeshStandardMaterial, o: ModelLookOptions)
     return kind + regions;
   };
   mat.needsUpdate = true;
+}
+
+/* ─── 내부 ─────────────────────────── */
+
+// 재질에서 그림 하나를 떼고 비운다(풀어 낸 비트맵도 닫는다 — 같은 그림을 금속·거칠기가 같이 써도 두 번 비워서 탈 날 것은 없다)
+function dropMap(mat: THREE.MeshStandardMaterial, key: (typeof UNUSED_MAPS)[number]) {
+  const tex = mat[key];
+  if (!tex) return;
+  mat[key] = null;
+  // 남겨 쓰는 칸(색·그늘·빛·투명)이 같은 그림을 가리키면 떼기만 한다(그늘을 금속·거칠기 그림에 같이 담는 에셋이 올 수 있다)
+  const kept = [mat.map, mat.aoMap, mat.emissiveMap, mat.alphaMap];
+  if (kept.includes(tex)) return;
+  tex.dispose();
+  const image: unknown = tex.image;
+  if (typeof ImageBitmap !== "undefined" && image instanceof ImageBitmap) image.close();
 }

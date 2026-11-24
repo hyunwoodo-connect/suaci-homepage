@@ -11,6 +11,7 @@ import { reserveLawn } from "./brand/lawn";
 import { BrandObjects } from "./brand/objects";
 import { Signature } from "./brand/signature";
 import type { Frame, Thing } from "./core/frame";
+import { PixelBudget } from "./core/pixelBudget";
 import { Random } from "./core/random";
 import type { Tap, Tappable } from "./core/tap";
 import { Creatures } from "./creatures/creatures";
@@ -171,6 +172,12 @@ export class Game {
   /** 소리판(알림판을 듣는다 — 소리를 정하기 전에는 아무것도 하지 않는다) */
   readonly sound: SoundManager;
   private readonly frameOrder: Step[];
+  /** 느린 기기에서 화면 배율을 낮추는 조절(시작 배율은 그리는 틀이 정한 값) */
+  private readonly pixels: PixelBudget;
+  /** 뒤에서 받는 나머지 에셋이 아직 오는 중인가(시작하는 쪽이 restArrived 로 끝을 알린다) */
+  private isRestComing = true;
+  /** 나머지 에셋이 다 온 뒤 꾸미기 씬 뒤에서 데우기를 아직 하지 않았나(한 번만 한다) */
+  private owesWarm = false;
   private readonly tapOrder: Tappable[];
   private readonly ray = new THREE.Raycaster();
   /** 그리기 직전의 시야(여럿을 한 번에 그리는 묶음이 시야 밖의 것을 뺀다) */
@@ -190,6 +197,8 @@ export class Game {
   ) {
     const stage = createStage(canvas);
     this.stage = stage;
+    const startRatio = stage.renderer.getPixelRatio();
+    this.pixels = new PixelBudget(startRatio);
     const scene = stage.scene;
     const layout = cloneLayout(map);
     const mats = new Mats();
@@ -456,11 +465,35 @@ export class Game {
     const dt = Math.min(0.1, elapsed);
     this.frame.dt = dt;
     this.frame.time += dt;
+    this.fitPixels(elapsed);
     this.runFrame();
-    this.updateFrustum();
-    this.s.models.flush(this.frustum, this.s.player.p, this.s.culler.cut, this.s.culler.eye);
-    this.terrainView.flush(this.frustum);
-    this.stage.renderer.render(this.stage.scene, this.stage.camera);
+    this.warmBehindStudio();
+    this.draw();
+  }
+
+  /** 꾸미기 씬 없이 바로 세상으로 들어가나(이미 꾸미고 온 사람 · 개발 ?quick). 기록을 읽은 뒤(wardrobe.ready)에 묻는다 */
+  get startsInWorld(): boolean {
+    return isStudioSkipped() || this.wardrobe.hasDressed;
+  }
+
+  /** 뒤에서 받던 나머지 에셋 받기가 끝났다(받지 못한 것이 있어도 끝난 것이다 — 그것을 기다리며 멈춰 있지 않는다) */
+  restArrived() {
+    this.isRestComing = false;
+    this.owesWarm = true;
+  }
+
+  /**
+   * 그리기 전에 데운다(불러오는 화면 뒤에서 한 번, 먼저 받을 에셋을 받은 뒤): 받은 그림을 모두 GPU 에 올리고, 멀리 있어 장면에서 떼어 둔
+   * 것까지 한 번 다 그려 셰이더·도형을 올려 둔 다음, 첫 화면을 그린다. 그러지 않으면 처음 보는 것이 화면에 들어오는 프레임마다
+   * 그 일을 하느라 끊긴다. 게임의 셈은 하지 않는다(그리기만)
+   */
+  warmUp() {
+    const { renderer, scene, camera } = this.stage,
+      models = this.s.models;
+    for (let cold = models.takeCold(); cold; cold = models.takeCold()) renderer.initTexture(cold);
+    this.fill();
+    this.warmScene();
+    renderer.render(scene, camera);
   }
 
   /**
@@ -536,6 +569,66 @@ export class Game {
   }
 
   /* ─── 내부 ─────────────────────────── */
+
+  // 지금 자리를 그린다. 뒤늦게 도착한 모델의 그림은 프레임마다 하나씩 미리 올린다(처음 보이는 프레임에 몰리지 않게)
+  private draw() {
+    const { renderer, scene, camera } = this.stage,
+      cold = this.s.models.takeCold();
+    if (cold) renderer.initTexture(cold);
+    this.fill();
+    renderer.render(scene, camera);
+  }
+
+  // 장면의 모든 것을 한 번 그려 셰이더·도형·그림을 GPU 에 올린다: 멀리 있어 떼어 둔 것까지 붙이고, 화면 한 점에만 그린다
+  // (정점만 지나가면 올라간다. 화면에는 남지 않는다). 꾸미기 씬이 열려 있으면 카메라가 그 씬만 보므로 그동안은 세상까지 다 보게 한다
+  private warmScene() {
+    const { renderer, scene, camera } = this.stage;
+    const seen = camera.layers.mask,
+      whole = new THREE.Vector2();
+    renderer.getSize(whole);
+    camera.layers.enableAll();
+    renderer.setScissor(0, 0, 1, 1);
+    renderer.setScissorTest(true);
+    const everything = () => this.s.culler.withEverything(() => renderer.render(scene, camera));
+    try {
+      this.s.models.withEmptyShown(everything);
+    } finally {
+      renderer.setScissorTest(false);
+      renderer.setScissor(0, 0, whole.x, whole.y);
+      camera.layers.mask = seen;
+    }
+  }
+
+  // 그리기 직전: 지금 카메라의 시야를 재고, 묶음들이 그 안의 것만 칸에 채운다
+  private fill() {
+    this.updateFrustum();
+    this.s.models.flush(this.frustum, this.s.player.p, this.s.culler.cut, this.s.culler.eye);
+    this.terrainView.flush(this.frustum);
+  }
+
+  // 에셋이 아직 자리를 잡는 중인가: 뒤에서 받는 것이 남았거나, 도착한 그림을 아직 다 올리지 못했다
+  private get isSettling(): boolean {
+    return this.isRestComing || this.s.models.hasCold;
+  }
+
+  // 처음 온 사람이 꾸미는 동안 나머지 에셋이 뒤에서 다 도착했으면(그림도 다 올렸으면), 세상으로 나가기 전에 한 번 더 데운다.
+  // 꾸미기 씬은 가만히 있는 화면이라 이때 한 프레임 늦어도 보이지 않는다. 세상에 나온 뒤라면 하지 않는다(그 한 프레임이 끊긴다).
+  // 한 번만 한다 — 나중에 옷장을 열어 부품이 하나씩 도착할 때마다 다시 하지 않는다
+  private warmBehindStudio() {
+    if (!this.owesWarm || this.s.models.hasCold) return;
+    this.owesWarm = false;
+    if (this.s.hud.isInStudio) this.warmScene();
+  }
+
+  // 프레임이 계속 느린 기기에서는 화면 배율을 낮춘다(core/pixelBudget.ts). elapsed: 지난 프레임부터 흐른 실제 시간(초).
+  // 에셋이 아직 오는 동안은 재지 않는다 — 받아서 세우고 올리느라 느린 것을 기기가 느린 것으로 읽으면 안 된다
+  private fitPixels(elapsed: number) {
+    if (this.isSettling) return;
+    const intervalMs = elapsed * 1000,
+      ratio = this.pixels.feed(intervalMs);
+    // 배율을 바꾸면 그리는 판의 크기도 같이 바뀐다(화면에 놓인 크기는 그대로)
+    if (ratio !== null) this.stage.renderer.setPixelRatio(ratio);
+  }
 
   // 이번 프레임 값(this.frame)으로 frameOrder 를 차례로 부른다
   private runFrame() {

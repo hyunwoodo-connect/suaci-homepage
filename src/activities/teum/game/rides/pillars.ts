@@ -4,6 +4,7 @@ import type { Frame, Thing } from "../core/frame";
 import type { Echoing, Tap, Tappable } from "../core/tap";
 import { ECHO_REACH, echoTime } from "../core/tap";
 import type { LayoutRow } from "../maps/layout";
+import { uploadFirst } from "../models/upload";
 import type { Services } from "../services";
 import { S } from "../settings";
 import type { Dip } from "../world/culler";
@@ -267,9 +268,10 @@ export class Pillars implements Thing, Tappable, Echoing {
   }
 
   private flag() {
+    // 그리는 칸(가까운 기둥)만 올린다
     for (const m of [this.stems, this.petals, this.cores]) {
-      m.instanceMatrix.needsUpdate = true;
-      if (m.instanceColor) m.instanceColor.needsUpdate = true;
+      uploadFirst(m.instanceMatrix, m.count);
+      if (m.instanceColor) uploadFirst(m.instanceColor, m.count);
     }
   }
 }

@@ -3,6 +3,7 @@ import * as THREE from "three";
 import type { LookUniforms } from "../look";
 import { extentBy } from "./extent";
 import { styleModel } from "./shader";
+import { uploadFirst } from "./upload";
 
 // 같은 모델 여럿을 한 번에 그리는 묶음: 생물·별·범퍼·풍선처럼 저마다 움직이고, 몸 휘기(aAn)·라임(aLime)이 다른 것.
 // 매 프레임 그릴 것만 begin → push … → end 로 채운다(멀리 있는 것은 넣지 않으면 그리지 않는다).
@@ -28,7 +29,8 @@ export class ModelBatch {
   rw: number;
   /** 모델이 와서 그릴 수 있다 */
   ready = false;
-  private readonly meshes: THREE.InstancedMesh[] = [];
+  /** 장면에 올린 묶음 메시들(모델이 오면 생긴다) */
+  readonly meshes: THREE.InstancedMesh[] = [];
   private readonly an: THREE.InstancedBufferAttribute[] = [];
   private readonly lime: THREE.InstancedBufferAttribute[] = [];
   private n = 0;
@@ -158,6 +160,8 @@ export class ModelBatch {
     for (let j = 0; j < this.meshes.length; j++) {
       const im = this.meshes[j];
       im.count = kept;
+      // 하나도 안 그리는 묶음은 장면에서 건너뛴다(Instancer 와 같은 까닭)
+      im.visible = kept > 0;
       uploadFirst(im.instanceMatrix, kept);
       uploadFirst(this.an[j], kept);
       uploadFirst(this.lime[j], kept);
@@ -189,15 +193,4 @@ export class ModelBatch {
       im.dispose();
     }
   }
-}
-
-/* ─── 내부 ─────────────────────────── */
-
-// 앞의 n 칸만 올려 보낸다(묶음 전체를 매 프레임 보내지 않게)
-function uploadFirst(attr: THREE.BufferAttribute, n: number) {
-  attr.clearUpdateRanges();
-  if (n === 0) return;
-  const floats = n * attr.itemSize;
-  attr.addUpdateRange(0, floats);
-  attr.needsUpdate = true;
 }
