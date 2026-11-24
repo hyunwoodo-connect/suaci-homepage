@@ -66,6 +66,8 @@ export class ModelLibrary {
   private requester: ((k: string) => void) | null = null;
   private readonly asked = new Set<string>();
   private disposed = false;
+  /** 도착했지만 아직 GPU 에 올리지 않은 그림(텍스처) */
+  private readonly cold: THREE.Texture[] = [];
 
   constructor(
     readonly manifest: Manifest,
@@ -154,9 +156,23 @@ export class ModelLibrary {
     });
     root.updateMatrixWorld(true);
     this.arrived.set(k, root);
+    this.chill(root);
     const list = this.waiting.get(k) ?? [];
     this.waiting.delete(k);
     for (const cb of list) cb(root);
+  }
+
+  /**
+   * 도착했지만 아직 GPU 에 올리지 않은 그림 하나(없으면 undefined). 그림은 처음 그려지는 순간에 올라가는데, 그때 올리면 그 프레임이
+   * 끊긴다 — 게임이 프레임마다 하나씩 꺼내 미리 올린다
+   */
+  takeCold(): THREE.Texture | undefined {
+    return this.cold.shift();
+  }
+
+  /** 에셋이 아직 자리를 잡는 중인가: 올 모델이 남았거나, 도착한 그림을 아직 다 올리지 못했다 */
+  get isSettling(): boolean {
+    return this.waiting.size > 0 || this.cold.length > 0;
   }
 
   /**
@@ -274,6 +290,16 @@ export class ModelLibrary {
     for (const I of this.instancers) I.dispose();
     for (const B of this.batches) B.dispose();
     for (const m of this.instMats.values()) m.dispose();
+  }
+
+  // 도착한 모델의 그림을 미리 올릴 줄에 세운다(같은 그림은 한 번만)
+  private chill(root: THREE.Group) {
+    root.traverse((c) => {
+      if (!(c instanceof THREE.Mesh)) return;
+      const mat = c.material as THREE.MeshStandardMaterial;
+      for (const tex of [mat.map, mat.emissiveMap, mat.normalMap, mat.aoMap, mat.alphaMap])
+        if (tex && !this.cold.includes(tex)) this.cold.push(tex);
+    });
   }
 
   private sharedOf(k: string): KeyShared {

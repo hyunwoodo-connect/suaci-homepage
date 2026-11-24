@@ -133,3 +133,41 @@ describe("Culler 의 눈높이", () => {
     expect(reach(culler)).toBeGreaterThan(farthest(mine, 0));
   });
 });
+
+describe("Culler.withEverything", () => {
+  it("멀리 있어 떼어 둔 것까지 모두 붙이고 화면 밖 거르기를 끈 채로 부른 뒤 → 원래대로 돌려놓는다", () => {
+    const terrain = new Terrain(7, { flowers: 0, mounds: 0, clouds: 0 }, []);
+    const player = new Player(terrain, new GameEvents());
+    player.goHome();
+    player.updateAlt();
+    player.place(0);
+    const scene = new THREE.Scene(),
+      culler = new Culler(scene, player);
+    const near = new THREE.Mesh(),
+      far = new THREE.Mesh(),
+      always = new THREE.Mesh();
+    always.frustumCulled = false;
+    const here = player.p.clone(),
+      behind = player.p.clone().negate();
+    culler.track(near, here);
+    culler.track(far, behind);
+    culler.track(always, here);
+    culler.update({ dt: 1 / 60, time: 0 });
+    const attached = () => [near, far, always].map((o) => o.parent !== null),
+      culled = () => [near, far, always].map((o) => o.frustumCulled);
+    const before = [attached(), culled()];
+    let during: boolean[][] = [];
+    culler.withEverything(() => {
+      during = [attached(), culled()];
+    });
+    expect(before).toEqual([
+      [true, false, true],
+      [true, true, false],
+    ]);
+    expect(during).toEqual([
+      [true, true, true],
+      [false, false, false],
+    ]);
+    expect([attached(), culled()]).toEqual(before);
+  });
+});
