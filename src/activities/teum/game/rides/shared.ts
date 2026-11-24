@@ -34,6 +34,17 @@ export function swapIn(models: ModelLibrary, k: string, parent: THREE.Object3D, 
 }
 
 /**
+ * 속이 비치는 양면 재질을 뒷면용·앞면용 둘로 나눈다. 같은 도형을 뒷면 재질로 먼저, 앞면 재질로 나중에 그리면 양면 재질 하나와 같은 그림이다.
+ * 양면 재질 하나로 두면 three 가 그릴 때마다 면을 바꾸며 재질을 고쳤다고 표시해서, 프레임마다 셰이더를 다시 고르느라 큰 표와 긴 열쇠 글을 새로 만든다
+ */
+export function splitSides<M extends THREE.Material>(mat: M): [back: M, front: M] {
+  const back = mat.clone();
+  back.side = THREE.BackSide;
+  mat.side = THREE.FrontSide;
+  return [back, mat];
+}
+
+/**
  * 몽글몽글한 구름 방석 모양: 가운데 큰 덩이 + 둘레 일곱 덩이(통통 구름·징검 구름과 그네 의자가 같이 쓴다).
  * 위에서 본 테두리(둘레 칸)는 둥글게 두고 세로 칸만 줄인다 — 한 화면에 마흔 개 넘게 그려져서 삼각형이 그대로 곱해진다
  */

@@ -7,6 +7,7 @@ import type { Services } from "../services";
 import { S } from "../settings";
 import { jetPath } from "../world/paths";
 import { START } from "../world/sphere";
+import { splitSides } from "./shared";
 
 // 제트 기류 — 높은 하늘의 빠른 바람길. 들어가면 아주 멀리 실려 간다.
 // 하늘을 가로지르는 분홍 유리 관으로 보이고, 그 안을 흰 줄이 빠르게 흘러간다. 먼 마을에서 광장으로 이어지는 오로라 길은 라임빛
@@ -23,7 +24,8 @@ interface JetNode {
 /** 제트 기류 하나 */
 interface Jet extends LayoutJet {
   nodes: JetNode[];
-  tube: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
+  /** 관: 같은 도형을 뒷면 먼저, 앞면 나중에(유리 관의 먼 벽이 가까운 벽 너머로 비친다) */
+  tubes: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>[];
 }
 
 /** 제트 기류가 흐르는 높이 */
@@ -79,7 +81,6 @@ export class Jets implements Thing {
       opacity: 0.34,
       roughness: 0.04,
       metalness: 0,
-      side: THREE.DoubleSide,
       depthWrite: false,
       envMapIntensity: 1.6,
       fog: false,
@@ -92,20 +93,25 @@ export class Jets implements Thing {
       opacity: 0.3,
       roughness: 0.05,
       metalness: 0,
-      side: THREE.DoubleSide,
       depthWrite: false,
       envMapIntensity: 1.4,
       fog: false,
     }); // 오로라 길은 라임빛
-    this.tubeMats = [jetTubeMat, auroraMat];
+    const jetSides = splitSides(jetTubeMat),
+      auroraSides = splitSides(auroraMat);
+    this.tubeMats = [...jetSides, ...auroraSides];
     this.list = data.map((jt) => {
       const tubeGeo = new THREE.BufferGeometry();
-      const tubeMat = jt.aurora ? auroraMat : jetTubeMat;
-      const tube = new THREE.Mesh(tubeGeo, tubeMat);
-      // 관은 하늘을 길게 가로질러 한 자리로 거를 수 없다(늘 그린다)
-      tube.frustumCulled = false;
-      s.scene.add(tube);
-      return { ...jt, tube };
+      const sides = jt.aurora ? auroraSides : jetSides;
+      // 뒷면을 먼저 만든다 — 같은 자리의 비치는 것은 먼저 만든 것부터 그려진다
+      const tubes = sides.map((mat) => {
+        const tube = new THREE.Mesh(tubeGeo, mat);
+        // 관은 하늘을 길게 가로질러 한 자리로 거를 수 없다(늘 그린다)
+        tube.frustumCulled = false;
+        s.scene.add(tube);
+        return tube;
+      });
+      return { ...jt, tubes };
     });
   }
 
@@ -121,11 +127,12 @@ export class Jets implements Thing {
         nd.side.crossVectors(v, d).normalize();
         nd.g = terrain.featGround(v);
       });
-      jt.tube.geometry.dispose();
+      jt.tubes[0].geometry.dispose();
       const tubePoints = jt.nodes.map((nd) => nd.v.clone().multiplyScalar(S.R + nd.g + JH));
       const tubePath = new THREE.CatmullRomCurve3(tubePoints);
       const tubeSegments = jt.nodes.length * 4;
-      jt.tube.geometry = new THREE.TubeGeometry(tubePath, tubeSegments, 3.4, 14, false);
+      const tubeGeo = new THREE.TubeGeometry(tubePath, tubeSegments, 3.4, 14, false);
+      for (const tube of jt.tubes) tube.geometry = tubeGeo;
     }
   }
 
@@ -202,8 +209,8 @@ export class Jets implements Thing {
   /** 치운다 */
   dispose() {
     for (const jt of this.list) {
-      jt.tube.removeFromParent();
-      jt.tube.geometry.dispose();
+      for (const tube of jt.tubes) tube.removeFromParent();
+      jt.tubes[0].geometry.dispose();
     }
     for (const m of this.tubeMats) m.dispose();
     this.jetM.removeFromParent();
