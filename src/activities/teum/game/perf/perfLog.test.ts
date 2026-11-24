@@ -69,22 +69,24 @@ describe("PerfLog", () => {
     expect(dataOf(log).drops).toBe(1);
   });
 
-  it("느린 기기(보통 33ms)에서 → 34ms 는 끊김이 아니고 60ms 는 끊김이다", () => {
+  it("느린 기기(늘 33ms)에서 → 34ms 는 끊김이 아니고 60ms 는 끊김이다(기준이 없는 맨 첫 장만 끊김으로 적힌다)", () => {
     const log = new PerfLog();
     feed(log, 300, 33.3);
     log.frame(34, world());
     log.frame(60, world());
-    expect(dataOf(log).drops).toBe(1);
+    const data = dataOf(log),
+      lengths = data.dropList.map((drop: number[]) => drop[1]);
+    expect([data.steadyMs, lengths]).toEqual([33, [33, 60]]);
   });
 
-  it("세상에 들어서자마자 긴 프레임 하나(200ms) 뒤로 고르면 → 고른 간격은 17ms 로 잡히고, 뒤의 40ms 를 끊김으로 적는다", () => {
+  it("세상에 들어선 첫 프레임이 길면(200ms) → 그것도 끊김으로 적고, 그 뒤의 고른 간격은 17ms 로 잡힌다", () => {
     const log = new PerfLog();
     log.frame(200, world());
     feed(log, 300, 16.7);
     log.frame(40, world());
     const data = dataOf(log),
-      last = data.dropList.at(-1);
-    expect([data.steadyMs, data.worstMs, last[1]]).toEqual([17, 200, 40]);
+      lengths = data.dropList.map((drop: number[]) => drop[1]);
+    expect([data.steadyMs, data.worstMs, lengths]).toEqual([17, 200, [200, 40]]);
   });
 
   it("간격이 0 이거나 음수인 맨 첫 프레임 → 세지 않는다", () => {
@@ -104,12 +106,25 @@ describe("PerfLog", () => {
     expect(dataOf(log).dropList[0][12]).toBe(5.2);
   });
 
-  it("0.5초 넘는 간격(다른 앱에 다녀옴) → 끊김이 아니라 자리 비움으로 센다", () => {
+  it("2초 넘는 간격(다른 앱에 다녀옴) → 끊김이 아니라 자리 비움으로 세고, 언제 얼마나였는지 남긴다", () => {
     const log = new PerfLog();
     feed(log, 300, 16.7);
     log.frame(4000, world());
     const data = dataOf(log);
-    expect([data.drops, data.pauses, data.frames]).toEqual([0, 1, 300]);
+    expect([data.drops, data.pauses, data.frames, data.pauseList]).toEqual([
+      0,
+      1,
+      300,
+      [[5, 4000]],
+    ]);
+  });
+
+  it("1.2초 멈춤 → 자리 비움이 아니라 끊김으로 적는다(폰에서는 진짜 멈춤이 이만큼 길 수 있다)", () => {
+    const log = new PerfLog();
+    feed(log, 300, 16.7);
+    log.frame(1200, world());
+    const data = dataOf(log);
+    expect([data.drops, data.pauses, data.worstMs]).toEqual([1, 0, 1200]);
   });
 
   it("꾸미기 씬의 프레임 → 따로 세고 끊김·평균에 넣지 않는다", () => {
@@ -127,17 +142,25 @@ describe("PerfLog", () => {
     feed(log, 299, 16.7, flying);
     log.frame(45, flying);
     const span = dataOf(log).spans[0];
-    expect(span.slice(1)).toEqual([300, 16.8, 45, 40, 700, 150, 6]);
+    expect(span.slice(1)).toEqual([300, 16.8, 45, 40, 700, 150, 6, 1]);
   });
 
-  it("구간이 닫히거나 끊기면 → 화면에 보일 한 줄이 바뀐다(그 밖에는 그대로)", () => {
+  it("화면에 보일 한 줄 → 구간이 닫힐 때만 바뀐다(끊길 때마다 화면을 건드리지 않는다)", () => {
     const log = new PerfLog();
     const before = log.readout;
     feed(log, 100, 16.7);
     const during = log.readout;
     feed(log, 200, 16.7);
+    const closed = log.readout;
     log.frame(40, world());
-    expect([during === before, log.readout]).toEqual([true, "60fps · 끊김 1"]);
+    const afterDrop = log.readout;
+    feed(log, 300, 16.7);
+    expect([during === before, closed, afterDrop, log.readout]).toEqual([
+      true,
+      "60fps · 끊김 0",
+      "60fps · 끊김 0",
+      "60fps · 끊김 1",
+    ]);
   });
 
   it("끊긴 프레임이 80장을 넘으면 → 목록은 80장까지만, 수는 다 센다", () => {
@@ -148,6 +171,24 @@ describe("PerfLog", () => {
     expect([data.drops, data.dropList.length]).toEqual([100, 80]);
   });
 
+  it("목록이 찬 뒤 더 긴 끊김이 오면 → 가장 짧은 것 자리에 적는다(긴 것부터 남긴다), 목록은 때 차례", () => {
+    const log = new PerfLog();
+    feed(log, 300, 16.7);
+    feed(log, 90, 50);
+    log.frame(90, world());
+    log.frame(30, world());
+    const data = dataOf(log),
+      lengths: number[] = data.dropList.map((drop: number[]) => drop[1]),
+      times: number[] = data.dropList.map((drop: number[]) => drop[0]),
+      inOrder = times.every((t, i) => i === 0 || times[i - 1] <= t);
+    expect([lengths.length, Math.max(...lengths), lengths.includes(30), inOrder]).toEqual([
+      80,
+      90,
+      false,
+      true,
+    ]);
+  });
+
   it("report 의 첫 줄 → 사람이 읽는 요약", () => {
     const log = new PerfLog();
     feed(log, 600, 16.7);
@@ -156,12 +197,14 @@ describe("PerfLog", () => {
     expect(head).toBe("틈 측정 · 601장 · 평균 59fps(보통 17ms) · 끊김 1장 · 가장 긴 것 84ms");
   });
 
-  it("간격 분포 → 경계(10·18·26·34·51·101ms)마다 묶은 수", () => {
+  it("간격 분포 → 화면 주기 사이의 경계(12·25·42·58·100ms)마다 묶은 수: 33ms 와 34ms 는 같은 묶음", () => {
     const log = new PerfLog();
     feed(log, 10, 8);
     feed(log, 20, 16.7);
     feed(log, 3, 33);
+    feed(log, 2, 34);
+    feed(log, 1, 50);
     feed(log, 1, 120);
-    expect(dataOf(log).buckets).toEqual([10, 20, 0, 3, 0, 0, 1]);
+    expect(dataOf(log).buckets).toEqual([10, 20, 5, 1, 0, 1]);
   });
 });
