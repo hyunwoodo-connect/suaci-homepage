@@ -1,6 +1,7 @@
 import * as THREE from "three";
 
 import type { Thing } from "../core/frame";
+import { uploadFirst } from "../models/upload";
 import type { Services } from "../services";
 import { S } from "../settings";
 import type { Ground } from "./ground";
@@ -119,12 +120,7 @@ export class TerrainView implements Thing {
       n++;
     }
     this.hills.count = n;
-    const attr = this.hills.instanceMatrix;
-    attr.clearUpdateRanges();
-    if (!n) return;
-    const floats = n * 16;
-    attr.addUpdateRange(0, floats);
-    attr.needsUpdate = true;
+    uploadFirst(this.hills.instanceMatrix, n);
   }
 
   /** 자리 차지: 큰 언덕 둘레 */

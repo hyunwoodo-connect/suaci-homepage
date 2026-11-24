@@ -5,6 +5,7 @@ import type { Frame, Thing } from "../core/frame";
 import type { Tap, Tappable } from "../core/tap";
 import { keyShader } from "../keyColor";
 import { LOOK } from "../look";
+import { uploadFirst } from "../models/upload";
 import type { Services } from "../services";
 import { S } from "../settings";
 import type { Dip } from "./culler";
@@ -170,10 +171,7 @@ export class Flowers implements Thing, Tappable {
       const bloom = nl * nl * (3 - 2 * nl);
       this.setFlower(k, bloom);
     }
-    if (dirty) {
-      for (const m of [this.petals, this.core, this.stem]) m.instanceMatrix.needsUpdate = true;
-      this.petals.instanceColor!.needsUpdate = true;
-    }
+    if (dirty) this.upload();
   }
 
   /** 치운다 */
@@ -206,11 +204,15 @@ export class Flowers implements Thing, Tappable {
         const bloom = l * l * (3 - 2 * l);
         this.setFlower(k, bloom);
       }
-    for (const m of [this.petals, this.core, this.stem]) {
-      m.count = n;
-      m.instanceMatrix.needsUpdate = true;
-    }
-    if (this.petals.instanceColor) this.petals.instanceColor.needsUpdate = true;
+    for (const m of [this.petals, this.core, this.stem]) m.count = n;
+    this.upload();
+  }
+
+  // 바뀐 꽃을 GPU 로 올린다: 그리는 칸(가까운 꽃)만 — 묶음 전체(꽃 자리 수만큼)를 보내지 않는다
+  private upload() {
+    const shown = this.petals.count;
+    for (const m of [this.petals, this.core, this.stem]) uploadFirst(m.instanceMatrix, shown);
+    if (this.petals.instanceColor) uploadFirst(this.petals.instanceColor, shown);
   }
 
   // 꽃 하나를 그린다. e: 0 평소, 1 활짝 핀 상태

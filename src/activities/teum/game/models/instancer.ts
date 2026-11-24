@@ -4,6 +4,7 @@ import { S } from "../settings";
 import type { Dip } from "../world/culler";
 import { dipOf, horizonCos } from "../world/culler";
 import { UP } from "../world/sphere";
+import { uploadFirst } from "./upload";
 
 // 같은 모델을 여러 번 찍어 두는 묶음(조형물·나무·풍선 꽃·봉오리). 한 번 찍으면 그 자리에 있고,
 // 바뀐 것(눌린 나무·터진 봉오리)만 다시 찍는다. 가까운 것은 가까운 것만 그리기 때마다(cull) 고르고,
@@ -171,14 +172,11 @@ export class Instancer {
       for (const im of this.ims) im.setMatrixAt(cnt, it.M);
       cnt++;
     }
-    const floats = cnt * 16;
     for (const im of this.ims) {
       im.count = cnt;
-      const attr = im.instanceMatrix;
-      attr.clearUpdateRanges();
-      if (!cnt) continue;
-      attr.addUpdateRange(0, floats);
-      attr.needsUpdate = true;
+      // 하나도 안 그리는 묶음은 장면에서 건너뛴다 — 켜 두면 three 가 그릴 것이 없어도 셰이더를 물리고 그림을 GPU 에 올린다
+      im.visible = cnt > 0;
+      uploadFirst(im.instanceMatrix, cnt);
     }
   }
 
