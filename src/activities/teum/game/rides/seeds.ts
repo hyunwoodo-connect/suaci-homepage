@@ -84,7 +84,7 @@ export class Seeds implements Thing, Tappable {
   private budI: Instancer | null = null;
   private primDirty = false;
   private readonly rng: Random;
-  private readonly sproutGeo = new THREE.SphereGeometry(1, 16, 12);
+  private readonly sproutGeo = new THREE.SphereGeometry(1, 14, 8);
   private readonly sproutMat = new THREE.MeshStandardMaterial({
     color: 0xffffff,
     roughness: 0.95,

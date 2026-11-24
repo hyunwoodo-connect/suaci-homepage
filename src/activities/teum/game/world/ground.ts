@@ -52,7 +52,7 @@ export class Ground implements Thing {
 
   constructor(private readonly s: Services) {
     // 반지름 1 로 만들고 배치에서 S.R 만큼 키운다
-    const planetGeo = new THREE.SphereGeometry(1, 256, 180);
+    const planetGeo = new THREE.SphereGeometry(1, 192, 136);
     const planetMat = s.mats.matte(0xdadddc);
     this.planet = new THREE.Mesh(planetGeo, planetMat);
     s.scene.add(this.planet);
@@ -111,7 +111,7 @@ export class Ground implements Thing {
           .replace("#include <opaque_fragment>", `${KEY_HOLD_GLSL}\n#include <opaque_fragment>`)
           .replace("#include <dithering_fragment>", RIM_GLSL);
     };
-    mat.customProgramCacheKey = () => "teum-ground7-r" + regions + "-s" + sea;
+    mat.customProgramCacheKey = () => "teum-ground8-r" + regions + "-s" + sea;
   }
 
   /** 부푼 구름 재질: 가장자리가 밝게 번진다 */

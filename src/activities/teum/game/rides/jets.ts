@@ -125,7 +125,7 @@ export class Jets implements Thing {
       const tubePoints = jt.nodes.map((nd) => nd.v.clone().multiplyScalar(S.R + nd.g + JH));
       const tubePath = new THREE.CatmullRomCurve3(tubePoints);
       const tubeSegments = jt.nodes.length * 4;
-      jt.tube.geometry = new THREE.TubeGeometry(tubePath, tubeSegments, 3.4, 18, false);
+      jt.tube.geometry = new THREE.TubeGeometry(tubePath, tubeSegments, 3.4, 14, false);
     }
   }
 

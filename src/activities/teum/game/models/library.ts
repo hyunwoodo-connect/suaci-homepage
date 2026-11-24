@@ -3,6 +3,7 @@ import * as THREE from "three";
 import type { Manifest } from "../../assets/manifest";
 import { MODEL_BAKE } from "../../assets/settings";
 import type { LookUniforms } from "../look";
+import type { Dip } from "../world/culler";
 import { ModelBatch } from "./batch";
 import { extentBy } from "./extent";
 import { Instancer } from "./instancer";
@@ -232,9 +233,9 @@ export class ModelLibrary {
     return B;
   }
 
-  /** 가까운 것을 고른다(찍어 둔 묶음): cosCut 보다 가까운 것만 */
-  cull(p: THREE.Vector3, cosCut: number) {
-    for (const I of this.instancers) I.cull(p, cosCut);
+  /** 가까운 것을 고른다(찍어 둔 묶음): cosCut 보다 가깝고, 눈(eye)에서 지평선 너머가 아닌 것만 */
+  cull(p: THREE.Vector3, cosCut: number, eye: Dip) {
+    for (const I of this.instancers) I.cull(p, cosCut, eye);
   }
 
   /** 놓인 모델의 키와 행성 위 자리(틀은 지금 세계 자리, 묶음은 찍은 자리) — 첫 화면에 받을 것을 고른다 */
@@ -260,11 +261,11 @@ export class ModelLibrary {
     return P;
   }
 
-  /** 그리기 직전: 모든 묶음에서 가까운 것(p 에서 cut 보다) 가운데 시야 안의 것만 남긴다 */
-  flush(frustum: THREE.Frustum, p: Readonly<THREE.Vector3>, cut: number) {
+  /** 그리기 직전: 모든 묶음에서 가까운 것(p 에서 cut 보다 가깝고 지평선 너머가 아닌 것) 가운데 시야 안의 것만 남긴다 */
+  flush(frustum: THREE.Frustum, p: Readonly<THREE.Vector3>, cut: number, eye: Dip) {
     for (const I of this.instancers) I.flush(frustum);
     for (const B of this.batches) B.flush(frustum);
-    for (const P of this.packs) P.flush(frustum, p, cut);
+    for (const P of this.packs) P.flush(frustum, p, cut, eye);
   }
 
   /** 찍어 둔 묶음·한꺼번에 그리는 묶음을 치운다 */

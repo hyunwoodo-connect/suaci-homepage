@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 import type { Frame, Thing } from "../core/frame";
 import type { Echoing, Tap, Tappable } from "../core/tap";
@@ -9,9 +8,11 @@ import { LOOK } from "../look";
 import type { LayoutHop } from "../maps/layout";
 import type { Services } from "../services";
 import { S } from "../settings";
+import type { Dip } from "../world/culler";
+import { dipOf, horizonCos } from "../world/culler";
 import { hopPath } from "../world/paths";
 import { from, UP } from "../world/sphere";
-import { claimSpots } from "./shared";
+import { claimSpots, cloudPadGeometry } from "./shared";
 
 // 통통 구름 — 위에 오면 높이 튀어 오른다. 징검 구름 — 작은 구름을 통통 밟으며 건너간다.
 // 구름 방석은 모두 같은 모양·같은 색이라 한 번에 그린다(가까운 것만 칸에 채운다)
@@ -29,6 +30,8 @@ interface Pad {
   sq: number;
   size?: number;
   g: number;
+  /** 방석 꼭대기가 지평선에 걸리는 각(지평선 너머면 그리지 않는다) */
+  dip: Dip;
   /** 칙 했을 때 울릴 시각(-1 이면 없음) */
   ringAt: number;
   /** 이번 프레임 방석 가운데(빛을 둔다) */
@@ -45,6 +48,8 @@ const PAD_ARC = 4.4 / S.R,
   HOP_ARC = 3.6 / S.R;
 const COS_PAD = Math.cos(PAD_ARC) - 1e-9,
   COS_HOP = Math.cos(HOP_ARC) - 1e-9;
+/** 방석 꼭대기의 땅 위 높이(m, 가장 부푼 것보다 넉넉히) — 지평선 너머인지 볼 때 쓴다 */
+const PAD_TOP = 5;
 
 /** 통통 구름·징검 구름 전체 */
 export class Pads implements Thing, Tappable, Echoing {
@@ -104,6 +109,8 @@ export class Pads implements Thing, Tappable, Echoing {
       }
       keep.push(pd.v);
       pd.g = this.s.terrain.featGround(pd.v);
+      const top = pd.g + PAD_TOP;
+      pd.dip = dipOf(top);
       pd.q.setFromUnitVectors(UP, pd.v);
     }
   }
@@ -137,7 +144,8 @@ export class Pads implements Thing, Tappable, Echoing {
     const { player, fx, culler } = this.s,
       dt = f.dt,
       p = player.p,
-      cut = culler.cut;
+      cut = culler.cut,
+      eye = culler.eye;
     let n = 0;
     for (const pd of this.list) {
       const reachCos = pd.hop ? COS_HOP : COS_PAD;
@@ -155,7 +163,9 @@ export class Pads implements Thing, Tappable, Echoing {
       const height = 2.3 * k;
       const radius = S.R + pd.g + 0.9 * k;
       pd.pos.copy(pd.v).multiplyScalar(radius);
-      if (pd.v.dot(p) > cut) {
+      const along = pd.v.dot(p),
+        seen = horizonCos(eye, pd.dip);
+      if (along > cut && along > seen) {
         sc.set(w, height, w);
         m4.compose(pd.pos, pd.q, sc);
         this.mesh.setMatrixAt(n++, m4);
@@ -198,26 +208,6 @@ export class Pads implements Thing, Tappable, Echoing {
   }
 }
 
-/** 몽글몽글한 구름 방석 모양: 가운데 큰 덩이 + 둘레 일곱 덩이(그네 의자도 같은 모양을 쓴다) */
-function cloudPadGeometry(): THREE.BufferGeometry {
-  const parts = [new THREE.SphereGeometry(0.7, 20, 14)];
-  parts[0].scale(1, 0.95, 1);
-  parts[0].translate(0, 0.28, 0);
-  for (let i = 0; i < 7; i++) {
-    const a = (i * Math.PI * 2) / 7,
-      r = 0.4 + (i % 2) * 0.07,
-      pg = new THREE.SphereGeometry(r, 16, 12);
-    const px = Math.cos(a) * 0.6,
-      py = 0.02 + (i % 3) * 0.05,
-      pz = Math.sin(a) * 0.6;
-    pg.translate(px, py, pz);
-    parts.push(pg);
-  }
-  const merged = mergeGeometries(parts);
-  for (const pg of parts) pg.dispose();
-  return merged;
-}
-
 /* ─── 내부 ─────────────────────────── */
 
 // 방석 하나의 처음 값
@@ -228,6 +218,7 @@ function newPad(o: Partial<Pad>): Pad {
     cool: 0,
     sq: 0,
     g: 0,
+    dip: dipOf(PAD_TOP),
     ringAt: -1,
     pos: new THREE.Vector3(),
     q: new THREE.Quaternion(),

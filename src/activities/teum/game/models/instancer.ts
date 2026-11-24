@@ -1,6 +1,8 @@
 import * as THREE from "three";
 
 import { S } from "../settings";
+import type { Dip } from "../world/culler";
+import { dipOf, horizonCos } from "../world/culler";
 import { UP } from "../world/sphere";
 
 // 같은 모델을 여러 번 찍어 두는 묶음(조형물·나무·풍선 꽃·봉오리). 한 번 찍으면 그 자리에 있고,
@@ -12,6 +14,8 @@ interface Item {
   M: THREE.Matrix4;
   v: THREE.Vector3;
   sphere: THREE.Sphere;
+  /** 꼭대기가 지평선에 걸리는 각(지평선 너머인지 볼 때 쓴다) */
+  dip: Dip;
 }
 
 const mI = new THREE.Matrix4(),
@@ -21,6 +25,8 @@ const mI = new THREE.Matrix4(),
   pI = new THREE.Vector3(),
   sI = new THREE.Vector3(),
   HALF_UP = new THREE.Vector3(0, 0.5, 0);
+/** 둘레 공을 재기 전의 자리 채움(재면 바로 바뀐다) */
+const NO_DIP: Dip = { cos: 1, sin: 0 };
 
 /** 모델 하나를 n 번까지 찍는 묶음. 키 1·바닥이 원점이 되게 맞춘다 */
 export class Instancer {
@@ -84,7 +90,7 @@ export class Instancer {
   add(m: THREE.Matrix4): number {
     const i = this.items.length;
     const v = new THREE.Vector3().setFromMatrixPosition(m).normalize();
-    const item: Item = { M: m.clone(), v, sphere: new THREE.Sphere() };
+    const item: Item = { M: m.clone(), v, sphere: new THREE.Sphere(), dip: NO_DIP };
     boundOf(item, this.rw);
     this.items.push(item);
     // 처음 가까운 것 고르기 전에는 모두 가까운 것으로 본다(찍자마자 보이게)
@@ -141,13 +147,18 @@ export class Instancer {
     this.set(i, mI);
   }
 
-  /** 가까운 것(v·p > cosCut)을 고른다(그리기는 flush 가) */
-  cull(p: THREE.Vector3, cosCut: number) {
+  /** 가까운 것(v·p > cosCut)이면서 눈(eye)에서 지평선 너머가 아닌 것을 고른다(그리기는 flush 가) */
+  cull(p: THREE.Vector3, cosCut: number, eye: Dip) {
     if (this.noCull) return;
     this.everCulled = true;
     const near = this.near;
     near.length = 0;
-    for (let i = 0; i < this.items.length; i++) if (this.items[i].v.dot(p) > cosCut) near.push(i);
+    for (let i = 0; i < this.items.length; i++) {
+      const it = this.items[i],
+        seen = horizonCos(eye, it.dip),
+        along = it.v.dot(p);
+      if (along > cosCut && along > seen) near.push(i);
+    }
   }
 
   /** 그리기 직전: 가까운 것 가운데 시야 안의 것만 칸에 채운다 */
@@ -190,4 +201,7 @@ function boundOf(it: Item, rw: number) {
   const scale = m.getMaxScaleOnAxis();
   const halfDiagSq = 0.25 + 2 * rw * rw;
   it.sphere.radius = scale * Math.sqrt(halfDiagSq);
+  // 꼭대기 높이는 둘레 공의 맨 위로 넉넉히 잡는다(덜 가려진 쪽으로 틀려야 안전하다)
+  const top = it.sphere.center.length() + it.sphere.radius - S.R;
+  it.dip = dipOf(top);
 }
