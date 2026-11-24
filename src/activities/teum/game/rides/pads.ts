@@ -4,7 +4,8 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import type { Frame, Thing } from "../core/frame";
 import type { Echoing, Tap, Tappable } from "../core/tap";
 import { ECHO_REACH, echoTime } from "../core/tap";
-import { keyify, LOOK } from "../look";
+import { keyify } from "../keyColor";
+import { LOOK } from "../look";
 import type { LayoutHop } from "../maps/layout";
 import type { Services } from "../services";
 import { S } from "../settings";

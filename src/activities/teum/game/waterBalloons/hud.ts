@@ -1,8 +1,9 @@
-import { LOGO_URL } from "../brand/logo";
 import type { Frame } from "../core/frame";
 import { HUD_FONT } from "../hud";
+import { INK, LIME, PAPER, REDUCED_MOTION } from "./hudStyle";
 import type { EdgeHint, HintBox } from "./rules";
-import { formatElapsed } from "./rules";
+import type { SuccessPanelHandlers } from "./successPanel";
+import { SuccessPanel } from "./successPanel";
 
 // 물풍선 놀이의 화면(DOM, 폰 세로 기준): 위 가운데 개수 알약, 화면에 보이는 물풍선 위의 물방울 핀, 화면 밖 물풍선을 가리키는
 // 물방울 화살표, 다 먹었을 때의 성공 판. 핀·화살표·알약의 물방울이 모두 같은 모양이라 "이 표시가 붙은 것이 먹을 것"임을 안다.
@@ -17,18 +18,6 @@ export interface BalloonPin {
   alpha: number;
 }
 
-/** 눌린 것을 알리는 곳 */
-interface WaterBalloonHudHandlers {
-  /** 한 번 더 */
-  onAgain(): void;
-  /** 계속 놀기 */
-  onKeepPlaying(): void;
-}
-
-const INK = "#2b2e2d",
-  LIME = "#a9ff39",
-  PAPER = "rgba(255,255,255,.95)";
-
 /** 화살표가 다니는 칸의 안쪽 여백(px): 위는 개수 알약·소리 단추 아래로, 아래는 옷장 단추·안내 줄 위로 */
 const EDGE_TOP = 78,
   EDGE_BOTTOM = 100,
@@ -42,10 +31,6 @@ const BUMP_SECONDS = 0.14,
   BUMP_SCALE = 1.24;
 /** 화살표 물방울의 뾰족한 끝이 처음 가리키는 쪽(오른쪽 위)을 오른쪽(0)으로 돌려 놓는 각 */
 const TIP_OFFSET = Math.PI / 4;
-/** 움직임 줄이기를 켠 기기인가 — 알약·성공 판이 튀지 않고 바로 바뀌고, 끝 장면의 라임 물결도 퍼지지 않고 바로 다 물든다 */
-export const REDUCED_MOTION =
-  typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-
 /** 물풍선 놀이의 화면 */
 export class WaterBalloonHud {
   private readonly root: HTMLDivElement;
@@ -56,16 +41,13 @@ export class WaterBalloonHud {
   private readonly pinLayer: HTMLDivElement;
   private readonly pins: HTMLDivElement[] = [];
   private time = 0;
-  private readonly panel: HTMLDivElement;
-  private readonly doneLine: HTMLParagraphElement;
-  private readonly timeText: HTMLSpanElement;
-  private readonly again: HTMLButtonElement;
+  private readonly success: SuccessPanel;
   private count = 0;
   private bump = 0;
   private readonly box: HintBox = { left: 0, top: 0, right: 0, bottom: 0 };
 
   /** 캔버스 위(같은 부모)에 얹는다 */
-  constructor(parent: HTMLElement, on: WaterBalloonHudHandlers) {
+  constructor(parent: HTMLElement, on: SuccessPanelHandlers) {
     this.root = document.createElement("div");
     Object.assign(this.root.style, {
       position: "fixed",
@@ -127,82 +109,10 @@ export class WaterBalloonHud {
     this.pinLayer.setAttribute("aria-hidden", "true");
     Object.assign(this.pinLayer.style, { position: "absolute", inset: "0" });
 
-    // 성공 판: 키컬러 한 장 — 판이 끝나고 마지막으로 보는 것이 라임이게. 라임 위 글자는 먹색이고(브랜드 규칙) 맨 위에 suaci 워드마크
-    this.panel = document.createElement("div");
-    this.panel.setAttribute("role", "dialog");
-    this.panel.setAttribute("aria-label", "물풍선 놀이 성공");
-    Object.assign(this.panel.style, {
-      position: "absolute",
-      left: "50%",
-      top: "40%",
-      width: "min(312px, calc(100vw - 40px))",
-      boxSizing: "border-box",
-      padding: "22px 18px 18px",
-      background: LIME,
-      border: `3px solid ${INK}`,
-      borderRadius: "28px",
-      boxShadow: `0 7px 0 ${INK}`,
-      textAlign: "center",
-      pointerEvents: "auto",
-      visibility: "hidden",
-      opacity: "0",
-      transform: "translate(-50%,-50%) scale(.86)",
-      transition: REDUCED_MOTION
-        ? "none"
-        : "opacity .18s, transform .34s cubic-bezier(.3,1.6,.5,1)",
-    });
-    const wordmark = document.createElement("img");
-    wordmark.src = LOGO_URL;
-    wordmark.alt = "suaci";
-    Object.assign(wordmark.style, { display: "block", height: "20px", margin: "0 auto 6px" });
-    const title = document.createElement("div");
-    title.textContent = "성공!";
-    Object.assign(title.style, {
-      fontSize: "56px",
-      lineHeight: "1.15",
-      fontWeight: "900",
-      letterSpacing: "-0.02em",
-      transform: "rotate(-4deg)",
-    });
-    this.doneLine = document.createElement("p");
-    Object.assign(this.doneLine.style, {
-      margin: "10px 0 0",
-      fontSize: "16px",
-      lineHeight: "1.45",
-      fontWeight: "600",
-    });
-    const time = document.createElement("p");
-    Object.assign(time.style, {
-      margin: "10px 0 0",
-      padding: "9px 12px",
-      borderRadius: "14px",
-      background: "#fff",
-      display: "flex",
-      alignItems: "baseline",
-      justifyContent: "center",
-      gap: "10px",
-      fontSize: "13px",
-    });
-    const timeLabel = document.createElement("span");
-    timeLabel.textContent = "걸린 시간";
-    this.timeText = document.createElement("span");
-    Object.assign(this.timeText.style, {
-      fontSize: "22px",
-      fontWeight: "800",
-      fontVariantNumeric: "tabular-nums",
-    });
-    time.append(timeLabel, this.timeText);
-    const buttons = document.createElement("div");
-    Object.assign(buttons.style, { display: "flex", gap: "8px", marginTop: "16px" });
-    this.again = panelButton("한 번 더", INK, "#fff");
-    this.again.addEventListener("click", () => on.onAgain());
-    const keep = panelButton("계속 놀기", "#fff", INK);
-    keep.addEventListener("click", () => on.onKeepPlaying());
-    buttons.append(this.again, keep);
-    this.panel.append(wordmark, title, this.doneLine, time, buttons);
+    this.success = new SuccessPanel(on);
 
     // 겹치는 차례: 화살표·핀은 알약 아래로, 성공 판이 맨 위
-    this.root.append(this.arrow, this.pinLayer, this.pill, this.panel);
+    this.root.append(this.arrow, this.pinLayer, this.pill, this.success.el);
     parent.append(this.root);
   }
 
@@ -268,24 +178,12 @@ export class WaterBalloonHud {
 
   /** 성공 판을 띄운다: 먹은 수와 걸린 시간 */
   showSuccess(total: number, seconds: number) {
-    this.doneLine.textContent = `물풍선 ${total}개를 다 먹었어요`;
-    this.timeText.textContent = formatElapsed(seconds);
-    Object.assign(this.panel.style, {
-      visibility: "visible",
-      opacity: "1",
-      transform: "translate(-50%,-50%) scale(1)",
-    });
-    // 키보드로 노는 사람이 바로 고를 수 있게(화면이 그쪽으로 밀리지는 않게)
-    this.again.focus({ preventScroll: true });
+    this.success.show(total, seconds);
   }
 
   /** 성공 판을 내린다 */
   hideSuccess() {
-    Object.assign(this.panel.style, {
-      visibility: "hidden",
-      opacity: "0",
-      transform: "translate(-50%,-50%) scale(.86)",
-    });
+    this.success.hide();
   }
 
   /** 놀이를 끝낸다(계속 놀기): 알약·화살표·성공 판을 모두 치운다 */
@@ -353,26 +251,4 @@ function droplet(size: number, tint: string): HTMLDivElement {
     flex: "0 0 auto",
   });
   return el;
-}
-
-// 성공 판의 단추(높이 48px, 둘이 판을 반씩 나눈다). 라임 판 위라 먹색·흰색만 쓴다(라임 글자는 읽히지 않는다)
-function panelButton(text: string, background: string, color: string): HTMLButtonElement {
-  const b = document.createElement("button");
-  b.type = "button";
-  b.textContent = text;
-  Object.assign(b.style, {
-    flex: "1 1 0",
-    minHeight: "48px",
-    border: "0",
-    borderRadius: "999px",
-    padding: "0 12px",
-    background,
-    color,
-    fontFamily: HUD_FONT,
-    fontSize: "16px",
-    fontWeight: "700",
-    cursor: "pointer",
-    touchAction: "manipulation",
-  });
-  return b;
 }

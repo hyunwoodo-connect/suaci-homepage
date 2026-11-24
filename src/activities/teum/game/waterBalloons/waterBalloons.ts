@@ -2,23 +2,22 @@ import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
 import type { Random } from "../core/random";
-import { FLOOD_ALL, FLOOD_OFF } from "../look";
 import type { WaterBalloonSpot } from "../maps/map";
 import type { Services } from "../services";
 import { S } from "../settings";
 import { from, rad, UP } from "../world/sphere";
 import { BALLOON_TINT, createBalloonGeometry, createBalloonMaterial } from "./balloonLook";
+import { BalloonFinale } from "./finale";
 import type { BalloonPin } from "./hud";
-import { REDUCED_MOTION, WaterBalloonHud } from "./hud";
+import { WaterBalloonHud } from "./hud";
 import { BalloonRound } from "./round";
-import { edgeHint, floodCos, nearestRemaining, pinFade, screenPin, touchedBalloons } from "./rules";
+import { edgeHint, nearestRemaining, pinFade, screenPin, touchedBalloons } from "./rules";
 import { Splash } from "./splash";
 
 // 물풍선 놀이: 지도에 놓인 물풍선(GameMap.waterBalloons)을 다 먹으면 성공. 숨기지 않는다 — 놀이기구를 타다 보면 지나는 자리에
 // 떠 있고, 멀리서는 그 위에 얹은 물방울 핀으로 찾는다. 닿으면 터지고, 다 먹으면 걸린 시간과 함께 성공 판이 뜬다.
 // 떠다니는 맛이 먼저라 몸은 건드리지 않는다(튕기지도 멈추지도 않는다). 지도에 물풍선이 없으면 이 놀이는 만들어지지 않는다.
-// 끝 장면: 마지막 물풍선이 터진 자리에서 라임 물결이 퍼져 온 섬이 키컬러로 물든다 — 판이 끝난 뒤 머리에 남는 색이 라임이게.
-// '계속 놀기'를 고르면 물든 섬에서 놀고, '한 번 더'를 고르면 섬이 제 색으로 돌아온다
+// 다 먹은 뒤의 끝 장면(라임 물결·축하·성공 판이 뜨는 때)은 finale.ts 가 맡는다
 
 /** 물풍선 하나 */
 export interface WaterBalloon {
@@ -66,23 +65,15 @@ const RETURN_STAGGER = 0.07,
 /** 핀: 물풍선 가운데에서 이만큼(m) 위를 가리킨다 · 내가 이 거리(m) 안이면 안 보이고 → 이 거리부터 다 보인다 */
 const PIN_ABOVE = BALLOON_RADIUS * 1.5,
   PIN_NEAR: readonly [number, number] = [30, 70];
-/** 축하 물방울의 색: 라임과 흰 물빛 */
-const PARTY_TINTS: readonly number[] = [BALLOON_TINT, 0xffffff];
-/** 다 먹은 뒤: 축하가 이어지는 시간(초)·한 다발 사이(초), 성공 판이 뜨기까지(초 — 라임 물결이 눈앞을 지나 퍼지는 것을 보고 나서) */
-const PARTY_SECONDS = 3,
-  PARTY_EVERY = 0.28,
-  PANEL_DELAY = 1.7;
 /** 세상이 보이고 이만큼(초) 뒤에 놀이를 알린다 · 그 안내가 떠 있는 시간(초) */
 const GREET_DELAY = 0.6,
   GREET_SECONDS = 6;
 
-const at = new THREE.Vector3(),
-  size = new THREE.Vector3(),
+const size = new THREE.Vector3(),
   stand = new THREE.Quaternion(),
   tilt = new THREE.Quaternion(),
   matrix = new THREE.Matrix4(),
-  view = new THREE.Vector3(),
-  side = new THREE.Vector3();
+  view = new THREE.Vector3();
 const TILT_AXIS = new THREE.Vector3(1, 0, 0);
 const TINT = new THREE.Color(BALLOON_TINT),
   TINT_CSS = `#${TINT.getHexString()}`;
@@ -110,19 +101,14 @@ export class WaterBalloons implements Thing {
   private readonly bodies: THREE.InstancedMesh<THREE.LatheGeometry, THREE.MeshStandardMaterial>;
   private readonly pins: BalloonPin[] = [];
   private readonly splash: Splash;
-  private readonly rng: Random;
+  private readonly finale: BalloonFinale;
   private readonly centres: THREE.Vector3[];
   /** 지금 먹을 수 없는 것(먹었거나 아직 나오지 않았다) */
   private readonly away: boolean[];
   /** 지난 프레임의 몸 자리와 그때까지 순간 이동한 횟수(순간 이동한 길은 지나온 길로 치지 않는다) */
   private readonly before = new THREE.Vector3();
   private jumps = -1;
-  private party = 0;
-  private partyNext = 0;
-  private panelIn = 0;
   private greetIn = GREET_DELAY;
-  /** 라임 물결이 퍼지기 시작한 뒤 흐른 시간(초). 음수면 물결이 없다(또는 다 퍼졌다) */
-  private floodFor = -1;
 
   /** spots: 지도의 물풍선 자리(하나 이상), parent: 화면을 얹을 곳(캔버스의 부모), wordmark: 물풍선에 두를 워드마크 그림 */
   constructor(
@@ -133,7 +119,6 @@ export class WaterBalloons implements Thing {
   ) {
     // 놀이 난수는 제 갈래에서만 뽑는다(다른 것들의 흐름을 건드리지 않는다)
     const rng = s.rng.fork("waterBalloons");
-    this.rng = rng;
     this.list = spots.map((spot) => {
       const v = from(spot.dist, spot.bear),
         ground = s.terrain.groundAt(v);
@@ -165,15 +150,16 @@ export class WaterBalloons implements Thing {
       onKeepPlaying: () => this.keepPlaying(),
     });
     this.hud.setCount(0, total);
+    const round = this.round;
+    this.finale = new BalloonFinale(s, this.splash, rng, () =>
+      this.hud.showSuccess(round.total, round.seconds),
+    );
   }
 
   /** 한 번 더: 물풍선이 모두 돌아오고 수와 시계가 0 으로, 섬은 제 색으로. 나는 그 자리에 그대로 있다 */
   playAgain() {
     this.round.restart();
-    this.party = 0;
-    this.panelIn = 0;
-    this.floodFor = -1;
-    this.s.mats.lookU.flood.value.w = FLOOD_OFF;
+    this.finale.reset();
     this.list.forEach((b, i) => {
       b.age = -i * RETURN_STAGGER;
       b.pop = 0;
@@ -185,8 +171,7 @@ export class WaterBalloons implements Thing {
   /** 계속 놀기: 물풍선도 화면도 치우고 떠다니기만 한다(섬은 라임으로 물든 채다) */
   keepPlaying() {
     this.round.leave();
-    this.party = 0;
-    this.panelIn = 0;
+    this.finale.leave();
     this.bodies.count = 0;
     this.hud.close();
   }
@@ -197,7 +182,7 @@ export class WaterBalloons implements Thing {
     this.hud.setHidden(hud.isInStudio);
     this.hud.update(f);
     this.splash.update(f);
-    this.spread(f);
+    this.finale.spread(f);
     const round = this.round;
     if (round.stage === "over") return;
     this.greet(f);
@@ -206,7 +191,7 @@ export class WaterBalloons implements Thing {
     round.tick(f.dt);
     this.float(f);
     this.eatTouched();
-    this.celebrate(f);
+    this.finale.celebrate(f);
     this.point();
   }
 
@@ -219,19 +204,10 @@ export class WaterBalloons implements Thing {
     bodies.dispose();
     this.splash.dispose();
     this.hud.dispose();
-    this.s.mats.lookU.flood.value.w = FLOOD_OFF;
+    this.finale.dispose();
   }
 
   /* ─── 내부 ─────────────────────────── */
-
-  // 라임 물결이 퍼진다: 다 덮으면 그 뒤로는 세지 않는다
-  private spread(f: Frame) {
-    if (this.floodFor < 0) return;
-    this.floodFor += f.dt;
-    const cos = REDUCED_MOTION ? null : floodCos(this.floodFor, S.R);
-    this.s.mats.lookU.flood.value.w = cos ?? FLOOD_ALL;
-    if (cos === null) this.floodFor = -1;
-  }
 
   // 놀이를 알리는 한 줄을 한 번 띄운다. 꾸미기 씬 동안은 안내 줄이 숨어 있어 세지 않는다 — 처음 온 사람은 씬을 닫은 뒤에 본다
   private greet(f: Frame) {
@@ -317,43 +293,7 @@ export class WaterBalloons implements Thing {
     this.hud.setCount(count, total);
     if (round.stage !== "cleared") return;
     events.emit("waterBalloonsCleared", { seconds: round.seconds });
-    this.party = PARTY_SECONDS;
-    this.partyNext = 0;
-    this.panelIn = PANEL_DELAY;
-    // 마지막 물풍선이 터진 자리에서 라임 물결이 퍼지기 시작한다
-    const flood = this.s.mats.lookU.flood.value;
-    flood.set(b.v.x, b.v.y, b.v.z, flood.w);
-    this.floodFor = 0;
-  }
-
-  // 다 먹은 뒤: 내 둘레에서 물방울과 빛 방울이 다발로 터지고, 조금 뒤 성공 판이 뜬다
-  private celebrate(f: Frame) {
-    const round = this.round;
-    if (this.panelIn > 0) {
-      this.panelIn -= f.dt;
-      if (this.panelIn <= 0) this.hud.showSuccess(round.total, round.seconds);
-    }
-    if (this.party <= 0) return;
-    this.party -= f.dt;
-    this.partyNext -= f.dt;
-    if (this.partyNext > 0) return;
-    this.partyNext = PARTY_EVERY;
-    const { player, fx } = this.s,
-      rng = this.rng,
-      up = player.p;
-    // 내 앞뒤·양옆 12m 안, 머리 위 2~8m 아무 데서
-    const ahead = rng.range(-12, 12),
-      aside = rng.range(-12, 12),
-      above = rng.range(2, 8),
-      pick = rng.next() * PARTY_TINTS.length,
-      hex = PARTY_TINTS[Math.floor(pick)];
-    side.crossVectors(player.h, up);
-    at.copy(player.P)
-      .addScaledVector(player.h, ahead)
-      .addScaledVector(side, aside)
-      .addScaledVector(up, above);
-    this.splash.burst(at, up, hex, 14, 12);
-    fx.burst(at, 12, 11);
+    this.finale.start(b.v);
   }
 
   // 화면에 보이는 남은 물풍선마다 그 위에 핀을 얹고, 가장 가까운 것이 화면 밖이면 그쪽 가장자리에 화살표를 둔다

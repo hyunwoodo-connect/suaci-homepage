@@ -3,7 +3,8 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 
 import type { Frame, Thing } from "../core/frame";
 import type { Tap, Tappable } from "../core/tap";
-import { keyShader, LOOK } from "../look";
+import { keyShader } from "../keyColor";
+import { LOOK } from "../look";
 import type { Services } from "../services";
 import { S } from "../settings";
 import { fr } from "./hash";
