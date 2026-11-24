@@ -34,7 +34,10 @@ interface ModelLookOptions {
 /** 제 색을 지키는 등장인물: 나(몸·입는 부품)와 고래 — 지역 색으로 돌리지도, 끝 장면에 물들이지도 않는다 */
 const PART_KEYS = Object.keys(PARTS);
 const CAST = new Set([AVATAR_BODY, ...PART_KEYS, "whale"]);
-/** 탈 것(어느 마을에서든 주황·귤색이라 탈 것인 줄 안다)과 라임(키컬러 그대로): 지역 색으로 돌리지 않는다 */
+/**
+ * 탈 것(어느 마을에서든 주황·귤색이라 탈 것인 줄 안다)과 라임(키컬러 그대로): 지역 색으로 돌리지 않는다.
+ * 깔때기의 소용돌이 판과 봉오리는 여기 넣지 않는다 — 무늬가 두 색이라 그 마을의 색을 따르는 쪽이 낫다(한 색으로 칠하면 소용돌이가 사라진다)
+ */
 const RIDES = ["cannon", "bell", "bumper", "star", "balloon", "slide", "hotairballoon"];
 const REGION_FREE = new Set([...CAST, ...RIDES, "d_hotairballoon", ...LIME_FRUITS]);
 
@@ -111,7 +114,7 @@ export function styleModel(mat: THREE.MeshStandardMaterial, o: ModelLookOptions)
   };
   mat.customProgramCacheKey = () => {
     const regions = regionCount();
-    const kind = isBody ? "teum-look11-body-r" : o.batch ? "teum-look11-batch-r" : "teum-look11-r";
+    const kind = isBody ? "teum-look12-body-r" : o.batch ? "teum-look12-batch-r" : "teum-look12-r";
     return kind + regions;
   };
   mat.needsUpdate = true;
@@ -196,13 +199,15 @@ const TONE_GLSL = `#include <map_fragment>
 // 지역 색: 물건이 선 자리(인스턴스 원점)에서 가장 가까운 마을의 각만큼 YIQ 색상을 돌린다. 흰색은 그대로(색이 없다).
 // 그러고도 라임 둘레에 남는 색(노랑·초록·청록 — YIQ 에서 라임 쪽 반원)은 그 마을의 물감(분홍이 돌아간 자리, 분홍은 0.52rad) 쪽으로
 // 돌려세운다: 라임은 키컬러만 쓴다(look.ts 톤 규칙 ①). 그래서 이 조각은 라임 물들기(LIME_GLSL)보다 먼저 온다.
+// 노랑 쪽(rs 가 양수)은 더 넓게 거른다 — 호박색 같은 주황빛 노랑도 화면에서는 조명을 받아 노랑으로 보인다. 주황(0.28rad)·귤색은 남는다.
 // 지역 사이에서는 채도를 조금 낮춰 지역이 더 또렷하다
 const REGION_GLSL = `
       #if TEUM_REGIONS > 0
       if (uRegK > 0.5 && uAk < 0.5 && dot(vRo, vRo) > 1.0) { vec3 rn = normalize(vRo), rc = diffuseColor.rgb; float rb = -1.0, rh = 0.0; for (int i = 0; i < TEUM_REGIONS; i++) { float dH = dot(rn, uHubV[i]); if (dH > rb) { rb = dH; rh = uRegH[i]; } }
         float rw = smoothstep(uRegE.x, uRegE.x + uRegE.y, rb), ra = rh * rw, cs = cos(ra), sn = sin(ra);
         vec3 yiq = vec3(dot(rc, vec3(0.299, 0.587, 0.114)), dot(rc, vec3(0.596, -0.274, -0.322)), dot(rc, vec3(0.211, -0.523, 0.312))); vec2 iq = vec2(yiq.y * cs - yiq.z * sn, yiq.y * sn + yiq.z * cs);
-        float rm = length(iq), rival = smoothstep(-0.05, 0.12, dot(iq, vec2(-0.118, -0.993)) / max(rm, 0.0001)) * smoothstep(0.02, 0.08, rm);
+        float rm = length(iq); vec2 ru = iq / max(rm, 0.0001); float rk = dot(ru, vec2(-0.118, -0.993)), rs = 0.993 * ru.x - 0.118 * ru.y;
+        float rival = mix(smoothstep(-0.05, 0.12, rk), smoothstep(-0.2, -0.08, rk), step(0.0, rs)) * smoothstep(0.02, 0.08, rm);
         iq = mix(iq, vec2(cos(0.52 + ra), sin(0.52 + ra)) * rm, rival);
         rc = vec3(yiq.x + 0.956 * iq.x + 0.621 * iq.y, yiq.x - 0.272 * iq.x - 0.647 * iq.y, yiq.x - 1.106 * iq.x + 1.703 * iq.y);
         diffuseColor.rgb = clamp(mix(vec3(yiq.x), rc, mix(0.6, 1.0, rw)), 0.0, 1.0); }
