@@ -1,4 +1,5 @@
-// 물풍선 놀이의 셈: 닿았나 · 가장 가까운 남은 물풍선 · 걸린 시간 글 · 화면 안 물풍선의 핀 자리 · 화면 밖 물풍선을 가리키는 자리.
+// 물풍선 놀이의 셈: 닿았나 · 가장 가까운 남은 물풍선 · 걸린 시간 글 · 화면 안 물풍선의 핀 자리 · 화면 밖 물풍선을 가리키는 자리
+// · 끝 장면의 라임 물결이 퍼진 넓이.
 // 장면도 화면도 모른다 — 수만 받아 수를 돌려준다
 
 /** 세계 위의 한 점(m) */
@@ -21,6 +22,23 @@ export interface EdgeHint {
   x: number;
   y: number;
   angle: number;
+}
+
+/** 끝 장면의 라임 물결: 처음 반지름(m) · 처음 빠르기(m/s) · 빨라지는 정도(m/s²) — 눈앞에서는 퍼지는 것이 보이고, 먼 곳은 금방 덮는다 */
+const FLOOD_START = 12,
+  FLOOD_SPEED = 90,
+  FLOOD_RUSH = 60;
+
+/**
+ * 마지막 물풍선을 먹고 seconds 초 뒤에 라임 물결이 퍼진 반지름(땅 위 거리 m)을, 행성(반지름 planet m) 가운데에서 본 각의 코사인으로.
+ * 온 행성을 덮으면 null — 더 셀 것이 없다
+ */
+export function floodCos(seconds: number, planet: number): number | null {
+  const elapsed = Math.max(0, seconds),
+    reach = FLOOD_START + FLOOD_SPEED * elapsed + FLOOD_RUSH * elapsed * elapsed,
+    angle = reach / planet;
+  if (angle >= Math.PI) return null;
+  return Math.cos(angle);
 }
 
 /**

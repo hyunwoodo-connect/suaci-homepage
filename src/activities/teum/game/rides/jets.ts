@@ -86,7 +86,7 @@ export class Jets implements Thing {
     });
     const auroraMat = new THREE.MeshStandardMaterial({
       color: 0xa9ff39,
-      emissive: 0x7fe02a,
+      emissive: 0xa9ff39,
       emissiveIntensity: 0.5,
       transparent: true,
       opacity: 0.3,

@@ -90,7 +90,7 @@ export class Avatar implements Thing {
     C.rotation.y = -Math.PI / 2;
     this.me.add(C);
     models.swapWhenReady(AVATAR_COMPANION, [this.catPrim]);
-    C.userData.uLime.value = 0.55; // 고양이는 어느 색에서도 라임
+    C.userData.uLime.value = 1; // 고양이는 어느 색에서도 라임(키컬러 그대로)
     this.catModel = C;
   }
 

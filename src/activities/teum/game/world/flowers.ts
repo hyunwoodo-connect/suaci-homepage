@@ -3,7 +3,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 
 import type { Frame, Thing } from "../core/frame";
 import type { Tap, Tappable } from "../core/tap";
-import { LOOK } from "../look";
+import { keyShader, LOOK } from "../look";
 import type { Services } from "../services";
 import { S } from "../settings";
 import { fr } from "./hash";
@@ -98,6 +98,7 @@ export class Flowers implements Thing, Tappable {
         float vein = smoothstep(0.12, 0.0, abs(sin(an0 * 3.0))) * smoothstep(0.3, 0.6, fr0) * (1.0 - smoothstep(0.75, 0.95, fr0));
         diffuseColor.rgb = mix(diffuseColor.rgb, heart, vein * 0.35); }`,
         );
+      keyShader(sh, s.mats.lookU.flood);
     };
     for (const m of [this.petals, this.core, this.stem]) {
       m.frustumCulled = false;

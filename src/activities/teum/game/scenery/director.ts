@@ -54,7 +54,7 @@ export class Director implements Thing {
   private wasNear = false;
   private readonly geo = new THREE.TorusGeometry(2.7, 0.2, 10, 44);
 
-  /** 감독이 피우는 바람 고리 둘을 만든다(라임과 겹치지 않게 연노랑) */
+  /** 감독이 피우는 바람 고리 둘을 만든다(라임과 겹치지 않게 흰색 — 노랑은 라임 둘레 색이라 쓰지 않는다) */
   constructor(
     private readonly s: Services,
     private readonly trail: BubbleTrail,
@@ -63,7 +63,7 @@ export class Director implements Thing {
   ) {
     for (let i = 0; i < 2; i++) {
       const ringMat = new THREE.MeshBasicMaterial({
-        color: 0xfff3b0,
+        color: 0xffffff,
         transparent: true,
         opacity: 0.9,
         fog: false,

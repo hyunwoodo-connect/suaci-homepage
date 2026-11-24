@@ -1,9 +1,9 @@
 import * as THREE from "three";
 
-import { GLOWING_LIME, MODEL_STRIPES, MODEL_TINT } from "../../assets/settings";
+import { LIME_FRUITS, MODEL_STRIPES, MODEL_TINT } from "../../assets/settings";
 import { AVATAR_BODY, PARTS } from "../avatar/parts";
 import type { LookUniforms } from "../look";
-import { LOOK } from "../look";
+import { FLOOD_GLSL, KEY_AT_GLSL, KEY_HOLD_GLSL, keyPaintGlsl, LOOK } from "../look";
 
 // 모델 재질의 톤 셰이더: 채도·색조·줄무늬·라임 물들기, 그리고 생물·날개는 뼈대 없이 몸을 휜다
 // (1 네발 걸음·고갯짓, 2 꼬리 헤엄, 3 날갯짓, 4 해파리 갓과 촉수, 5 두 발).
@@ -31,9 +31,12 @@ interface ModelLookOptions {
   batch: boolean;
 }
 
-/** 지역 색을 돌리지 않는 모델: 나(몸·입는 부품)와 고래 */
+/** 제 색을 지키는 등장인물: 나(몸·입는 부품)와 고래 — 지역 색으로 돌리지도, 끝 장면에 물들이지도 않는다 */
 const PART_KEYS = Object.keys(PARTS);
-const REGION_FREE = new Set([AVATAR_BODY, ...PART_KEYS, "whale"]);
+const CAST = new Set([AVATAR_BODY, ...PART_KEYS, "whale"]);
+/** 탈 것(어느 마을에서든 주황·귤색이라 탈 것인 줄 안다)과 라임(키컬러 그대로): 지역 색으로 돌리지 않는다 */
+const RIDES = ["cannon", "bell", "bumper", "star", "balloon", "slide", "hotairballoon"];
+const REGION_FREE = new Set([...CAST, ...RIDES, "d_hotairballoon", ...LIME_FRUITS]);
 
 /** 같은 묶음 셰이더(인스턴스 속성)를 쓰는지 */
 const BATCH_DEFINE = "TEUM_BATCH";
@@ -55,16 +58,15 @@ export function styleModel(mat: THREE.MeshStandardMaterial, o: ModelLookOptions)
   mat.metalnessMap = null;
   mat.roughnessMap = null;
   mat.roughness = LOOK.modelRough;
-  if (GLOWING_LIME.has(o.key)) {
-    // 라임은 그늘에서도 쨍하게
-    mat.emissive.set(0x6fae12);
-    mat.emissiveIntensity = 0.5;
-  }
   if (o.batch) mat.defines = { ...mat.defines, [BATCH_DEFINE]: "" };
   const { uAn, uAk, uAx } = o.motion;
   const isBody = o.key === AVATAR_BODY;
-  // 지역 색: 물건이 선 자리의 지역 색으로 색상을 돌린다(나·고래는 돌리지 않는다, 생물은 몸 휘기 uAk 로 셰이더가 뺀다)
+  // 지역 색: 물건이 선 자리의 지역 색으로 색상을 돌린다(나·고래·탈 것·라임은 돌리지 않는다, 생물은 몸 휘기 uAk 로 셰이더가 뺀다)
   const uRegK = { value: REGION_FREE.has(o.key) ? 0 : 1 };
+  // 끝 장면의 라임 물결: 등장인물은 물들지 않는다(생물은 셰이더가 뺀다)
+  const uFloodK = { value: CAST.has(o.key) ? 0 : 1 };
+  // 라임 과일은 과일 껍질의 초록이 아니라 늘 키컬러다
+  const uKeyK = { value: LIME_FRUITS.has(o.key) ? 1 : 0 };
   // 지역 수는 셰이더를 만들 때 센다(그 전에 지도가 마을을 채운다)
   const regionCount = () => o.lookU.regionHub.value.length;
   mat.onBeforeCompile = (sh) => {
@@ -83,6 +85,9 @@ export function styleModel(mat: THREE.MeshStandardMaterial, o: ModelLookOptions)
     sh.uniforms.uRegH = o.lookU.regionHue;
     sh.uniforms.uRegE = o.lookU.regionEdge;
     sh.uniforms.uRegK = uRegK;
+    sh.uniforms.uFlood = o.lookU.flood;
+    sh.uniforms.uFloodK = uFloodK;
+    sh.uniforms.uKeyK = uKeyK;
     if (isBody) Object.assign(sh.uniforms, o.lookU.outfit);
     const regions = regionCount();
     const regionHead = `#define TEUM_REGIONS ${regions}\n`;
@@ -91,16 +96,22 @@ export function styleModel(mat: THREE.MeshStandardMaterial, o: ModelLookOptions)
     sh.vertexShader =
       regionHead + vertexHead + sh.vertexShader.replace("#include <begin_vertex>", bend);
     // 몸은 톤을 칠하기 전의 텍스처 색(rawC)으로 옷 자리를 가린다
-    const tone = isBody
+    const paint = isBody
       ? TONE_GLSL.replace("#include <map_fragment>", BODY_RAW) + OUTFIT_GLSL + REGION_GLSL
       : TONE_GLSL + REGION_GLSL;
+    // 라임 물들기는 지역 색 뒤에 — 지역 색이 라임 둘레 색을 돌려세우기 때문이다
+    const tone = paint + LIME_GLSL;
     const fragmentHead = FRAGMENT_HEAD + (isBody ? BODY_FRAGMENT_HEAD : "");
     sh.fragmentShader =
-      regionHead + fragmentHead + sh.fragmentShader.replace("#include <map_fragment>", tone);
+      regionHead +
+      fragmentHead +
+      sh.fragmentShader
+        .replace("#include <map_fragment>", tone)
+        .replace("#include <opaque_fragment>", `${KEY_HOLD_GLSL}\n#include <opaque_fragment>`);
   };
   mat.customProgramCacheKey = () => {
     const regions = regionCount();
-    const kind = isBody ? "teum-look9-body-r" : o.batch ? "teum-look9-batch-r" : "teum-look9-r";
+    const kind = isBody ? "teum-look11-body-r" : o.batch ? "teum-look11-batch-r" : "teum-look11-r";
     return kind + regions;
   };
   mat.needsUpdate = true;
@@ -108,7 +119,7 @@ export function styleModel(mat: THREE.MeshStandardMaterial, o: ModelLookOptions)
 
 /* ─── 내부 ─────────────────────────── */
 
-const VERTEX_HEAD = `varying vec3 vOp; varying vec3 vRo; uniform float uAk; uniform float uAx;
+const VERTEX_HEAD = `varying vec3 vOp; varying vec3 vRo; varying vec3 vKeyAt; uniform float uAk; uniform float uAx;
 #ifdef ${BATCH_DEFINE}
 attribute vec4 aAn; attribute float aLime; varying float vLime;
 #define TEUM_AN aAn
@@ -155,9 +166,9 @@ const BEND_GLSL = `#include <begin_vertex>
     }
     if (uAx < 0.5) { transformed.x += dF; transformed.z += dW; } else { transformed.z += dF; transformed.x -= dW; }
     transformed.y += dY;
-  }`;
+  }${KEY_AT_GLSL}`;
 
-const FRAGMENT_HEAD = `uniform float uSat; uniform float uWash; uniform vec3 uTint; uniform float uTK; uniform float uPat; uniform float uPY; uniform vec3 uTint2; varying vec3 vOp; varying vec3 vRo; uniform float uAk;
+const FRAGMENT_HEAD = `uniform float uSat; uniform float uWash; uniform vec3 uTint; uniform float uTK; uniform float uPat; uniform float uPY; uniform vec3 uTint2; varying vec3 vOp; varying vec3 vRo; varying vec3 vKeyAt; uniform float uAk; uniform vec4 uFlood; uniform float uFloodK; uniform float uKeyK;
 #if TEUM_REGIONS > 0
 uniform vec3 uHubV[TEUM_REGIONS]; uniform float uRegH[TEUM_REGIONS]; uniform vec2 uRegE; uniform float uRegK;
 #endif
@@ -180,19 +191,30 @@ const TONE_GLSL = `#include <map_fragment>
       vec3 mapped = mix(vec3(1.0), tC, sK) * mix(mx, 1.0, 0.24);
       mapped = mix(mapped, vec3(mix(mx, 1.0, 0.62)), step(2.95, uTint.r + uTint.g + uTint.b) * (1.0 - step(0.5, uPat) * step(vOp.y, uPY))); // 흰색으로 정한 것은 밝은 회색~흰색 명암만 남긴다
       diffuseColor.rgb = mix(diffuseColor.rgb, mapped, uTK);
-      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), uWash);
-      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.397, 1.0, 0.041), TEUM_LIME * 0.8);`;
+      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), uWash);`;
 
-// 지역 색: 물건이 선 자리(인스턴스 원점)에서 가장 가까운 마을의 각만큼 YIQ 색상을 돌린다. 흰색은 그대로(색이 없다), 라임은 알아보고 뺀다.
+// 지역 색: 물건이 선 자리(인스턴스 원점)에서 가장 가까운 마을의 각만큼 YIQ 색상을 돌린다. 흰색은 그대로(색이 없다).
+// 그러고도 라임 둘레에 남는 색(노랑·초록·청록 — YIQ 에서 라임 쪽 반원)은 그 마을의 물감(분홍이 돌아간 자리, 분홍은 0.52rad) 쪽으로
+// 돌려세운다: 라임은 키컬러만 쓴다(look.ts 톤 규칙 ①). 그래서 이 조각은 라임 물들기(LIME_GLSL)보다 먼저 온다.
 // 지역 사이에서는 채도를 조금 낮춰 지역이 더 또렷하다
 const REGION_GLSL = `
       #if TEUM_REGIONS > 0
       if (uRegK > 0.5 && uAk < 0.5 && dot(vRo, vRo) > 1.0) { vec3 rn = normalize(vRo), rc = diffuseColor.rgb; float rb = -1.0, rh = 0.0; for (int i = 0; i < TEUM_REGIONS; i++) { float dH = dot(rn, uHubV[i]); if (dH > rb) { rb = dH; rh = uRegH[i]; } }
-        float rw = smoothstep(uRegE.x, uRegE.x + uRegE.y, rb), lk = smoothstep(0.12, 0.35, rc.g - max(rc.r * 0.75, rc.b)), ra = rh * rw * (1.0 - lk), cs = cos(ra), sn = sin(ra);
+        float rw = smoothstep(uRegE.x, uRegE.x + uRegE.y, rb), ra = rh * rw, cs = cos(ra), sn = sin(ra);
         vec3 yiq = vec3(dot(rc, vec3(0.299, 0.587, 0.114)), dot(rc, vec3(0.596, -0.274, -0.322)), dot(rc, vec3(0.211, -0.523, 0.312))); vec2 iq = vec2(yiq.y * cs - yiq.z * sn, yiq.y * sn + yiq.z * cs);
+        float rm = length(iq), rival = smoothstep(-0.05, 0.12, dot(iq, vec2(-0.118, -0.993)) / max(rm, 0.0001)) * smoothstep(0.02, 0.08, rm);
+        iq = mix(iq, vec2(cos(0.52 + ra), sin(0.52 + ra)) * rm, rival);
         rc = vec3(yiq.x + 0.956 * iq.x + 0.621 * iq.y, yiq.x - 0.272 * iq.x - 0.647 * iq.y, yiq.x - 1.106 * iq.x + 1.703 * iq.y);
-        diffuseColor.rgb = clamp(mix(vec3(yiq.x), rc, mix(0.6, 1.0, max(rw, lk))), 0.0, 1.0); }
+        diffuseColor.rgb = clamp(mix(vec3(yiq.x), rc, mix(0.6, 1.0, rw)), 0.0, 1.0); }
       #endif`;
+
+// 라임 물들기: 반응한 것과 라임 과일(uKeyK)은 키컬러 그대로가 된다(어두운 무늬만 남긴다). 끝 장면의 물결(FLOOD_GLSL)도 여기서 닿는다 —
+// 등장인물(uFloodK 0)과 생물(uAk)은 물들지 않는다
+const LIME_GLSL = `
+      { float lmLum = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
+        diffuseColor.rgb = mix(diffuseColor.rgb, ${keyPaintGlsl("lmLum")}, max(TEUM_LIME, uKeyK)); }
+      if (uFloodK > 0.5 && uAk < 0.5) {${FLOOD_GLSL}
+      }`;
 
 // ---- 아바타 몸: 옷 갈아입히기 ----
 

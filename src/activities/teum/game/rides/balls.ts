@@ -199,13 +199,13 @@ export class Balls implements Thing {
 
 /* ─── 내부 ─────────────────────────── */
 
-// 수아시 톤의 비치볼: 주황·흰·노랑 세로 줄
+// 수아시 톤의 비치볼: 주황·흰·귤색 세로 줄
 function beachTexture(): THREE.CanvasTexture {
   const cv = document.createElement("canvas");
   cv.width = 512;
   cv.height = 256;
   const c = cv.getContext("2d")!;
-  ["#ff5a1f", "#ffffff", "#ffd21f", "#ffffff", "#ff5a1f", "#ffffff"].forEach((col, i) => {
+  ["#ff5a1f", "#ffffff", "#ff8a2b", "#ffffff", "#ff5a1f", "#ffffff"].forEach((col, i) => {
     c.fillStyle = col;
     const stripeX = (i * 512) / 6;
     const stripeW = 512 / 6 + 1;

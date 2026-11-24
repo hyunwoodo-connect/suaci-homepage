@@ -33,7 +33,7 @@ interface TrailRow {
 }
 
 /** 방울 색(줄마다 차례를 돌린다) */
-const TRAIL_TINTS = [0xff4f9a, 0xffd21f, 0xffffff, 0x4fc3ff];
+const TRAIL_TINTS = [0xff4f9a, 0x8a5cff, 0xffffff, 0x4fc3ff];
 /** 터뜨릴 때 빨라지는 정도(몸으로 느낄 만큼 — 0.8 이면 잠깐 1.8배쯤): 첫 방울 · 하나 터뜨릴 때마다 더, 마지막 방울이 튕겨 올리는 세기 */
 const POP_BOOST = 0.8,
   POP_BOOST_STEP = 0.15,

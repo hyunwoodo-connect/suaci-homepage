@@ -21,8 +21,8 @@ interface Bubble {
   far?: boolean;
 }
 
-/** 방울 색: 흰색·분홍·하늘·노랑을 돌려 가며 */
-const BUBBLE_TINTS = [0xffffff, 0xffc4e0, 0xcfe0ff, 0xfff3b0];
+/** 방울 색: 흰색·분홍·하늘·연보라를 돌려 가며 */
+const BUBBLE_TINTS = [0xffffff, 0xffc4e0, 0xcfe0ff, 0xe6dcff];
 /** 터지며 튕겨 올리는 세기(첫 방울 · 잇달아 터뜨릴 때마다 더)와 빨라지는 정도 — 방울은 "먹으면 빨라지는 것"이다 */
 const POP_LIFT = 2.6,
   POP_LIFT_STEP = 0.9,

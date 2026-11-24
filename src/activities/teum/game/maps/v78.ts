@@ -75,9 +75,9 @@ export const V78_MAP: GameMap = {
     },
     {
       name: "꽃밭",
-      ground: [0x58b83a, 0xffd84a],
-      hue: -58,
-      sky: 0xffcf4a,
+      ground: [0x8f6bff, 0xf1eaff],
+      hue: 93,
+      sky: 0xa893ff,
       big: ["s_cherry", "s_lollipop"],
       small: ["d_smileflower", "d_flowerpile"],
       tree: "tree_pink",
@@ -93,7 +93,7 @@ export const V78_MAP: GameMap = {
     {
       name: "구름 마을",
       ground: [0xa9d8ff, 0xffffff],
-      hue: 139,
+      hue: 117,
       sky: 0x86ccff,
       big: ["s_heart", "s_bow"],
       small: ["d_smileflower"],

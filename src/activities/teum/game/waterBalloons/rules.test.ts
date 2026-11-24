@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { EdgeHint, HintBox, Point } from "./rules";
 import {
   edgeHint,
+  floodCos,
   formatElapsed,
   nearestRemaining,
   pinFade,
@@ -162,5 +163,35 @@ describe("pinFade", () => {
       pinFade(50, 30, 70),
       pinFade(200, 30, 70),
     ]).toEqual([0, 0, 0.5, 1]);
+  });
+});
+
+describe("floodCos", () => {
+  const PLANET = 520;
+
+  it("터진 순간 → 12m 둘레(행성 가운데에서 본 각의 코사인)", () => {
+    expect(floodCos(0, PLANET)).toBeCloseTo(Math.cos(12 / PLANET), 10);
+  });
+
+  it("1초 뒤 → 162m 까지 퍼졌다(처음 12 + 초당 90 + 빨라진 60)", () => {
+    expect(floodCos(1, PLANET)).toBeCloseTo(Math.cos(162 / PLANET), 10);
+  });
+
+  it("시간이 갈수록 넓어진다", () => {
+    const a = floodCos(0.5, PLANET)!,
+      b = floodCos(2, PLANET)!;
+    expect(b).toBeLessThan(a);
+  });
+
+  it("행성 반대편까지 덮으면 → null(더 셀 것이 없다)", () => {
+    expect([floodCos(4.4, PLANET) === null, floodCos(4.6, PLANET), floodCos(60, PLANET)]).toEqual([
+      false,
+      null,
+      null,
+    ]);
+  });
+
+  it("음수 시간 → 터진 순간과 같다", () => {
+    expect(floodCos(-3, PLANET)).toBe(floodCos(0, PLANET));
   });
 });

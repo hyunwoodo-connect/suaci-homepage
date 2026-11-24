@@ -46,7 +46,7 @@ export class Lakes implements Thing {
             "#include <map_fragment>",
             `#include <map_fragment>
         float lr = vLr / uRm, wob = 0.012 * sin(vLa * 9.0 + uT * 1.3) + 0.008 * sin(vLa * 17.0 - uT * 0.9);
-        vec3 deep = diffuseColor.rgb, shal = mix(deep, vec3(0.45, 0.92, 1.0), 0.8);
+        vec3 deep = diffuseColor.rgb, shal = mix(deep, vec3(0.5, 0.78, 1.0), 0.8);
         vec3 lc = mix(deep * 0.86, deep, smoothstep(0.0, 0.5, lr)); lc = mix(lc, shal, smoothstep(0.6, 0.93, lr + wob));
         float ring = fract((vLr + wob * uRm * 2.0) / 7.0 - uT * 0.16), brk = 0.5 + 0.5 * sin(vLa * 3.0 + uT * 0.5 + vLr * 0.9);
         lc = mix(lc, vec3(1.0), smoothstep(0.07, 0.02, abs(ring - 0.5)) * smoothstep(0.55, 0.75, brk) * smoothstep(0.12, 0.3, lr) * (1.0 - smoothstep(0.8, 0.9, lr)) * 0.7);
