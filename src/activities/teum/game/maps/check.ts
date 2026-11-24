@@ -225,7 +225,7 @@ function checkSpan(name: string, span: Span, bad: (what: string) => void) {
     bad(`${name}: 범위 [${lo}, ${hi}]`);
 }
 
-// ⑤ 모양: 장소는 넷이고 첫째(광장)는 출발점, 첫 큰 언덕(등대 산)은 등대 자리, 마을이 있다
+// ⑤ 모양: 장소는 넷이고 첫째(광장)는 출발점, 첫 큰 언덕(등대 산)은 등대 자리, 구름 구멍은 짝수, 마을이 있다
 function checkShape(map: GameMap, out: MapProblem[]) {
   const L = map.layout;
   const bad = (what: string) => out.push({ kind: "모양", what });
@@ -238,6 +238,8 @@ function checkShape(map: GameMap, out: MapProblem[]) {
       mountain && mountain.dist === lighthouse.dist && mountain.bear === lighthouse.bear;
     if (!isUnder) bad("첫 큰 언덕(등대 산)은 등대(place#3)와 같은 자리여야 한다");
   }
+  if (L.hole.length % 2)
+    bad(`구름 구멍은 둘씩 짝이어야 한다(짝 없는 구멍은 나올 곳이 없다): ${L.hole.length}`);
   if (!L.hub.length) bad("마을(hub)이 하나는 있어야 한다");
   if (map.regions.length !== L.hub.length)
     bad(`지역은 마을과 같은 수여야 한다(지역 ${map.regions.length} · 마을 ${L.hub.length})`);

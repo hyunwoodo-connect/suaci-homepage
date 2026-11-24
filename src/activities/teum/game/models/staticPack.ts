@@ -1,5 +1,9 @@
 import * as THREE from "three";
 
+import { S } from "../settings";
+import type { Dip } from "../world/culler";
+import { dipOf, horizonCos } from "../world/culler";
+
 // 한 번 놓고 거의 움직이지 않는 같은 도형 여럿(레일 구슬·쿠션 벽·구름 다리 발판·뭉게구름)을 그리기 직전에
 // 가까운 것(가까운 것만 그리기와 같은 기준)이면서 시야 안의 것만 앞 칸으로 모아 그린다.
 // 행성 사방에 흩어진 것을 한 묶음으로 두면 three 는 통째로만 시야를 보므로, 늘 전부 그려 정점을 다 셈했다.
@@ -15,6 +19,8 @@ export class StaticPack {
   private mats: Float32Array = new Float32Array(0);
   private cols: Float32Array | null = null;
   private spheres: Float32Array = new Float32Array(0);
+  /** 칸마다 꼭대기가 지평선에 걸리는 각 */
+  private dips: Dip[] = [];
   private readonly local: THREE.Sphere;
 
   constructor(readonly mesh: THREE.InstancedMesh) {
@@ -35,6 +41,7 @@ export class StaticPack {
     const filled = mesh.instanceMatrix.array.subarray(0, matFloats);
     this.mats.set(filled);
     this.spheres = new Float32Array(sphFloats);
+    this.dips = [];
     if (mesh.instanceColor) {
       const colFloats = n * 3;
       this.cols = new Float32Array(colFloats);
@@ -58,8 +65,8 @@ export class StaticPack {
     c.toArray(this.cols, at);
   }
 
-  /** 그리기 직전: p 에서 cut 보다 가까운 것 가운데 시야 안의 것만 앞 칸으로 모은다 */
-  flush(frustum: THREE.Frustum, p: Readonly<THREE.Vector3>, cut: number) {
+  /** 그리기 직전: p 에서 cut 보다 가깝고 눈(eye)에서 지평선 너머가 아닌 것 가운데 시야 안의 것만 앞 칸으로 모은다 */
+  flush(frustum: THREE.Frustum, p: Readonly<THREE.Vector3>, cut: number, eye: Dip) {
     const mesh = this.mesh,
       arr = mesh.instanceMatrix.array,
       colArr = mesh.instanceColor ? mesh.instanceColor.array : null;
@@ -69,7 +76,9 @@ export class StaticPack {
       sphere.center.fromArray(this.spheres, sAt);
       sphere.radius = this.spheres[sAt + 3];
       dir.copy(sphere.center).normalize();
-      if (dir.dot(p) <= cut || !frustum.intersectsSphere(sphere)) continue;
+      const along = dir.dot(p),
+        seen = horizonCos(eye, this.dips[i]);
+      if (along <= cut || along <= seen || !frustum.intersectsSphere(sphere)) continue;
       const from = i * 16,
         to = k * 16;
       for (let j = 0; j < 16; j++) arr[to + j] = this.mats[from + j];
@@ -95,6 +104,9 @@ export class StaticPack {
     sphere.copy(this.local).applyMatrix4(m4);
     sphere.center.toArray(this.spheres, sAt);
     this.spheres[sAt + 3] = sphere.radius;
+    // 꼭대기 높이는 둘레 공의 맨 위로 넉넉히 잡는다
+    const top = sphere.center.length() + sphere.radius - S.R;
+    this.dips[i] = dipOf(top);
   }
 }
 

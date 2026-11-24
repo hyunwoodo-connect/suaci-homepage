@@ -3,16 +3,19 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 
 import type { Frame, Thing } from "../core/frame";
 import type { Tap, Tappable } from "../core/tap";
-import { keyShader, LOOK } from "../look";
+import { keyShader } from "../keyColor";
+import { LOOK } from "../look";
 import type { Services } from "../services";
 import { S } from "../settings";
+import type { Dip } from "./culler";
+import { dipOf, horizonCos } from "./culler";
 import { fr } from "./hash";
 import { UP } from "./sphere";
 import { SphereGrid } from "./sphereGrid";
 
 // 바닥의 꽃(수는 지도의 지형): 한 송이 = 꽃잎 여섯 장 + 가운데 심 + 줄기. 지나가면 라임으로 부풀어 피고, 천천히 제 색으로 돌아온다.
 // 꽃 자리·피어난 정도는 world/terrain 의 꽃 자리 값(lit)이고, 다른 것(종·장소·칙)이 피우면 그 값만 바꾼다.
-// 가까운 꽃만 칸에 담아 그린다(20 프레임마다, v·p > 0.86)
+// 가까운 꽃만 칸에 담아 그린다(20 프레임마다, v·p > 0.86 이면서 지평선 너머가 아닌 것 — culler.ts)
 
 type FlowerMesh<G extends THREE.BufferGeometry> = THREE.InstancedMesh<
   G,
@@ -21,6 +24,8 @@ type FlowerMesh<G extends THREE.BufferGeometry> = THREE.InstancedMesh<
 
 /** 꽃이 피는 거리(m)의 가장 큰 값: 1.3 + 가장 큰 자리 크기(1.35) × 1.5 */
 const MAX_REACH = 1.3 + 1.35 * 1.5 + 0.05;
+/** 꽃 꼭대기의 땅 위 높이(m, 가장 큰 꽃이 활짝 핀 것보다 넉넉히) — 지평선 너머인지 볼 때 쓴다 */
+const FLOWER_TOP = 3;
 
 const flQ = new THREE.Quaternion(),
   flQ2 = new THREE.Quaternion(),
@@ -44,6 +49,8 @@ export class Flowers implements Thing, Tappable {
   private readonly touched: Uint32Array;
   /** 꽃 수(지도의 지형) */
   private readonly n: number;
+  /** 꽃마다 꼭대기가 지평선에 걸리는 각(땅 높이가 정해지면 다시 잰다) */
+  private readonly dips: Dip[];
   private frameNo = 0;
 
   constructor(private readonly s: Services) {
@@ -51,11 +58,15 @@ export class Flowers implements Thing, Tappable {
     this.n = FLN;
     this.slot = new Int32Array(FLN).fill(-1);
     this.touched = new Uint32Array(FLN);
+    const flat = dipOf(FLOWER_TOP);
+    this.dips = Array.from({ length: FLN }, () => flat);
     const flGeo = (() => {
       const parts = [];
       for (let i = 0; i < 6; i++) {
         // 끝이 살짝 들린 둥근 꽃잎
-        const pg = new THREE.SphereGeometry(1, 10, 7);
+        // 위에서 본 테두리(둘레 10칸)는 둥글게 두고 납작한 두께 쪽 칸만 줄인다 — 한 화면에 삼백 송이 넘게 그려져서
+        // 꽃잎 여섯 × 삼각형 수가 그대로 곱해진다
+        const pg = new THREE.SphereGeometry(1, 10, 4);
         pg.scale(0.5, 0.25, 0.34);
         pg.translate(0.6, 0, 0);
         pg.rotateZ(0.22);
@@ -74,7 +85,7 @@ export class Flowers implements Thing, Tappable {
       coreMat = new THREE.MeshStandardMaterial({ color: LOOK.core, roughness: 0.25 }),
       stemMat = new THREE.MeshStandardMaterial({ color: LOOK.stem, roughness: 0.9 });
     this.petals = new THREE.InstancedMesh(flGeo, petalMat, FLN);
-    const coreGeo = new THREE.SphereGeometry(0.36, 14, 10).scale(1, 0.75, 1).translate(0, 0.14, 0);
+    const coreGeo = new THREE.SphereGeometry(0.36, 12, 5).scale(1, 0.75, 1).translate(0, 0.14, 0);
     this.core = new THREE.InstancedMesh(coreGeo, coreMat, FLN);
     const stemGeo = new THREE.CylinderGeometry(0.045, 0.06, 1, 6).translate(0, 0.5, 0);
     this.stem = new THREE.InstancedMesh(stemGeo, stemMat, FLN);
@@ -117,7 +128,11 @@ export class Flowers implements Thing, Tappable {
   /** 꽃은 언덕 위에도 땅 높이에 맞춰 핀다(둔덕이 정해진 뒤) */
   settle() {
     const spots = this.s.terrain.flowers;
-    for (let k = 0; k < this.n; k++) spots.g[k] = this.s.terrain.groundAt(spots.v[k]);
+    for (let k = 0; k < this.n; k++) {
+      spots.g[k] = this.s.terrain.groundAt(spots.v[k]);
+      const top = spots.g[k] + FLOWER_TOP;
+      this.dips[k] = dipOf(top);
+    }
     this.cull();
   }
 
@@ -171,13 +186,20 @@ export class Flowers implements Thing, Tappable {
     }
   }
 
-  // 가까운 꽃만 칸에 담아 다시 그린다
+  // 가까운 꽃(지평선 너머는 빼고)만 칸에 담아 다시 그린다
   private cull() {
     const spots = this.s.terrain.flowers,
       p = this.s.player.p,
       slot = this.slot;
     let n = 0;
-    for (let k = 0; k < this.n; k++) slot[k] = spots.v[k].dot(p) > 0.86 ? n++ : -1;
+    const eye = this.s.culler.eye,
+      dips = this.dips;
+    for (let k = 0; k < this.n; k++) {
+      // 가까우면서(278m 안) 지평선 너머가 아닌 것만
+      const along = spots.v[k].dot(p),
+        seen = horizonCos(eye, dips[k]);
+      slot[k] = along > 0.86 && along > seen ? n++ : -1;
+    }
     for (let k = 0; k < this.n; k++)
       if (slot[k] >= 0) {
         const l = spots.lit[k];

@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 import type { Frame, Thing } from "../core/frame";
 import { ease } from "../core/frame";
@@ -11,7 +10,7 @@ import type { Services } from "../services";
 import { GREY_TOY, S, WHITE } from "../settings";
 import { clamp, from, heading, UP } from "../world/sphere";
 import { placeBar } from "./bars";
-import { claimSpots, isTouching } from "./shared";
+import { claimSpots, cloudPadGeometry, isTouching } from "./shared";
 
 // 그네 구름 — 매달려 흔들리다 손을 떼는 순간 날아간다. 기둥 둘과 가로대 대신 둥근 아치 하나, 구름 방석에 두 줄
 
@@ -56,7 +55,7 @@ export class Swings implements Thing, Holder, Tappable {
   private ride: SwingRide | null = null;
   private readonly archGeo: THREE.TubeGeometry;
   private readonly barGeo = new THREE.CylinderGeometry(0.22, 0.22, 1, 10);
-  private readonly seatGeo = padCloudGeometry();
+  private readonly seatGeo = cloudPadGeometry();
   private readonly seatMat = new THREE.MeshStandardMaterial({
     color: 0xfafbfb,
     roughness: 0.32,
@@ -227,27 +226,4 @@ export class Swings implements Thing, Holder, Tappable {
       }
     }
   }
-}
-
-/* ─── 내부 ─────────────────────────── */
-
-// 몽글몽글한 구름 방석(통통 구름과 같은 모양): 가운데 큰 덩이 + 둘레 일곱 덩이
-function padCloudGeometry(): THREE.BufferGeometry {
-  const core = new THREE.SphereGeometry(0.7, 20, 14);
-  core.scale(1, 0.95, 1);
-  core.translate(0, 0.28, 0);
-  const parts: THREE.BufferGeometry[] = [core];
-  for (let i = 0; i < 7; i++) {
-    const a = (i * Math.PI * 2) / 7,
-      r = 0.4 + (i % 2) * 0.07,
-      pg = new THREE.SphereGeometry(r, 16, 12);
-    const px = Math.cos(a) * 0.6,
-      py = 0.02 + (i % 3) * 0.05,
-      pz = Math.sin(a) * 0.6;
-    pg.translate(px, py, pz);
-    parts.push(pg);
-  }
-  const merged = mergeGeometries(parts);
-  for (const pg of parts) pg.dispose();
-  return merged;
 }

@@ -17,7 +17,7 @@ import type { Layout, LayoutJet, Spot } from "./layout";
 import type { GameMap, MapLand, MapRegion } from "./map";
 
 // 지도를 뭍만 남기고 자른다: 놀이기구·랜드마크·나무·호수·언덕은 뭍에 있는 것만(자리는 하나도 옮기지 않는다),
-// 길(바람길·레일·다리…)은 마디가 모두 뭍에 있는 것만 남긴다. 마을 중심은 그대로 둔다 — 지역의 차례가 마을의 차례라서,
+// 길(바람길·레일·다리…)은 마디가 모두 뭍에 있는 것만 남긴다. 둘씩 짝인 구름 구멍은 짝이 맞게 남긴다(holesOnLand). 마을 중심은 그대로 둔다 — 지역의 차례가 마을의 차례라서,
 // 바다에 잠긴 마을은 아무도 살지 않는 바다 지역이 된다. 남은 것의 차례가 바뀌므로 바람길을 가리키는 번호(afterStream)는 새 번호로 고친다
 
 /** 물가에서 이만큼(m) 안쪽에 있어야 남긴다: 점 하나에 서는 것 · 길의 마디 · 키 큰 나무 */
@@ -89,7 +89,7 @@ export function cutToLand(map: GameMap, spec: MapLand): GameMap {
     wing: L.wing.filter(isRide),
     pad: L.pad.filter(isRide),
     ball: L.ball.filter(isRide),
-    hole: L.hole.filter(isRide),
+    hole: holesOnLand(L.hole, isRide),
     jet: jetsOnLand(land, L.jet),
     hill: L.hill.filter(isHill),
     hub: L.hub,
@@ -126,6 +126,20 @@ export function cutToLand(map: GameMap, spec: MapLand): GameMap {
 function keeps(land: Land, o: Spot, inland: number): boolean {
   const v = from(o.dist, o.bear);
   return land.has(v, inland);
+}
+
+// 구름 구멍은 자리표에서 둘씩 짝이다(들어가면 짝으로 나온다). 두 끝이 다 뭍이면 그 짝 그대로 남기고,
+// 한쪽만 남은 것끼리는 차례대로 새 짝을 짓는다 — 자리를 빼지 않으려는 것이다. 그러고도 하나가 남으면 뺀다(짝 없는 구멍은 나올 곳이 없다)
+function holesOnLand(holes: readonly Spot[], isKept: (o: Spot) => boolean): Spot[] {
+  const whole: Spot[] = [],
+    alone: Spot[] = [];
+  for (let i = 0; i + 1 < holes.length; i += 2) {
+    const kept = [holes[i], holes[i + 1]].filter(isKept);
+    if (kept.length === 2) whole.push(...kept);
+    else alone.push(...kept);
+  }
+  const paired = alone.length - (alone.length % 2);
+  return [...whole, ...alone.slice(0, paired)];
 }
 
 // 길의 마디가 모두(끝 다음 자리까지) 뭍인가

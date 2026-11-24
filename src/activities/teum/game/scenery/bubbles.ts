@@ -46,7 +46,7 @@ export class Bubbles implements Thing {
 
   constructor(private readonly s: Services) {
     const { occ, terrain, scene } = s;
-    const bubbleGeometry = new THREE.SphereGeometry(1, 16, 12),
+    const bubbleGeometry = new THREE.SphereGeometry(1, 16, 9),
       bubbleMaterial = new THREE.MeshStandardMaterial({
         color: 0xffffff,
         transparent: true,

@@ -3,7 +3,7 @@ import * as THREE from "three";
 import type { Frame } from "../core/frame";
 import { ease } from "../core/frame";
 import type { Random } from "../core/random";
-import { keyify } from "../look";
+import { keyify } from "../keyColor";
 import { within } from "../maps/map";
 import type { Services } from "../services";
 import { S } from "../settings";

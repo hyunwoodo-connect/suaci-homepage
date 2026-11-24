@@ -218,7 +218,7 @@ export class Game {
       land,
       regions: new Regions(occ.hubs, map.regions, map.regionEdge),
       today: new Today(events, towns, festival),
-      culler: new Culler(scene, player),
+      culler: new Culler(scene, player, stage.camera),
       player,
       camera: new CameraRig(stage.camera, player, terrain),
       fx: new Fx(scene, player, fxRng, events),
@@ -355,7 +355,7 @@ export class Game {
     this.waterBalloons = createWaterBalloons(s, hudParent, this.signature.wordmark);
     const balloonGame = this.waterBalloons ? [this.waterBalloons] : [];
     // 찍어 둔 묶음(조형물·나무·꽃·봉오리…)도 가까운 것만 칸에 채운다 — 장면에서 떼는 것과 같은 기준·같은 때
-    s.culler.onCull((cut) => models.cull(player.p as THREE.Vector3, cut));
+    s.culler.onCull((cut) => models.cull(player.p as THREE.Vector3, cut, s.culler.eye));
     // ---- 한 프레임의 순서 ----
     const { camera, fx, ripples, culler } = s;
     this.frameOrder = [
@@ -458,7 +458,7 @@ export class Game {
     this.frame.time += dt;
     this.runFrame();
     this.updateFrustum();
-    this.s.models.flush(this.frustum, this.s.player.p, this.s.culler.cut);
+    this.s.models.flush(this.frustum, this.s.player.p, this.s.culler.cut, this.s.culler.eye);
     this.terrainView.flush(this.frustum);
     this.stage.renderer.render(this.stage.scene, this.stage.camera);
   }

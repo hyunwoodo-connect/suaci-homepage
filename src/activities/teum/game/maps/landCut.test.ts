@@ -36,6 +36,25 @@ describe("cutToLand", () => {
     }
   });
 
+  it("구름 구멍은 둘씩 짝이다 → 짝 없는 구멍이 남지 않는다(짝이 없으면 들어가도 나올 곳이 없다)", () => {
+    expect(ISLE.hole.length).toBeGreaterThan(0);
+    expect(ISLE.hole.length % 2).toBe(0);
+    expect(ISLE.hole.every(isOnLand)).toBe(true);
+  });
+
+  it("두 끝이 모두 남은 구멍 짝 → v78 의 그 짝 그대로 서로를 잇는다", () => {
+    let whole = 0;
+    for (let i = 0; i + 1 < WIDE.hole.length; i += 2) {
+      const first = ISLE.hole.indexOf(WIDE.hole[i]),
+        second = ISLE.hole.indexOf(WIDE.hole[i + 1]);
+      if (first < 0 || second < 0) continue;
+      whole++;
+      // 짝은 자리표에서 짝수 번째와 그다음이다
+      expect([first % 2, second]).toEqual([0, first + 1]);
+    }
+    expect(whole).toBeGreaterThan(0);
+  });
+
   it("길은 마디가 하나라도 바다면 → 통째로 뺀다", () => {
     for (const rail of ISLE.rail) {
       const nodes = railPath(rail).points;

@@ -6,6 +6,8 @@ import { ECHO_REACH, echoTime } from "../core/tap";
 import type { LayoutRow } from "../maps/layout";
 import type { Services } from "../services";
 import { S } from "../settings";
+import type { Dip } from "../world/culler";
+import { dipOf, horizonCos } from "../world/culler";
 import { rowPath } from "../world/paths";
 import { FWD, UP } from "../world/sphere";
 import { claimSpots } from "./shared";
@@ -35,6 +37,8 @@ interface Pillar {
   slot: number;
   /** 지난번에 찍을 때 불이 켜져 있었나(꺼지는 순간 한 번 더 찍는다) */
   drawnLit: boolean;
+  /** 활짝 핀 꽃 꼭대기가 지평선에 걸리는 각(지평선 너머면 그리지 않는다) */
+  dip: Dip;
 }
 
 /** 꽃잎 수 */
@@ -69,7 +73,7 @@ export class Pillars implements Thing, Tappable, Echoing {
   private lastTime = 0;
 
   constructor(private readonly s: Services) {
-    this.petalGeo = new THREE.SphereGeometry(1, 16, 12);
+    this.petalGeo = new THREE.SphereGeometry(1, 14, 8);
     this.stemGeo = new THREE.CylinderGeometry(0.3, 0.42, 1, 12).translate(0, 0.5, 0);
     // 줄기·꽃잎의 색은 기둥마다(라임으로 켜진 정도) 달라 인스턴스 색으로 칠한다(재질은 흰색 바탕)
     this.bodyMat = s.mats.grey(0xffffff);
@@ -89,6 +93,7 @@ export class Pillars implements Thing, Tappable, Echoing {
           head: new THREE.Vector3(),
           slot: -1,
           drawnLit: false,
+          dip: dipOf(0),
         };
         this.list.push(pillar);
       }
@@ -127,7 +132,11 @@ export class Pillars implements Thing, Tappable, Echoing {
         const sideStep = (i % 2 ? 3.2 : -3.2) / S.R;
         pl.v.copy(v).addScaledVector(side, sideStep).normalize();
         keep.push(pl.v);
-        const radius = S.R + terrain.featGround(pl.v);
+        const ground = terrain.featGround(pl.v),
+          radius = S.R + ground,
+          // 불이 다 켜지면 줄기가 1.9 배로 자라고 그 위에 꽃이 핀다(넉넉히 3m)
+          top = ground + pl.base * 1.9 + 3;
+        pl.dip = dipOf(top);
         pl.root.copy(pl.v).multiplyScalar(radius);
         pl.q.setFromUnitVectors(UP, pl.v);
         fz.copy(d).multiplyScalar(-0.9).addScaledVector(pl.v, 0.44).normalize();
@@ -212,12 +221,15 @@ export class Pillars implements Thing, Tappable, Echoing {
     this.core.dispose();
   }
 
-  // 가까운 것(v·p > cut)만 칸에 채운다
+  // 가까운 것(v·p > cut)이면서 지평선 너머가 아닌 것만 칸에 채운다
   private fill(cut: number) {
-    const p = this.s.player.p;
+    const p = this.s.player.p,
+      eye = this.s.culler.eye;
     let n = 0;
     for (const pl of this.list) {
-      pl.slot = pl.v.dot(p) > cut ? n++ : -1;
+      const along = pl.v.dot(p),
+        seen = horizonCos(eye, pl.dip);
+      pl.slot = along > cut && along > seen ? n++ : -1;
       if (pl.slot >= 0) this.shape(pl, this.lastTime);
     }
     this.stems.count = n;

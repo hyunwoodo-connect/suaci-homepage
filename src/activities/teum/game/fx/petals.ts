@@ -30,7 +30,7 @@ export class Petals {
 
 // 눕힌 판을 잎 길이(t)를 따라 가운데가 넓게 좁히고, 옆으로 갈수록 들어 올려 오목하게 만든다
 function createPetalGeometry() {
-  const pg = new THREE.PlaneGeometry(1, 1, 4, 8);
+  const pg = new THREE.PlaneGeometry(1, 1, 2, 6);
   const lieFlat = -Math.PI / 2;
   pg.rotateX(lieFlat);
   const a = pg.attributes.position;
