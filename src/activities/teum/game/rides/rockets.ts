@@ -37,6 +37,11 @@ export class Rockets implements Thing, Holder {
   readonly list: Rocket[];
   /** 붙잡혀 있어도 중력은 그대로 받는다(놀이기구가 높이를 직접 정한다) */
   readonly freezesGravity = false;
+  /**
+   * 로켓 안에서는 몸이 절반으로 작아진다(대포와 같은 방식). 제 크기면 머리 꼭대기(내 자리에서 0.8m)와 곁의 고양이가
+   * 로켓 코 끝(0.65m) 밖으로 나온다 — 절반이면 큰 머리 모양·귀 장식까지 코 안에 든다
+   */
+  readonly bodyScale = 0.5;
   /** 로켓 모양: 타고 있을 때는 내 발밑에 붙어 같이 올라간다(내 자리가 정해진 뒤) */
   readonly pose: Thing;
   private ride: RocketRide | null = null;
