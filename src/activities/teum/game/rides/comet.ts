@@ -3,6 +3,7 @@ import * as THREE from "three";
 import type { Frame, Thing } from "../core/frame";
 import { ease } from "../core/frame";
 import type { Random } from "../core/random";
+import { LOOK } from "../look";
 import type { Holder } from "../player/player";
 import type { Services } from "../services";
 import { S } from "../settings";
@@ -28,7 +29,7 @@ export class Comet implements Thing, Holder {
   /** 지금 자리와 나아가는 쪽 */
   readonly v = new THREE.Vector3();
   readonly f = new THREE.Vector3();
-  private readonly mat = new THREE.MeshBasicMaterial({ color: 0xffd21f, fog: false });
+  private readonly mat = new THREE.MeshBasicMaterial({ color: LOOK.toy.comet, fog: false });
   private readonly ballGeo = new THREE.SphereGeometry(2.2, 20, 14);
   private readonly tailGeo = new THREE.ConeGeometry(1.9, 15, 16, 1, true);
   private readonly tailMat = new THREE.MeshBasicMaterial({

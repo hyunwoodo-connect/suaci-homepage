@@ -28,7 +28,7 @@ const WIDE_BODY = { funnel: 23, seed: 25, pipe: 20 } as const;
 const JET_END_INLAND = 250,
   JET_MIN_NODES = 15;
 /** 바다 지역의 하늘빛 */
-const SEA_SKY = 0x7fd6f2;
+const SEA_SKY = 0x86b8ff;
 
 /** map 을 land 만 남기고 자른 지도(이름은 그대로 — 부르는 쪽이 새 이름을 준다) */
 export function cutToLand(map: GameMap, spec: MapLand): GameMap {

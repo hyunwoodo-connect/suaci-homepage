@@ -3,6 +3,7 @@ import * as THREE from "three";
 import type { Frame } from "../core/frame";
 import { ease } from "../core/frame";
 import type { Random } from "../core/random";
+import { keyify } from "../look";
 import { within } from "../maps/map";
 import type { Services } from "../services";
 import { S } from "../settings";
@@ -63,6 +64,7 @@ export class LogoBalloons {
       }),
       kMat = new THREE.MeshBasicMaterial({ color: 0x141414 }),
       sMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
+    keyify(bMat, s.mats.lookU.flood);
     this.bGeo = bGeo;
     this.kGeo = kGeo;
     this.bMat = bMat;

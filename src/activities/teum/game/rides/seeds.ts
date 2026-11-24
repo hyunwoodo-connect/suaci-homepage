@@ -168,7 +168,7 @@ export class Seeds implements Thing, Tappable {
     claimSpots(this.s.occ, this.fields, 27);
   }
 
-  /** 꽃봉오리 모델: 봉오리마다 한 번 찍고, 모델이 오면 노란 공을 숨긴다 */
+  /** 꽃봉오리 모델: 봉오리마다 한 번 찍고, 모델이 오면 귤색 공을 숨긴다 */
   fitModels() {
     const models = this.s.models;
     const I = models.inst("r_bud", 1000);

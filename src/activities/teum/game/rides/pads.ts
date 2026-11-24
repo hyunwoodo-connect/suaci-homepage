@@ -4,7 +4,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import type { Frame, Thing } from "../core/frame";
 import type { Echoing, Tap, Tappable } from "../core/tap";
 import { ECHO_REACH, echoTime } from "../core/tap";
-import { LOOK } from "../look";
+import { keyify, LOOK } from "../look";
 import type { LayoutHop } from "../maps/layout";
 import type { Services } from "../services";
 import { S } from "../settings";
@@ -54,7 +54,7 @@ export class Pads implements Thing, Tappable, Echoing {
 
   constructor(private readonly s: Services) {
     this.geo = cloudPadGeometry();
-    // 통통 구름과 징검 구름은 톤에서 같은 노랑이다(LOOK.pad·LOOK.hop)
+    // 통통 구름과 징검 구름은 톤에서 같은 귤색이다(LOOK.pad)
     this.mat = new THREE.MeshStandardMaterial({
       color: LOOK.pad,
       roughness: 0.32,
@@ -62,6 +62,7 @@ export class Pads implements Thing, Tappable, Echoing {
       emissive: 0xffffff,
       emissiveIntensity: 0.12,
     });
+    keyify(this.mat, s.mats.lookU.flood);
     for (const { dist, bear } of s.layout.pad) {
       const pad = newPad({ dist, bear });
       this.list.push(pad);

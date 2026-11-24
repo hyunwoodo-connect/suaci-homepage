@@ -26,12 +26,12 @@ export const MODEL_TINT: Readonly<Record<string, readonly [number, number]>> = {
   moon: [0xffffff, 1],
   island: [0xff8fbd, 1],
   dome: [0xff4f9a, 1],
-  slide: [0xffd21f, 1],
+  slide: [0xff8a2b, 1],
   cannon: [0xff5a1f, 1],
   bell: [0xff5a1f, 1],
   bumper: [0xff5a1f, 1],
-  balloon: [0xffd21f, 1],
-  star: [0xffd21f, 1],
+  balloon: [0xff8a2b, 1],
+  star: [0xff8a2b, 1],
   flowerpile: [0x8a5cff, 1],
   flamingo: [0x8a5cff, 1],
   petalbench: [0x8a5cff, 1],
@@ -71,8 +71,8 @@ export const MODEL_STRIPES: Readonly<Record<string, readonly [number, number]>> 
   tree_yellow: [0.5, 0xff4f9a],
 };
 
-/** 그늘에서도 쨍하게 스스로 빛나는 라임 */
-export const GLOWING_LIME = new Set(["lime", "lime_half"]);
+/** 라임 과일: 과일 껍질의 초록이 아니라 늘 키컬러로 칠한다(조명에도 밀리지 않는다) */
+export const LIME_FRUITS = new Set(["lime", "lime_half"]);
 
 /** 생물의 버릇 — 생김새만 다르고 하는 짓이 같으면 만나는 재미가 없어서 종마다 끼운다(game/creatures/habits) */
 export type HabitName =
