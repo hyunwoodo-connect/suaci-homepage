@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { S } from "../settings";
 import type { Dip } from "../world/culler";
 import { dipOf, horizonCos } from "../world/culler";
+import type { Sight } from "../world/sight";
 import { UP } from "../world/sphere";
 import { uploadFirst } from "./upload";
 
@@ -166,13 +167,13 @@ export class Instancer {
     }
   }
 
-  /** 그리기 직전: 가까운 것 가운데 시야 안의 것만 칸에 채운다 */
-  flush(frustum: THREE.Frustum) {
+  /** 그리기 직전: 가까운 것 가운데 화면에 걸치는 것만 칸에 채운다 */
+  flush(sight: Sight) {
     if (!this.ims.length) return;
     let cnt = 0;
     for (const i of this.near) {
       const it = this.items[i];
-      if (!frustum.intersectsSphere(it.sphere)) continue;
+      if (!sight.sees(it.sphere)) continue;
       for (const im of this.ims) im.setMatrixAt(cnt, it.M);
       cnt++;
     }

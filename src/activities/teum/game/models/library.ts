@@ -4,6 +4,7 @@ import type { Manifest } from "../../assets/manifest";
 import { MODEL_BAKE } from "../../assets/settings";
 import type { LookUniforms } from "../look";
 import type { Dip } from "../world/culler";
+import type { Sight } from "../world/sight";
 import { ModelBatch } from "./batch";
 import { extentBy } from "./extent";
 import { Instancer } from "./instancer";
@@ -170,25 +171,6 @@ export class ModelLibrary {
     return this.cold.shift();
   }
 
-  /**
-   * 모델 묶음을 빈 것까지 모두 보이게 한 채로 run 을 부르고, 원래대로 돌려놓는다. 평소에는 하나도 안 그리는 묶음을 장면에서
-   * 건너뛰는데, 데울 때(Game.warmScene)는 그것들도 지나가야 셰이더와 도형이 GPU 에 올라간다(칸이 0 이라 그려지는 것은 없다)
-   */
-  withEmptyShown(run: () => void) {
-    const hidden: THREE.Object3D[] = [];
-    for (const group of [...this.instancers, ...this.batches])
-      for (const mesh of group.meshes) {
-        if (mesh.visible) continue;
-        mesh.visible = true;
-        hidden.push(mesh);
-      }
-    try {
-      run();
-    } finally {
-      for (const mesh of hidden) mesh.visible = false;
-    }
-  }
-
   /** 도착했지만 아직 GPU 에 올리지 못한 그림이 남았나 */
   get hasCold(): boolean {
     return this.cold.length > 0;
@@ -297,10 +279,10 @@ export class ModelLibrary {
   }
 
   /** 그리기 직전: 모든 묶음에서 가까운 것(p 에서 cut 보다 가깝고 지평선 너머가 아닌 것) 가운데 시야 안의 것만 남긴다 */
-  flush(frustum: THREE.Frustum, p: Readonly<THREE.Vector3>, cut: number, eye: Dip) {
-    for (const I of this.instancers) I.flush(frustum);
-    for (const B of this.batches) B.flush(frustum);
-    for (const P of this.packs) P.flush(frustum, p, cut, eye);
+  flush(sight: Sight, p: Readonly<THREE.Vector3>, cut: number, eye: Dip) {
+    for (const I of this.instancers) I.flush(sight);
+    for (const B of this.batches) B.flush(sight);
+    for (const P of this.packs) P.flush(sight, p, cut, eye);
   }
 
   /** 찍어 둔 묶음·한꺼번에 그리는 묶음을 치운다 */

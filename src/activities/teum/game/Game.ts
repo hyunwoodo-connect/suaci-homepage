@@ -83,6 +83,8 @@ import { Regions } from "./world/regions";
 import { Sites } from "./world/sites";
 import { Sky } from "./world/sky";
 import { from } from "./world/sphere";
+import { withAllShown } from "./world/reveal";
+import { Sight } from "./world/sight";
 import { createStage } from "./world/stage";
 import type { Stage } from "./world/stage";
 import { Terrain } from "./world/terrain";
@@ -181,8 +183,7 @@ export class Game {
   private readonly tapOrder: Tappable[];
   private readonly ray = new THREE.Raycaster();
   /** 그리기 직전의 시야(여럿을 한 번에 그리는 묶음이 시야 밖의 것을 뺀다) */
-  private readonly frustum = new THREE.Frustum();
-  private readonly viewProj = new THREE.Matrix4();
+  private readonly sight = new Sight();
   private readonly ndc = new THREE.Vector2();
   /** 이번 프레임(모두가 같은 값을 본다) */
   readonly frame: Frame = { dt: 0, time: 0 };
@@ -507,7 +508,7 @@ export class Game {
     this.frame.dt = dt;
     const p = this.s.player.p,
       cut = this.s.culler.cut;
-    this.updateFrustum();
+    this.sight.update(this.stage.camera);
     // 생물은 그리는 거리(v·p > 0.9)부터 좁다
     const creatures = this.creatures.list
       .filter((c) => c.v.dot(p) > CREATURE_VIEW_COS)
@@ -522,7 +523,7 @@ export class Game {
       const lifted = S.R + START_VIEW_LIFT;
       probe.center.copy(v).multiplyScalar(lifted);
       probe.radius = START_VIEW_RADIUS;
-      if (this.frustum.intersectsSphere(probe)) keys.add(key);
+      if (this.sight.sees(probe)) keys.add(key);
     }
     return [...keys];
   }
@@ -579,8 +580,9 @@ export class Game {
     renderer.render(scene, camera);
   }
 
-  // 장면의 모든 것을 한 번 그려 셰이더·도형·그림을 GPU 에 올린다: 멀리 있어 떼어 둔 것까지 붙이고, 화면 한 점에만 그린다
-  // (정점만 지나가면 올라간다. 화면에는 남지 않는다). 꾸미기 씬이 열려 있으면 카메라가 그 씬만 보므로 그동안은 세상까지 다 보게 한다
+  // 장면의 모든 것을 한 번 그려 셰이더·도형·그림을 GPU 에 올린다: 멀리 있어 떼어 둔 것을 붙이고, 일이 있을 때만 나타나려고
+  // 숨겨 둔 것(대포 방울·등대 불빛·회오리…)까지 보이게 해서, 화면 한 점에만 그린다(정점만 지나가면 올라간다. 화면에는 남지 않는다).
+  // 꾸미기 씬이 열려 있으면 카메라가 그 씬만 보므로 그동안은 세상까지 다 보게 한다
   private warmScene() {
     const { renderer, scene, camera } = this.stage;
     const seen = camera.layers.mask,
@@ -589,9 +591,10 @@ export class Game {
     camera.layers.enableAll();
     renderer.setScissor(0, 0, 1, 1);
     renderer.setScissorTest(true);
-    const everything = () => this.s.culler.withEverything(() => renderer.render(scene, camera));
+    const draw = () => renderer.render(scene, camera),
+      drawAll = () => withAllShown(scene, draw);
     try {
-      this.s.models.withEmptyShown(everything);
+      this.s.culler.withEverything(drawAll);
     } finally {
       renderer.setScissorTest(false);
       renderer.setScissor(0, 0, whole.x, whole.y);
@@ -599,11 +602,15 @@ export class Game {
     }
   }
 
-  // 그리기 직전: 지금 카메라의 시야를 재고, 묶음들이 그 안의 것만 칸에 채운다
+  // 그리기 직전: 지금 카메라의 시야를 재고, 묶음들이 화면에 걸치는 것만 칸에 채운다
   private fill() {
-    this.updateFrustum();
-    this.s.models.flush(this.frustum, this.s.player.p, this.s.culler.cut, this.s.culler.eye);
-    this.terrainView.flush(this.frustum);
+    const sight = this.sight;
+    sight.update(this.stage.camera);
+    this.s.models.flush(sight, this.s.player.p, this.s.culler.cut, this.s.culler.eye);
+    this.terrainView.flush(sight);
+    this.flowers.flush(sight);
+    this.pillars.flush(sight);
+    this.pads.flush(sight);
   }
 
   // 에셋이 아직 자리를 잡는 중인가: 뒤에서 받는 것이 남았거나, 도착한 그림을 아직 다 올리지 못했다
@@ -636,14 +643,6 @@ export class Game {
       if (typeof t === "function") t();
       else t.update(this.frame);
     }
-  }
-
-  // 그리기 직전의 시야(this.frustum)를 지금 카메라 자리로 다시 잰다
-  private updateFrustum() {
-    const camera = this.stage.camera;
-    camera.updateMatrixWorld();
-    this.viewProj.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-    this.frustum.setFromProjectionMatrix(this.viewProj);
   }
 
   // 칙: 화면 좌표를 땅에 쏘아 맞은 자리를 정하고, 정해 둔 차례로 알린다

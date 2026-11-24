@@ -5,6 +5,7 @@ import { uploadFirst } from "../models/upload";
 import type { Services } from "../services";
 import { S } from "../settings";
 import type { Ground } from "./ground";
+import type { Sight } from "./sight";
 import { UP } from "./sphere";
 
 // 지형 그림: 땅과 같은 풀밭으로 이어지는 완만한 둔덕(700)과 큰 언덕·등대 산.
@@ -101,7 +102,7 @@ export class TerrainView implements Thing {
   }
 
   /** 그리기 직전: 켜진 둔덕 가운데 가까운 것이면서 시야 안의 것만 칸에 채운다 */
-  flush(frustum: THREE.Frustum) {
+  flush(sight: Sight) {
     const p = this.s.player.p,
       cut = this.s.culler.cut,
       hills = this.s.terrain.hills,
@@ -112,7 +113,7 @@ export class TerrainView implements Thing {
       const sphAt = i * 4;
       sphere.center.fromArray(this.spheres, sphAt);
       sphere.radius = this.spheres[sphAt + 3];
-      if (!frustum.intersectsSphere(sphere)) continue;
+      if (!sight.sees(sphere)) continue;
       // 칸 하나(16)를 옮긴다 — subarray 는 프레임마다 새 뷰를 만들어 쓰지 않는다
       const from = i * 16,
         at = n * 16;

@@ -1,6 +1,7 @@
 import * as THREE from "three";
 
 import type { LookUniforms } from "../look";
+import type { Sight } from "../world/sight";
 import { extentBy } from "./extent";
 import { styleModel } from "./shader";
 import { uploadFirst } from "./upload";
@@ -145,7 +146,7 @@ export class ModelBatch {
   end() {}
 
   /** 그리기 직전: 시야 밖의 칸을 빼고 앞으로 당겨, 채운 칸만 올려 보낸다 */
-  flush(frustum: THREE.Frustum) {
+  flush(sight: Sight) {
     if (!this.ready) return;
     const sph = this.sph;
     let kept = 0;
@@ -153,7 +154,7 @@ export class ModelBatch {
       const at = i * 4;
       sphere.center.fromArray(sph, at);
       sphere.radius = sph[at + 3];
-      if (!frustum.intersectsSphere(sphere)) continue;
+      if (!sight.sees(sphere)) continue;
       if (kept !== i) for (let j = 0; j < this.meshes.length; j++) this.moveSlot(j, i, kept);
       kept++;
     }
