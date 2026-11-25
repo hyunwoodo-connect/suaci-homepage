@@ -7,7 +7,7 @@ import { SITE_LOCK_COOKIE, lockToken } from "@/lib/site-lock";
 import { checkEventAccess, eventSlugFromPath } from "@/lib/event-access";
 
 vi.mock("next-intl/middleware", () => ({
-  default: () => () => new Response(null, { status: 200 }),
+  default: () => () => new Response(null, { status: 200, headers: { "x-test-intl": "1" } }),
 }));
 vi.mock("@/lib/api/events", () => ({ eventsApi: { get: vi.fn() } }));
 
@@ -179,5 +179,19 @@ describe("middleware: 그 밖의 경로", () => {
     get.mockResolvedValue(detail);
     expect((await middleware(new NextRequest(url(p)))).status).toBe(200);
     expect(get).not.toHaveBeenCalled();
+  });
+
+  it("/avatar(아바타 꾸미기)는 언어를 붙이지 않고 그대로 연다", async () => {
+    const res = await middleware(new NextRequest(url("/avatar")));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-test-intl")).toBeNull();
+    expect(get).not.toHaveBeenCalled();
+  });
+
+  it("/avatar 아래 모르는 경로·언어가 붙은 경로는 사이트의 다른 주소처럼 다룬다", async () => {
+    for (const p of ["/avatar/x", "/en/avatar"]) {
+      const res = await middleware(new NextRequest(url(p)));
+      expect(res.headers.get("x-test-intl")).toBe("1");
+    }
   });
 });

@@ -23,8 +23,8 @@ export interface RigHandle {
 }
 
 /**
- * 뼈대 있는 몸이 오면 도형 몸을 숨기고 끼운 뒤, 몸짓 함수와 부품 끼우기를 onReady 로 넘긴다(무엇을 입을지는 옷장이 정한다).
- * 재질은 모델을 받을 때 키마다 한 번 칠해 두었다(아바타 몸·부품에는 색조가 없어 그 칠 그대로 쓴다)
+ * 뼈대 있는 몸이 오면 대신 서 있던 것을 숨기고 끼운 뒤, 몸짓 함수와 부품 끼우기를 onReady 로 넘긴다(무엇을 입을지는 옷장이 정한다).
+ * 재질은 모델을 내주는 곳이 받을 때 키마다 한 번 칠해 둔다(아바타의 칠 — paint)
  */
 export function setupRig(models: ModelSource, slots: RigSlots, onReady: (rig: RigHandle) => void) {
   if (!models.has(AVATAR_BODY)) return;

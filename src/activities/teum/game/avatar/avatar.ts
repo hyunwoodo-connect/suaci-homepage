@@ -81,7 +81,8 @@ export class Avatar implements Thing {
   /** 뼈대 있는 몸과 고양이 모델 자리(받기 전에 끼울 틀을 둔다) */
   fitModels() {
     const { models } = this.s;
-    setupRig(models, this, (rig) => {
+    const slots = { tiltG: this.tiltG, standIns: [this.body, this.nose] };
+    setupRig(models, slots, (rig) => {
       this.pose = rig.pose;
       this.rig = rig;
       for (const cb of this.rigWaiting.splice(0)) cb(rig);

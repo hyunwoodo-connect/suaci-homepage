@@ -1,6 +1,6 @@
 /**
  * 모든 페이지 요청의 입구. 이벤트 페이지(/events/{slug})는 공개 여부·미리보기 토큰으로 열고,
- * 그 밖은 next-intl 로 언어를 붙인다.
+ * 아바타 꾸미기(/avatar)는 그대로 열고, 그 밖은 next-intl 로 언어를 붙인다.
  */
 import createMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
@@ -17,6 +17,9 @@ import { SITE_LOCK_COOKIE, gateLocale, gateResponse, isUnlocked } from "./lib/si
 const intl = createMiddleware(routing);
 
 const EVENT_PREVIEW_MAX_AGE_S = 7 * 24 * 60 * 60;
+
+/** 아바타 꾸미기 — 이벤트처럼 [locale] 밖의 한 주소 */
+const AVATAR_PATH = /^\/avatar\/?$/;
 
 export default async function middleware(req: NextRequest) {
   // 이벤트 페이지는 공개 이벤트이거나 미리보기 토큰이 맞으면 연다. 아니면 사이트 비번(테스터)으로만.
@@ -60,6 +63,10 @@ export default async function middleware(req: NextRequest) {
     }
     return NextResponse.next();
   }
+
+  // 아바타 꾸미기도 [locale] 밖이라 next-intl 을 태우지 않는다(언어 접두사가 붙으면 안 된다).
+  // TODO(출시): 첫 놀이를 열기 전에는 이 주소도 닫아 둘지(공개 전 이벤트처럼 비번으로만) 정한다
+  if (AVATAR_PATH.test(req.nextUrl.pathname)) return NextResponse.next();
 
   return intl(req);
 }
