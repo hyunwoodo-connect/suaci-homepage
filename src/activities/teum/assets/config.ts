@@ -1,9 +1,7 @@
-/** 게임이 받는 에셋 버전. 올린 버전 폴더는 덮어쓰지 않는다 — 에셋을 바꾸면 새 버전으로 올리고 이 값만 바꾼다 */
-export const ASSET_VERSION = "v4";
+import { AVATAR_BUNDLE } from "@/lib/avatar/bundle";
 
 /**
- * 에셋 버전 폴더들이 있는 주소. 로컬 미리보기는 `NEXT_PUBLIC_TEUM_ASSET_BASE`(예: `tools/serve.mjs` 주소)로 바꾼다.
- * 빈 값으로 둔 env 가 상대 주소를 만들지 않게 `||` 로 고른다.
+ * 틈이 받는 에셋 묶음. 아바타의 것(몸·부품·무늬)이 같은 묶음에 들어 있어 주소와 버전은 아바타 쪽에 하나만 둔다 —
+ * 둘이 어긋나면 옷장에 있는 부품이 틈이 받는 묶음에 없을 수 있다. 묶음을 나누게 되면 여기에 틈의 주소를 따로 둔다
  */
-export const ASSET_BASE =
-  process.env.NEXT_PUBLIC_TEUM_ASSET_BASE || "https://d1s7tfjxu4yefe.cloudfront.net/events/teum";
+export const TEUM_BUNDLE = AVATAR_BUNDLE;

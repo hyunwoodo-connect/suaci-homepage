@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { Manifest } from "../../assets/manifest";
+import type { Manifest } from "@/lib/asset-kit/manifest";
 import manifestJson from "../../assets/manifest.v4.json";
 import { checkMap } from "./check";
 import { MAPS } from "./index";

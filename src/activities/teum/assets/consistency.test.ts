@@ -7,7 +7,7 @@ import { AVATAR_BODY, AVATAR_COMPANION, PARTS, thumbKey } from "@/lib/avatar/par
 
 import { MAPS } from "../game/maps";
 import { CATALOG, RETIRED } from "../tools/catalog.mjs";
-import { ASSET_VERSION } from "./config";
+import { TEUM_BUNDLE } from "./config";
 import manifestJson from "./manifest.v4.json";
 import {
   BIG_FLOWERS,
@@ -39,7 +39,7 @@ const GAME_DIR = path.resolve(__dirname, "../game");
 
 describe("manifest 사본", () => {
   it("버전 → 게임이 받는 버전과 같다", () => {
-    expect(manifestJson.version).toBe(ASSET_VERSION);
+    expect(manifestJson.version).toBe(TEUM_BUNDLE.version);
   });
 
   it("하늘 말고 모든 키 → 분류표에 같은 분류로 있다", () => {

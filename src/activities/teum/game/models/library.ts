@@ -1,6 +1,8 @@
 import * as THREE from "three";
 
-import type { Manifest } from "../../assets/manifest";
+import type { Manifest } from "@/lib/asset-kit/manifest";
+import { paintAvatar } from "@/lib/avatar/paint";
+import { AVATAR_BODY, isAvatarModel } from "@/lib/avatar/parts";
 import { MODEL_BAKE } from "../../assets/settings";
 import type { LookUniforms } from "../look";
 import type { Dip } from "../world/culler";
@@ -143,17 +145,8 @@ export class ModelLibrary {
         if (c instanceof THREE.Mesh) c.geometry.applyMatrix4(bm);
       });
     }
-    const sh = this.sharedOf(k);
     root.traverse((c) => {
-      if (!(c instanceof THREE.Mesh)) return;
-      const mat = c.material as THREE.MeshStandardMaterial;
-      styleModel(mat, {
-        key: k,
-        lookU: this.lookU,
-        lime: sh.lime,
-        motion: sh.motion,
-        batch: false,
-      });
+      if (c instanceof THREE.Mesh) this.paint(k, c.material as THREE.MeshStandardMaterial);
     });
     root.updateMatrixWorld(true);
     this.arrived.set(k, root);
@@ -291,6 +284,19 @@ export class ModelLibrary {
     for (const I of this.instancers) I.dispose();
     for (const B of this.batches) B.dispose();
     for (const m of this.instMats.values()) m.dispose();
+  }
+
+  // 키의 재질을 한 번 칠한다. 나(아바타의 몸·끼우는 부품)는 어느 놀이에서든 같은 아바타의 칠을 쓴다 — 세상의 지역 색·물들기가 닿지 않는다
+  private paint(k: string, mat: THREE.MeshStandardMaterial) {
+    if (isAvatarModel(k)) {
+      // 어떤 에셋의 재질인지(그리기 호출을 셀 때 이름으로 본다)
+      mat.name = k;
+      const outfit = k === AVATAR_BODY ? this.lookU.outfit : null;
+      paintAvatar(mat, outfit);
+      return;
+    }
+    const sh = this.sharedOf(k);
+    styleModel(mat, { key: k, lookU: this.lookU, lime: sh.lime, motion: sh.motion, batch: false });
   }
 
   // 도착한 모델의 그림을 미리 올릴 줄에 세운다(같은 그림은 한 번만)

@@ -1,14 +1,15 @@
 import * as THREE from "three";
 
+import type { AssetLoader } from "@/lib/asset-kit/load";
+import type { Manifest } from "@/lib/asset-kit/manifest";
+import { assetUrl } from "@/lib/asset-kit/manifest";
 import { AvatarProfile } from "@/lib/avatar/profile";
 import { LocalAvatarStore } from "@/lib/avatar/record";
 import type { StudioHost } from "@/lib/avatar/studio";
 import { Studio } from "@/lib/avatar/studio";
 import { Wardrobe } from "@/lib/avatar/wardrobe";
 
-import type { AssetLoader } from "../assets/load";
-import type { Manifest } from "../assets/manifest";
-import { assetUrl } from "../assets/manifest";
+import { TEUM_BUNDLE } from "../assets/config";
 import { BACKGROUND_MUSIC, SOUND_EFFECTS, SOUND_VOLUME } from "../assets/settings";
 import { Avatar } from "./avatar/avatar";
 import { Trail } from "./avatar/trail";
@@ -303,7 +304,7 @@ export class Game {
     this.sound = new SoundManager({
       events,
       manifest,
-      urlOf: assetUrl,
+      urlOf: (file) => assetUrl(TEUM_BUNDLE, file),
       effects: SOUND_EFFECTS,
       music: BACKGROUND_MUSIC,
       volume: SOUND_VOLUME,
@@ -350,7 +351,7 @@ export class Game {
     });
     const urlOf = (k: string) => {
       const entry = manifest.assets[k];
-      return entry ? assetUrl(entry.file) : null;
+      return entry ? assetUrl(TEUM_BUNDLE, entry.file) : null;
     };
     // 꾸미기 씬은 어느 놀이에서 열든 같은 화면이다(lib/avatar) — 틈은 제 장면·카메라·아바타 자리를 내준다
     const input = this.input;

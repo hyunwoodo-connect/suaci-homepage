@@ -1,7 +1,9 @@
 import type * as THREE from "three";
 
+import { KEY_HOLD_GLSL } from "@/lib/asset-kit/material";
+
 // 키컬러(라임 #A9FF39)를 화면에 제 색으로 내는 셰이더 조각 둘(톤 규칙 ④ — look.ts):
-// 1) 키컬러 지키기(KEY_HOLD_GLSL): 라임인 면은 조명에 밀려 누렇게 뜨지 않게 칠한다
+// 1) 키컬러 지키기(KEY_HOLD_GLSL — 아바타의 칠과 같이 쓰는 조각이라 lib/asset-kit/material 에 있다): 라임인 면은 조명에 밀려 누렇게 뜨지 않게 칠한다
 // 2) 끝 장면의 라임 물결(FLOOD_GLSL): 한 자리에서 퍼지는 원이 닿은 면부터 라임이 된다
 // 도형 재질은 keyify 로 둘을 한 번에 입고, 제 셰이더를 덧입히는 재질(꽃잎·땅·모델)은 조각을 골라 넣는다
 
@@ -45,16 +47,6 @@ export const FLOOD_GLSL = `
     float fdOn = smoothstep(uFlood.w, uFlood.w + 0.0004, dot(normalize(vKeyAt), uFlood.xyz)) * smoothstep(0.15, 0.45, (fdMx - fdMn) / max(fdMx, 0.001));
     float fdLum = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
     diffuseColor.rgb = mix(diffuseColor.rgb, ${keyPaintGlsl("fdLum")}, fdOn); }`;
-
-/**
- * 키컬러 지키기: 라임인 면은 장면의 조명을 받지 않는다 — 조명이 더해지면 초록 채널이 먼저 차서 라임이 누렇게 뜬다.
- * 제 색에 완만한 음영(아래쪽·가장자리만 조금 어둡게, 제 색보다 밝아지지 않는다)만 얹는다. opaque_fragment 앞에 넣는다
- */
-export const KEY_HOLD_GLSL = `
-  { float khOn = smoothstep(0.12, 0.35, diffuseColor.g - max(diffuseColor.r * 0.75, diffuseColor.b)) * smoothstep(0.45, 0.8, diffuseColor.g);
-    float khRim = pow(1.0 - saturate(dot(normal, normalize(vViewPosition))), 2.4);
-    float khShade = (0.84 + 0.16 * smoothstep(-0.7, 0.5, normal.y)) * (1.0 - 0.14 * khRim);
-    outgoingLight = mix(outgoingLight, diffuseColor.rgb * khShade, khOn); }`;
 
 /** 셰이더 하나에 키컬러 규칙 둘을 넣는다 — 제 셰이더를 덧입히는 재질은 그 끝에서 이것을 부른다 */
 export function keyShader(

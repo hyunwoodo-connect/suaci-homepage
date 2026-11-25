@@ -1,8 +1,9 @@
 import * as THREE from "three";
 
+import { KEY_HOLD_GLSL } from "@/lib/asset-kit/material";
+
 import type { Frame, Thing } from "../core/frame";
 import type { FloodUniform } from "../keyColor";
-import { KEY_HOLD_GLSL } from "../keyColor";
 import { LOOK } from "../look";
 import type { Services } from "../services";
 import { S } from "../settings";

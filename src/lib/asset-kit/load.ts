@@ -2,8 +2,8 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 
+import type { BundleAddress, Manifest } from "./manifest";
 import { assetUrl } from "./manifest";
-import type { Manifest } from "./manifest";
 
 /** 받은 에셋: 모델(glb 장면) 또는 그림(하늘) */
 export type LoadedAsset =
@@ -27,8 +27,8 @@ export interface AssetLoader {
 /** 동시에 받는 수. 폰 회선에서 앞 것이 뒤 것에 밀리지 않을 만큼만 */
 const PARALLEL = 6;
 
-/** manifest 를 보고 받는 로더를 만든다. 배포본은 meshopt 압축이라 디코더를 단다 */
-export function createAssetLoader(manifest: Manifest): AssetLoader {
+/** 그 묶음의 manifest 를 보고 받는 로더를 만든다. 배포본은 meshopt 압축이라 디코더를 단다 */
+export function createAssetLoader(bundle: BundleAddress, manifest: Manifest): AssetLoader {
   const gltf = new GLTFLoader();
   gltf.setMeshoptDecoder(MeshoptDecoder);
   const images = new THREE.TextureLoader();
@@ -43,7 +43,7 @@ export function createAssetLoader(manifest: Manifest): AssetLoader {
       const missing = new Error(`manifest 에 없는 에셋: ${key}`);
       return Promise.reject(missing);
     }
-    const url = assetUrl(entry.file);
+    const url = assetUrl(bundle, entry.file);
     const job = entry.file.endsWith(".glb")
       ? gltf.loadAsync(url).then((g): LoadedAsset => {
           const scene = g.scene;
@@ -70,7 +70,7 @@ export function createAssetLoader(manifest: Manifest): AssetLoader {
             const asset = await fetchOne(key);
             onEach(key, asset);
           } catch (err) {
-            console.error("teum asset", key, err);
+            console.error("asset", key, err);
           }
           loaded += bytesOf(key);
           onProgress?.(loaded, total);

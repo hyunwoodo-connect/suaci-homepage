@@ -1,7 +1,9 @@
+import type { LoadedAsset } from "@/lib/asset-kit/load";
+import { createAssetLoader } from "@/lib/asset-kit/load";
+import type { Manifest } from "@/lib/asset-kit/manifest";
+
+import { TEUM_BUNDLE } from "../assets/config";
 import { firstScreenKeys } from "../assets/firstScreen";
-import { createAssetLoader } from "../assets/load";
-import type { LoadedAsset } from "../assets/load";
-import type { Manifest } from "../assets/manifest";
 import { devFestival, devMap, devSeed, exposeGame } from "./debug";
 import { Game } from "./Game";
 import { DEFAULT_MAP } from "./maps";
@@ -60,7 +62,7 @@ export function start(
     }
     onProgress?.(ratio);
   };
-  const loader = createAssetLoader(assets);
+  const loader = createAssetLoader(TEUM_BUNDLE, assets);
   game.useLoader(loader);
   let unexpose = () => {};
   game.wardrobe.ready

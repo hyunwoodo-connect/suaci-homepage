@@ -1,6 +1,6 @@
 import { AVATAR_BODY, AVATAR_COMPANION } from "@/lib/avatar/parts";
 
-import type { Manifest } from "./manifest";
+import type { Manifest } from "@/lib/asset-kit/manifest";
 
 /** 첫 화면에 늘 받는 분류: 하늘 그림(모델이 아니라 놓인 자리가 없다) */
 const FIRST_CATEGORIES = ["sky"];
