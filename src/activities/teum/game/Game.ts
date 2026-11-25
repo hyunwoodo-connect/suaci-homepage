@@ -42,8 +42,6 @@ import { Funnels } from "./rides/funnels";
 import { Holes } from "./rides/holes";
 import { Jets } from "./rides/jets";
 import { Pads } from "./rides/pads";
-import type { PerfContext } from "./perf/perfLog";
-import { isPerfLogOn, PerfPanel } from "./perf/perfPanel";
 import { Pillars } from "./rides/pillars";
 import { Pipes } from "./rides/pipes";
 import { Rails } from "./rides/rails";
@@ -186,22 +184,6 @@ export class Game {
   private readonly ray = new THREE.Raycaster();
   /** 그리기 직전의 시야(여럿을 한 번에 그리는 묶음이 시야 밖의 것을 뺀다) */
   private readonly sight = new Sight();
-  /** 폰에서 직접 재는 기록(주소에 ?perf 가 있을 때만)과, 프레임마다 다시 채워 넘기는 그 프레임의 상태 */
-  private readonly perf: PerfPanel | null;
-  private readonly perfNow: PerfContext = {
-    air: 0,
-    isHeld: false,
-    isInStudio: false,
-    triangles: 0,
-    calls: 0,
-    programs: 0,
-    geometries: 0,
-    textures: 0,
-    ratio: 1,
-    isSettling: false,
-    eaten: 0,
-    workMs: 0,
-  };
   private readonly ndc = new THREE.Vector2();
   /** 이번 프레임(모두가 같은 값을 본다) */
   readonly frame: Frame = { dt: 0, time: 0 };
@@ -229,7 +211,6 @@ export class Game {
     const player = new Player(terrain, events);
     const hudParent = canvas.parentElement ?? document.body;
     const hud = new Hud(hudParent);
-    this.perf = isPerfLogOn() ? new PerfPanel(hudParent, stage.renderer) : null;
     const models = new ModelLibrary(manifest, mats.lookU, scene);
     const fxRng = rng.fork("fx"),
       rippleRng = rng.fork("ripples");
@@ -485,14 +466,10 @@ export class Game {
     const dt = Math.min(0.1, elapsed);
     this.frame.dt = dt;
     this.frame.time += dt;
-    const began = this.perf ? performance.now() : 0;
-    if (this.perf) this.logFrame(this.perf, elapsed);
     this.fitPixels(elapsed);
     this.runFrame();
     this.warmBehindStudio();
     this.draw();
-    // 다음 프레임이 적는다: 이 프레임에 게임이 셈하고 그리라고 시키는 데 쓴 시간
-    if (this.perf) this.perfNow.workMs = performance.now() - began;
   }
 
   /** 꾸미기 씬 없이 바로 세상으로 들어가나(이미 꾸미고 온 사람 · 개발 ?quick). 기록을 읽은 뒤(wardrobe.ready)에 묻는다 */
@@ -583,7 +560,6 @@ export class Game {
 
   /** 멈추고 그리던 것·리스너·DOM 을 치운다 */
   dispose() {
-    this.perf?.dispose();
     this.input.dispose();
     this.sound.dispose();
     for (const t of this.frameOrder) if (typeof t !== "function") t.dispose();
@@ -649,27 +625,6 @@ export class Game {
     if (!this.owesWarm || this.s.models.hasCold) return;
     this.owesWarm = false;
     if (this.s.hud.isInStudio) this.warmScene();
-  }
-
-  // 폰에서 직접 재는 기록에 프레임 하나를 적는다: 지난 프레임부터의 간격과, 그 간격이 걸린 지난 프레임의 상태(이번 셈을 하기 전의 값)
-  private logFrame(perf: PerfPanel, elapsed: number) {
-    const { renderer } = this.stage,
-      { player, hud } = this.s,
-      info = renderer.info,
-      now = this.perfNow;
-    now.air = player.air;
-    now.isHeld = player.isHeld;
-    now.isInStudio = hud.isInStudio;
-    now.triangles = info.render.triangles;
-    now.calls = info.render.calls;
-    now.programs = info.programs?.length ?? 0;
-    now.geometries = info.memory.geometries;
-    now.textures = info.memory.textures;
-    now.ratio = renderer.getPixelRatio();
-    now.isSettling = this.isSettling;
-    now.eaten = this.waterBalloons?.round.count ?? 0;
-    const intervalMs = elapsed * 1000;
-    perf.frame(intervalMs, now);
   }
 
   // 프레임이 계속 느린 기기에서는 화면 배율을 낮춘다(core/pixelBudget.ts). elapsed: 지난 프레임부터 흐른 실제 시간(초).
