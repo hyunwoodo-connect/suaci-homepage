@@ -1,8 +1,7 @@
 import * as THREE from "three";
 
-import type { PartSlot } from "@/lib/avatar/parts";
-
-import { unbindSkirtFromArms } from "./skirtWeights";
+import type { PartSlot } from "./parts";
+import { unbindSkirtFromArms } from "./skirt-weights";
 
 // 받은 몸을 재서 틀에 넣는다. 잰 값과, 몸짓·손에 든 것·꾸미기가 같이 고치는 값은 모두 Rig 하나에 담는다
 

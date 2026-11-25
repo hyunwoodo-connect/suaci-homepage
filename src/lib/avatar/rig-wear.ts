@@ -1,15 +1,23 @@
 import * as THREE from "three";
 
-import type { PartFit, PartSlot } from "@/lib/avatar/parts";
-import { PARTS } from "@/lib/avatar/parts";
-
-import type { ModelLibrary } from "../models/library";
-import type { Rig } from "./rigBody";
-import { mainBoneOf, palmCenter, palmPointsNear } from "./rigHand";
-import { poseBone } from "./rigPose";
+import type { PartFit, PartSlot } from "./parts";
+import { PARTS } from "./parts";
+import type { Rig } from "./rig-body";
+import { mainBoneOf, palmCenter, palmPointsNear } from "./rig-hand";
+import { poseBone } from "./rig-pose";
 
 // 꾸미기: 칸(slot)마다 하나씩, 같은 칸에 새로 끼우면 바뀐다. 뼈에 끼울 때는 처음 선 자세(바인드) 기준으로 자리를 계산해서,
 // 움직이는 도중에 갈아 끼워도 어긋나지 않는다
+
+/** 몸과 부품 모델을 내주는 곳(놀이의 모델 창구가 이 모양을 맞춘다) */
+export interface ModelSource {
+  /** 이번 에셋 판에 그 모델이 있나 */
+  has(key: string): boolean;
+  /** 아직 안 받았으면 받아 달라고 한다 */
+  need(key: string): void;
+  /** 모델이 오면(이미 왔으면 바로) cb */
+  when(key: string, cb: (root: THREE.Group) => void): void;
+}
 
 /** 손에 든 것: 손뼈 원점은 실제 손보다 몸 안쪽에 있어, 팔 방향으로 (처음 자세의 손끝까지 남은 길이 × 이 비율)만큼 더 나간 자리가 손이다 */
 const HAND_REACH = 0.45;
@@ -33,7 +41,7 @@ export function stripSlot(rig: Rig, slot: PartSlot) {
 }
 
 /** 부품을 끼운다(같은 칸의 것은 빠진다). 모델이 오는 사이 같은 칸에 다른 것을 고르면 늦게 온 것은 버린다 */
-export function wearPart(rig: Rig, models: ModelLibrary, key: string) {
+export function wearPart(rig: Rig, models: ModelSource, key: string) {
   const d = PARTS[key];
   if (!d) return;
   stripSlot(rig, d.slot);

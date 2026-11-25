@@ -1,4 +1,41 @@
-// 아바타 몸의 옷 갈아입히기 셰이더 조각: 몸과 옷이 한 덩어리인 모델이라 옷 자리를 색으로 가려 무늬·색을 덮는다
+import * as THREE from "three";
+
+// 아바타 몸의 옷 갈아입히기: 몸과 옷이 한 덩어리인 모델이라 옷 자리를 색으로 가려 무늬·색을 덮는다.
+// 셰이더 조각과, 그 셰이더가 읽는 옷 값(OutfitUniforms)이 여기 있다 — 놀이는 제 몸 재질에 이 조각과 값을 물리고, 옷장(wardrobe)이 값을 바꾼다
+
+/**
+ * 아바타 옷(몸 셰이더가 옷 자리를 덮는 값): 윗옷·치마 무늬 그림과 입었는지(on), 무늬 크기(uPrS),
+ * 치마·신발 단색과 칠했는지(on). 옷을 갈아입으면 이 값만 바뀌고 셰이더는 그대로다
+ */
+export interface OutfitUniforms {
+  uPrT: { value: THREE.Texture };
+  uPrB: { value: THREE.Texture };
+  uPrTon: { value: number };
+  uPrBon: { value: number };
+  uPrS: { value: number };
+  uSkC: { value: THREE.Color };
+  uSkOn: { value: number };
+  uShC: { value: THREE.Color };
+  uShOn: { value: number };
+}
+
+/** 아무 옷도 덮지 않은 값. 무늬 자리는 흰 점 하나(그림이 오기 전에도 셰이더가 읽을 것이 있게) */
+export function blankOutfit(): OutfitUniforms {
+  const pixel = new Uint8Array([255, 255, 255, 255]),
+    white = new THREE.DataTexture(pixel, 1, 1);
+  white.needsUpdate = true;
+  return {
+    uPrT: { value: white },
+    uPrB: { value: white },
+    uPrTon: { value: 0 },
+    uPrBon: { value: 0 },
+    uPrS: { value: 1.5 },
+    uSkC: { value: new THREE.Color(0xffffff) },
+    uSkOn: { value: 0 },
+    uShC: { value: new THREE.Color(0xffffff) },
+    uShOn: { value: 0 },
+  };
+}
 
 /** 몸 꼭짓점 셰이더 머리: 무늬를 세 방향에서 입힐 때 쓰는 처음 법선 */
 export const BODY_VERTEX_HEAD = `varying vec3 vOn;
@@ -8,7 +45,7 @@ export const BODY_VERTEX_HEAD = `varying vec3 vOn;
 export const BODY_VERTEX = `
   vOn = normal;`;
 
-/** 몸 조각 셰이더 머리: 옷 값(look.ts 의 OutfitUniforms) */
+/** 몸 조각 셰이더 머리: 옷 값(OutfitUniforms) */
 export const BODY_FRAGMENT_HEAD = `varying vec3 vOn; uniform sampler2D uPrT; uniform sampler2D uPrB; uniform float uPrTon; uniform float uPrBon; uniform float uPrS; uniform vec3 uSkC; uniform float uSkOn; uniform vec3 uShC; uniform float uShOn;
 `;
 

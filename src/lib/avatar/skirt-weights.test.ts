@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 
-import { unbindSkirtFromArms } from "./skirtWeights";
+import { unbindSkirtFromArms } from "./skirt-weights";
 
 // 뼈: 0 Hips · 1 RightUpLeg · 2 LeftArm · 3 LeftHand
 const BONES = ["Hips", "RightUpLeg", "LeftArm", "LeftHand"];

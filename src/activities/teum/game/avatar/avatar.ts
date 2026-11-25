@@ -1,6 +1,9 @@
 import * as THREE from "three";
 
 import { AVATAR_COMPANION } from "@/lib/avatar/parts";
+import type { RigHandle } from "@/lib/avatar/rig";
+import { setupRig } from "@/lib/avatar/rig";
+import type { PoseFn, PoseInput } from "@/lib/avatar/rig-pose";
 
 import type { Frame, Thing } from "../core/frame";
 import { ease } from "../core/frame";
@@ -8,9 +11,6 @@ import type { Hold } from "../models/library";
 import type { Services } from "../services";
 import { LIME, S } from "../settings";
 import { clamp, FWD } from "../world/sphere";
-import type { RigHandle } from "./rig";
-import { setupRig } from "./rig";
-import type { PoseFn, PoseInput } from "./rigPose";
 
 // 나: 자리(me)와 기울기(tiltG) 안에 몸. 뼈대 있는 아바타가 오기 전까지는 도형 몸과 라임 공 고양이가 대신 선다.
 // 몸 자리는 Player.place() 가 정한 세계 자리(P)를 따라가고, 기울기·몸짓·크기는 여기서 정한다
@@ -81,7 +81,7 @@ export class Avatar implements Thing {
   /** 뼈대 있는 몸과 고양이 모델 자리(받기 전에 끼울 틀을 둔다) */
   fitModels() {
     const { models } = this.s;
-    setupRig(this.s, this, (rig) => {
+    setupRig(models, this, (rig) => {
       this.pose = rig.pose;
       this.rig = rig;
       for (const cb of this.rigWaiting.splice(0)) cb(rig);

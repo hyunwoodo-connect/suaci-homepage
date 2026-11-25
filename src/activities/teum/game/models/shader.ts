@@ -1,25 +1,25 @@
 import * as THREE from "three";
 
 import { AVATAR_BODY, PARTS } from "@/lib/avatar/parts";
-
-import { LIME_FRUITS, MODEL_STRIPES, MODEL_TINT } from "../../assets/settings";
-import { KEY_HOLD_GLSL } from "../keyColor";
-import type { LookUniforms } from "../look";
-import { LOOK } from "../look";
-import { BATCH_DEFINE, BEND_GLSL, VERTEX_HEAD } from "./bendGlsl";
 import {
   BODY_FRAGMENT_HEAD,
   BODY_RAW,
   BODY_VERTEX,
   BODY_VERTEX_HEAD,
   OUTFIT_GLSL,
-} from "./outfitGlsl";
+} from "@/lib/avatar/outfit-shader";
+
+import { LIME_FRUITS, MODEL_STRIPES, MODEL_TINT } from "../../assets/settings";
+import { KEY_HOLD_GLSL } from "../keyColor";
+import type { LookUniforms } from "../look";
+import { LOOK } from "../look";
+import { BATCH_DEFINE, BEND_GLSL, VERTEX_HEAD } from "./bendGlsl";
 import { FRAGMENT_HEAD, LIME_GLSL, REGION_GLSL, TONE_GLSL } from "./toneGlsl";
 
 // 모델 재질의 톤 셰이더를 짠다: 색 조각(toneGlsl — 채도·색조·줄무늬·지역 색·라임 물들기)과 몸 휘기(bendGlsl)를 재질에 덧입힌다.
 // 같은 키의 모델은 재질 하나를 같이 쓴다. 몸 휘기 값(uAn)·라임(uLime)이 저마다 다른 것은 여러 개를 한 번에 그리는 묶음(batch)으로
 // 그리고, 그때는 같은 값이 인스턴스마다의 속성(aAn·aLime)으로 온다 — 셰이더 갈래는 이 둘뿐이다.
-// 아바타 몸만 하나 더: 몸과 옷이 한 덩어리인 모델이라 옷 자리를 색으로 가려 무늬·색을 덮는다(outfitGlsl)
+// 아바타 몸만 하나 더: 몸과 옷이 한 덩어리인 모델이라 옷 자리를 색으로 가려 무늬·색을 덮는다(lib/avatar/outfit-shader)
 
 /** 몸 휘기 값: x 고유 위상, y 걸음 위상, z 움직임 세기, w 고개 */
 export interface MotionUniforms {

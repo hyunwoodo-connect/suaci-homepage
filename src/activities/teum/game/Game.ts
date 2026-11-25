@@ -2,6 +2,9 @@ import * as THREE from "three";
 
 import { AvatarProfile } from "@/lib/avatar/profile";
 import { LocalAvatarStore } from "@/lib/avatar/record";
+import type { StudioHost } from "@/lib/avatar/studio";
+import { Studio } from "@/lib/avatar/studio";
+import { Wardrobe } from "@/lib/avatar/wardrobe";
 
 import type { AssetLoader } from "../assets/load";
 import type { Manifest } from "../assets/manifest";
@@ -9,7 +12,6 @@ import { assetUrl } from "../assets/manifest";
 import { BACKGROUND_MUSIC, SOUND_EFFECTS, SOUND_VOLUME } from "../assets/settings";
 import { Avatar } from "./avatar/avatar";
 import { Trail } from "./avatar/trail";
-import { Wardrobe } from "./avatar/wardrobe";
 import { reserveLawn } from "./brand/lawn";
 import { BrandObjects } from "./brand/objects";
 import { Signature } from "./brand/signature";
@@ -71,7 +73,6 @@ import { Sculptures } from "./sculptures/sculptures";
 import type { Services } from "./services";
 import { S } from "./settings";
 import { SoundManager } from "./sound";
-import { Studio } from "./studio/studio";
 import type { WaterBalloons } from "./waterBalloons/waterBalloons";
 import { createWaterBalloons } from "./waterBalloons/waterBalloons";
 import { Clouds } from "./world/clouds";
@@ -351,7 +352,21 @@ export class Game {
       const entry = manifest.assets[k];
       return entry ? assetUrl(entry.file) : null;
     };
-    this.studio = new Studio(s, this.avatar, this.wardrobe, this.input, hudParent, urlOf);
+    // 꾸미기 씬은 어느 놀이에서 열든 같은 화면이다(lib/avatar) — 틈은 제 장면·카메라·아바타 자리를 내준다
+    const input = this.input;
+    const studioHost: StudioHost = {
+      scene: s.scene,
+      camera: s.camera.camera,
+      avatar: this.avatar,
+      stand: s.player,
+      need: (key) => s.models.need(key),
+      onToggle(isOpen) {
+        s.hud.setStudio(isOpen);
+        input.hold(isOpen);
+      },
+      onPicked: (isRandom) => s.events.emit("outfitPicked", { random: isRandom }),
+    };
+    this.studio = new Studio(studioHost, this.wardrobe, hudParent, urlOf);
     this.studio.greetNewcomer(skipStudio);
     this.landmarks = new Landmarks(s, this.sculptures.landmarks, this.progress);
     this.signature = new Signature(s, lawn, this.sites, this.rockets);

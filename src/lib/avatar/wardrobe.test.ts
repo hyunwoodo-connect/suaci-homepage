@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { AvatarProfile } from "@/lib/avatar/profile";
-import { emptyAvatarRecord, MemoryAvatarStore } from "@/lib/avatar/record";
-import { DEFAULT_LOOK } from "@/lib/avatar/outfit";
-
-import { Mats } from "../look";
-import type { Avatar } from "./avatar";
+import { DEFAULT_LOOK } from "./outfit";
+import { blankOutfit } from "./outfit-shader";
+import { AvatarProfile } from "./profile";
+import { emptyAvatarRecord, MemoryAvatarStore } from "./record";
 import type { RigHandle } from "./rig";
+import type { RigOwner } from "./wardrobe";
 import { Wardrobe } from "./wardrobe";
 
 /** 몸이 바로 오는 아바타와, 끼우고 뺀 것을 적는 뼈대 */
@@ -16,29 +15,29 @@ function setup(saved: Partial<ReturnType<typeof emptyAvatarRecord>> = {}, dressN
     wear: (k: string) => calls.push(`+${k}`),
     strip: (slot: string) => calls.push(`-${slot}`),
   } as unknown as RigHandle;
-  const avatar = { whenRig: (cb: (r: RigHandle) => void) => cb(rig) } as unknown as Avatar;
+  const avatar = { whenRig: (cb: (r: RigHandle) => void) => cb(rig) } as RigOwner;
   const store = new MemoryAvatarStore({ ...emptyAvatarRecord(), ...saved });
   const profile = new AvatarProfile(store);
-  const mats = new Mats();
-  const wardrobe = new Wardrobe(mats.lookU.outfit, avatar, profile, {
+  const outfit = blankOutfit();
+  const wardrobe = new Wardrobe(outfit, avatar, profile, {
     dressNewcomer,
     rand: () => 0,
   });
-  return { wardrobe, profile, calls, outfit: mats.lookU.outfit };
+  return { wardrobe, profile, calls, outfit };
 }
 
 describe("Wardrobe · 아바타 기록", () => {
   /** 몸이 바로 오는 아바타 */
   const avatar = {
     whenRig: (cb: (r: RigHandle) => void) => cb({ wear() {}, strip() {} } as unknown as RigHandle),
-  } as unknown as Avatar;
+  } as RigOwner;
   const options = { dressNewcomer: true, rand: () => 0 };
 
   it("공용 기록은 비었지만 다른 자리에 차림이 남아 있던 사람 → 그 차림을 입는다(처음 온 사람의 아무 차림으로 덮지 않는다)", async () => {
     const old = { ...emptyAvatarRecord(), look: { ...DEFAULT_LOOK, hand: "bag" }, dressed: true };
     const store = new MemoryAvatarStore();
     const profile = new AvatarProfile(store, () => old);
-    const wardrobe = new Wardrobe(new Mats().lookU.outfit, avatar, profile, options);
+    const wardrobe = new Wardrobe(blankOutfit(), avatar, profile, options);
     await wardrobe.ready;
     const kept = await store.load();
     expect([wardrobe.look, wardrobe.hasDressed, kept]).toEqual([old.look, true, old]);
@@ -47,7 +46,7 @@ describe("Wardrobe · 아바타 기록", () => {
   it("꾸민 적: 처음에는 false, markDressed 뒤로는 true 이고 기록에 남는다", async () => {
     const store = new MemoryAvatarStore();
     const profile = new AvatarProfile(store);
-    const wardrobe = new Wardrobe(new Mats().lookU.outfit, avatar, profile, options);
+    const wardrobe = new Wardrobe(blankOutfit(), avatar, profile, options);
     await wardrobe.ready;
     const before = wardrobe.hasDressed;
     wardrobe.markDressed();
