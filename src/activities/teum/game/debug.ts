@@ -331,7 +331,8 @@ function rideTargets(g: Game): unknown[] {
   add("hole", T.holes.list[0].v, 0.01);
   add("jet", T.jets.jnodes[3].v, 44);
   add("comet", T.comet.v, 46);
-  const whaleAir = T.whale.WH + 4;
+  // 고래는 등 위에서 내려앉아야 탄다 — 등(고래 높이 + 등 높이) 조금 위에 놓는다
+  const whaleAir = T.whale.WH + T.whale.rideH + 8;
   add("whale", T.whale.v, whaleAir);
   for (const k of ["slide", "dome", "stairs", "carousel", "ferris", "moon", "lime", "island"]) {
     const s = T.sites.list.find((x) => x.k === k);
