@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # '틈' 에셋 올리기: 배포본 한 버전을 공개 경로(events/teum/<버전>/)에, 원본을 비공개 경로(events/teum/source/)에.
-# 버전 폴더는 덮어쓰지 않는다 — 바꾸려면 새 버전(v2…)으로 빌드해서 올리고 게임의 ASSET_VERSION 만 바꾼다.
+# 버전 폴더는 덮어쓰지 않는다 — 바꾸려면 새 버전(v2…)으로 빌드해서 올리고 묶음 주소의 version(src/lib/avatar/bundle.ts — 틈과 아바타가 같이 쓴다)만 바꾼다.
 # 사용: upload.sh <배포본 버전 폴더> <원본 폴더> <버전>   예: upload.sh ~/teum/dist/v1 ~/teum/raw v1
 set -euo pipefail
 

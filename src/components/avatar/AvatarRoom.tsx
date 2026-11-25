@@ -42,6 +42,8 @@ export default function AvatarRoom() {
   }, []);
 
   const isLoading = progress < 1;
+  // 실패 안내는 그리기 시작한 뒤에 멈췄을 때도 보인다
+  const isCovered = isLoading || hasFailed;
   const percent = progress * 100;
   return (
     <main className="fixed inset-0 overflow-hidden bg-studio select-none">
@@ -54,11 +56,11 @@ export default function AvatarRoom() {
           style={{ WebkitTouchCallout: "none" }}
         />
       </div>
-      {isLoading ? (
+      {isCovered ? (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-[16px] bg-paper px-[16px] text-center">
           <h1 className="m-0 text-[24px] text-ink">내 아바타</h1>
           {hasFailed ? (
-            <p className="m-0 text-[14px] text-grey">
+            <p role="alert" className="m-0 text-[14px] text-grey">
               불러오지 못했어요. 잠시 뒤 다시 열어 주세요.
             </p>
           ) : (
@@ -86,7 +88,7 @@ export default function AvatarRoom() {
         role="status"
         className="pointer-events-none absolute inset-x-0 top-[66%] flex flex-col items-center gap-[6px] px-[24px] text-center"
       >
-        {!isLoading && !isDressing ? (
+        {!isCovered && !isDressing ? (
           <>
             <p className="m-0 text-[20px] text-ink">차림을 저장했어요</p>
             <p className="m-0 text-[14px] text-grey">놀이에 들어가면 이 차림으로 나와요.</p>

@@ -140,6 +140,7 @@ export function openAvatarRoom(
   };
   // 다 받아도 0.99 에서 멈춘다 — 1 은 그리기 시작할 때 보낸다
   const report = (loaded: number, total: number) => {
+    if (stopped) return;
     const share = total ? loaded / total : 1;
     const ratio = Math.min(0.99, share);
     on.onProgress(ratio);

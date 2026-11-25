@@ -3,6 +3,7 @@ import * as THREE from "three";
 import type { Manifest } from "@/lib/asset-kit/manifest";
 import { paintAvatar } from "@/lib/avatar/paint";
 import { AVATAR_BODY, isAvatarModel } from "@/lib/avatar/parts";
+
 import { MODEL_BAKE } from "../../assets/settings";
 import type { LookUniforms } from "../look";
 import type { Dip } from "../world/culler";
