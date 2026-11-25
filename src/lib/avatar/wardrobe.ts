@@ -192,7 +192,7 @@ export class Wardrobe {
       this.prints.set(name, job);
     }
     job.then(apply).catch((err) => {
-      console.error("teum print", name, err);
+      console.error("avatar print", name, err);
       this.prints.delete(name);
     });
   }

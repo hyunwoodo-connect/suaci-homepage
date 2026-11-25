@@ -9,7 +9,7 @@ import { poseFrame } from "./rig-pose";
 import type { ModelSource } from "./rig-wear";
 import { stripSlot, wearPart } from "./rig-wear";
 
-// 뼈대가 있는 아바타. 몸이 오면 한 번 재고(rigBody), 그 상태(Rig) 하나를 몸짓(rigPose)·손에 든 것(rigHand)·꾸미기(rigWear)가 같이 쓴다
+// 뼈대가 있는 아바타. 몸이 오면 한 번 재고(rig-body), 그 상태(Rig) 하나를 몸짓(rig-pose)·손에 든 것(rig-hand)·꾸미기(rig-wear)가 같이 쓴다
 
 /** 뼈대 있는 몸이 오면 넘기는 것 */
 export interface RigHandle {
