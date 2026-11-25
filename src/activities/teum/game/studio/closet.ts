@@ -1,6 +1,7 @@
-import type { AvatarLook, LookTab } from "../avatar/outfit";
-import { isPartTab, isPrint, LOOK_TABS, optionsFor, printKey } from "../avatar/outfit";
-import { thumbKey } from "../avatar/parts";
+import type { AvatarLook, LookTab } from "@/lib/avatar/outfit";
+import { isPartTab, isPrint, LOOK_TABS, optionsFor, printKey } from "@/lib/avatar/outfit";
+import { thumbKey } from "@/lib/avatar/parts";
+
 import { HUD_FONT } from "../hud";
 
 // 꾸미기 씬의 화면: 세상에서 여는 옷장 단추, 무대(밀어서 돌리기·되돌리기·아무거나), 아래 옷장(탭·칸·완성).

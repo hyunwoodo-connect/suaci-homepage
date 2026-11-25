@@ -1,5 +1,8 @@
 import * as THREE from "three";
 
+import { AvatarProfile } from "@/lib/avatar/profile";
+import { LocalAvatarStore } from "@/lib/avatar/record";
+
 import type { AssetLoader } from "../assets/load";
 import type { Manifest } from "../assets/manifest";
 import { assetUrl } from "../assets/manifest";
@@ -26,6 +29,7 @@ import { Mats } from "./look";
 import type { GameMap } from "./maps/map";
 import { cloneLayout } from "./maps/map";
 import { ModelLibrary } from "./models/library";
+import { legacyAvatar } from "./progress/legacyAvatar";
 import { Progress } from "./progress/progress";
 import { LocalSaveStore } from "./progress/store";
 import { CameraRig } from "./player/camera";
@@ -158,9 +162,11 @@ export class Game {
   readonly sculptures: Sculptures;
   /** 마을마다 말을 거는 랜드마크 */
   readonly landmarks: Landmarks;
-  /** 이번 판의 기록(랜드마크에 다녀간 수·차림) */
+  /** 이번 판의 기록(랜드마크에 다녀간 수) */
   readonly progress: Progress;
-  /** 지금 차림(옷은 몸 셰이더, 소품은 뼈) — 기록에 둔다 */
+  /** 아바타 기록(차림·꾸민 적) — 놀이마다 같이 쓰는 공용 기록 */
+  readonly profile: AvatarProfile;
+  /** 지금 차림(옷은 몸 셰이더, 소품은 뼈) — 아바타 기록에 둔다 */
   readonly wardrobe: Wardrobe;
   /** 꾸미기 씬: 세상을 가리고 아바타만 세워 옷장에서 고른다 */
   readonly studio: Studio;
@@ -331,10 +337,13 @@ export class Game {
     this.whale.choosePath([this.trees, this.bigFlowers, this.sculptures, this.sites]);
     const store = new LocalSaveStore();
     this.progress = new Progress(store);
+    // 아바타 기록은 놀이마다 같이 쓴다. 공용 기록이 비어 있으면 틈 기록 안에 남은 차림을 한 번 옮겨 온다
+    const avatarStore = new LocalAvatarStore();
+    this.profile = new AvatarProfile(avatarStore, legacyAvatar);
     // ---- 꾸미기: 처음 온 사람은 아무 차림이나 입고 세상보다 꾸미기 씬을 먼저 본다(개발 ?quick 이면 건너뛴다) ----
     const skipStudio = isStudioSkipped(),
       lookRng = rng.fork("look");
-    this.wardrobe = new Wardrobe(mats.lookU.outfit, this.avatar, this.progress, {
+    this.wardrobe = new Wardrobe(mats.lookU.outfit, this.avatar, this.profile, {
       dressNewcomer: !skipStudio,
       rand: () => lookRng.next(),
     });

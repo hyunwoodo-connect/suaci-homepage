@@ -1,16 +1,24 @@
 import * as THREE from "three";
 
+import type { AvatarProfile } from "@/lib/avatar/profile";
+import type { AvatarLook, LookTab } from "@/lib/avatar/outfit";
+import {
+  DEFAULT_LOOK,
+  isPartTab,
+  isPrint,
+  lookAssetKeys,
+  printKey,
+  randomLook,
+} from "@/lib/avatar/outfit";
+import type { PartSlot } from "@/lib/avatar/parts";
+import { PART_SLOTS } from "@/lib/avatar/parts";
+
 import type { AssetLoader } from "../../assets/load";
 import type { OutfitUniforms } from "../look";
-import type { Progress } from "../progress/progress";
 import type { Avatar } from "./avatar";
-import type { AvatarLook, LookTab } from "./outfit";
-import { DEFAULT_LOOK, isPartTab, isPrint, lookAssetKeys, printKey, randomLook } from "./outfit";
-import type { PartSlot } from "./parts";
-import { PART_SLOTS } from "./parts";
 import type { RigHandle } from "./rig";
 
-// 옷장: 지금 차림을 몸에 입히고(옷은 몸 셰이더 값, 소품은 뼈에 끼우기) 기록에 둔다.
+// 옷장: 지금 차림을 몸에 입히고(옷은 몸 셰이더 값, 소품은 뼈에 끼우기) 아바타 기록에 둔다(놀이마다 같이 쓰는 공용 기록 — lib/avatar).
 // 기록을 읽은 뒤에 차림이 정해지고, 몸이 오면 입힌다. 무늬 그림은 입을 때 받는다(받는 사이 다른 것을 고르면 늦게 온 그림은 버린다)
 
 /** 되돌리기는 이만큼까지 */
@@ -41,11 +49,11 @@ export class Wardrobe {
   constructor(
     private readonly outfit: OutfitUniforms,
     avatar: Avatar,
-    private readonly progress: Progress,
+    private readonly profile: AvatarProfile,
     private readonly options: WardrobeOptions,
   ) {
-    this.ready = progress.ready.then(() => {
-      const saved = progress.save.look;
+    this.ready = profile.ready.then(() => {
+      const saved = profile.record.look;
       if (saved) this.look = { ...saved };
       else if (options.dressNewcomer) {
         this.look = randomLook(options.rand);
@@ -107,14 +115,14 @@ export class Wardrobe {
 
   /** 꾸미기 씬을 한 번 지났나(기록을 읽은 뒤에 본다) */
   get hasDressed(): boolean {
-    return this.progress.save.dressed;
+    return this.profile.record.dressed;
   }
 
   /** 꾸미기 씬을 지났다고 기록한다 */
   markDressed() {
-    if (this.progress.save.dressed) return;
-    this.progress.save.dressed = true;
-    this.progress.commit();
+    if (this.profile.record.dressed) return;
+    this.profile.record.dressed = true;
+    this.profile.commit();
   }
 
   /** 옷장을 열 때: 고를 수 있는 무늬 그림을 미리 받아 둔다(고르는 순간 바로 입게) */
@@ -193,7 +201,7 @@ export class Wardrobe {
   }
 
   private keep() {
-    this.progress.save.look = { ...this.look };
-    this.progress.commit();
+    this.profile.record.look = { ...this.look };
+    this.profile.commit();
   }
 }

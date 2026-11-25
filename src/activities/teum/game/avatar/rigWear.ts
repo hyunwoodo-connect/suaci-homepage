@@ -1,8 +1,9 @@
 import * as THREE from "three";
 
+import type { PartFit, PartSlot } from "@/lib/avatar/parts";
+import { PARTS } from "@/lib/avatar/parts";
+
 import type { ModelLibrary } from "../models/library";
-import type { PartFit, PartSlot } from "./parts";
-import { PARTS } from "./parts";
 import type { Rig } from "./rigBody";
 import { mainBoneOf, palmCenter, palmPointsNear } from "./rigHand";
 import { poseBone } from "./rigPose";
