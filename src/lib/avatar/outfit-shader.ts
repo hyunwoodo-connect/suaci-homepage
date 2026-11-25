@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 // 아바타 몸의 옷 갈아입히기: 몸과 옷이 한 덩어리인 모델이라 옷 자리를 색으로 가려 무늬·색을 덮는다.
-// 셰이더 조각과, 그 셰이더가 읽는 옷 값(OutfitUniforms)이 여기 있다 — 놀이는 제 몸 재질에 이 조각과 값을 물리고, 옷장(wardrobe)이 값을 바꾼다
+// 셰이더 조각과, 그 셰이더가 읽는 옷 값(OutfitUniforms)이 여기 있다 — 아바타의 칠(paint)이 몸 재질에 이 조각과 값을 물리고, 옷장(wardrobe)이 값을 바꾼다
 
 /**
  * 아바타 옷(몸 셰이더가 옷 자리를 덮는 값): 윗옷·치마 무늬 그림과 입었는지(on), 무늬 크기(uPrS),
@@ -37,16 +37,17 @@ export function blankOutfit(): OutfitUniforms {
   };
 }
 
-/** 몸 꼭짓점 셰이더 머리: 무늬를 세 방향에서 입힐 때 쓰는 처음 법선 */
-export const BODY_VERTEX_HEAD = `varying vec3 vOn;
+/** 몸 꼭짓점 셰이더 머리: 조각 셰이더로 넘기는 처음 선 자세의 자리(vOp — 옷 자리의 높이, 무늬 좌표)와 법선(vOn — 무늬를 세 방향에서 입힌다) */
+export const BODY_VERTEX_HEAD = `varying vec3 vOp; varying vec3 vOn;
 `;
 
-/** 몸 꼭짓점 셰이더: 처음 법선을 넘긴다 */
-export const BODY_VERTEX = `
+/** begin_vertex 자리에 넣는다: 처음 자리와 법선을 넘긴다 */
+export const BODY_VERTEX = `#include <begin_vertex>
+  vOp = position;
   vOn = normal;`;
 
-/** 몸 조각 셰이더 머리: 옷 값(OutfitUniforms) */
-export const BODY_FRAGMENT_HEAD = `varying vec3 vOn; uniform sampler2D uPrT; uniform sampler2D uPrB; uniform float uPrTon; uniform float uPrBon; uniform float uPrS; uniform vec3 uSkC; uniform float uSkOn; uniform vec3 uShC; uniform float uShOn;
+/** 몸 조각 셰이더 머리: 넘겨받는 값과 옷 값(OutfitUniforms) */
+export const BODY_FRAGMENT_HEAD = `varying vec3 vOp; varying vec3 vOn; uniform sampler2D uPrT; uniform sampler2D uPrB; uniform float uPrTon; uniform float uPrBon; uniform float uPrS; uniform vec3 uSkC; uniform float uSkOn; uniform vec3 uShC; uniform float uShOn;
 `;
 
 /** map_fragment 자리에 넣는다: 톤을 칠하기 전의 텍스처 색(rawC)을 잡아 둔다 — 옷 자리를 이 색으로 가린다 */

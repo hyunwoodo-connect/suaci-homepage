@@ -1,6 +1,7 @@
 import type * as THREE from "three";
 
-import type { Manifest } from "../../assets/manifest";
+import type { Manifest } from "@/lib/asset-kit/manifest";
+
 import { CREATURES, SCULPTURES, TREE_CROWN_BASE } from "../../assets/settings";
 import { S } from "../settings";
 import type { Path } from "../world/paths";

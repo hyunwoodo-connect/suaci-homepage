@@ -5,11 +5,10 @@ import { unbindSkirtFromArms } from "./skirt-weights";
 
 // 받은 몸을 재서 틀에 넣는다. 잰 값과, 몸짓·손에 든 것·꾸미기가 같이 고치는 값은 모두 Rig 하나에 담는다
 
-/** 아바타를 끼울 자리: 기울기 그룹(tiltG)과 오기 전까지 서 있던 도형 몸 */
+/** 아바타를 끼울 자리: 기울기 그룹(tiltG)과, 몸이 오기 전까지 대신 서 있던 것(몸이 오면 숨긴다 — 없으면 빈 목록) */
 export interface RigSlots {
   tiltG: THREE.Group;
-  body: THREE.Object3D;
-  nose: THREE.Object3D;
+  standIns: readonly THREE.Object3D[];
 }
 
 /** 뼈 하나의 처음 자세(모델 기준 돌림과 세계 돌림) */
@@ -69,7 +68,7 @@ export interface Rig {
 }
 
 /**
- * 받은 몸을 잰 뒤 틀(hold)에 넣어 기울기 그룹에 끼우고 도형 몸을 숨긴다.
+ * 받은 몸을 잰 뒤 틀(hold)에 넣어 기울기 그룹에 끼우고 대신 서 있던 것을 숨긴다.
  * 재는 차례가 중요하다: 머리·방향·처음 돌림은 틀에 넣기 전, 모델 기준일 때 잰다
  */
 export function measureRig(av: THREE.Group, slots: RigSlots): Rig {
@@ -92,8 +91,7 @@ export function measureRig(av: THREE.Group, slots: RigSlots): Rig {
   const holdScale = 1.5 / sz.y;
   hold.scale.setScalar(holdScale);
   hold.rotation.y = faceDir > 0 ? -Math.PI / 2 : Math.PI / 2; // 얼굴이 앞(+z)을 보게
-  slots.body.visible = false;
-  slots.nose.visible = false;
+  for (const standIn of slots.standIns) standIn.visible = false;
   tiltG.add(hold);
   const skins: THREE.SkinnedMesh[] = [];
   av.traverse((c) => {

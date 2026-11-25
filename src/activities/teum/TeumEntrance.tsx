@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { fetchManifest } from "@/lib/asset-kit/manifest";
+
 import type { EntranceProps } from "../types";
-import { fetchManifest } from "./assets/manifest";
+import { TEUM_BUNDLE } from "./assets/config";
 
 /**
  * '틈' 입구: 화면 전체가 게임이다. 첫 화면 에셋을 받는 동안 진행 막대를 보이고, 다 받으면 게임이 그리기 시작한다.
@@ -39,7 +41,7 @@ function Stage({ title }: StageProps) {
     if (!canvas) return;
     let stop: (() => void) | null = null;
     let cancelled = false;
-    const manifestJob = fetchManifest();
+    const manifestJob = fetchManifest(TEUM_BUNDLE);
     const gameJob = import("./game");
     Promise.all([manifestJob, gameJob])
       .then(([assets, game]) => {

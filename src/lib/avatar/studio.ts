@@ -46,6 +46,8 @@ const PICK_SPIN = 7,
 /** 도는 빠르기가 줄어드는 비율(초당), 배경색이 따라가는 빠르기 */
 const SPIN_DAMP = 4.5,
   BG_FOLLOW = 8;
+/** 처음 열 때 카메라가 선 각(얼굴 앞에서 조금 옆, 라디안) */
+const OPEN_ANGLE = 0.35;
 /** 카메라 거리: 세로 화면은 조금 더 멀리(옷장이 아래를 가린다) */
 const CAM_DIST_TALL = 3.7,
   CAM_DIST_WIDE = 3.5;
@@ -135,7 +137,7 @@ export class Studio {
     host.onToggle(on);
     this.floor.visible = on;
     if (on) {
-      this.angle = 0.35;
+      this.angle = OPEN_ANGLE;
       this.spin = 0;
       this.wardrobe.clearHistory();
       this.worldBg.copy(background);
@@ -161,7 +163,7 @@ export class Studio {
       this.show(true);
     }
     if (!this.open) return;
-    const { stand, scene, camera: cam } = this.host;
+    const scene = this.host.scene;
     // 끼운 부품은 나중에 붙으므로 매 프레임 층을 올린다(몸·부품 수십 개라 가볍다)
     this.hold?.traverse((c) => c.layers.enable(STUDIO_LAYER));
     this.floor.position.y = this.wardrobe.look.board ? -1.0 : -0.78;
@@ -172,7 +174,32 @@ export class Studio {
     this.bg.lerp(this.bgTarget, follow);
     (scene.background as THREE.Color).copy(this.bg);
     this.floor.material.color.copy(this.bg).multiplyScalar(0.86);
-    // 얼굴 앞(h)에서 옆(right)으로 angle 만큼 돈 자리. 세로 화면은 아래 옷장 몫만큼 아바타를 위로 올려 보이게 조금 아래를 본다
+    this.placeCamera();
+  }
+
+  /**
+   * 카메라를 처음 열 때의 자리(얼굴 앞에서 조금 옆)에 둔다. 닫은 뒤에도 아바타만 비추는 곳(꾸미기 방)이 쓴다 —
+   * 놀이는 닫으면 제 카메라가 자리를 다시 잡는다
+   */
+  faceFront() {
+    this.angle = OPEN_ANGLE;
+    this.spin = 0;
+    this.placeCamera();
+  }
+
+  /** 치운다 */
+  dispose() {
+    this.closet.dispose();
+    this.floor.removeFromParent();
+    this.floor.geometry.dispose();
+    this.floor.material.dispose();
+  }
+
+  /* ─── 내부 ─────────────────────────── */
+
+  // 카메라를 얼굴 앞(h)에서 옆(right)으로 angle 만큼 돈 자리에 둔다. 세로 화면은 아래 옷장 몫만큼 아바타를 위로 올려 보이게 조금 아래를 본다
+  private placeCamera() {
+    const { stand, camera: cam } = this.host;
     const P = stand.P,
       up = stand.p,
       ahead = stand.h,
@@ -191,16 +218,6 @@ export class Studio {
     aim.copy(P).addScaledVector(up, drop);
     cam.lookAt(aim);
   }
-
-  /** 치운다 */
-  dispose() {
-    this.closet.dispose();
-    this.floor.removeFromParent();
-    this.floor.geometry.dispose();
-    this.floor.material.dispose();
-  }
-
-  /* ─── 내부 ─────────────────────────── */
 
   private pick(tab: LookTab, value: string) {
     if (!this.wardrobe.pick(tab, value)) return;

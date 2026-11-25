@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Manifest } from "../assets/manifest";
+import type { Manifest } from "@/lib/asset-kit/manifest";
+
 import { GameEvents } from "./events";
 import type { SoundOptions } from "./sound";
 import { SoundManager } from "./sound";

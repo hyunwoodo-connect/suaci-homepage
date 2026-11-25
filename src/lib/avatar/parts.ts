@@ -41,6 +41,11 @@ export const PARTS: Readonly<Record<string, PartFit>> = {
   board: { slot: "board", len: 0.82 },
 };
 
+/** 아바타의 모델인가(몸이거나 끼우는 부품) — 이 모델들은 어느 놀이에서든 아바타의 칠(paint)로 칠한다 */
+export function isAvatarModel(key: string): boolean {
+  return key === AVATAR_BODY || Object.hasOwn(PARTS, key);
+}
+
 /** 옷장 칸에 보이는 부품 그림의 에셋 키 */
 export function thumbKey(part: string): string {
   return `thumb_${part}`;

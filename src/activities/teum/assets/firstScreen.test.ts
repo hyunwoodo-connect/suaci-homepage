@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import type { Manifest } from "@/lib/asset-kit/manifest";
+
 import { firstScreenKeys } from "./firstScreen";
-import type { Manifest } from "./manifest";
 
 describe("firstScreenKeys", () => {
   const manifest: Manifest = {

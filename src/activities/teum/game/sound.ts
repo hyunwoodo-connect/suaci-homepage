@@ -1,4 +1,5 @@
-import type { Manifest } from "../assets/manifest";
+import type { Manifest } from "@/lib/asset-kit/manifest";
+
 import type { SoundChannel, SoundCue, SoundRule, SoundTable } from "../assets/settings";
 import type { GameEventMap, GameEventName, GameEvents } from "./events";
 
