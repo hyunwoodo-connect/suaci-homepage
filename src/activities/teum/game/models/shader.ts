@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 import { LIME_FRUITS, MODEL_STRIPES, MODEL_TINT } from "../../assets/settings";
-import { AVATAR_BODY, PARTS } from "../avatar/parts";
+import { AVATAR_BODY, PARTS } from "@/lib/avatar/parts";
 import { KEY_HOLD_GLSL } from "../keyColor";
 import type { LookUniforms } from "../look";
 import { LOOK } from "../look";

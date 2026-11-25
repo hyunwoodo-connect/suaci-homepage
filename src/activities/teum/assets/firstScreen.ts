@@ -1,4 +1,4 @@
-import { AVATAR_BODY, AVATAR_COMPANION } from "../game/avatar/parts";
+import { AVATAR_BODY, AVATAR_COMPANION } from "@/lib/avatar/parts";
 
 import type { Manifest } from "./manifest";
 

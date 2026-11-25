@@ -6,7 +6,7 @@ import type { Hold } from "../models/library";
 import type { Services } from "../services";
 import { LIME, S } from "../settings";
 import { clamp, FWD } from "../world/sphere";
-import { AVATAR_COMPANION } from "./parts";
+import { AVATAR_COMPANION } from "@/lib/avatar/parts";
 import type { RigHandle } from "./rig";
 import { setupRig } from "./rig";
 import type { PoseFn, PoseInput } from "./rigPose";
