@@ -2,16 +2,19 @@ import * as THREE from "three";
 
 import type { Frame, Thing } from "../core/frame";
 import { ease } from "../core/frame";
-import type { Holder } from "../player/player";
+import type { HeldBody, Holder } from "../player/player";
 import type { Services } from "../services";
 import { S } from "../settings";
 import type { HasHeights, Height } from "../world/tall";
+import { isOverBack, offerHeight, settleStep, wantsBack } from "./whaleBoarding";
 import type { WhaleRoute } from "./whaleRoute";
 import { grandTour, islandLoop } from "./whaleRoute";
 
 // 고래 등 — 고래는 한자리를 돌지 않는다. 정해진 길(whaleRoute — 온 행성이 뭍이면 여섯 마을을 지나는 큰 바퀴, 섬이면 섬 일주)을
-// 따라 마을 하늘을 차례로 지난다. 높이는 길 아래 가장 높은 것 + 10m 를 미리 재 둔 표(빈 들판 위에서는 낮게 내려온다).
-// 내가 가까이(220m 안) 있으면 천천히 가서 따라잡을 수 있고, 등에 타면 빨리 간다. 아래에서 뛰어오르기만 하면 등으로 끌어 올린다
+// 따라 마을 하늘을 차례로 지난다. 높이는 길 아래 가장 높은 것 + 16m 를 미리 재 둔 표(빈 들판 위에서는 낮게 내려온다).
+// 내가 가까이(220m 안) 있으면 천천히 가서 따라잡을 수 있고, 등에 타면 빨리 간다.
+// 타는 법(whaleBoarding.ts): 끌어 올리지 않는다. 내가 하늘로 올라가 곁에 오면 고래가 등을 내 발밑으로 낮춰 주고,
+// 등 위에 오면 사뿐히 내려앉힌다. 태운 뒤에는 제 높이로 돌아간다
 
 /** 높이 표: 바퀴마다 나눈 칸 수, 길 아래를 보는 폭(코사인), 가장 낮게·꼭대기 위로 띄우는 높이·가장 높게 */
 const PROFILE_N = 240,
@@ -22,14 +25,40 @@ const PROFILE_N = 240,
 /** 표를 고르는 폭: 높은 것 곁(±3칸)을 같이 넘고, ±4칸을 고르게 펴서 오르내림이 완만하다 */
 const DILATE = 3,
   SMOOTH = 4;
-/** 빠르기: 멀리 있을 때 1, 내가 220m 안이면 0.3, 등에 타면 1.7 */
+/** 빠르기: 멀리 있을 때 1, 내가 220m 안이면 0.3, 등을 내주거나 내려앉히는 동안 0.12(거의 서서 기다린다), 등에 타면 1.7 */
 const NEAR_SLOW = 220,
   SLOW_RATE = 0.3,
+  MEET_RATE = 0.12,
   RIDE_RATE = 1.7;
-/** 등으로 끌어 올리는 범위: 46m 안에서 떠 있거나(18m 안이면 땅에서도), 고래 등 21m 아래까지 */
-const PICK_REACH = 46,
-  PICK_GROUND = 18,
-  PICK_BELOW = 21;
+/** 등을 내주려 낮출 때 길 아래 가장 높은 것 위로 배를 띄우는 높이(m) · 그 곁(앞뒤 7칸, 약 67m)의 것도 같이 넘는다 */
+const LOW_CLEAR = 5,
+  LOW_DILATE = DILATE + SMOOTH;
+/** 높이를 바꾸는 가장 빠른 빠르기(m/s) — 등을 내주러 내려올 때도 천천히 */
+const HEIGHT_SPEED = 9;
+/**
+ * 내려앉히는 걸음(남은 거리 × 배수의 빠르기, 초당 느리게~빠르게 m): 옆으로 · 아래로 · (등보다 낮으면) 위로.
+ * 가장 느린 빠르기는 기다리는 고래가 나아가는 빠르기(초당 1.8m)와 출렁임(초당 0.7m)보다 커야 끝에서 닿는다
+ */
+const SIDE_GAIN = 1.6,
+  SIDE_SLOW = 4.5,
+  SIDE_FAST = 16,
+  DOWN_GAIN = 1.4,
+  DOWN_SLOW = 2.5,
+  DOWN_FAST = 14,
+  UP_GAIN = 3,
+  UP_SLOW = 2,
+  UP_FAST = 12;
+/** 등에 닿았다고 보는 거리(m): 옆으로 · 위아래 */
+const TOUCH_ASIDE = 1,
+  TOUCH_ABOVE = 0.35;
+/** 내려앉는 순간 고래가 눌리는 깊이(m)와 되돌아오는 빠르기 */
+const TOUCH_SINK = 1.6,
+  SINK_BACK = 2.2;
+/** 등을 내주는 동안 등 꼭대기에 두는 빛(여기로 내려앉으라는 표시): 등 위로 띄우는 높이(m) · 크기(m) · 밝기와 그 출렁임 */
+const CUE_LIFT = 2,
+  CUE_SIZE = 20,
+  CUE_GLOW = 0.42,
+  CUE_PULSE = 0.2;
 /** 등에 탄 채로 가장 오래(초) */
 const RIDE_MAX = 90;
 /** 내린 뒤 다시 태우려면 땅에 내려앉거나 이만큼(m) 멀어져야 한다 — 고래는 내 곁에서 느려져서, 떨어지는 동안 다시 끌려 올라갔다 */
@@ -40,10 +69,14 @@ const HINT_IN = 220,
   HINT_OUT = 320,
   NEAR_SOUND = 240;
 
+/** 나와 고래 사이: away 따로 · landing 등으로 내려앉는 중 · riding 등에 탔다 */
+type Phase = "away" | "landing" | "riding";
+
 const bx = new THREE.Vector3(),
   m4 = new THREE.Matrix4(),
   ahead = new THREE.Vector3(),
-  tv = new THREE.Vector3();
+  tv = new THREE.Vector3(),
+  cue = new THREE.Vector3();
 
 /** 고래(나를 등에 태운다) */
 export class Whale implements Thing, Holder {
@@ -61,6 +94,8 @@ export class Whale implements Thing, Holder {
   WH = 70;
   /** 높이 표(길의 바퀴마다 하나). 풍경을 다 놓은 뒤 choosePath 가 채운다 */
   profile: Float32Array[] | null = null;
+  /** 길 아래 가장 높은 것의 표(곁의 것까지) — 등을 내주러 내려올 때 이 위로는 배를 띄운다 */
+  private tops: Float32Array[] | null = null;
   /** 도는 길 */
   private readonly route: WhaleRoute;
   /** 고래의 시계(초 — 빠르기만큼 간다) */
@@ -72,12 +107,18 @@ export class Whale implements Thing, Holder {
   /** 큰 바퀴를 도는 것(프레임 처음, 내가 움직이기 전) */
   readonly mover: Thing;
   private rate = 1;
-  private on = false;
+  private phase: Phase = "away";
+  /** 지금 등을 내주고 있나(프레임 처음에 정한다) */
+  private isOffering = false;
+  /** 내려앉는 순간 눌린 깊이(m, 서서히 0) */
+  private sink = 0;
   private t = 0;
   private cool = 0;
   /** 태울 수 있나(내린 뒤에는 땅에 닿거나 멀어질 때까지 아니다) */
   private armed = true;
   private hinted = false;
+  /** 등을 내준다고 알렸나(고래가 멀어지면 다시 알린다) */
+  private offered = false;
   private near = false;
   /** 한 번이라도 움직였나(처음 프레임에는 고래 자리를 아직 모르는 것으로 쳐서 제 빠르기로 떠난다) */
   private moved = false;
@@ -105,14 +146,19 @@ export class Whale implements Thing, Holder {
     for (const src of sources) src.pushHeights(all);
     const route = this.route;
     const tables = Array.from({ length: route.tables }, (_, table) => table);
+    const bare = tables.map(() => new Float32Array(PROFILE_N));
     this.profile = tables.map((table) => {
       const raw = new Float32Array(PROFILE_N),
         wide = new Float32Array(PROFILE_N),
         out = new Float32Array(PROFILE_N);
       for (let i = 0; i < PROFILE_N; i++) {
         route.cell(table, i, PROFILE_N, tv);
-        let top = PROFILE_FLOOR;
-        for (const [ov, H] of all) if (ov.dot(tv) > PROFILE_COS && H > top) top = H;
+        // 길 아래 가장 높은 것: 땅(둔덕)부터, 그 위의 키 큰 것까지
+        const ground = this.s.terrain.featGround(tv);
+        let highest = Math.max(0, ground);
+        for (const [ov, H] of all) if (ov.dot(tv) > PROFILE_COS && H > highest) highest = H;
+        bare[table][i] = highest;
+        const top = Math.max(PROFILE_FLOOR, highest);
         raw[i] = top + PROFILE_CLEAR;
       }
       for (let i = 0; i < PROFILE_N; i++) {
@@ -136,6 +182,19 @@ export class Whale implements Thing, Holder {
       }
       return out;
     });
+    this.tops = bare.map((raw) => {
+      const wide = new Float32Array(PROFILE_N);
+      for (let i = 0; i < PROFILE_N; i++) {
+        let m = 0;
+        for (let j = -LOW_DILATE; j <= LOW_DILATE; j++) {
+          const near = i + j;
+          const at = wrap(near);
+          m = Math.max(m, raw[at]);
+        }
+        wide[i] = m;
+      }
+      return wide;
+    });
   }
 
   /** 고래 모델: 머리가 +z 라서 나아가는 방향(+x)으로 돌려 놓는다. 오면 도형 고래를 숨기고 등 높이를 모델 키에 맞춘다 */
@@ -153,47 +212,41 @@ export class Whale implements Thing, Holder {
     models.swapWhenReady("whale", [this.prim]);
   }
 
-  /** 아래에서 뛰어오르면 등으로 끌어 올리고, 끌면 내린다. 가까이 오면 한 번 알려 준다 */
+  /** 등 위로 오면 사뿐히 내려앉히고, 끌면 내린다. 가까이 오면 한 번 알려 준다 */
   update(f: Frame) {
-    const { player, hud, camera, events } = this.s,
+    const { player, hud, camera, events, fx } = this.s,
       dt = f.dt;
     if (this.cool > 0) this.cool -= dt;
     const d = player.p.angleTo(this.v) * S.R;
-    if (!this.armed && !this.on && (player.air < REARM_LANDED || d > REARM_AWAY)) this.armed = true;
-    // 다른 놀이기구에 실려 가는 중에도 올라탈 수 있다. 회오리에 실려 있을 때만은 아니다
+    if (!this.armed && this.phase === "away" && (player.air < REARM_LANDED || d > REARM_AWAY))
+      this.armed = true;
+    // 등(꼭대기)의 높이와, 내가 그보다 얼마나 위에 있나
+    const back = this.WH + this.rideH + this.wbob - this.sink,
+      above = player.alt - back;
+    // 다른 놀이기구에 실려 있거나 풍선에 매달려 있을 때는 채 가지 않는다 — 제힘으로 떠서 등 위로 왔을 때만
     if (
-      !this.on &&
+      this.phase === "away" &&
       this.armed &&
       this.cool <= 0 &&
-      !player.isHeldBy(this.whirls) &&
-      (player.air > 0.2 || d < PICK_GROUND) &&
-      d < PICK_REACH &&
-      player.alt < this.WH + PICK_BELOW &&
-      player.grab(this)
+      !player.isHeld &&
+      !player.isHanging &&
+      isOverBack(d, above, player.vy)
     ) {
-      this.on = true;
+      player.grab(this);
+      this.phase = "landing";
       this.t = 0;
-      hud.say("고래 등 — 끌면 내립니다");
     }
     const body = player.bodyFor(this);
-    if (this.on && body) {
-      this.t += dt;
-      const k = ease(6, dt);
-      body.p.lerp(this.v, k).normalize();
-      body.h.lerp(this.f, k);
-      const hUp = body.h.dot(body.p);
-      body.h.addScaledVector(body.p, -hUp).normalize();
-      body.vel.copy(body.h);
-      body.vy = 0;
-      const rideAir = this.WH + this.rideH + this.wbob - player.floor - S.hover;
-      const targetAir = Math.max(0.01, rideAir);
-      body.air += (targetAir - body.air) * k;
-      if ((this.t > 1.2 && player.m0 > 0.6) || this.t > RIDE_MAX) {
-        this.on = false;
-        this.armed = false;
-        this.cool = 4;
-        player.release(this, { vy: 4.5, boost: 0.9 });
-      }
+    if (body && this.phase === "landing") this.land(body, back, dt);
+    else if (body && this.phase === "riding") this.carry(body, back, dt);
+    // 등을 내주는 동안과 내려앉히는 동안: 등 꼭대기가 숨 쉬듯 빛난다(여기로 내려앉으라는 표시)
+    if (this.isOffering || this.phase === "landing") {
+      const cueRadius = S.R + back + CUE_LIFT,
+        phase = f.time * 4,
+        breath = Math.sin(phase),
+        glow = CUE_GLOW + CUE_PULSE * breath;
+      cue.copy(this.v).multiplyScalar(cueRadius);
+      fx.glow(cue, CUE_SIZE, glow);
     }
     // 고래·혜성에 탄 동안 카메라가 뒤로 물러난다
     const riding = player.heldWithCamera("ride");
@@ -201,12 +254,18 @@ export class Whale implements Thing, Holder {
     const blendPull = ease(3, dt);
     camera.easeRide(rideTarget, blendPull);
     // 가까이 왔다는 안내와 소리
-    const wd = player.p.angleTo(this.v) * S.R;
-    if (wd < HINT_IN && !this.hinted) {
+    if (d < HINT_IN && !this.hinted) {
       this.hinted = true;
-      hud.say("고래가 지나갑니다 — 그 아래에서 뛰어오르면 태워 줍니다", 5.5);
-    } else if (wd > HINT_OUT) this.hinted = false;
-    const isNear = wd < NEAR_SOUND;
+      hud.say("고래가 지나갑니다 — 하늘로 올라가 등 위에 내려앉아 보세요", 5.5);
+    } else if (d > HINT_OUT) {
+      this.hinted = false;
+      this.offered = false;
+    }
+    if (this.isOffering && !this.offered) {
+      this.offered = true;
+      hud.say("고래가 등을 내줍니다 — 등 위로 가면 태워 줍니다", 4.5);
+    }
+    const isNear = d < NEAR_SOUND;
     if (isNear && !this.near) events.emit("whaleNear", {});
     this.near = isNear;
   }
@@ -221,10 +280,19 @@ export class Whale implements Thing, Holder {
   // 큰 바퀴를 간다: 빠르기(가까우면 느리게·타면 빠르게)와 높이(표를 3초 앞서 본다)를 천천히 맞춘다
   private move(f: Frame) {
     const dt = f.dt,
-      p = this.s.player.p;
-    const near = this.moved && p.angleTo(this.v) * S.R < NEAR_SLOW;
+      player = this.s.player;
+    const aside = this.moved ? player.p.angleTo(this.v) * S.R : Infinity,
+      near = aside < NEAR_SLOW;
     if (dt > 0) this.moved = true;
-    const want = this.on ? RIDE_RATE : near ? SLOW_RATE : 1;
+    // 등을 내줄 만한가: 따로 있고(막 내린 뒤가 아니고), 내가 하늘에 올라 곁에 와 있다
+    this.isOffering =
+      this.phase === "away" &&
+      this.armed &&
+      this.cool <= 0 &&
+      !player.isHeldBy(this.whirls) &&
+      wantsBack(aside, player.air);
+    const isMeeting = this.isOffering || this.phase === "landing";
+    const want = this.phase === "riding" ? RIDE_RATE : isMeeting ? MEET_RATE : near ? SLOW_RATE : 1;
     // 1/60 초 프레임에서 3%·2% 씩 다가가는 빠르기 — 프레임 길이가 달라도 빠르기는 같게
     const rateEase = perFrame(0.03, dt),
       heightEase = perFrame(0.02, dt);
@@ -233,15 +301,22 @@ export class Whale implements Thing, Holder {
     const bobPhase = f.time * 0.6;
     this.wbob = Math.sin(bobPhase) * 1.2;
     const lookAhead = this.clock + 3;
-    const top = this.topAt(lookAhead);
-    this.WH += (top - this.WH) * heightEase;
+    const cruise = this.topAt(lookAhead),
+      target = this.heightFor(lookAhead, cruise);
+    // 표를 따라가는 고르기 그대로, 다만 초당 HEIGHT_SPEED m 를 넘지 않게(등을 내주러 수십 m 를 내려올 때도 천천히)
+    const eased = (target - this.WH) * heightEase,
+      most = HEIGHT_SPEED * dt,
+      capped = Math.min(most, eased);
+    this.WH += Math.max(-most, capped);
+    const sinkBack = ease(SINK_BACK, dt);
+    this.sink -= this.sink * sinkBack;
     this.route.at(this.clock, this.v);
     const aheadT = this.clock + 0.4;
     this.route.at(aheadT, ahead);
     this.f.copy(ahead).sub(this.v);
     const fUp = this.f.dot(this.v);
     this.f.addScaledVector(this.v, -fUp).normalize();
-    const whaleRadius = S.R + this.WH + this.wbob;
+    const whaleRadius = S.R + this.WH + this.wbob - this.sink;
     this.g.position.copy(this.v).multiplyScalar(whaleRadius);
     bx.crossVectors(this.v, this.f).normalize().negate();
     m4.makeBasis(this.f, this.v, bx);
@@ -251,9 +326,13 @@ export class Whale implements Thing, Holder {
   // 시계 tt 의 높이 표 값(표가 없으면 70m)
   private topAt(tt: number): number {
     const profile = this.profile;
-    if (!profile) return 70;
+    return profile ? this.cellAt(profile, tt) : 70;
+  }
+
+  // 시계 tt 에서 표(바퀴마다 하나)가 가리키는 칸의 값
+  private cellAt(tables: Float32Array[], tt: number): number {
     const seat = this.route.tableAt(tt);
-    const table = profile[seat.table],
+    const table = tables[seat.table],
       n = table.length;
     const scaled = seat.along * n;
     const raw = Math.floor(scaled);
@@ -261,6 +340,69 @@ export class Whale implements Thing, Holder {
       low = Math.max(0, raw);
     const i = Math.min(last, low);
     return table[i];
+  }
+
+  // 지금 맞출 높이: 평소에는 표(cruise). 등을 내줄 때는 등이 내 발밑으로 오게(길 아래 것들 위로 배를 띄울 수 있는 데까지만).
+  // 내려앉히는 동안에는 그 높이에 머문다(오르내리면 내려오는 내가 등에 닿지 못하고 따라다닌다) — 길 아래 것에 닿을 만큼만 비킨다
+  private heightFor(tt: number, cruise: number): number {
+    const isMeeting = this.isOffering || this.phase === "landing";
+    if (!isMeeting || !this.tops) return cruise;
+    // 배는 고래 높이보다 등 높이(rideH)만큼 아래다(모델의 가운데가 원점) — 배가 길 아래 것들 위로 LOW_CLEAR 는 뜨게
+    const low = this.cellAt(this.tops, tt) + this.rideH + LOW_CLEAR,
+      lowest = Math.min(cruise, low);
+    if (this.phase === "landing") return Math.max(this.WH, lowest);
+    return offerHeight(this.s.player.alt, this.rideH, lowest, cruise);
+  }
+
+  // 등으로 사뿐히 내려앉힌다: 옆으로는 등 꼭대기 쪽으로, 아래로는 등 높이까지 — 멀면 빠르게, 닿을 때는 느리게
+  private land(body: HeldBody, back: number, dt: number) {
+    const { player, hud } = this.s;
+    this.t += dt;
+    const aside = body.p.angleTo(this.v) * S.R,
+      sideStep = settleStep(aside, dt, SIDE_GAIN, SIDE_SLOW, SIDE_FAST),
+      share = aside > 1e-6 ? sideStep / aside : 1;
+    body.p.lerp(this.v, share).normalize();
+    const turn = ease(2, dt);
+    this.face(body, turn);
+    const seat = back - player.floor - S.hover,
+      targetAir = Math.max(0.01, seat),
+      drop = body.air - targetAir;
+    if (drop > 0) body.air -= settleStep(drop, dt, DOWN_GAIN, DOWN_SLOW, DOWN_FAST);
+    else body.air += settleStep(-drop, dt, UP_GAIN, UP_SLOW, UP_FAST);
+    const left = aside - sideStep,
+      offSeat = body.air - targetAir,
+      gap = Math.abs(offSeat);
+    if (left >= TOUCH_ASIDE || gap >= TOUCH_ABOVE) return;
+    this.phase = "riding";
+    this.t = 0;
+    this.sink = TOUCH_SINK;
+    hud.say("고래 등 — 끌면 내립니다");
+  }
+
+  // 등에 태우고 간다. 끌거나 오래(90초) 타면 내려 준다
+  private carry(body: HeldBody, back: number, dt: number) {
+    const player = this.s.player;
+    this.t += dt;
+    const k = ease(6, dt);
+    body.p.lerp(this.v, k).normalize();
+    this.face(body, k);
+    const seat = back - player.floor - S.hover,
+      targetAir = Math.max(0.01, seat);
+    body.air += (targetAir - body.air) * k;
+    if ((this.t <= 1.2 || player.m0 <= 0.6) && this.t <= RIDE_MAX) return;
+    this.phase = "away";
+    this.armed = false;
+    this.cool = 4;
+    player.release(this, { vy: 4.5, boost: 0.9 });
+  }
+
+  // 몸을 고래가 가는 쪽으로 돌린다(k 만큼). 붙잡힌 몸은 제힘으로 오르내리지 않는다
+  private face(body: HeldBody, k: number) {
+    body.h.lerp(this.f, k);
+    const hUp = body.h.dot(body.p);
+    body.h.addScaledVector(body.p, -hUp).normalize();
+    body.vel.copy(body.h);
+    body.vy = 0;
   }
 }
 
