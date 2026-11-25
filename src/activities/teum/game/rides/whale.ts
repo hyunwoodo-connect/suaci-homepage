@@ -258,8 +258,9 @@ export class Whale implements Thing, Holder {
     else if (body && this.phase === "riding") this.carry(body, back, dt);
     // 붙잡은 것을 잃었으면(다른 것이 놓게 했다) 따로 있는 것으로 돌아간다
     else if (!body && this.phase !== "away") this.letGo();
-    // 몸속으로는 못 들어간다: 배와 등 사이 높이에서 옆구리에 닿으면 둘레로 미끄러진다(등 위로는 넘어올 수 있다)
-    if (this.phase === "away" && !player.isHeld) {
+    // 몸속으로는 못 들어간다: 배와 등 사이 높이에서 옆구리에 닿으면 둘레로 미끄러진다(등 위로는 넘어올 수 있다).
+    // 막 내린 뒤(다시 태울 수 있게 되기 전)에는 막지 않는다 — 등에서 뛰어내리는 몸은 등 꼭대기 바로 아래에 있어, 막으면 옆으로 툭 밀려난다
+    if (this.phase === "away" && this.armed && !player.isHeld) {
       const half = this.rideH,
         off = player.alt - (this.WH + this.wbob - this.sink),
         girth = bodyReach(off, half);
