@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { isOverBack, offerHeight, settleStep, wantsBack } from "./whaleBoarding";
+import {
+  bodyReach,
+  heightOver,
+  isOverBack,
+  offerHeight,
+  settleStep,
+  wantsBack,
+} from "./whaleBoarding";
 
 // 고래 등에 타는 법: 끌어 올리지 않는다. 하늘로 올라가 곁에 오면 고래가 등을 내주고, 등 위에 오면 사뿐히 내려앉힌다
 
@@ -19,6 +26,52 @@ describe("wantsBack — 고래가 등을 내줄 만한가", () => {
 
   it("높이 떠 있어도 멀리(200m) 있다 → 내주지 않는다", () => {
     expect(wantsBack(200, 60)).toBe(false);
+  });
+
+  it("경계: 130m 안·18m 넘게일 때만 → 129.9m·18.1m 는 내주고, 130m 나 18m 는 아니다", () => {
+    const answers = [wantsBack(129.9, 18.1), wantsBack(130, 18.1), wantsBack(129.9, 18)];
+    expect(answers).toEqual([true, false, false]);
+  });
+});
+
+describe("heightOver — 내가 고래 몸 아래에 있을 때 고래가 내려올 수 있는 가장 낮은 높이", () => {
+  it("발 높이 30m, 몸 절반 23.6m → 배가 내 발 위 5m 에 뜨는 58.6m", () => {
+    expect(heightOver(30, 23.6)).toBeCloseTo(58.6, 5);
+  });
+
+  it("그 높이에서 배(고래 높이 − 몸 절반)는 → 내 발보다 5m 위다(덮치지 않는다)", () => {
+    const whale = heightOver(41, 23.6),
+      belly = whale - 23.6;
+    expect(belly - 41).toBeCloseTo(5, 5);
+  });
+});
+
+describe("bodyReach — 고래 몸통이 그 높이에서 차지하는 둘레", () => {
+  const half = 23.6;
+
+  it("몸 가운데 높이 → 가장 굵다(24m)", () => {
+    expect(bodyReach(0, half)).toBe(24);
+  });
+
+  it("배·등 쪽으로 갈수록 → 가늘어진다", () => {
+    const middle = bodyReach(0, half),
+      upper = bodyReach(15, half),
+      nearTop = bodyReach(22, half);
+    expect(middle > upper && upper > nearTop && nearTop > 0).toBe(true);
+  });
+
+  it("등 꼭대기와 그 위·배 아래 → 0(막지 않는다 — 등 위로 넘어올 수 있다)", () => {
+    const reaches = [bodyReach(23.6, half), bodyReach(30, half), bodyReach(-25, half)];
+    expect(reaches).toEqual([0, 0, 0]);
+  });
+
+  it("위아래가 같다", () => {
+    expect(bodyReach(-12, half)).toBeCloseTo(bodyReach(12, half), 9);
+  });
+
+  it("배 끝에서 한 프레임(0.15m) 올라온 높이 → 둘레가 0.5m 안쪽이다(한 번에 밀려나지 않는다)", () => {
+    const justInside = -half + 0.15;
+    expect(bodyReach(justInside, half)).toBeLessThan(0.5);
   });
 });
 
@@ -69,6 +122,22 @@ describe("isOverBack — 등 위의 내려앉는 자리에 들어왔나", () => 
 
   it("거의 멈춰 떠 있다(날개로 천천히 내려오는 중) → 들어왔다", () => {
     expect(isOverBack(5, 10, -1.3)).toBe(true);
+  });
+
+  it("경계(옆): 28m 안 → 27.9m 는 들어왔고 28m 는 아니다", () => {
+    expect([isOverBack(27.9, 10, 0), isOverBack(28, 10, 0)]).toEqual([true, false]);
+  });
+
+  it("경계(위): 등 위 55m 안 → 54.9m 는 들어왔고 55m 는 아니다", () => {
+    expect([isOverBack(5, 54.9, 0), isOverBack(5, 55, 0)]).toEqual([true, false]);
+  });
+
+  it("경계(아래): 등보다 1.5m 아래까지 → 1.4m 아래는 들어왔고 1.5m 아래는 아니다", () => {
+    expect([isOverBack(5, -1.4, 0), isOverBack(5, -1.5, 0)]).toEqual([true, false]);
+  });
+
+  it("경계(속도): 초당 1.5m 보다 느리게 솟을 때만 → 1.4 는 들어왔고 1.5 는 아니다", () => {
+    expect([isOverBack(5, 10, 1.4), isOverBack(5, 10, 1.5)]).toEqual([true, false]);
   });
 });
 

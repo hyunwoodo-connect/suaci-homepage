@@ -6,7 +6,14 @@ import type { HeldBody, Holder } from "../player/player";
 import type { Services } from "../services";
 import { S } from "../settings";
 import type { HasHeights, Height } from "../world/tall";
-import { isOverBack, offerHeight, settleStep, wantsBack } from "./whaleBoarding";
+import {
+  bodyReach,
+  heightOver,
+  isOverBack,
+  offerHeight,
+  settleStep,
+  wantsBack,
+} from "./whaleBoarding";
 import type { WhaleRoute } from "./whaleRoute";
 import { grandTour, islandLoop } from "./whaleRoute";
 
@@ -33,8 +40,17 @@ const NEAR_SLOW = 220,
 /** 등을 내주려 낮출 때 길 아래 가장 높은 것 위로 배를 띄우는 높이(m) · 그 곁(앞뒤 7칸, 약 67m)의 것도 같이 넘는다 */
 const LOW_CLEAR = 5,
   LOW_DILATE = DILATE + SMOOTH;
-/** 높이를 바꾸는 가장 빠른 빠르기(m/s) — 등을 내주러 내려올 때도 천천히 */
+/** 등을 내주러 내려오고 다시 제 높이로 돌아갈 때 높이를 바꾸는 가장 빠른 빠르기(m/s) — 수십 m 를 오르내려도 천천히 */
 const HEIGHT_SPEED = 9;
+/**
+ * 등을 내주느라 평소 높이보다 이만큼(m) 넘게 내려와 있으면 '낮춘 채'로 본다. 평소 높이 가까이 돌아올 때까지는 천천히 간다 —
+ * 낮은 채로 빨리 가면 앞의 높은 것(관람차)을 넘기 전에 닿는다
+ */
+const LOW_MARGIN = 4;
+/** 내가 고래 몸 아래에 있다고 보는 옆 거리(m, 몸 길이의 절반 남짓) */
+const BODY_ASIDE = 36;
+/** 내려앉히기가 이보다 오래(초) 걸리면 그만두고 놓는다(닿지 못하는 일이 생겨도 붙잡힌 채로 두지 않는다) */
+const LAND_MAX = 12;
 /**
  * 내려앉히는 걸음(남은 거리 × 배수의 빠르기, 초당 느리게~빠르게 m): 옆으로 · 아래로 · (등보다 낮으면) 위로.
  * 가장 느린 빠르기는 기다리는 고래가 나아가는 빠르기(초당 1.8m)와 출렁임(초당 0.7m)보다 커야 끝에서 닿는다
@@ -110,6 +126,10 @@ export class Whale implements Thing, Holder {
   private phase: Phase = "away";
   /** 지금 등을 내주고 있나(프레임 처음에 정한다) */
   private isOffering = false;
+  /** 나와의 옆 거리(m, 프레임 처음에 잰다) */
+  private aside = Infinity;
+  /** 등을 내주느라 평소 높이보다 낮춘 채인가(제 높이로 돌아오면 풀린다) */
+  private isDipped = false;
   /** 내려앉는 순간 눌린 깊이(m, 서서히 0) */
   private sink = 0;
   private t = 0;
@@ -123,10 +143,7 @@ export class Whale implements Thing, Holder {
   /** 한 번이라도 움직였나(처음 프레임에는 고래 자리를 아직 모르는 것으로 쳐서 제 빠르기로 떠난다) */
   private moved = false;
 
-  constructor(
-    private readonly s: Services,
-    private readonly whirls: Holder,
-  ) {
+  constructor(private readonly s: Services) {
     const primGeo = new THREE.SphereGeometry(1, 28, 18);
     const primMat = new THREE.MeshBasicMaterial({ color: 0xd7dad9 });
     this.prim = new THREE.Mesh(primGeo, primMat);
@@ -239,6 +256,15 @@ export class Whale implements Thing, Holder {
     const body = player.bodyFor(this);
     if (body && this.phase === "landing") this.land(body, back, dt);
     else if (body && this.phase === "riding") this.carry(body, back, dt);
+    // 붙잡은 것을 잃었으면(다른 것이 놓게 했다) 따로 있는 것으로 돌아간다
+    else if (!body && this.phase !== "away") this.letGo();
+    // 몸속으로는 못 들어간다: 배와 등 사이 높이에서 옆구리에 닿으면 둘레로 미끄러진다(등 위로는 넘어올 수 있다)
+    if (this.phase === "away" && !player.isHeld) {
+      const half = this.rideH,
+        off = player.alt - (this.WH + this.wbob - this.sink),
+        girth = bodyReach(off, half);
+      if (girth > 0) player.blockBody(this.v, girth);
+    }
     // 등을 내주는 동안과 내려앉히는 동안: 등 꼭대기가 숨 쉬듯 빛난다(여기로 내려앉으라는 표시)
     if (this.isOffering || this.phase === "landing") {
       const cueRadius = S.R + back + CUE_LIFT,
@@ -283,16 +309,26 @@ export class Whale implements Thing, Holder {
       player = this.s.player;
     const aside = this.moved ? player.p.angleTo(this.v) * S.R : Infinity,
       near = aside < NEAR_SLOW;
+    this.aside = aside;
     if (dt > 0) this.moved = true;
-    // 등을 내줄 만한가: 따로 있고(막 내린 뒤가 아니고), 내가 하늘에 올라 곁에 와 있다
+    // 등을 내줄 만한가: 따로 있고(막 내린 뒤가 아니고), 내가 제힘으로 하늘에 올라 곁에 와 있다
+    // (다른 놀이기구에 실려 있거나 풍선에 매달려 있으면 내려앉히지 않으니 내주지도 않는다)
     this.isOffering =
       this.phase === "away" &&
       this.armed &&
       this.cool <= 0 &&
-      !player.isHeldBy(this.whirls) &&
+      !player.isHeld &&
+      !player.isHanging &&
       wantsBack(aside, player.air);
     const isMeeting = this.isOffering || this.phase === "landing";
-    const want = this.phase === "riding" ? RIDE_RATE : isMeeting ? MEET_RATE : near ? SLOW_RATE : 1;
+    const lookAhead = this.clock + 3;
+    const cruise = this.topAt(lookAhead),
+      isLow = this.WH < cruise - LOW_MARGIN;
+    if (!isLow) this.isDipped = false;
+    else if (isMeeting) this.isDipped = true;
+    const free = this.phase === "riding" ? RIDE_RATE : near ? SLOW_RATE : 1,
+      paced = this.isDipped ? Math.min(free, SLOW_RATE) : free,
+      want = isMeeting ? MEET_RATE : paced;
     // 1/60 초 프레임에서 3%·2% 씩 다가가는 빠르기 — 프레임 길이가 달라도 빠르기는 같게
     const rateEase = perFrame(0.03, dt),
       heightEase = perFrame(0.02, dt);
@@ -300,12 +336,11 @@ export class Whale implements Thing, Holder {
     this.clock += dt * this.rate;
     const bobPhase = f.time * 0.6;
     this.wbob = Math.sin(bobPhase) * 1.2;
-    const lookAhead = this.clock + 3;
-    const cruise = this.topAt(lookAhead),
-      target = this.heightFor(lookAhead, cruise);
-    // 표를 따라가는 고르기 그대로, 다만 초당 HEIGHT_SPEED m 를 넘지 않게(등을 내주러 수십 m 를 내려올 때도 천천히)
+    const target = this.heightFor(lookAhead, cruise);
+    // 표를 따라가는 고르기 그대로. 등을 내주러 내려오고 돌아가는 동안만 초당 HEIGHT_SPEED m 를 넘지 않게 한다
     const eased = (target - this.WH) * heightEase,
-      most = HEIGHT_SPEED * dt,
+      isGentle = isMeeting || this.isDipped,
+      most = isGentle ? HEIGHT_SPEED * dt : Infinity,
       capped = Math.min(most, eased);
     this.WH += Math.max(-most, capped);
     const sinkBack = ease(SINK_BACK, dt);
@@ -351,7 +386,17 @@ export class Whale implements Thing, Holder {
     const low = this.cellAt(this.tops, tt) + this.rideH + LOW_CLEAR,
       lowest = Math.min(cruise, low);
     if (this.phase === "landing") return Math.max(this.WH, lowest);
-    return offerHeight(this.s.player.alt, this.rideH, lowest, cruise);
+    const feet = this.s.player.alt,
+      belly = this.WH - this.rideH;
+    // 내가 고래 배보다 낮게 몸 아래에 있으면 배가 내 위로 뜨는 데까지만 내려온다(등을 내주다 덮치지 않게).
+    // 옆구리 곁(배와 등 사이 높이)에 있을 때는 그대로 내려온다 — 몸속으로는 못 들어가니, 등이 내 발밑으로 오면 넘어갈 수 있다
+    if (this.aside < BODY_ASIDE && feet < belly) {
+      const overMe = heightOver(feet, this.rideH),
+        clear = Math.max(lowest, overMe),
+        safe = Math.min(cruise, clear);
+      return offerHeight(feet, this.rideH, safe, cruise);
+    }
+    return offerHeight(feet, this.rideH, lowest, cruise);
   }
 
   // 등으로 사뿐히 내려앉힌다: 옆으로는 등 꼭대기 쪽으로, 아래로는 등 높이까지 — 멀면 빠르게, 닿을 때는 느리게
@@ -372,6 +417,11 @@ export class Whale implements Thing, Holder {
     const left = aside - sideStep,
       offSeat = body.air - targetAir,
       gap = Math.abs(offSeat);
+    if (this.t > LAND_MAX) {
+      player.release(this);
+      this.letGo();
+      return;
+    }
     if (left >= TOUCH_ASIDE || gap >= TOUCH_ABOVE) return;
     this.phase = "riding";
     this.t = 0;
@@ -390,10 +440,15 @@ export class Whale implements Thing, Holder {
       targetAir = Math.max(0.01, seat);
     body.air += (targetAir - body.air) * k;
     if ((this.t <= 1.2 || player.m0 <= 0.6) && this.t <= RIDE_MAX) return;
+    this.letGo();
+    player.release(this, { vy: 4.5, boost: 0.9 });
+  }
+
+  // 따로 있는 것으로 돌아간다. 땅에 닿거나 멀어질 때까지는 다시 태우지 않는다
+  private letGo() {
     this.phase = "away";
     this.armed = false;
     this.cool = 4;
-    player.release(this, { vy: 4.5, boost: 0.9 });
   }
 
   // 몸을 고래가 가는 쪽으로 돌린다(k 만큼). 붙잡힌 몸은 제힘으로 오르내리지 않는다

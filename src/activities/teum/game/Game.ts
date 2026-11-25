@@ -301,7 +301,7 @@ export class Game {
     this.comet = new Comet(s);
     this.jets = new Jets(s);
     this.holes = new Holes(s);
-    this.whale = new Whale(s, this.whirls);
+    this.whale = new Whale(s);
     // ---- 지형 그림·꽃 ----
     this.flowers = new Flowers(s);
     this.petals = new Petals();
