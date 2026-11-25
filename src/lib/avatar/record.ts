@@ -51,11 +51,9 @@ export function isBlankRecord(record: AvatarRecord): boolean {
 
 /** 이 기기에 둔다(사생활 모드·꽉 참으로 못 쓰면 이번만 기억한다) */
 export class LocalAvatarStore implements AvatarStore {
-  constructor(private readonly key: string = AVATAR_KEY) {}
-
   async load(): Promise<AvatarRecord> {
     try {
-      const text = localStorage.getItem(this.key);
+      const text = localStorage.getItem(AVATAR_KEY);
       if (!text) return emptyAvatarRecord();
       const raw: unknown = JSON.parse(text);
       return readAvatarRecord(raw);
@@ -67,7 +65,7 @@ export class LocalAvatarStore implements AvatarStore {
   async save(record: AvatarRecord): Promise<void> {
     try {
       const text = JSON.stringify(record);
-      localStorage.setItem(this.key, text);
+      localStorage.setItem(AVATAR_KEY, text);
     } catch {}
   }
 }

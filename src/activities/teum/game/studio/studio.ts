@@ -1,9 +1,10 @@
 import * as THREE from "three";
 
-import type { Avatar } from "../avatar/avatar";
 import type { LookTab } from "@/lib/avatar/outfit";
 import { PRINTS, STUDIO_BG } from "@/lib/avatar/outfit";
 import { PARTS } from "@/lib/avatar/parts";
+
+import type { Avatar } from "../avatar/avatar";
 import type { Wardrobe } from "../avatar/wardrobe";
 import type { Frame, Thing } from "../core/frame";
 import { ease } from "../core/frame";

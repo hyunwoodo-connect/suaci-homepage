@@ -1,10 +1,6 @@
 import * as THREE from "three";
 
 import type { AvatarProfile } from "@/lib/avatar/profile";
-
-import type { AssetLoader } from "../../assets/load";
-import type { OutfitUniforms } from "../look";
-import type { Avatar } from "./avatar";
 import type { AvatarLook, LookTab } from "@/lib/avatar/outfit";
 import {
   DEFAULT_LOOK,
@@ -16,6 +12,10 @@ import {
 } from "@/lib/avatar/outfit";
 import type { PartSlot } from "@/lib/avatar/parts";
 import { PART_SLOTS } from "@/lib/avatar/parts";
+
+import type { AssetLoader } from "../../assets/load";
+import type { OutfitUniforms } from "../look";
+import type { Avatar } from "./avatar";
 import type { RigHandle } from "./rig";
 
 // 옷장: 지금 차림을 몸에 입히고(옷은 몸 셰이더 값, 소품은 뼈에 끼우기) 아바타 기록에 둔다(놀이마다 같이 쓰는 공용 기록 — lib/avatar).

@@ -8,9 +8,9 @@ import { SAVE_KEY } from "./store";
 // TODO(출시): 운영에는 틈 기록에 차림을 둔 기기가 없다 — 미리 보기로 놀던 기기의 차림을 옮긴 뒤에는 뺀다
 
 /** 틈 기록 안에 남은 아바타 기록(없거나 깨졌거나 비었으면 null) */
-export function legacyAvatar(key: string = SAVE_KEY): AvatarRecord | null {
+export function legacyAvatar(): AvatarRecord | null {
   try {
-    const text = localStorage.getItem(key);
+    const text = localStorage.getItem(SAVE_KEY);
     if (!text) return null;
     const raw: unknown = JSON.parse(text);
     if (typeof raw !== "object" || raw === null) return null;

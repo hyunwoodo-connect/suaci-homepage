@@ -1,8 +1,9 @@
 import type * as THREE from "three";
 
-import type { Services } from "../services";
 import type { PartSlot } from "@/lib/avatar/parts";
 import { AVATAR_BODY } from "@/lib/avatar/parts";
+
+import type { Services } from "../services";
 import type { RigSlots } from "./rigBody";
 import { measureRig } from "./rigBody";
 import type { PoseFn } from "./rigPose";

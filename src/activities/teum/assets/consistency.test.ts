@@ -1,10 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
-
 import { describe, expect, it } from "vitest";
 
 import { PRINTS, printKey } from "@/lib/avatar/outfit";
 import { AVATAR_BODY, AVATAR_COMPANION, PARTS, thumbKey } from "@/lib/avatar/parts";
+
 import { MAPS } from "../game/maps";
 import { CATALOG, RETIRED } from "../tools/catalog.mjs";
 import { ASSET_VERSION } from "./config";
