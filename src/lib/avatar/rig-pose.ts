@@ -1,9 +1,8 @@
 import * as THREE from "three";
 
-import { ease } from "../core/frame";
-import { clamp } from "../world/sphere";
-import type { Rig } from "./rigBody";
-import { followHand } from "./rigHand";
+import { ease } from "./motion";
+import type { Rig } from "./rig-body";
+import { followHand } from "./rig-hand";
 
 // 몸짓은 뼈를 코드로 직접 돌려서 만든다. 이 아이는 걷지 않는다. 늘 떠 있다:
 // 멈추면 물속처럼 둥실, 나아가면 몸을 눕혀 팔을 날개처럼 펴고, 솟으면 만세, 떨어지면 허우적
@@ -56,7 +55,7 @@ export function poseFrame(rig: Rig, { dt, tot, vy, air, fx, time: t }: PoseInput
   const { st, hold, tiltG, faceDir, leftDir } = rig;
   // st.f = 나아가는 정도, st.r = 솟음(+)·떨어짐(-), st.b = 옆으로 끄는 기울기. 모두 천천히 따라간다
   const forward = tot / 0.85,
-    forwardTarget = clamp(forward, 0, 1);
+    forwardTarget = THREE.MathUtils.clamp(forward, 0, 1);
   st.f += (forwardTarget - st.f) * ease(3.5, dt);
   const riseTarget = vy > 2.5 ? 1 : vy < -2 && air > 2 ? -1 : 0;
   st.r += (riseTarget - st.r) * ease(6, dt);
@@ -77,7 +76,7 @@ export function poseFrame(rig: Rig, { dt, tot, vy, air, fx, time: t }: PoseInput
     flail = Math.sin(flailPhase);
   hold.position.y = 0.06 * sway * idle; // 둥실
   const leanWanted = 1.25 * glide - tiltG.rotation.x,
-    lean = clamp(leanWanted, 0, 0.95) * glide; // 화면 기울기와 합쳐서 거의 엎드린 자세까지
+    lean = THREE.MathUtils.clamp(leanWanted, 0, 0.95) * glide; // 화면 기울기와 합쳐서 거의 엎드린 자세까지
   const hipsSwing = -lean + 0.05 * swayLate * idle,
     hipsSide = faceDir * 0.4 * st.b,
     hipsTwist = -faceDir * 0.25 * st.b * 0;

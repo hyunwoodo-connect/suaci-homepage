@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-import type { Rig, SkinPoint } from "./rigBody";
+import type { Rig, SkinPoint } from "./rig-body";
 
 // 손에 든 것은 손뼈가 아니라 보이는 손의 살을 따라간다. 자동 뼈대가 손 살을 손뼈 아닌 뼈에 묶어 두어서(오른손은 머리 앞 뼈
 // headfront 에 거의 다, 왼손은 여러 뼈에 나눠서), 손뼈에 끼우면 팔을 크게 움직일 때(솟구치기·떨어지기·날기) 보이는 손에서 떨어진다.

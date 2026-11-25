@@ -1,22 +1,40 @@
 import * as THREE from "three";
 
-import type { LookTab } from "@/lib/avatar/outfit";
-import { PRINTS, STUDIO_BG } from "@/lib/avatar/outfit";
-import { PARTS } from "@/lib/avatar/parts";
-
-import type { Avatar } from "../avatar/avatar";
-import type { Wardrobe } from "../avatar/wardrobe";
-import type { Frame, Thing } from "../core/frame";
-import { ease } from "../core/frame";
-import type { Input } from "../player/input";
-import type { Services } from "../services";
 import { Closet } from "./closet";
+import { ease } from "./motion";
+import type { LookTab } from "./outfit";
+import { PRINTS, STUDIO_BG } from "./outfit";
+import { PARTS } from "./parts";
+import type { RigOwner, Wardrobe } from "./wardrobe";
 
-// 꾸미기 씬(스튜디오): 세상을 가리고 단색 배경 앞에 아바타만 세운다.
-// 열면 카메라가 아바타만 올린 층(STUDIO_LAYER)을 본다 — 물건을 숨기는 방식이 아니라서 게임이 visible 을 건드려도 영향이 없다.
+// 꾸미기 씬(스튜디오): 놀이의 장면을 가리고 단색 배경 앞에 아바타만 세운다.
+// 열면 카메라가 아바타만 올린 층(STUDIO_LAYER)을 본다 — 물건을 숨기는 방식이 아니라서 놀이가 visible 을 건드려도 영향이 없다.
 // 배경은 윗옷 무늬에 맞춘 단색, 무대를 밀면 카메라가 아바타 둘레를 돌고, 고를 때마다 저절로 조금(4분의 1 바퀴쯤) 돈다.
-// 처음 온 사람(꾸미기 씬을 지난 적 없는 사람)은 세상보다 여기를 먼저 본다.
-// 프레임 차례: 따라가는 카메라 다음 — 열려 있는 동안 카메라 자리를 덮어쓴다
+// 처음 온 사람(꾸미기 씬을 지난 적 없는 사람)은 놀이보다 여기를 먼저 본다.
+// 어느 놀이에서 열든 같은 화면이다 — 놀이는 제 장면·카메라·아바타 자리를 내주고(StudioHost), 프레임마다 update 를 부른다.
+// 프레임 차례: 놀이의 카메라 다음 — 열려 있는 동안 카메라 자리를 덮어쓴다
+
+/** 꾸미기 씬을 여는 쪽(놀이)이 내주는 것 */
+export interface StudioHost {
+  /** 놀이의 장면(열려 있는 동안 배경색을 칠하고, 빛을 꾸미기 층에도 올린다) */
+  scene: THREE.Scene;
+  /** 놀이의 카메라(열려 있는 동안 자리와 보는 층을 덮어쓴다) */
+  camera: THREE.PerspectiveCamera;
+  /** 아바타: 바닥 원판을 붙일 틀과, 뼈대 있는 몸이 오는 때 */
+  avatar: RigOwner & { tiltG: THREE.Group };
+  /** 아바타가 선 자리(P, 세계)·위쪽(p)·보는 쪽(h) — 카메라를 그 둘레에 둔다 */
+  stand: {
+    readonly P: Readonly<THREE.Vector3>;
+    readonly p: Readonly<THREE.Vector3>;
+    readonly h: Readonly<THREE.Vector3>;
+  };
+  /** 부품 모델을 미리 받아 둔다(고르는 순간 바로 입게) */
+  need(key: string): void;
+  /** 열리고 닫힐 때: 놀이가 제 화면 글자와 조작을 멈추고 되살린다 */
+  onToggle(isOpen: boolean): void;
+  /** 차림을 골랐다(isRandom: 아무거나 단추) */
+  onPicked(isRandom: boolean): void;
+}
 
 /** 아바타·부품·바닥 원판·빛만 올리는 층 */
 const STUDIO_LAYER = 1;
@@ -36,7 +54,7 @@ const right = new THREE.Vector3(),
   aim = new THREE.Vector3();
 
 /** 꾸미기 씬 */
-export class Studio implements Thing {
+export class Studio {
   private open = false;
   private angle = 0;
   private spin = 0;
@@ -52,13 +70,12 @@ export class Studio implements Thing {
 
   /** urlOf: 에셋 키 → 받을 주소(옷장 칸 그림) */
   constructor(
-    private readonly s: Services,
-    private readonly avatar: Avatar,
+    private readonly host: StudioHost,
     private readonly wardrobe: Wardrobe,
-    private readonly input: Input,
     parent: HTMLElement,
     urlOf: (key: string) => string | null,
   ) {
+    const avatar = host.avatar;
     const floorGeometry = new THREE.CircleGeometry(1.15, 40),
       floorMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false });
     this.floor = new THREE.Mesh(floorGeometry, floorMaterial);
@@ -67,7 +84,7 @@ export class Studio implements Thing {
     this.floor.visible = false;
     avatar.tiltG.add(this.floor);
     // 빛도 층을 따진다 — 아바타를 비추는 빛을 씬 층에도 올린다
-    s.scene.traverse((c) => {
+    host.scene.traverse((c) => {
       if (c instanceof THREE.Light) c.layers.enable(STUDIO_LAYER);
     });
     avatar.whenRig((rig) => {
@@ -85,7 +102,7 @@ export class Studio implements Thing {
         this.wardrobe.shuffle();
         this.spin = SHUFFLE_SPIN;
         this.followLook();
-        s.events.emit("outfitPicked", { random: true });
+        host.onPicked(true);
       },
       onTurn: (dx) => {
         this.angle -= dx * TURN_PER_PX;
@@ -102,7 +119,7 @@ export class Studio implements Thing {
     if (skip) return;
     void this.wardrobe.ready.then(() => {
       if (this.wardrobe.hasDressed) return;
-      this.avatar.whenRig(() => {
+      this.host.avatar.whenRig(() => {
         this.greetWaiting = true;
       });
     });
@@ -112,11 +129,10 @@ export class Studio implements Thing {
   show(on: boolean) {
     if (on === this.open) return;
     this.open = on;
-    const { scene, hud, camera, models } = this.s;
-    const cam = camera.camera,
-      background = scene.background as THREE.Color;
-    hud.setStudio(on);
-    this.input.hold(on);
+    const host = this.host,
+      cam = host.camera,
+      background = host.scene.background as THREE.Color;
+    host.onToggle(on);
     this.floor.visible = on;
     if (on) {
       this.angle = 0.35;
@@ -128,7 +144,7 @@ export class Studio implements Thing {
       this.bg.copy(this.bgTarget);
       cam.layers.set(STUDIO_LAYER);
       // 고르는 순간 바로 입게 옷장의 부품·무늬를 미리 받아 둔다
-      for (const k of Object.keys(PARTS)) models.need(k);
+      for (const k of Object.keys(PARTS)) host.need(k);
       this.wardrobe.prefetchPrints(PRINTS);
     } else {
       cam.layers.set(0);
@@ -139,13 +155,13 @@ export class Studio implements Thing {
   }
 
   /** 열려 있으면 카메라를 아바타 둘레에 두고 배경을 칠한다 */
-  update(f: Frame) {
+  update(f: { dt: number }) {
     if (this.greetWaiting) {
       this.greetWaiting = false;
       this.show(true);
     }
     if (!this.open) return;
-    const { player, scene, camera } = this.s;
+    const { stand, scene, camera: cam } = this.host;
     // 끼운 부품은 나중에 붙으므로 매 프레임 층을 올린다(몸·부품 수십 개라 가볍다)
     this.hold?.traverse((c) => c.layers.enable(STUDIO_LAYER));
     this.floor.position.y = this.wardrobe.look.board ? -1.0 : -0.78;
@@ -157,10 +173,9 @@ export class Studio implements Thing {
     (scene.background as THREE.Color).copy(this.bg);
     this.floor.material.color.copy(this.bg).multiplyScalar(0.86);
     // 얼굴 앞(h)에서 옆(right)으로 angle 만큼 돈 자리. 세로 화면은 아래 옷장 몫만큼 아바타를 위로 올려 보이게 조금 아래를 본다
-    const cam = camera.camera,
-      P = player.P,
-      up = player.p,
-      ahead = player.h,
+    const P = stand.P,
+      up = stand.p,
+      ahead = stand.h,
       isTall = innerHeight > innerWidth,
       d = isTall ? CAM_DIST_TALL : CAM_DIST_WIDE,
       front = d * Math.cos(this.angle),
@@ -177,6 +192,7 @@ export class Studio implements Thing {
     cam.lookAt(aim);
   }
 
+  /** 치운다 */
   dispose() {
     this.closet.dispose();
     this.floor.removeFromParent();
@@ -190,7 +206,7 @@ export class Studio implements Thing {
     if (!this.wardrobe.pick(tab, value)) return;
     this.spin = PICK_SPIN;
     this.followLook();
-    this.s.events.emit("outfitPicked", { random: false });
+    this.host.onPicked(false);
   }
 
   // 차림이 바뀌면 배경색과 옷장 칸을 따라 바꾼다

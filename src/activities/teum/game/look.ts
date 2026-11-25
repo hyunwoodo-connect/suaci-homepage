@@ -1,5 +1,8 @@
 import * as THREE from "three";
 
+import type { OutfitUniforms } from "@/lib/avatar/outfit-shader";
+import { blankOutfit } from "@/lib/avatar/outfit-shader";
+
 import type { FloodUniform } from "./keyColor";
 import { FLOOD_OFF, keyify } from "./keyColor";
 import { GREY_TOY, LIME } from "./settings";
@@ -90,22 +93,6 @@ export interface LookUniforms {
   outfit: OutfitUniforms;
 }
 
-/**
- * 아바타 옷(몸 셰이더가 옷 자리를 덮는 값): 윗옷·치마 무늬 그림과 입었는지(on), 무늬 크기(uPrS),
- * 치마·신발 단색과 칠했는지(on). 옷을 갈아입으면 이 값만 바뀌고 셰이더는 그대로다
- */
-export interface OutfitUniforms {
-  uPrT: { value: THREE.Texture };
-  uPrB: { value: THREE.Texture };
-  uPrTon: { value: number };
-  uPrBon: { value: number };
-  uPrS: { value: number };
-  uSkC: { value: THREE.Color };
-  uSkOn: { value: number };
-  uShC: { value: THREE.Color };
-  uShOn: { value: number };
-}
-
 /** 코드로 만든 도형의 재질 메시 */
 export type GreyMesh = THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
 
@@ -156,24 +143,4 @@ export class Mats {
     keyify(mat, this.lookU.flood);
     return mat;
   }
-}
-
-/* ─── 내부 ─────────────────────────── */
-
-// 아무 옷도 덮지 않은 값. 무늬 자리는 흰 점 하나(그림이 오기 전에도 셰이더가 읽을 것이 있게)
-function blankOutfit(): OutfitUniforms {
-  const pixel = new Uint8Array([255, 255, 255, 255]),
-    white = new THREE.DataTexture(pixel, 1, 1);
-  white.needsUpdate = true;
-  return {
-    uPrT: { value: white },
-    uPrB: { value: white },
-    uPrTon: { value: 0 },
-    uPrBon: { value: 0 },
-    uPrS: { value: 1.5 },
-    uSkC: { value: new THREE.Color(0xffffff) },
-    uSkOn: { value: 0 },
-    uShC: { value: new THREE.Color(0xffffff) },
-    uShOn: { value: 0 },
-  };
 }

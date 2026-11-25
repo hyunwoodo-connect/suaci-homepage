@@ -1,12 +1,12 @@
-import type { AvatarLook, LookTab } from "@/lib/avatar/outfit";
-import { isPartTab, isPrint, LOOK_TABS, optionsFor, printKey } from "@/lib/avatar/outfit";
-import { thumbKey } from "@/lib/avatar/parts";
-
-import { HUD_FONT } from "../hud";
+import type { AvatarLook, LookTab } from "./outfit";
+import { isPartTab, isPrint, LOOK_TABS, optionsFor, printKey } from "./outfit";
+import { thumbKey } from "./parts";
 
 // 꾸미기 씬의 화면: 세상에서 여는 옷장 단추, 무대(밀어서 돌리기·되돌리기·아무거나), 아래 옷장(탭·칸·완성).
 // 무엇을 할지는 꾸미기 씬(Studio)이 정한다 — 여기는 그리고, 눌린 것을 알리기만 한다. 누르는 칸은 44px 이상
 
+/** 옷장 글자의 글꼴(놀이 화면 글자와 같은 시스템 글꼴) */
+const FONT = '-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif';
 const INK = "#2b2e2d",
   LIME = "#a9ff39",
   CHIP = "#eef1f0";
@@ -124,7 +124,7 @@ export class Closet {
       top: "calc(28px + env(safe-area-inset-top))",
       textAlign: "center",
       fontSize: "13px",
-      fontFamily: HUD_FONT,
+      fontFamily: FONT,
       color: "rgba(43,46,45,.6)",
       pointerEvents: "none",
       transition: "opacity .4s",
@@ -146,7 +146,7 @@ export class Closet {
       transform: "translateY(105%)",
       transition: "transform .25s",
       zIndex: "4",
-      fontFamily: HUD_FONT,
+      fontFamily: FONT,
     });
     const row = document.createElement("div");
     Object.assign(row.style, {
@@ -249,7 +249,7 @@ export class Closet {
           padding: "0",
           fontSize: "11px",
           color: "#6c7170",
-          fontFamily: HUD_FONT,
+          fontFamily: FONT,
           cursor: "pointer",
         });
         this.paint(b, tab, value);
@@ -361,7 +361,7 @@ function pill(text: string): HTMLButtonElement {
     padding: "0 14px",
     background: CHIP,
     color: INK,
-    fontFamily: HUD_FONT,
+    fontFamily: FONT,
     cursor: "pointer",
     touchAction: "manipulation",
   });

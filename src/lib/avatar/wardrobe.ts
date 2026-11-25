@@ -1,25 +1,28 @@
 import * as THREE from "three";
 
-import type { AvatarProfile } from "@/lib/avatar/profile";
-import type { AvatarLook, LookTab } from "@/lib/avatar/outfit";
-import {
-  DEFAULT_LOOK,
-  isPartTab,
-  isPrint,
-  lookAssetKeys,
-  printKey,
-  randomLook,
-} from "@/lib/avatar/outfit";
-import type { PartSlot } from "@/lib/avatar/parts";
-import { PART_SLOTS } from "@/lib/avatar/parts";
-
-import type { AssetLoader } from "../../assets/load";
-import type { OutfitUniforms } from "../look";
-import type { Avatar } from "./avatar";
+import type { AvatarLook, LookTab } from "./outfit";
+import { DEFAULT_LOOK, isPartTab, isPrint, lookAssetKeys, printKey, randomLook } from "./outfit";
+import type { OutfitUniforms } from "./outfit-shader";
+import type { PartSlot } from "./parts";
+import { PART_SLOTS } from "./parts";
+import type { AvatarProfile } from "./profile";
 import type { RigHandle } from "./rig";
 
 // 옷장: 지금 차림을 몸에 입히고(옷은 몸 셰이더 값, 소품은 뼈에 끼우기) 아바타 기록에 둔다(놀이마다 같이 쓰는 공용 기록 — lib/avatar).
 // 기록을 읽은 뒤에 차림이 정해지고, 몸이 오면 입힌다. 무늬 그림은 입을 때 받는다(받는 사이 다른 것을 고르면 늦게 온 그림은 버린다)
+
+/** 뼈대 있는 몸을 가진 것(놀이의 아바타): 몸이 오면(이미 왔으면 바로) 알린다 */
+export interface RigOwner {
+  whenRig(cb: (rig: RigHandle) => void): void;
+}
+
+/** 받아 온 에셋 하나(그림이면 texture 가 있다) */
+type FetchedAsset = { kind: "texture"; texture: THREE.Texture } | { kind: "model" };
+
+/** 무늬 그림을 받아 주는 곳(놀이의 에셋 창구가 이 모양을 맞춘다) */
+export interface PrintSource {
+  fetch(key: string): Promise<FetchedAsset>;
+}
 
 /** 되돌리기는 이만큼까지 */
 const UNDO_MAX = 30;
@@ -42,13 +45,13 @@ export class Wardrobe {
   private rig: RigHandle | null = null;
   /** 칸마다 지금 끼운 부품 키(같은 것을 다시 끼우지 않게) */
   private readonly wearing: Partial<Record<PartSlot, string>> = {};
-  private loader: AssetLoader | null = null;
+  private loader: PrintSource | null = null;
   /** 무늬 그림 받기(이름마다 한 번 — 실패하면 빼서 다음에 다시) */
   private readonly prints = new Map<string, Promise<THREE.Texture>>();
 
   constructor(
     private readonly outfit: OutfitUniforms,
-    avatar: Avatar,
+    avatar: RigOwner,
     private readonly profile: AvatarProfile,
     private readonly options: WardrobeOptions,
   ) {
@@ -69,7 +72,7 @@ export class Wardrobe {
   }
 
   /** 에셋 받는 창구를 단다(무늬 그림을 받는다) */
-  useLoader(loader: AssetLoader) {
+  useLoader(loader: PrintSource) {
     this.loader = loader;
     this.applyClothes();
   }
@@ -189,7 +192,7 @@ export class Wardrobe {
       this.prints.set(name, job);
     }
     job.then(apply).catch((err) => {
-      console.error("teum print", name, err);
+      console.error("avatar print", name, err);
       this.prints.delete(name);
     });
   }
