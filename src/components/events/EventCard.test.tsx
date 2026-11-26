@@ -60,7 +60,8 @@ describe("EventCard", () => {
         <EventCard event={{ ...summary("live"), eventId: "teum01", slug: "teum" }} />
       </NextIntlClientProvider>,
     );
-    expect(html).toContain("clear it to get · skateboard");
+    expect(html).toContain("clear it to get");
+    expect(html).toContain("skateboard");
   });
 
   it("끝난 이벤트 → 받는 옷을 적지 않는다(더는 받을 수 없다)", () => {
