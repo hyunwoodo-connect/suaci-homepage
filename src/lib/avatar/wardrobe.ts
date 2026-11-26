@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-import type { AvatarLook, LookTab } from "./outfit";
+import type { AvatarLook, Locks, LookTab } from "./outfit";
 import { DEFAULT_LOOK, isPartTab, isPrint, lookAssetKeys, printKey, randomLook } from "./outfit";
 import type { OutfitUniforms } from "./outfit-shader";
 import type { PartSlot } from "./parts";
@@ -33,6 +33,8 @@ interface WardrobeOptions {
   dressNewcomer: boolean;
   /** 0 이상 1 미만 난수 */
   rand: () => number;
+  /** 아직 받지 못한 것(지금 — 놀이를 깨면 줄어든다). 고를 수 없고, 아무 차림에도 들지 않는다 */
+  locks: () => Locks;
 }
 
 /** 지금 차림과 갈아입기 */
@@ -59,7 +61,8 @@ export class Wardrobe {
       const saved = profile.record.look;
       if (saved) this.look = { ...saved };
       else if (options.dressNewcomer) {
-        this.look = randomLook(options.rand);
+        const locks = options.locks();
+        this.look = randomLook(options.rand, locks);
         this.keep();
       }
     });
@@ -82,9 +85,9 @@ export class Wardrobe {
     return lookAssetKeys(this.look);
   }
 
-  /** 한 탭의 것을 고른다(되돌리기에 남고 기록에 둔다). 이미 입은 것이면 false */
+  /** 한 탭의 것을 고른다(되돌리기에 남고 기록에 둔다). 이미 입은 것이거나 아직 받지 못한 것이면 false */
   pick(tab: LookTab, value: string): boolean {
-    if (this.look[tab] === value) return false;
+    if (this.look[tab] === value || this.options.locks().has(value)) return false;
     this.snap();
     this.look[tab] = value;
     this.keep();
@@ -96,7 +99,8 @@ export class Wardrobe {
   /** 아무 차림이나 */
   shuffle() {
     this.snap();
-    this.look = randomLook(this.options.rand);
+    const locks = this.options.locks();
+    this.look = randomLook(this.options.rand, locks);
     this.keep();
     this.putOn();
   }

@@ -12,6 +12,8 @@ export const HUD_FONT =
 const SPEAKER = '<path d="M4 9.5h3.2L12 5.5v13l-4.8-4H4z" fill="currentColor"/>';
 const SPEAKER_ON = `<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">${SPEAKER}<path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`;
 const SPEAKER_OFF = `<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">${SPEAKER}<path d="M16 9.5l5 5M21 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+/** 나가기 단추 그림(왼쪽을 가리키는 꺾쇠) */
+const LEAVE_ICON = `<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 /** 안내 글자·끌기 동그라미 */
 export class Hud {
@@ -27,6 +29,8 @@ export class Hud {
   private readonly said = new Set<string>();
   /** 소리 끄기 단추(낼 소리가 있을 때만) */
   private mute: HTMLButtonElement | null = null;
+  /** 나가기 단추 */
+  private leave: HTMLButtonElement | null = null;
   private readonly parent: HTMLElement;
   private inStudio = false;
 
@@ -164,6 +168,36 @@ export class Hud {
     this.parent.append(b);
   }
 
+  /**
+   * 나가기 단추를 단다(왼쪽 위 — 소리 단추의 맞은편, 누르는 칸 44px): 놀이 도중에도, 성공 판을 닫고 계속 놀 때도 나갈 길이 있게.
+   * 누르면 onLeave(어디로 나가는지는 놀이를 연 쪽이 정한다)
+   */
+  showLeave(onLeave: () => void) {
+    if (this.leave) return;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.innerHTML = LEAVE_ICON;
+    b.setAttribute("aria-label", "나가기");
+    Object.assign(b.style, {
+      position: "fixed",
+      top: "calc(8px + env(safe-area-inset-top))",
+      left: "calc(8px + env(safe-area-inset-left))",
+      width: "44px",
+      height: "44px",
+      padding: "0",
+      border: "0",
+      borderRadius: "50%",
+      background: "transparent",
+      color: "#fff",
+      filter: "drop-shadow(0 1px 3px rgba(0,0,0,.4))",
+      cursor: "pointer",
+      touchAction: "manipulation",
+    });
+    b.addEventListener("click", () => onLeave());
+    this.leave = b;
+    this.parent.append(b);
+  }
+
   /** 말풍선을 띄운다 */
   showTalk(text: string) {
     this.talkText.textContent = text;
@@ -182,13 +216,14 @@ export class Hud {
   }
 
   /**
-   * 꾸미기 씬 동안은 안내 줄·말풍선을 숨기고(씬을 닫으면 돌아온다), 소리 단추는 무대 위 오른쪽 위 단추(아무거나) 왼쪽으로 옮긴다 —
-   * 배경 음악이 도는 동안 끌 수 있어야 한다
+   * 꾸미기 씬 동안은 안내 줄·말풍선·나가기 단추를 숨기고(씬을 닫으면 돌아온다 — 그 자리에는 씬의 되돌리기 단추가 있다),
+   * 소리 단추는 무대 위 오른쪽 위 단추(아무거나) 왼쪽으로 옮긴다 — 배경 음악이 도는 동안 끌 수 있어야 한다
    */
   setStudio(on: boolean) {
     this.inStudio = on;
     const display = on ? "none" : "";
     for (const el of [this.hint, this.talk]) el.style.display = display;
+    if (this.leave) this.leave.style.display = display;
     const mute = this.mute;
     if (!mute) return;
     Object.assign(mute.style, {
@@ -224,5 +259,6 @@ export class Hud {
     this.knob.remove();
     this.talk.remove();
     this.mute?.remove();
+    this.leave?.remove();
   }
 }

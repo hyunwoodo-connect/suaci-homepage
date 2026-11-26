@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { fetchManifest } from "@/lib/asset-kit/manifest";
-import { recordClear } from "@/lib/play-record";
+import { getEventReward, listEventRewards } from "@/events/rewards";
+import { lockedRewards, recordClear } from "@/lib/play-record";
 
 import type { EntranceProps } from "../types";
 import { TEUM_BUNDLE } from "./assets/config";
@@ -17,6 +18,7 @@ const EVENTS_PATH = "/events";
  * 게임 코드(three)는 이 화면에서만, 열릴 때 따로 받는다(다른 화면의 묶음에 섞이지 않게).
  * 열리기 전·끝난 뒤에는 레코드의 문구만 보인다.
  * 놀이는 깬 것과 나가겠다는 것만 알린다 — 깬 기록은 여기서 이 기기에 남기고(이벤트 페이지의 카드가 표시한다), 나갈 때는 이벤트 목록으로 간다.
+ * 이 이벤트를 처음 깨면 옷을 받는다(events/rewards) — 그 전에는 옷장에서 그 칸이 잠겨 있다.
  */
 export default function TeumEntrance({ event }: EntranceProps) {
   if (event.phase !== "live") {
@@ -58,7 +60,14 @@ function Stage({ title, eventId, activityId }: StageProps) {
         stop = game.start(canvas, {
           assets,
           onProgress: setProgress,
-          onClear: ({ seconds }) => recordClear({ eventId, activityId, at: Date.now(), seconds }),
+          locks: () => lockedRewards(listEventRewards()),
+          onClear({ seconds }) {
+            // 처음 깬 것이면(그리고 그 기록이 남았으면) 이 이벤트의 옷을 지금 받는다
+            const at = Date.now();
+            const isFirst = recordClear({ eventId, activityId, at, seconds });
+            const reward = getEventReward(eventId);
+            return isFirst && reward ? reward.item : null;
+          },
           onLeave: () => router.push(EVENTS_PATH),
         }).stop;
       })

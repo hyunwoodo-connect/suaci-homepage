@@ -127,7 +127,7 @@ describe("WaterBalloonHud 성공 판", () => {
 
   it("showSuccess → 성공!·다 먹었다는 말·걸린 시간이 보인다", () => {
     const { parent, hud, isPanelShown } = mount();
-    hud.showSuccess(10, 151.9);
+    hud.showSuccess(10, 151.9, null);
     const panel = parent.querySelector('[role="dialog"]')!;
     const text = panel.textContent ?? "";
     expect(isPanelShown()).toBe(true);
@@ -138,7 +138,7 @@ describe("WaterBalloonHud 성공 판", () => {
 
   it("성공 판 → 키컬러 한 장에 suaci 워드마크가 있다", () => {
     const { parent, hud } = mount();
-    hud.showSuccess(10, 20);
+    hud.showSuccess(10, 20, null);
     const panel = parent.querySelector<HTMLElement>('[role="dialog"]')!;
     const mark = panel.querySelector("img");
     expect([panel.style.background, mark?.alt, mark?.getAttribute("src")]).toEqual([
@@ -150,7 +150,7 @@ describe("WaterBalloonHud 성공 판", () => {
 
   it("'한 번 더'·'계속 놀기'·'나가기' → 누른 것을 알린다", () => {
     const { hud, pressed, buttonNamed } = mount();
-    hud.showSuccess(10, 20);
+    hud.showSuccess(10, 20, null);
     buttonNamed("한 번 더").click();
     buttonNamed("계속 놀기").click();
     buttonNamed("나가기").click();
@@ -165,9 +165,19 @@ describe("WaterBalloonHud 성공 판", () => {
     expect(heights.every((h) => h >= 44)).toBe(true);
   });
 
+  it("새로 받은 옷이 있으면 → 성공 판에 그 이름이 보이고, 없으면 그 줄이 없다", () => {
+    const { parent, hud } = mount();
+    const line = () =>
+      [...parent.querySelectorAll("p")].find((p) => p.textContent?.includes("새 옷이 생겼어요"));
+    hud.showSuccess(10, 20, "스케이트보드");
+    const won = [line()?.textContent, line()?.style.display];
+    hud.showSuccess(10, 20, null);
+    expect([won, line()]).toEqual([["새 옷이 생겼어요 · 스케이트보드", "block"], undefined]);
+  });
+
   it("hideSuccess → 다시 보이지 않는다", () => {
     const { hud, isPanelShown } = mount();
-    hud.showSuccess(10, 20);
+    hud.showSuccess(10, 20, null);
     hud.hideSuccess();
     expect(isPanelShown()).toBe(false);
   });

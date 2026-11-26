@@ -16,6 +16,8 @@ export interface ClosetLabels {
   /** 아무것도 끼우지 않는 칸 · 원래 옷으로 두는 칸(읽는 이름) */
   none: string;
   original: string;
+  /** 아직 받지 못한 칸을 눌렀을 때의 안내({from} 자리에 그것을 받는 놀이의 이름) */
+  lockedIn: string;
   /** 탭 이름 */
   tabs: Readonly<Record<LookTab, string>>;
   /** 칸의 읽는 이름(그림만 보이는 칸이라 화면 읽기 프로그램에 알린다): 무늬·색·부품 키 → 이름 */
@@ -34,6 +36,7 @@ const LABELS: Readonly<Record<ClosetLocale, ClosetLabels>> = {
     turnTip: "밀어서 돌려 봐",
     none: "없음",
     original: "원래 옷",
+    lockedIn: "'{from}'에서 받아요",
     tabs: {
       top: "윗옷",
       bot: "치마",
@@ -78,6 +81,7 @@ const LABELS: Readonly<Record<ClosetLocale, ClosetLabels>> = {
     turnTip: "drag to turn",
     none: "none",
     original: "original",
+    lockedIn: "win it in '{from}'",
     tabs: {
       top: "top",
       bot: "skirt",
@@ -122,6 +126,7 @@ const LABELS: Readonly<Record<ClosetLocale, ClosetLabels>> = {
     turnTip: "スワイプで回せます",
     none: "なし",
     original: "もとの服",
+    lockedIn: "「{from}」でもらえます",
     tabs: {
       top: "トップス",
       bot: "スカート",

@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { PLAY_KEY, readClear, recordClear } from "./play-record";
+import { lockedRewards, PLAY_KEY, readClear, recordClear } from "./play-record";
 
 // 2026-11-26 03:00:00 UTC = 한국 시각 12:00
 const NOON_KST = Date.UTC(2026, 10, 26, 3, 0, 0);
@@ -47,6 +47,21 @@ describe("recordClear · readClear", () => {
     expect([record?.count, record?.bestSeconds]).toEqual([1, undefined]);
   });
 
+  it("처음 깬 것이면 → 참, 그 뒤로는 → 거짓(처음 깬 보상은 한 번만)", () => {
+    const first = recordClear({ eventId: "teum01", activityId: "teum", at: NOON_KST }),
+      again = recordClear({ eventId: "teum01", activityId: "teum", at: NOON_KST + 1 });
+    expect([first, again]).toEqual([true, false]);
+  });
+
+  it("적지 못하는 기기 → 거짓(받았다고 알리지 않는다 — 옷장은 잠긴 채다)", () => {
+    const blocked = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("막힘");
+    });
+    const first = recordClear({ eventId: "teum01", activityId: "teum", at: NOON_KST });
+    blocked.mockRestore();
+    expect([first, readClear("teum01")]).toEqual([false, null]);
+  });
+
   it("이벤트마다 따로 남는다", () => {
     recordClear({ eventId: "teum01", activityId: "teum", at: NOON_KST });
     expect(readClear("teum02")).toBeNull();
@@ -76,5 +91,24 @@ describe("recordClear · readClear", () => {
     localStorage.setItem(PLAY_KEY, JSON.stringify(stored));
     expect(readClear("teum01")).toEqual(good);
     expect(readClear("odd")).toBeNull();
+  });
+});
+
+describe("lockedRewards — 아직 받지 못한 것", () => {
+  const REWARDS = [
+    { eventId: "teum01", item: "board", from: "틈" },
+    { eventId: "sky02", item: "scarf", from: "하늘" },
+  ];
+
+  it("깬 적 없는 이벤트의 옷 → 잠겨 있다(옷장의 키 → 받는 곳의 이름)", () => {
+    expect([...lockedRewards(REWARDS)]).toEqual([
+      ["board", "틈"],
+      ["scarf", "하늘"],
+    ]);
+  });
+
+  it("그 이벤트를 깨면 → 그 옷만 풀린다", () => {
+    recordClear({ eventId: "teum01", activityId: "teum", at: NOON_KST });
+    expect([...lockedRewards(REWARDS)]).toEqual([["scarf", "하늘"]]);
   });
 });

@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { usesAvatar } from "@/activities";
 import AvatarStage from "@/components/avatar/AvatarStage";
 import EventCard from "@/components/events/EventCard";
+import { listEventRewards } from "@/events/rewards";
 import PageShell from "@/components/shell/PageShell";
 import { eventsApi } from "@/lib/api";
 import type { EventSummary } from "@/types";
@@ -30,7 +31,7 @@ export default async function EventsPage({ params }: { params: Promise<{ locale:
     <PageShell title={t("title")}>
       {hasAvatarEvent ? (
         <div className="mb-[32px]">
-          <AvatarStage />
+          <AvatarStage rewards={listEventRewards()} />
         </div>
       ) : null}
       {events.length === 0 ? (

@@ -264,6 +264,17 @@ describe("물풍선 성공 뒤", () => {
     ]);
   });
 
+  it("깬 직후에 새로 받은 옷을 알려 두면 → 성공 판에 그 이름이 같이 뜬다", () => {
+    const w = playing();
+    w.s.events.on("waterBalloonsCleared", () => w.game.setReward("스케이트보드"));
+    for (const i of [0, 1, 2]) {
+      w.jumpTo(w.game, i);
+      w.frame();
+    }
+    for (let i = 0; i < 600 && w.panel()?.style.visibility !== "visible"; i++) w.frame();
+    expect(w.panel()?.textContent?.includes("새 옷이 생겼어요 · 스케이트보드")).toBe(true);
+  });
+
   it("한 번 더 → 내가 서 있는 자리의 물풍선은 나오자마자 먹히지 않는다", () => {
     const w = cleared();
     press(w, "한 번 더");

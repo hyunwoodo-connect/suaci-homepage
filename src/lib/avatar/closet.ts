@@ -1,5 +1,5 @@
 import type { ClosetLabels } from "./closet-labels";
-import type { AvatarLook, LookTab } from "./outfit";
+import type { AvatarLook, Locks, LookTab } from "./outfit";
 import { isPartTab, isPrint, LOOK_TABS, optionsFor, printKey } from "./outfit";
 import { thumbKey } from "./parts";
 
@@ -21,6 +21,19 @@ const SHEET_OPENING = "transform .25s",
 
 /** 옷 단추 그림(티셔츠) */
 const SHIRT_ICON = `<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 4 4 6.5 5.6 10.4 7.5 9.6V20h9V9.6l1.9.8L20 6.5 15.5 4a3.5 3.5 0 0 1-7 0z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>`;
+
+/** 자물쇠 그림(아직 받지 못한 칸의 구석에 얹는다) */
+const LOCK_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11V8a5 5 0 0 1 10 0v3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><rect x="5" y="11" width="14" height="10" rx="2.5" fill="currentColor"/></svg>`;
+
+/** 옷장을 만들 때 */
+interface ClosetOptions {
+  /** 닫혀 있을 때 화면 구석에 옷장 단추를 띄운다 */
+  hasWearButton: boolean;
+  /** 옷장에 쓸 글자(여는 화면의 언어) */
+  labels: ClosetLabels;
+  /** 아직 받지 못한 것(지금). 그 칸은 흐리게 자물쇠와 함께 보이고, 누르면 어디서 받는지 알려 준다 */
+  locks: () => Locks;
+}
 
 /** 눌린 것을 알리는 곳 */
 interface ClosetHandlers {
@@ -47,18 +60,20 @@ export class Closet {
   private tab: LookTab = "top";
   private look: Readonly<AvatarLook> | null = null;
 
-  /**
-   * urlOf: 에셋 키 → 받을 주소(없는 키면 null). hasWearButton: 닫혀 있을 때 화면 구석에 옷장 단추를 띄운다.
-   * labels: 옷장에 쓸 글자(여는 화면의 언어)
-   */
+  private readonly labels: ClosetLabels;
+  private readonly locks: () => Locks;
+
+  /** urlOf: 에셋 키 → 받을 주소(없는 키면 null) */
   constructor(
     parent: HTMLElement,
     private readonly urlOf: (key: string) => string | null,
     private readonly on: ClosetHandlers,
-    hasWearButton: boolean,
-    private readonly labels: ClosetLabels,
+    options: ClosetOptions,
   ) {
-    this.wearButton = hasWearButton ? wearButton(labels.wear, on) : null;
+    const labels = options.labels;
+    this.labels = labels;
+    this.locks = options.locks;
+    this.wearButton = options.hasWearButton ? wearButton(labels.wear, on) : null;
 
     // 무대: 화면을 덮어 게임 입력을 막고, 가로로 밀면 아바타 둘레를 돈다
     this.stage = document.createElement("div");
@@ -85,6 +100,8 @@ export class Closet {
     shuffle.addEventListener("click", () => on.onShuffle());
     this.tip = document.createElement("div");
     this.tip.textContent = labels.turnTip;
+    // 잠긴 칸을 누르면 어디서 받는지를 이 자리에 적는다 — 화면 읽기 프로그램에도 알린다
+    this.tip.setAttribute("aria-live", "polite");
     Object.assign(this.tip.style, {
       position: "absolute",
       left: "0",
@@ -171,7 +188,7 @@ export class Closet {
     this.sheet.style.visibility = on ? "visible" : "hidden";
     this.sheet.inert = !on;
     if (!on) return;
-    this.tip.style.opacity = "1";
+    this.say(this.labels.turnTip);
     this.draw(look);
   }
 
@@ -202,7 +219,8 @@ export class Closet {
       const pressed = String(isOn);
       b.setAttribute("aria-pressed", pressed);
     }
-    const tab = this.tab;
+    const tab = this.tab,
+      locks = this.locks();
     // 칸을 새로 그리면 누르던 단추가 사라진다 — 같은 값의 새 단추로 초점을 옮긴다(키보드·화면 읽기)
     const focused = document.activeElement,
       refocus =
@@ -233,13 +251,47 @@ export class Closet {
         b.setAttribute("aria-label", label);
         b.setAttribute("aria-pressed", pressed);
         b.dataset.value = value;
-        b.addEventListener("click", () => this.on.onPick(tab, value));
+        // 아직 받지 못한 것(이미 입고 있는 것은 빼고): 고를 수 없고, 누르면 어디서 받는지 알려 준다
+        const from = isOn ? undefined : locks.get(value);
+        if (from === undefined) b.addEventListener("click", () => this.on.onPick(tab, value));
+        else this.lockCell(b, label, from);
         return b;
       }),
     );
     if (refocus === undefined) return;
     for (const b of this.grid.querySelectorAll("button"))
       if (b.dataset.value === refocus) b.focus();
+  }
+
+  // 아직 받지 못한 칸: 흐리게, 구석에 자물쇠. 누르면 무대 위 안내 자리에 받는 곳을 적는다
+  private lockCell(b: HTMLButtonElement, label: string, from: string) {
+    const hint = this.labels.lockedIn.replace("{from}", from);
+    b.setAttribute("aria-label", `${label} — ${hint}`);
+    b.setAttribute("aria-disabled", "true");
+    Object.assign(b.style, { position: "relative", opacity: "0.5" });
+    const lock = document.createElement("span");
+    lock.innerHTML = LOCK_ICON;
+    Object.assign(lock.style, {
+      position: "absolute",
+      right: "4px",
+      bottom: "4px",
+      width: "22px",
+      height: "22px",
+      borderRadius: "50%",
+      background: "#fff",
+      color: INK,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    });
+    b.append(lock);
+    b.addEventListener("click", () => this.say(hint));
+  }
+
+  // 무대 위 안내 자리에 한 줄 적는다(밀면 돌아간다는 안내와 같은 자리)
+  private say(text: string) {
+    this.tip.textContent = text;
+    this.tip.style.opacity = "1";
   }
 
   // 칸의 그림: 소품은 옷장 칸 그림, 무늬는 무늬 그림, 색은 그 색, 기본 윗옷은 원래 스웨터의 분홍·라임
