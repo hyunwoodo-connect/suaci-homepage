@@ -64,13 +64,21 @@ export function isPartTab(tab: LookTab): tab is PartSlot {
   return (PART_SLOTS as readonly string[]).includes(tab);
 }
 
-/** 아무거나 고른 차림(rand: 0 이상 1 미만) */
-export function randomLook(rand: () => number): AvatarLook {
+/**
+ * 아직 받지 못한 것: 옷장의 키(무늬·색·부품) → 그것을 받는 곳의 이름(놀이 이름). 놀이를 깨면 열리는 옷이 여기 든다.
+ * 무엇이 잠기고 언제 열리는지는 옷장을 여는 쪽이 정한다 — 아바타는 '아직 못 고른다'는 것만 안다
+ */
+export type Locks = ReadonlyMap<string, string>;
+
+/** 아무거나 고른 차림(rand: 0 이상 1 미만). 아직 받지 못한 것(locks)은 고르지 않는다 */
+export function randomLook(rand: () => number, locks: Locks): AvatarLook {
   const look = { ...DEFAULT_LOOK };
   for (const tab of LOOK_TABS) {
-    const options = optionsFor(tab),
-      r = rand(),
-      spread = r * options.length,
+    // 난수는 탭마다 한 번 — 고를 것이 줄어도 다른 탭의 결과는 그대로다
+    const r = rand(),
+      options = optionsFor(tab).filter((value) => !locks.has(value));
+    if (options.length === 0) continue;
+    const spread = r * options.length,
       at = Math.floor(spread),
       last = options.length - 1;
     look[tab] = options[Math.min(at, last)];

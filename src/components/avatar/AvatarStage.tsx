@@ -10,18 +10,30 @@ import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { fetchManifest } from "@/lib/asset-kit/manifest";
 import { AVATAR_BUNDLE } from "@/lib/avatar/bundle";
 import type { OpenRoom } from "@/lib/avatar/room";
+import type { ClearReward } from "@/lib/play-record";
+import { lockedRewards } from "@/lib/play-record";
 
 /** 아바타 칸의 상태: 받는 중 · 서 있음 · 받지 못함 */
 type StageStatus = "loading" | "ready" | "failed";
+
+interface AvatarStageProps {
+  /** 놀이를 깨면 받는 옷 모두 — 아직 깨지 않은 놀이의 옷은 옷장에서 잠겨 있다 */
+  rewards: readonly ClearReward[];
+}
 
 /**
  * 이벤트 페이지의 내 아바타: 스튜디오 그레이 칸에 지금 차림의 아바타가 서 있고, '꾸미기'를 누르면 같은 칸이 화면 가득 커져 옷장이 열린다.
  * 완성을 누르면(또는 Esc·폰 뒤로가기) 제자리로 돌아온다 — 고른 차림은 이 기기의 아바타 기록에 남아 어느 놀이에서든 그대로 나온다.
  * 3D 코드(three)는 이 칸이 뜬 뒤에 따로 받는다(목록은 먼저 보인다). 옷장 안의 글자는 꾸미기 씬이 이 화면의 언어로 그린다(lib/avatar/closet-labels)
  */
-export default function AvatarStage() {
+export default function AvatarStage({ rewards }: AvatarStageProps) {
   const t = useTranslations("events.avatar");
   const locale = useLocale();
+  // 서버가 다시 그릴 때마다 새 목록이 온다 — 그때마다 방을 다시 열지 않게 지금 것만 들고 있는다
+  const rewardsRef = useRef(rewards);
+  useEffect(() => {
+    rewardsRef.current = rewards;
+  }, [rewards]);
   const headingId = useId();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -38,7 +50,8 @@ export default function AvatarStage() {
     Promise.all([manifestJob, roomJob])
       .then(([manifest, room]) => {
         if (cancelled) return;
-        roomRef.current = room.openAvatarRoom(canvas, manifest, locale, {
+        const options = { locale, locks: () => lockedRewards(rewardsRef.current) };
+        roomRef.current = room.openAvatarRoom(canvas, manifest, options, {
           onReady: () => setStatus("ready"),
           onToggle: setIsDressing,
           onFail: () => setStatus("failed"),

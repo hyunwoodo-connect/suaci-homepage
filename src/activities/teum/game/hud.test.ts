@@ -37,6 +37,43 @@ describe("Hud 소리 끄기 단추", () => {
   });
 });
 
+describe("Hud 나가기 단추", () => {
+  it("누르면 → 나가겠다고 알린다", () => {
+    const parent = document.createElement("div");
+    const hud = new Hud(parent);
+    let left = 0;
+    hud.showLeave(() => left++);
+    const button = parent.querySelector<HTMLButtonElement>('button[aria-label="나가기"]')!;
+    button.click();
+    expect([left, parseInt(button.style.width), parseInt(button.style.height)]).toEqual([
+      1, 44, 44,
+    ]);
+    hud.dispose();
+  });
+
+  it("꾸미기 씬 동안 → 숨고(그 자리에 씬의 단추가 있다), 닫으면 → 돌아온다", () => {
+    const parent = document.createElement("div");
+    const hud = new Hud(parent);
+    hud.showLeave(() => {});
+    const button = parent.querySelector<HTMLButtonElement>('button[aria-label="나가기"]')!;
+    hud.setStudio(true);
+    const hidden = button.style.display;
+    hud.setStudio(false);
+    expect([hidden, button.style.display]).toEqual(["none", ""]);
+    hud.dispose();
+  });
+
+  it("두 번 달아도 → 단추는 하나, dispose 하면 지운다", () => {
+    const parent = document.createElement("div");
+    const hud = new Hud(parent);
+    hud.showLeave(() => {});
+    hud.showLeave(() => {});
+    const count = parent.querySelectorAll("button").length;
+    hud.dispose();
+    expect([count, parent.querySelectorAll("button").length]).toEqual([1, 0]);
+  });
+});
+
 describe("Hud 꾸미기 씬", () => {
   it("열면 → 안내 줄·말풍선은 숨고 소리 단추는 남아 무대 위로, 닫으면 → 제자리", () => {
     const parent = document.createElement("div");

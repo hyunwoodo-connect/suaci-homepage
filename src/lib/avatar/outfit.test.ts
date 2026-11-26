@@ -33,9 +33,25 @@ describe("optionsFor", () => {
 describe("randomLook", () => {
   it("어떤 난수든 → 탭마다 고를 수 있는 값", () => {
     for (const r of [0, 0.5, 0.999999]) {
-      const look = randomLook(() => r);
+      const look = randomLook(() => r, new Map());
       for (const t of LOOK_TABS) expect(optionsFor(t), t).toContain(look[t]);
     }
+  });
+
+  it("아직 받지 못한 것 → 어떤 난수에도 고르지 않는다", () => {
+    const locks = new Map([["board", "틈"]]);
+    for (const r of [0, 0.5, 0.999999]) expect(randomLook(() => r, locks).board).toBe("");
+  });
+
+  it("받지 못한 것이 있어도 → 다른 탭의 결과는 그대로다(난수를 탭마다 한 번씩 쓴다)", () => {
+    const rolls = [0.1, 0.9, 0.4, 0.7, 0.2, 0.6, 0.8, 0.95];
+    const roller = () => {
+      let at = 0;
+      return () => rolls[at++ % rolls.length];
+    };
+    const open = randomLook(roller(), new Map()),
+      locked = randomLook(roller(), new Map([["board", "틈"]]));
+    expect({ ...locked, board: open.board }).toEqual(open);
   });
 });
 

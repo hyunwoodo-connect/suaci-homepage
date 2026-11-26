@@ -53,4 +53,17 @@ describe("EventCard", () => {
   ] as const)("phase %s → 태그 %s", (phase, label) => {
     expect(render(phase)).toContain(`>${label}<`);
   });
+
+  it("깨면 옷을 받는 이벤트 → 카드에 그 옷의 이름(화면의 언어로)", () => {
+    const html = renderToStaticMarkup(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <EventCard event={{ ...summary("live"), eventId: "teum01", slug: "teum" }} />
+      </NextIntlClientProvider>,
+    );
+    expect(html).toContain("clear it to get · skateboard");
+  });
+
+  it("받는 옷이 없는 이벤트 → 그 줄이 없다", () => {
+    expect(render("live")).not.toContain("clear it to get");
+  });
 });

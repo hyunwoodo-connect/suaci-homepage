@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { PLAY_KEY, readClear, recordClear } from "./play-record";
+import { lockedRewards, PLAY_KEY, readClear, recordClear } from "./play-record";
 
 // 2026-11-26 03:00:00 UTC = 한국 시각 12:00
 const NOON_KST = Date.UTC(2026, 10, 26, 3, 0, 0);
@@ -76,5 +76,24 @@ describe("recordClear · readClear", () => {
     localStorage.setItem(PLAY_KEY, JSON.stringify(stored));
     expect(readClear("teum01")).toEqual(good);
     expect(readClear("odd")).toBeNull();
+  });
+});
+
+describe("lockedRewards — 아직 받지 못한 것", () => {
+  const REWARDS = [
+    { eventId: "teum01", item: "board", from: "틈" },
+    { eventId: "sky02", item: "scarf", from: "하늘" },
+  ];
+
+  it("깬 적 없는 이벤트의 옷 → 잠겨 있다(옷장의 키 → 받는 곳의 이름)", () => {
+    expect([...lockedRewards(REWARDS)]).toEqual([
+      ["board", "틈"],
+      ["scarf", "하늘"],
+    ]);
+  });
+
+  it("그 이벤트를 깨면 → 그 옷만 풀린다", () => {
+    recordClear({ eventId: "teum01", activityId: "teum", at: NOON_KST });
+    expect([...lockedRewards(REWARDS)]).toEqual([["scarf", "하늘"]]);
   });
 });

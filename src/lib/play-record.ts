@@ -28,6 +28,13 @@ interface Clear {
   seconds?: number;
 }
 
+/** 깨면 받는 것 하나: 그것을 주는 이벤트, 아바타 옷장의 키(부품·무늬·색), 받는 곳의 이름(놀이 이름) */
+export interface ClearReward {
+  eventId: string;
+  item: string;
+  from: string;
+}
+
 /** 이 기기의 놀이 결과를 두는 자리 */
 export const PLAY_KEY = "suaci.plays";
 
@@ -63,6 +70,13 @@ export function recordClear(clear: Clear): void {
   } catch {
     // 저장을 막아 둔 브라우저 — 표시만 남지 않는다
   }
+}
+
+/** 아직 받지 못한 것(그것을 주는 이벤트를 이 기기에서 깬 적이 없다): 옷장의 키 → 받는 곳의 이름 */
+export function lockedRewards(rewards: readonly ClearReward[]): Map<string, string> {
+  const clears = readClears();
+  const locked = rewards.filter((reward) => !Object.hasOwn(clears, reward.eventId));
+  return new Map(locked.map((reward) => [reward.item, reward.from]));
 }
 
 /* ─── 내부 ─────────────────────────── */

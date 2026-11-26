@@ -485,6 +485,7 @@
     "title": "イベント",
     "empty": "まだイベントはありません。",
     "cleared": "クリア済み",
+    "reward": "クリアでもらえる · {item}",
     "phase": {
       "upcoming": "近日公開",
       "live": "開催中",

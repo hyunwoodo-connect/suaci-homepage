@@ -16,6 +16,7 @@ import { AvatarProfile } from "./profile";
 import { LocalAvatarStore } from "./record";
 import type { RigHandle } from "./rig";
 import { setupRig } from "./rig";
+import type { Locks } from "./outfit";
 import type { PoseInput } from "./rig-pose";
 import type { StudioHost } from "./studio";
 import { Studio } from "./studio";
@@ -24,6 +25,14 @@ import { Wardrobe } from "./wardrobe";
 // 아바타의 방: 놀이 밖(이벤트 페이지)에서 내 아바타를 세워 보여 주고, 그 자리에서 꾸민다.
 // 평소에는 틀 가운데에 선 아바타를 비추고(초상), 옷장을 열면 놀이 안의 꾸미기 씬(studio)과 같은 화면이 된다 —
 // 같은 옷장·같은 기록이라 여기서 고른 차림이 어느 놀이에서든 그대로 나온다. 방은 장면·카메라·빛을 내주고 프레임을 돌리기만 한다
+
+/** 방을 여는 값 */
+interface RoomOptions {
+  /** 방을 여는 화면의 언어(옷장 글자) */
+  locale: string;
+  /** 아직 받지 못한 것(지금 — 놀이를 깨면 열리는 옷) */
+  locks: () => Locks;
+}
 
 /** 방을 여는 쪽(화면)에 알리는 것 */
 interface RoomHandlers {
@@ -69,12 +78,12 @@ const PORTRAIT_ANGLE = 0.3,
 
 /**
  * 방을 연다: 기록을 읽어 차림을 정하고, 몸과 그 차림의 부품·무늬를 받은 뒤 그리기 시작한다.
- * 나머지 부품·무늬는 옷장을 열 때 뒤에서 받는다(고르는 순간 바로 입게). locale: 방을 여는 화면의 언어(옷장 글자)
+ * 나머지 부품·무늬는 옷장을 열 때 뒤에서 받는다(고르는 순간 바로 입게)
  */
 export function openAvatarRoom(
   canvas: HTMLCanvasElement,
   manifest: Manifest,
-  locale: string,
+  options: RoomOptions,
   on: RoomHandlers,
 ): OpenRoom {
   const stage = createStage(canvas);
@@ -105,6 +114,7 @@ export function openAvatarRoom(
   const wardrobe = new Wardrobe(outfit, avatar, profile, {
     dressNewcomer: true,
     rand: () => Math.random(),
+    locks: options.locks,
   });
   wardrobe.useLoader(loader);
   const urlOf = (key: string) => {
@@ -122,7 +132,8 @@ export function openAvatarRoom(
     },
     // 옷장은 화면의 '꾸미기' 단추로 연다
     hasWearButton: false,
-    labels: closetLabels(locale),
+    labels: closetLabels(options.locale),
+    locks: options.locks,
     need: (key) => models.need(key),
     onToggle(isOpen) {
       isDressing = isOpen;

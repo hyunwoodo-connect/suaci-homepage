@@ -21,6 +21,7 @@ export class SuccessPanel {
   readonly el: HTMLDivElement;
   private readonly doneLine: HTMLParagraphElement;
   private readonly timeText: HTMLSpanElement;
+  private readonly rewardLine: HTMLParagraphElement;
   private readonly again: HTMLButtonElement;
 
   constructor(on: SuccessPanelHandlers) {
@@ -88,6 +89,15 @@ export class SuccessPanel {
       fontVariantNumeric: "tabular-nums",
     });
     time.append(timeLabel, this.timeText);
+    // 이번에 새로 받은 옷(있을 때만 보인다)
+    this.rewardLine = document.createElement("p");
+    Object.assign(this.rewardLine.style, {
+      display: "none",
+      margin: "10px 0 0",
+      fontSize: "15px",
+      lineHeight: "1.4",
+      fontWeight: "700",
+    });
     const buttons = document.createElement("div");
     Object.assign(buttons.style, { display: "flex", gap: "8px", marginTop: "16px" });
     this.again = panelButton("한 번 더", INK, "#fff");
@@ -97,13 +107,15 @@ export class SuccessPanel {
     buttons.append(this.again, keep);
     const leave = leaveButton();
     leave.addEventListener("click", () => on.onLeave());
-    this.el.append(wordmark, title, this.doneLine, time, buttons, leave);
+    this.el.append(wordmark, title, this.doneLine, time, this.rewardLine, buttons, leave);
   }
 
-  /** 띄운다: 먹은 수와 걸린 시간 */
-  show(total: number, seconds: number) {
+  /** 띄운다: 먹은 수와 걸린 시간, 이번에 새로 받은 옷의 이름(없으면 null) */
+  show(total: number, seconds: number, reward: string | null) {
     this.doneLine.textContent = `물풍선 ${total}개를 다 먹었어요`;
     this.timeText.textContent = formatElapsed(seconds);
+    this.rewardLine.textContent = reward ? `새 옷이 생겼어요 · ${reward}` : "";
+    this.rewardLine.style.display = reward ? "block" : "none";
     Object.assign(this.el.style, {
       visibility: "visible",
       opacity: "1",

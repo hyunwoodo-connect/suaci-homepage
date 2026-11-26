@@ -5,6 +5,7 @@ import type { Manifest } from "@/lib/asset-kit/manifest";
 import { assetUrl } from "@/lib/asset-kit/manifest";
 import { closetLabels } from "@/lib/avatar/closet-labels";
 import { legacyAvatar } from "@/lib/avatar/legacy-record";
+import type { Locks } from "@/lib/avatar/outfit";
 import { AvatarProfile } from "@/lib/avatar/profile";
 import { LocalAvatarStore } from "@/lib/avatar/record";
 import type { StudioHost } from "@/lib/avatar/studio";
@@ -203,7 +204,8 @@ export class Game {
     manifest: Manifest,
     seed: number,
     map: GameMap,
-    festival: number | null = null,
+    festival: number | null,
+    locks: () => Locks,
   ) {
     const stage = createStage(canvas);
     this.stage = stage;
@@ -312,6 +314,7 @@ export class Game {
     });
     const sound = this.sound;
     if (sound.hasSounds) hud.showMuteToggle(sound.isMuted, (muted) => sound.setMuted(muted));
+    hud.showLeave(() => events.emit("leavePressed", {}));
     s.camera.resize(stage.renderer);
     // ---- 놓기: 자리표 → 행성 위 자리 ----
     this.layoutWorld();
@@ -349,6 +352,7 @@ export class Game {
     this.wardrobe = new Wardrobe(mats.lookU.outfit, this.avatar, this.profile, {
       dressNewcomer: !skipStudio,
       rand: () => lookRng.next(),
+      locks,
     });
     const urlOf = (k: string) => {
       const entry = manifest.assets[k];
@@ -364,6 +368,7 @@ export class Game {
       hasWearButton: true,
       // 틈은 한국어로 여는 놀이다
       labels: closetLabels("ko"),
+      locks,
       need: (key) => s.models.need(key),
       onToggle(isOpen) {
         s.hud.setStudio(isOpen);
@@ -488,6 +493,12 @@ export class Game {
       this.pads,
       this.rings,
     ];
+  }
+
+  /** 이번에 깨서 새로 받은 옷(옷장의 키 — 없으면 null)을 성공 판에 알린다 */
+  announceReward(item: string | null) {
+    const name = item ? (closetLabels("ko").options[item] ?? item) : null;
+    this.waterBalloons?.setReward(name);
   }
 
   /** 한 프레임. 한 프레임은 길어도 0.1 초로 자른다 */

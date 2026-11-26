@@ -176,9 +176,9 @@ export class WaterBalloonHud {
     });
   }
 
-  /** 성공 판을 띄운다: 먹은 수와 걸린 시간 */
-  showSuccess(total: number, seconds: number) {
-    this.success.show(total, seconds);
+  /** 성공 판을 띄운다: 먹은 수와 걸린 시간, 이번에 새로 받은 옷의 이름(없으면 null) */
+  showSuccess(total: number, seconds: number, reward: string | null) {
+    this.success.show(total, seconds, reward);
   }
 
   /** 성공 판을 내린다 */

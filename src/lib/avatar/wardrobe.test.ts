@@ -9,7 +9,12 @@ import type { RigOwner } from "./wardrobe";
 import { Wardrobe } from "./wardrobe";
 
 /** 몸이 바로 오는 아바타와, 끼우고 뺀 것을 적는 뼈대 */
-function setup(saved: Partial<ReturnType<typeof emptyAvatarRecord>> = {}, dressNewcomer = true) {
+function setup(
+  saved: Partial<ReturnType<typeof emptyAvatarRecord>> = {},
+  dressNewcomer = true,
+  locks = new Map<string, string>(),
+  rand = () => 0,
+) {
   const calls: string[] = [];
   const rig = {
     wear: (k: string) => calls.push(`+${k}`),
@@ -21,7 +26,8 @@ function setup(saved: Partial<ReturnType<typeof emptyAvatarRecord>> = {}, dressN
   const outfit = blankOutfit();
   const wardrobe = new Wardrobe(outfit, avatar, profile, {
     dressNewcomer,
-    rand: () => 0,
+    rand,
+    locks: () => locks,
   });
   return { wardrobe, profile, calls, outfit };
 }
@@ -31,7 +37,7 @@ describe("Wardrobe · 아바타 기록", () => {
   const avatar = {
     whenRig: (cb: (r: RigHandle) => void) => cb({ wear() {}, strip() {} } as unknown as RigHandle),
   } as RigOwner;
-  const options = { dressNewcomer: true, rand: () => 0 };
+  const options = { dressNewcomer: true, rand: () => 0, locks: () => new Map<string, string>() };
 
   it("공용 기록은 비었지만 다른 자리에 차림이 남아 있던 사람 → 그 차림을 입는다(처음 온 사람의 아무 차림으로 덮지 않는다)", async () => {
     const old = { ...emptyAvatarRecord(), look: { ...DEFAULT_LOOK, hand: "bag" }, dressed: true };
@@ -88,5 +94,38 @@ describe("Wardrobe", () => {
     calls.length = 0;
     wardrobe.undo();
     expect(calls).toEqual(["+hair_bob"]);
+  });
+
+  it("아직 받지 못한 것을 고르면 → false, 차림도 기록도 그대로", async () => {
+    const locks = new Map([["board", "틈"]]);
+    const { wardrobe, profile } = setup({ look: { ...DEFAULT_LOOK } }, true, locks);
+    await wardrobe.ready;
+    expect(wardrobe.pick("board", "board")).toBe(false);
+    expect([wardrobe.look.board, profile.record.look?.board]).toEqual(["", ""]);
+  });
+
+  it("받은 뒤에는(잠금이 풀리면) → 고를 수 있다", async () => {
+    const locks = new Map([["board", "틈"]]);
+    const { wardrobe } = setup({ look: { ...DEFAULT_LOOK } }, true, locks);
+    await wardrobe.ready;
+    locks.delete("board");
+    expect(wardrobe.pick("board", "board")).toBe(true);
+  });
+
+  it("아무거나·처음 온 사람의 차림 → 아직 받지 못한 것은 들지 않는다", async () => {
+    const locks = new Map([["board", "틈"]]);
+    const { wardrobe } = setup({}, true, locks, () => 0.999);
+    await wardrobe.ready;
+    const first = wardrobe.look.board;
+    wardrobe.shuffle();
+    expect([first, wardrobe.look.board]).toEqual(["", ""]);
+  });
+
+  it("이미 입고 있던 것은 → 잠겨 있어도 그대로 입고 있다", async () => {
+    const locks = new Map([["board", "틈"]]);
+    const look = { ...DEFAULT_LOOK, board: "board" };
+    const { wardrobe } = setup({ look }, true, locks);
+    await wardrobe.ready;
+    expect(wardrobe.look.board).toBe("board");
   });
 });

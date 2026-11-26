@@ -485,6 +485,7 @@
     "title": "events",
     "empty": "no events yet.",
     "cleared": "cleared",
+    "reward": "clear it to get · {item}",
     "phase": {
       "upcoming": "coming soon",
       "live": "live",
