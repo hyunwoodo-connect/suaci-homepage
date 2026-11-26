@@ -20,10 +20,11 @@ import type { PoseInput } from "./rig-pose";
 import type { StudioHost } from "./studio";
 import { Studio } from "./studio";
 import { listenTurn } from "./turn-drag";
+import { Turntable } from "./turntable";
 import { Wardrobe } from "./wardrobe";
 
 // 아바타의 방: 놀이 밖(이벤트 페이지)에서 내 아바타를 세워 보여 주고, 그 자리에서 꾸민다.
-// 평소에는 틀 가운데에 선 아바타를 비추고(초상), 옷장을 열면 놀이 안의 꾸미기 씬(studio)과 같은 화면이 된다 —
+// 평소에는 틀 가운데에 선 아바타 둘레를 카메라가 천천히 돌며 비추고(초상 — 밀어서 돌려 볼 수도 있다), 옷장을 열면 놀이 안의 꾸미기 씬(studio)과 같은 화면이 된다 —
 // 같은 옷장·같은 기록이라 여기서 고른 차림이 어느 놀이에서든 그대로 나온다. 방은 장면·카메라·빛을 내주고 프레임을 돌리기만 한다
 
 /** 방을 여는 값 */
@@ -73,17 +74,8 @@ const PORTRAIT_TOP = 1.15,
   PORTRAIT_FLOOR = -1.3,
   PORTRAIT_BOARD_FLOOR = -1.72,
   PORTRAIT_WIDTH = 1.8;
-/** 초상의 카메라가 선 각(얼굴 앞에서 조금 옆, 라디안)과 좌우로 천천히 둘러보는 폭·빠르기(밀어서 돌리기 전까지만) */
-const PORTRAIT_ANGLE = 0.3,
-  PORTRAIT_SWAY = 0.2,
-  PORTRAIT_SWAY_RATE = 0.5;
-/**
- * 초상에서 밀어 돌리기: 가로로 민 만큼 도는 각(라디안/px — 꾸미기 씬과 같다), 손을 뗀 뒤 도는 빠르기가 줄어드는 비율(초당)과
- * 가장 빠르게(라디안/초)
- */
-const TURN_PER_PX = 0.012,
-  TURN_DAMP = 3.2,
-  TURN_MAX = 9;
+/** 초상의 카메라가 처음 선 각(얼굴 앞에서 조금 옆, 라디안) */
+const PORTRAIT_ANGLE = 0.3;
 /** 발밑 그림자: 반지름(m)·짙기, 발밑(보드를 타면 보드 밑)에서 조금 아래 */
 const SHADOW_RADIUS = 0.72,
   SHADOW_INK = 0.2,
@@ -148,9 +140,7 @@ export function openAvatarRoom(
     need: (key) => models.need(key),
     onToggle(isOpen) {
       isDressing = isOpen;
-      // 옷장을 여닫는 사이에 돌던 것은 멈춘다(닫은 뒤에 이어 돌지 않게)
-      turn.spin = 0;
-      turn.isHeld = false;
+      table.pause();
       on.onToggle(isOpen);
     },
     onPicked() {},
@@ -167,15 +157,11 @@ export function openAvatarRoom(
     isVisible = true,
     raf = 0,
     last = 0;
-  // 초상에서 밀어 돌린 각과, 손을 뗀 뒤에도 조금 더 도는 빠르기(손을 대고 있는 동안은 민 만큼만 돈다)
-  const turn = { angle: 0, spin: 0, isHeld: false, hasTurned: false };
-  // 저절로 좌우로 둘러보는 각(사람이 돌려 보기 전까지만)
-  const swayAt = (time: number) => {
-    const phase = time * PORTRAIT_SWAY_RATE;
-    return PORTRAIT_SWAY * Math.sin(phase);
-  };
-  // 움직임 줄이기를 켠 사람에게는 둥실 뜨는 몸짓과 둘러보기를 멈춰 둔다
+  // 움직임 줄이기를 켠 사람에게는 둥실 뜨는 몸짓과 저절로 돌기를 멈춰 둔다
   const isStill = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // 초상의 카메라는 돌림판을 따라 아바타 둘레를 돈다(저절로, 그리고 밀어서)
+  const table = new Turntable(isStill);
+  let hasTurned = false;
   // 방 안의 아바타는 나아가지 않는다 — 제자리에서 둥실 떠 있는 몸짓만
   const frame: PoseInput = { dt: 0, tot: 0, vy: 0, air: 0, fx: 0, time: 0 };
   const step = (dt: number) => {
@@ -185,15 +171,9 @@ export function openAvatarRoom(
     studio.update(frame);
     if (!isDressing) {
       const hasBoard = wardrobe.look.board !== "";
-      if (!turn.isHeld) {
-        const damp = -TURN_DAMP * dt;
-        turn.angle += turn.spin * dt;
-        turn.spin *= Math.exp(damp);
-      }
-      const sway = turn.hasTurned ? 0 : swayAt(frame.time),
-        turned = turn.angle + sway;
+      table.step(dt);
       shadow.position.y = hasBoard ? SHADOW_BOARD_Y : SHADOW_Y;
-      framePortrait(camera, turned, hasBoard);
+      framePortrait(camera, table.angle, hasBoard);
     }
     renderer.render(scene, camera);
   };
@@ -231,25 +211,14 @@ export function openAvatarRoom(
   watcher.observe(canvas);
   const stopTurning = listenTurn(canvas, {
     canTurn: () => isStarted && !isDressing,
-    onHold() {
-      turn.isHeld = true;
-      turn.spin = 0;
-    },
+    onHold: () => table.hold(),
     onMove(dx) {
-      if (!turn.hasTurned) {
-        // 둘러보던 각에서 이어 돈다(툭 돌아가지 않게)
-        turn.hasTurned = true;
-        turn.angle += swayAt(frame.time);
-        on.onTurn();
-      }
-      turn.angle -= dx * TURN_PER_PX;
+      table.move(dx);
+      if (hasTurned) return;
+      hasTurned = true;
+      on.onTurn();
     },
-    onRelease(speed) {
-      turn.isHeld = false;
-      // 움직임 줄이기를 켠 사람에게는 손을 뗀 자리에서 멎는다
-      const spin = isStill ? 0 : -speed * TURN_PER_PX;
-      turn.spin = THREE.MathUtils.clamp(spin, -TURN_MAX, TURN_MAX);
-    },
+    onRelease: (speed) => table.release(speed),
   });
   const deliver = (key: string, asset: LoadedAsset) => {
     if (asset.kind === "model") models.deliver(key, asset.scene);
