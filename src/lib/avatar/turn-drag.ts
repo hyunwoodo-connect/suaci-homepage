@@ -32,8 +32,8 @@ export function listenTurn(canvas: HTMLElement, on: TurnHandlers): () => void {
   canvas.style.touchAction = "pan-y pinch-zoom";
   const down = (e: PointerEvent) => {
     if (pointer !== null || !on.canTurn()) return;
-    // 마우스는 왼쪽 단추만(오른쪽은 메뉴가 뜨며 뗀 것을 알리지 않는다)
-    if (e.pointerType === "mouse" && e.button !== 0) return;
+    // 마우스는 왼쪽 단추만. 오른쪽 단추와 맥의 ctrl+누르기는 메뉴가 뜨며 뗀 것을 알리지 않을 수 있다
+    if (e.pointerType === "mouse" && (e.button !== 0 || e.ctrlKey)) return;
     pointer = e.pointerId;
     isTurning = false;
     startX = e.clientX;
@@ -46,7 +46,8 @@ export function listenTurn(canvas: HTMLElement, on: TurnHandlers): () => void {
     if (e.pointerType === "mouse") canvas.setPointerCapture?.(e.pointerId);
   };
   const move = (e: PointerEvent) => {
-    if (e.pointerId !== pointer) return;
+    // 미는 사이에 돌릴 수 없게 됐으면(다른 손가락으로 옷장을 열었다) 더 돌리지 않는다
+    if (e.pointerId !== pointer || !on.canTurn()) return;
     if (!isTurning) {
       const movedX = e.clientX - startX,
         movedY = e.clientY - startY;

@@ -10,13 +10,15 @@ interface Touch {
   id?: number;
   type?: string;
   button?: number;
+  ctrl?: boolean;
 }
 
 function setup(canTurn = true) {
   const canvas = document.createElement("canvas");
   const calls: string[] = [];
+  const gate = { canTurn };
   const stop = listenTurn(canvas, {
-    canTurn: () => canTurn,
+    canTurn: () => gate.canTurn,
     onHold: () => calls.push("hold"),
     onMove: (dx) => calls.push(`move ${dx}`),
     onRelease: (speed) => calls.push(`release ${Math.round(speed)}`),
@@ -26,6 +28,7 @@ function setup(canTurn = true) {
       clientX: touch.x,
       clientY: touch.y ?? 100,
       button: touch.button ?? 0,
+      ctrlKey: touch.ctrl ?? false,
     });
     Object.defineProperties(event, {
       pointerId: { value: touch.id ?? 1 },
@@ -34,7 +37,7 @@ function setup(canTurn = true) {
     });
     canvas.dispatchEvent(event);
   };
-  return { canvas, calls, stop, send };
+  return { canvas, calls, stop, send, gate };
 }
 
 describe("listenTurn", () => {
@@ -91,6 +94,24 @@ describe("listenTurn", () => {
     send("pointerdown", { x: 100, at: 0, type: "mouse", button: 2 });
     send("pointermove", { x: 160, at: 20, type: "mouse" });
     expect(calls).toEqual([]);
+  });
+
+  it("마우스 ctrl+누르기(맥의 오른쪽 누르기) → 듣지 않는다", () => {
+    const { calls, send } = setup();
+    send("pointerdown", { x: 100, at: 0, type: "mouse", ctrl: true });
+    send("pointermove", { x: 160, at: 20, type: "mouse" });
+    expect(calls).toEqual([]);
+  });
+
+  it("미는 사이에 돌릴 수 없게 되면(옷장이 열렸다) → 그 뒤로는 돌리지 않고, 떼면 알린다", () => {
+    const { calls, send, gate } = setup();
+    send("pointerdown", { x: 100, at: 0 });
+    send("pointermove", { x: 110, at: 10 });
+    send("pointermove", { x: 120, at: 20 });
+    gate.canTurn = false;
+    send("pointermove", { x: 180, at: 30 });
+    send("pointerup", { x: 180, at: 300 });
+    expect(calls).toEqual(["hold", "move 10", "release 0"]);
   });
 
   it("돌릴 수 없을 때(옷장이 열려 있다) → 듣지 않는다", () => {
