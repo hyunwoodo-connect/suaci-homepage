@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import Button from "@/components/ui/Button";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
@@ -17,10 +17,11 @@ type StageStatus = "loading" | "ready" | "failed";
 /**
  * 이벤트 페이지의 내 아바타: 스튜디오 그레이 칸에 지금 차림의 아바타가 서 있고, '꾸미기'를 누르면 같은 칸이 화면 가득 커져 옷장이 열린다.
  * 완성을 누르면(또는 Esc·폰 뒤로가기) 제자리로 돌아온다 — 고른 차림은 이 기기의 아바타 기록에 남아 어느 놀이에서든 그대로 나온다.
- * 3D 코드(three)는 이 칸이 뜬 뒤에 따로 받는다(목록은 먼저 보인다). 옷장 안의 글자는 꾸미기 씬의 것이다(lib/avatar)
+ * 3D 코드(three)는 이 칸이 뜬 뒤에 따로 받는다(목록은 먼저 보인다). 옷장 안의 글자는 꾸미기 씬이 이 화면의 언어로 그린다(lib/avatar/closet-labels)
  */
 export default function AvatarStage() {
   const t = useTranslations("events.avatar");
+  const locale = useLocale();
   const headingId = useId();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -37,7 +38,7 @@ export default function AvatarStage() {
     Promise.all([manifestJob, roomJob])
       .then(([manifest, room]) => {
         if (cancelled) return;
-        roomRef.current = room.openAvatarRoom(canvas, manifest, {
+        roomRef.current = room.openAvatarRoom(canvas, manifest, locale, {
           onReady: () => setStatus("ready"),
           onToggle: setIsDressing,
           onFail: () => setStatus("failed"),
@@ -51,7 +52,7 @@ export default function AvatarStage() {
       roomRef.current?.stop();
       roomRef.current = null;
     };
-  }, []);
+  }, [locale]);
 
   useBodyScrollLock(isDressing);
   useFocusTrap(frameRef, isDressing);

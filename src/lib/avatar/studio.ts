@@ -1,6 +1,7 @@
 import * as THREE from "three";
 
 import { Closet } from "./closet";
+import type { ClosetLabels } from "./closet-labels";
 import { ease } from "./motion";
 import type { LookTab } from "./outfit";
 import { PRINTS, STUDIO_BG } from "./outfit";
@@ -30,6 +31,8 @@ export interface StudioHost {
   };
   /** 닫혀 있을 때 화면 구석에 옷장 단추를 띄울지(놀이의 세상). 제 단추로 여는 곳(이벤트 페이지)은 false */
   hasWearButton: boolean;
+  /** 옷장에 쓸 글자(여는 화면의 언어 — closet-labels) */
+  labels: ClosetLabels;
   /** 부품 모델을 미리 받아 둔다(고르는 순간 바로 입게) */
   need(key: string): void;
   /** 열리고 닫힐 때: 놀이가 제 화면 글자와 조작을 멈추고 되살린다 */
@@ -117,6 +120,7 @@ export class Studio {
         },
       },
       host.hasWearButton,
+      host.labels,
     );
     this.closet = closet;
   }

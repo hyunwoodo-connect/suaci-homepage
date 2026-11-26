@@ -1,3 +1,4 @@
+import type { ClosetLabels } from "./closet-labels";
 import type { AvatarLook, LookTab } from "./outfit";
 import { isPartTab, isPrint, LOOK_TABS, optionsFor, printKey } from "./outfit";
 import { thumbKey } from "./parts";
@@ -17,45 +18,6 @@ const INK = "#2b2e2d",
  */
 const SHEET_OPENING = "transform .25s",
   SHEET_CLOSING = "transform .25s, visibility 0s linear .25s";
-
-/** 탭 이름 */
-const TAB_LABEL: Readonly<Record<LookTab, string>> = {
-  top: "윗옷",
-  bot: "치마",
-  shoe: "신발",
-  hair: "머리",
-  face: "얼굴",
-  ear: "귀",
-  hand: "손",
-  board: "보드",
-};
-
-/** 칸의 읽는 이름(그림만 보이는 칸이라 화면 읽기 프로그램에 알린다) */
-const OPTION_LABEL: Readonly<Record<string, string>> = {
-  daisy: "데이지",
-  ditsy: "잔꽃",
-  stripe: "줄무늬",
-  patch: "패치워크",
-  rose: "장미",
-  gingham: "깅엄",
-  "#2b2e2d": "먹색",
-  "#ff5a1f": "주황",
-  "#ffd400": "노랑",
-  "#1e8fff": "파랑",
-  "#a9ff39": "라임",
-  "#ff8fbd": "분홍",
-  "#ff3d2e": "빨강",
-  "#8a5cff": "보라",
-  "#b5651d": "갈색",
-  hair_bob: "단발",
-  scarf: "스카프",
-  glass_heart: "하트 선글라스",
-  sunglass: "선글라스",
-  earring: "귀걸이",
-  bouquet: "꽃다발",
-  bag: "가방",
-  board: "스케이트보드",
-};
 
 /** 옷 단추 그림(티셔츠) */
 const SHIRT_ICON = `<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 4 4 6.5 5.6 10.4 7.5 9.6V20h9V9.6l1.9.8L20 6.5 15.5 4a3.5 3.5 0 0 1-7 0z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>`;
@@ -85,14 +47,18 @@ export class Closet {
   private tab: LookTab = "top";
   private look: Readonly<AvatarLook> | null = null;
 
-  /** urlOf: 에셋 키 → 받을 주소(없는 키면 null). hasWearButton: 닫혀 있을 때 화면 구석에 옷장 단추를 띄운다 */
+  /**
+   * urlOf: 에셋 키 → 받을 주소(없는 키면 null). hasWearButton: 닫혀 있을 때 화면 구석에 옷장 단추를 띄운다.
+   * labels: 옷장에 쓸 글자(여는 화면의 언어)
+   */
   constructor(
     parent: HTMLElement,
     private readonly urlOf: (key: string) => string | null,
     private readonly on: ClosetHandlers,
     hasWearButton: boolean,
+    private readonly labels: ClosetLabels,
   ) {
-    this.wearButton = hasWearButton ? wearButton(on) : null;
+    this.wearButton = hasWearButton ? wearButton(labels.wear, on) : null;
 
     // 무대: 화면을 덮어 게임 입력을 막고, 가로로 밀면 아바타 둘레를 돈다
     this.stage = document.createElement("div");
@@ -103,14 +69,14 @@ export class Closet {
       display: "none",
       touchAction: "none",
     });
-    const undo = roundButton("되돌리기", "↶");
+    const undo = roundButton(labels.undo, "↶");
     Object.assign(undo.style, {
       position: "absolute",
       top: "calc(14px + env(safe-area-inset-top))",
       left: "14px",
     });
     undo.addEventListener("click", () => on.onUndo());
-    const shuffle = roundButton("아무거나", "⚄");
+    const shuffle = roundButton(labels.shuffle, "⚄");
     Object.assign(shuffle.style, {
       position: "absolute",
       top: "calc(14px + env(safe-area-inset-top))",
@@ -118,7 +84,7 @@ export class Closet {
     });
     shuffle.addEventListener("click", () => on.onShuffle());
     this.tip = document.createElement("div");
-    this.tip.textContent = "밀어서 돌려 봐";
+    this.tip.textContent = labels.turnTip;
     Object.assign(this.tip.style, {
       position: "absolute",
       left: "0",
@@ -170,7 +136,7 @@ export class Closet {
       scrollbarWidth: "none",
     });
     for (const t of LOOK_TABS) {
-      const b = pill(TAB_LABEL[t]);
+      const b = pill(labels.tabs[t]);
       b.addEventListener("click", () => {
         this.tab = t;
         this.redraw();
@@ -178,7 +144,7 @@ export class Closet {
       this.tabs.set(t, b);
       tabRow.append(b);
     }
-    const done = pill("완성");
+    const done = pill(labels.done);
     Object.assign(done.style, { background: LIME, color: INK, fontWeight: "600" });
     done.addEventListener("click", () => on.onDone());
     row.append(tabRow, done);
@@ -215,7 +181,7 @@ export class Closet {
     this.redraw();
   }
 
-  /** '밀어서 돌려 봐'를 숨긴다(한 번 밀면) */
+  /** 밀면 돌아간다는 안내를 숨긴다(한 번 밀면) */
   hideTip() {
     this.tip.style.opacity = "0";
   }
@@ -262,7 +228,7 @@ export class Closet {
           cursor: "pointer",
         });
         this.paint(b, tab, value);
-        const label = optionLabel(tab, value),
+        const label = this.optionLabel(tab, value),
           pressed = String(isOn);
         b.setAttribute("aria-label", label);
         b.setAttribute("aria-pressed", pressed);
@@ -284,7 +250,7 @@ export class Closet {
       if (url) b.style.backgroundImage = `url("${url}")`;
       else {
         b.style.background = CHIP;
-        b.textContent = value ? (OPTION_LABEL[value] ?? value) : "없음";
+        b.textContent = this.optionLabel(tab, value);
       }
       return;
     }
@@ -296,6 +262,13 @@ export class Closet {
     }
     if (value) b.style.background = value;
     else if (tab === "top") b.style.background = "linear-gradient(135deg,#ff2f8e 50%,#a9ff39 50%)";
+  }
+
+  // 칸의 읽는 이름: 고른 것의 이름, 비운 칸은 '없음'(소품)·'원래 옷'(옷)
+  private optionLabel(tab: LookTab, value: string): string {
+    const labels = this.labels;
+    if (value) return labels.options[value] ?? value;
+    return isPartTab(tab) ? labels.none : labels.original;
   }
 
   // 무대를 가로로 밀면 돈다(단추를 누른 것은 빼고)
@@ -324,14 +297,9 @@ export class Closet {
 
 /* ─── 내부 ─────────────────────────── */
 
-function optionLabel(tab: LookTab, value: string): string {
-  if (value) return OPTION_LABEL[value] ?? value;
-  return isPartTab(tab) ? "없음" : "원래 옷";
-}
-
 // 닫혀 있을 때 화면 왼쪽 아래 구석에 떠 있는 옷장 단추
-function wearButton(on: ClosetHandlers): HTMLButtonElement {
-  const button = roundButton("옷장", SHIRT_ICON);
+function wearButton(label: string, on: ClosetHandlers): HTMLButtonElement {
+  const button = roundButton(label, SHIRT_ICON);
   Object.assign(button.style, {
     position: "fixed",
     left: "calc(14px + env(safe-area-inset-left))",

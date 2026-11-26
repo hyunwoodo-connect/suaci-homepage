@@ -3,6 +3,7 @@ import * as THREE from "three";
 import type { AssetLoader } from "@/lib/asset-kit/load";
 import type { Manifest } from "@/lib/asset-kit/manifest";
 import { assetUrl } from "@/lib/asset-kit/manifest";
+import { closetLabels } from "@/lib/avatar/closet-labels";
 import { legacyAvatar } from "@/lib/avatar/legacy-record";
 import { AvatarProfile } from "@/lib/avatar/profile";
 import { LocalAvatarStore } from "@/lib/avatar/record";
@@ -361,6 +362,8 @@ export class Game {
       avatar: this.avatar,
       stand: s.player,
       hasWearButton: true,
+      // 틈은 한국어로 여는 놀이다
+      labels: closetLabels("ko"),
       need: (key) => s.models.need(key),
       onToggle(isOpen) {
         s.hud.setStudio(isOpen);
