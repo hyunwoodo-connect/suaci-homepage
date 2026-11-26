@@ -4,9 +4,8 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 import type { LoadedAsset } from "@/lib/asset-kit/load";
 import { createAssetLoader } from "@/lib/asset-kit/load";
 import type { Manifest } from "@/lib/asset-kit/manifest";
-import { assetUrl } from "@/lib/asset-kit/manifest";
 
-import { AVATAR_BUNDLE } from "./bundle";
+import { AVATAR_BUNDLE, avatarAssetUrl } from "./bundle";
 import { closetLabels } from "./closet-labels";
 import { legacyAvatar } from "./legacy-record";
 import { AvatarModels } from "./models";
@@ -20,6 +19,7 @@ import type { Locks } from "./outfit";
 import type { PoseInput } from "./rig-pose";
 import type { StudioHost } from "./studio";
 import { Studio } from "./studio";
+import { listenTurn } from "./turn-drag";
 import { Wardrobe } from "./wardrobe";
 
 // 아바타의 방: 놀이 밖(이벤트 페이지)에서 내 아바타를 세워 보여 주고, 그 자리에서 꾸민다.
@@ -40,6 +40,8 @@ interface RoomHandlers {
   onReady(): void;
   /** 옷장이 열리고 닫힐 때(완성을 누르면 닫힌다) */
   onToggle(isOpen: boolean): void;
+  /** 밀어서 돌리기 시작했다(돌려 볼 수 있다는 안내를 거둘 때) */
+  onTurn(): void;
   /** 몸을 받지 못했다 */
   onFail(): void;
 }
@@ -65,16 +67,28 @@ const SKY_LIGHT = 0xffffff,
   SUN_POWER = 1.3;
 /**
  * 초상(옷장이 닫혀 있을 때)에 담는 자리(m, 몸 가운데가 0): 머리 위 장식 끝에서 신발 밑(보드를 타면 보드 바퀴 밑)까지,
- * 벌린 팔과 손에 든 것까지의 너비. 둥실 뜨는 폭과 가장자리 여백을 얹은 값이다
+ * 벌린 팔과 손에 든 것까지의 너비. 둥실 뜨는 폭과 가장자리 여백을 얹은 값이고, 발밑에는 바닥 그림자와 안내 한 줄이 놓일 만큼 더 둔다
  */
 const PORTRAIT_TOP = 1.15,
-  PORTRAIT_FLOOR = -1.08,
-  PORTRAIT_BOARD_FLOOR = -1.52,
+  PORTRAIT_FLOOR = -1.3,
+  PORTRAIT_BOARD_FLOOR = -1.72,
   PORTRAIT_WIDTH = 1.8;
-/** 초상의 카메라가 선 각(얼굴 앞에서 조금 옆, 라디안)과 좌우로 천천히 둘러보는 폭·빠르기 */
+/** 초상의 카메라가 선 각(얼굴 앞에서 조금 옆, 라디안)과 좌우로 천천히 둘러보는 폭·빠르기(밀어서 돌리기 전까지만) */
 const PORTRAIT_ANGLE = 0.3,
   PORTRAIT_SWAY = 0.2,
   PORTRAIT_SWAY_RATE = 0.5;
+/**
+ * 초상에서 밀어 돌리기: 가로로 민 만큼 도는 각(라디안/px — 꾸미기 씬과 같다), 손을 뗀 뒤 도는 빠르기가 줄어드는 비율(초당)과
+ * 가장 빠르게(라디안/초)
+ */
+const TURN_PER_PX = 0.012,
+  TURN_DAMP = 3.2,
+  TURN_MAX = 9;
+/** 발밑 그림자: 반지름(m)·짙기, 발밑(보드를 타면 보드 밑)에서 조금 아래 */
+const SHADOW_RADIUS = 0.72,
+  SHADOW_INK = 0.2,
+  SHADOW_Y = -0.8,
+  SHADOW_BOARD_Y = -1.02;
 
 /**
  * 방을 연다: 기록을 읽어 차림을 정하고, 몸과 그 차림의 부품·무늬를 받은 뒤 그리기 시작한다.
@@ -117,10 +131,7 @@ export function openAvatarRoom(
     locks: options.locks,
   });
   wardrobe.useLoader(loader);
-  const urlOf = (key: string) => {
-    const entry = manifest.assets[key];
-    return entry ? assetUrl(AVATAR_BUNDLE, entry.file) : null;
-  };
+  const urlOf = (key: string) => avatarAssetUrl(manifest, key);
   const host: StudioHost = {
     scene,
     camera,
@@ -137,6 +148,9 @@ export function openAvatarRoom(
     need: (key) => models.need(key),
     onToggle(isOpen) {
       isDressing = isOpen;
+      // 옷장을 여닫는 사이에 돌던 것은 멈춘다(닫은 뒤에 이어 돌지 않게)
+      turn.spin = 0;
+      turn.isHeld = false;
       on.onToggle(isOpen);
     },
     onPicked() {},
@@ -144,11 +158,22 @@ export function openAvatarRoom(
   const parent = canvas.parentElement ?? document.body;
   const studio = new Studio(host, wardrobe, parent, urlOf);
 
+  // 발밑 그림자: 떠 있는 아바타를 스튜디오 바닥에 앉힌다(꾸미기 씬은 제 바닥 원판을 쓴다 — 그 층에는 올리지 않는다)
+  const shadow = createShadow();
+  scene.add(shadow);
+
   let stopped = false,
     isStarted = false,
     isVisible = true,
     raf = 0,
     last = 0;
+  // 초상에서 밀어 돌린 각과, 손을 뗀 뒤에도 조금 더 도는 빠르기(손을 대고 있는 동안은 민 만큼만 돈다)
+  const turn = { angle: 0, spin: 0, isHeld: false, hasTurned: false };
+  // 저절로 좌우로 둘러보는 각(사람이 돌려 보기 전까지만)
+  const swayAt = (time: number) => {
+    const phase = time * PORTRAIT_SWAY_RATE;
+    return PORTRAIT_SWAY * Math.sin(phase);
+  };
   // 움직임 줄이기를 켠 사람에게는 둥실 뜨는 몸짓과 둘러보기를 멈춰 둔다
   const isStill = matchMedia("(prefers-reduced-motion: reduce)").matches;
   // 방 안의 아바타는 나아가지 않는다 — 제자리에서 둥실 떠 있는 몸짓만
@@ -160,7 +185,15 @@ export function openAvatarRoom(
     studio.update(frame);
     if (!isDressing) {
       const hasBoard = wardrobe.look.board !== "";
-      framePortrait(camera, frame.time, hasBoard);
+      if (!turn.isHeld) {
+        const damp = -TURN_DAMP * dt;
+        turn.angle += turn.spin * dt;
+        turn.spin *= Math.exp(damp);
+      }
+      const sway = turn.hasTurned ? 0 : swayAt(frame.time),
+        turned = turn.angle + sway;
+      shadow.position.y = hasBoard ? SHADOW_BOARD_Y : SHADOW_Y;
+      framePortrait(camera, turned, hasBoard);
     }
     renderer.render(scene, camera);
   };
@@ -196,6 +229,28 @@ export function openAvatarRoom(
     wake();
   });
   watcher.observe(canvas);
+  const stopTurning = listenTurn(canvas, {
+    canTurn: () => isStarted && !isDressing,
+    onHold() {
+      turn.isHeld = true;
+      turn.spin = 0;
+    },
+    onMove(dx) {
+      if (!turn.hasTurned) {
+        // 둘러보던 각에서 이어 돈다(툭 돌아가지 않게)
+        turn.hasTurned = true;
+        turn.angle += swayAt(frame.time);
+        on.onTurn();
+      }
+      turn.angle -= dx * TURN_PER_PX;
+    },
+    onRelease(speed) {
+      turn.isHeld = false;
+      // 움직임 줄이기를 켠 사람에게는 손을 뗀 자리에서 멎는다
+      const spin = isStill ? 0 : -speed * TURN_PER_PX;
+      turn.spin = THREE.MathUtils.clamp(spin, -TURN_MAX, TURN_MAX);
+    },
+  });
   const deliver = (key: string, asset: LoadedAsset) => {
     if (asset.kind === "model") models.deliver(key, asset.scene);
   };
@@ -232,6 +287,11 @@ export function openAvatarRoom(
       cancelAnimationFrame(raf);
       sizer.disconnect();
       watcher.disconnect();
+      stopTurning();
+      shadow.removeFromParent();
+      shadow.geometry.dispose();
+      shadow.material.map?.dispose();
+      shadow.material.dispose();
       studio.dispose();
       models.dispose();
       stage.dispose();
@@ -241,8 +301,8 @@ export function openAvatarRoom(
 
 /* ─── 내부 ─────────────────────────── */
 
-// 초상: 아바타를 틀 가운데에 담는 자리에 카메라를 둔다 — 틀의 모양(세로·가로)에 맞는 거리에서, 얼굴 앞을 조금씩 오가며 둘러본다
-function framePortrait(camera: THREE.PerspectiveCamera, time: number, hasBoard: boolean) {
+// 초상: 아바타를 틀 가운데에 담는 자리에 카메라를 둔다 — 틀의 모양(세로·가로)에 맞는 거리에서, 얼굴 앞에서 turned 만큼 돌아간 자리
+function framePortrait(camera: THREE.PerspectiveCamera, turned: number, hasBoard: boolean) {
   const floor = hasBoard ? PORTRAIT_BOARD_FLOOR : PORTRAIT_FLOOR,
     height = PORTRAIT_TOP - floor,
     center = (PORTRAIT_TOP + floor) / 2;
@@ -251,14 +311,37 @@ function framePortrait(camera: THREE.PerspectiveCamera, time: number, hasBoard: 
     tallFit = height / 2 / reach,
     wideFit = PORTRAIT_WIDTH / 2 / (reach * camera.aspect),
     distance = Math.max(tallFit, wideFit);
-  const swayPhase = time * PORTRAIT_SWAY_RATE,
-    angle = PORTRAIT_ANGLE + PORTRAIT_SWAY * Math.sin(swayPhase);
+  const angle = PORTRAIT_ANGLE + turned;
   // 꾸미기 씬과 같은 쪽(얼굴 앞에서 아바타의 오른쪽)으로 비켜 선다 — 옷장을 열 때 카메라가 반대편으로 건너뛰지 않게
   const side = -Math.sin(angle) * distance,
     front = Math.cos(angle) * distance;
   camera.position.set(side, center, front);
   camera.up.set(0, 1, 0);
   camera.lookAt(0, center, 0);
+}
+
+// 발밑 그림자: 가운데가 짙고 가장자리로 사라지는 둥근 그림자(바닥에 눕힌 원판)
+function createShadow(): THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial> {
+  const size = 128,
+    half = size / 2;
+  const pad = document.createElement("canvas");
+  pad.width = size;
+  pad.height = size;
+  const pen = pad.getContext("2d");
+  if (pen) {
+    const fade = pen.createRadialGradient(half, half, 0, half, half, half);
+    fade.addColorStop(0, `rgba(20,20,20,${SHADOW_INK})`);
+    fade.addColorStop(0.55, `rgba(20,20,20,${SHADOW_INK * 0.45})`);
+    fade.addColorStop(1, "rgba(20,20,20,0)");
+    pen.fillStyle = fade;
+    pen.fillRect(0, 0, size, size);
+  }
+  const map = new THREE.CanvasTexture(pad),
+    geometry = new THREE.CircleGeometry(SHADOW_RADIUS, 40),
+    material = new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false });
+  const shadow = new THREE.Mesh(geometry, material);
+  shadow.rotation.x = -Math.PI / 2;
+  return shadow;
 }
 
 // 그리는 틀: 렌더러·장면·카메라·빛·반사. 놀이의 꾸미기 씬과 같은 밝기와 광택으로 보이게 맞춘다

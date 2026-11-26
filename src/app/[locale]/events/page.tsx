@@ -30,7 +30,7 @@ export default async function EventsPage({ params }: { params: Promise<{ locale:
   return (
     <PageShell title={t("title")}>
       {hasAvatarEvent ? (
-        <div className="mb-[32px]">
+        <div className="mb-[40px]">
           <AvatarStage rewards={listEventRewards()} />
         </div>
       ) : null}

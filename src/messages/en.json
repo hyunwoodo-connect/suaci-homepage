@@ -485,7 +485,8 @@
     "title": "events",
     "empty": "no events yet.",
     "cleared": "cleared",
-    "reward": "clear it to get · {item}",
+    "rewardLabel": "clear it to get",
+    "rewardWon": "yours now",
     "phase": {
       "upcoming": "coming soon",
       "live": "live",
@@ -494,6 +495,7 @@
     "avatar": {
       "title": "my avatar",
       "hint": "this is how you show up in events.",
+      "turnTip": "drag to turn",
       "dress": "dress up",
       "dressing": "dress up your avatar",
       "loading": "loading your avatar",

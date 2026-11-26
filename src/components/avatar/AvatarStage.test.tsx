@@ -11,7 +11,7 @@ const { room, openAvatarRoom, fetchManifest } = vi.hoisted(() => {
   return { room, openAvatarRoom: vi.fn(), fetchManifest: vi.fn() };
 });
 vi.mock("@/lib/avatar/room", () => ({ openAvatarRoom }));
-vi.mock("@/lib/asset-kit/manifest", () => ({ fetchManifest }));
+vi.mock("@/lib/avatar/bundle", () => ({ loadAvatarManifest: fetchManifest }));
 
 import AvatarStage from "./AvatarStage";
 
@@ -21,6 +21,7 @@ const REWARDS = [{ eventId: "teum01", item: "board", from: "틈" }];
 interface Handlers {
   onReady(): void;
   onToggle(isOpen: boolean): void;
+  onTurn(): void;
   onFail(): void;
 }
 
@@ -120,6 +121,20 @@ describe("AvatarStage", () => {
     const before = [...locks()];
     recordClear({ eventId: "teum01", activityId: "teum", at: 1 });
     expect([before, [...locks()]]).toEqual([[["board", "틈"]], []]);
+  });
+
+  it("돌려 볼 수 있다는 안내 → 아바타가 서면 보이고, 한 번 돌리면 물러난다", async () => {
+    await renderStage();
+    const tip = screen.getByText("밀어서 돌려 보세요");
+    const whileLoading = tip.className.includes("opacity-0");
+    act(() => handlers().onReady());
+    const whenReady = tip.className.includes("opacity-100");
+    act(() => handlers().onTurn());
+    expect([whileLoading, whenReady, tip.className.includes("opacity-0")]).toEqual([
+      true,
+      true,
+      true,
+    ]);
   });
 
   it("화면을 떠나면 → 방을 치운다", async () => {
