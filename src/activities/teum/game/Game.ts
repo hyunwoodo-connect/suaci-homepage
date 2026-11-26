@@ -518,6 +518,8 @@ export class Game {
    * 그 일을 하느라 끊긴다. 게임의 셈은 하지 않는다(그리기만)
    */
   warmUp() {
+    // 소리 장치를 만드는 일도 여기서 — 첫 손짓의 프레임에 끼지 않게
+    this.sound.prepare();
     const { renderer, scene, camera } = this.stage,
       models = this.s.models;
     for (let cold = models.takeCold(); cold; cold = models.takeCold()) renderer.initTexture(cold);

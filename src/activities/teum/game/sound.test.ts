@@ -234,6 +234,96 @@ describe("SoundManager", () => {
   });
 });
 
+describe("SoundManager 미리 만들기(prepare)", () => {
+  it("손짓 전에 부르면 → 소리 장치를 만들고 파일을 받기 시작하지만, 깨우지 않고 소리도 내지 않는다", async () => {
+    const { events, sound } = manager({ music: { key: "tune" } });
+    sound.prepare();
+    events.emit("bubblePopped", { combo: 1 });
+    await settle();
+    expect([FakeAudioContext.made.length, ctx().state, ctx().started.length]).toEqual([
+      1,
+      "suspended",
+      0,
+    ]);
+    expect(fetched.sort()).toEqual([
+      "https://cdn.test/audio/bgm/tune.m4a",
+      "https://cdn.test/audio/sfx/ding.m4a",
+      "https://cdn.test/audio/sfx/pop.m4a",
+    ]);
+    sound.dispose();
+  });
+
+  it("미리 만든 장치를 브라우저가 손짓 없이 돌려도 → 첫 손짓 전의 일은 소리 없이 지나간다", async () => {
+    const { events, sound } = manager();
+    sound.prepare();
+    ctx().state = "running";
+    events.emit("bubblePopped", { combo: 1 });
+    await settle();
+    expect(ctx().started.length).toBe(0);
+    sound.dispose();
+  });
+
+  it("그 뒤 첫 손짓 → 장치를 새로 만들지 않고 깨우고, 배경 음악을 튼다", async () => {
+    const { sound } = manager({ music: { key: "tune" } });
+    sound.prepare();
+    touch();
+    await settle();
+    expect([FakeAudioContext.made.length, ctx().state, ctx().started.map((s) => s.loop)]).toEqual([
+      1,
+      "running",
+      [true],
+    ]);
+    sound.dispose();
+  });
+
+  it("손짓을 여러 번 해도 → 배경 음악은 한 번만 튼다", async () => {
+    const { sound } = manager({ music: { key: "tune" } });
+    sound.prepare();
+    touch();
+    touch();
+    await settle();
+    expect(ctx().started.length).toBe(1);
+    sound.dispose();
+  });
+
+  it("두 번 불러도 → 장치는 하나", () => {
+    const { sound } = manager();
+    sound.prepare();
+    sound.prepare();
+    expect(FakeAudioContext.made.length).toBe(1);
+    sound.dispose();
+  });
+
+  it("꺼 둔 사람 → 미리 만들지 않는다", () => {
+    localStorage.setItem("suaci.teum.muted", "1");
+    const { sound } = manager();
+    sound.prepare();
+    expect(FakeAudioContext.made.length).toBe(0);
+    sound.dispose();
+  });
+
+  it("손짓 전에 탭이 숨었다 보여도 → 깨우지 않고 소리 세션도 그대로(다른 앱의 음악을 멈추지 않는다)", () => {
+    const session = { type: "auto" };
+    Object.defineProperty(navigator, "audioSession", { configurable: true, value: session });
+    const { sound } = manager();
+    sound.prepare();
+    hidden = true;
+    document.dispatchEvent(new Event("visibilitychange"));
+    hidden = false;
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect([ctx().state, session.type]).toEqual(["suspended", "auto"]);
+    sound.dispose();
+    Reflect.deleteProperty(navigator, "audioSession");
+  });
+
+  it("낼 소리가 없으면 → 만들지 않는다", () => {
+    const { sound } = manager({ effects: {} });
+    sound.prepare();
+    expect(FakeAudioContext.made.length).toBe(0);
+    sound.dispose();
+  });
+});
+
 describe("SoundManager 소리 세션(아이폰 무음 스위치)", () => {
   it("소리를 열면 → 재생 세션(무음에서도 난다), 끄면 → 기본 세션, 다시 켜면 → 재생", () => {
     const session = { type: "auto" };

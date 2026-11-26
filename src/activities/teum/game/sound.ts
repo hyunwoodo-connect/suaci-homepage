@@ -4,13 +4,15 @@ import type { SoundChannel, SoundCue, SoundRule, SoundTable } from "../assets/se
 import type { GameEventMap, GameEventName, GameEvents } from "./events";
 
 // 소리판: 알림판(events)을 듣고 표(소리 규칙)대로 소리를 낸다. manifest 에 소리가 없으면(옛 에셋 판) 아무것도 듣지 않는다.
-// - 브라우저는 사람이 건드리기 전에는 소리를 막는다 → 첫 터치·클릭·키에 소리를 연다(그 전의 일은 소리 없이 지나간다)
+// - 브라우저는 사람이 건드리기 전에는 소리를 막는다 → 첫 터치·클릭·키에 소리를 연다(그 전의 일은 소리 없이 지나간다).
+//   소리 장치를 만드는 일은 느려서(폰에서 수십 ms) 첫 손짓의 프레임에 끼면 화면이 멈칫한다 → 놀이를 시작하기 전에 미리 만들어 두고(prepare),
+//   손짓에는 깨우기만 한다
 // - 끄기는 이 기기에 기억한다. 꺼져 있거나 탭이 숨으면 소리 장치를 멈춘다(배터리)
 // - 아이폰은 무음 스위치를 켜 두면 웹 소리를 끈다 → 소리가 나는 동안은 소리 세션을 '재생'으로 두어 무음에서도 나게 한다(끄기는 게임의
 //   소리 단추로). 재생 세션은 다른 앱의 음악을 멈추므로, 끄거나 탭이 숨으면 세션을 기본으로 돌려 그 음악이 다시 돌 수 있게 한다.
 //   이 창구(navigator.audioSession)가 없는 브라우저(안드로이드·옛 사파리)는 그대로
 // - 채널 둘: 배경 음악(bgm)·효과음(sfx), 크기를 따로 둔다
-// - 소리 파일은 첫 화면과 같이 받지 않는다: 소리를 연 뒤에 받는다
+// - 소리 파일은 첫 화면과 같이 받지 않는다: 소리 장치를 만든 뒤에 받는다
 
 /** 소리판이 받는 것 */
 export interface SoundOptions {
@@ -49,6 +51,10 @@ export class SoundManager {
   /** 소리마다 마지막으로 낸 때(소리 장치 시계) */
   private readonly last = new Map<string, number>();
   private readonly music: SoundCue | null;
+  /** 사람이 건드렸나(그 뒤에만 소리 장치를 깨우고 소리 세션을 바꾼다) */
+  private isUnlocked = false;
+  /** 배경 음악을 틀었나(한 번만 튼다) */
+  private hasMusicStarted = false;
   private readonly offs: (() => void)[] = [];
   private readonly random: () => number;
 
@@ -77,6 +83,15 @@ export class SoundManager {
     });
   }
 
+  /**
+   * 소리 장치를 미리 만들어 두고 소리 파일을 받기 시작한다(놀이가 그리기 시작하기 전에 부른다). 손짓 전이라 장치는 멈춘 채고 소리는 나지 않는다.
+   * 꺼 둔 사람에게는 만들지 않는다(첫 손짓에 만든다 — 켜면 바로 나게)
+   */
+  prepare() {
+    if (!this.hasSounds || this.muted || this.ctx) return;
+    this.open();
+  }
+
   /** 꺼 두었나 */
   get isMuted(): boolean {
     return this.muted;
@@ -100,13 +115,18 @@ export class SoundManager {
 
   /* ─── 내부 ─────────────────────────── */
 
-  // 첫 손짓에 소리 장치를 만들고, 효과음 파일을 뒤에서 받기 시작하고, 배경 음악을 튼다. 그 뒤의 손짓은 멈춘 장치를 다시 깨운다(iOS)
+  // 손짓: 소리 장치를 깨우고(미리 만들어 두지 못했으면 지금 만든다) 배경 음악을 한 번 튼다. 그 뒤의 손짓은 멈춘 장치를 다시 깨운다(iOS)
   private unlock() {
-    if (this.ctx) {
-      this.applyState();
-      return;
-    }
-    setAudioSession("playback");
+    this.isUnlocked = true;
+    if (!this.ctx) this.open();
+    this.applyState();
+    if (!this.music || this.hasMusicStarted) return;
+    this.hasMusicStarted = true;
+    this.startMusic(this.music);
+  }
+
+  // 소리 장치와 음량 줄을 만들고, 효과음·배경 음악 파일을 뒤에서 받기 시작한다(장치는 깨우기 전까지 멈춘 채다)
+  private open() {
     const ctx = new AudioContext();
     this.ctx = ctx;
     const master = ctx.createGain();
@@ -117,16 +137,16 @@ export class SoundManager {
       gain.connect(master);
       this.channels.set(channel as SoundChannel, gain);
     }
-    this.applyState();
     for (const [key, entry] of Object.entries(this.o.manifest.assets))
       if (entry.category === SFX_CATEGORY) void this.load(key);
-    if (this.music) this.startMusic(this.music);
+    if (this.music) void this.load(this.music.key);
   }
 
-  // 꺼져 있거나 탭이 숨으면 멈추고, 아니면 다시 돈다
+  // 꺼져 있거나 탭이 숨으면 멈추고, 아니면 다시 돈다. 사람이 건드리기 전에는 아무것도 하지 않는다 —
+  // 깨울 수 없고, 재생 세션으로 바꾸면 소리를 내기도 전에 다른 앱의 음악이 멈춘다
   private applyState() {
     const ctx = this.ctx;
-    if (!ctx) return;
+    if (!ctx || !this.isUnlocked) return;
     const isSilent = this.muted || document.hidden;
     const session = isSilent ? "auto" : "playback";
     setAudioSession(session);
@@ -142,10 +162,12 @@ export class SoundManager {
     else this.play(cues);
   }
 
-  // 효과음 한 번(소리 장치가 돌 때만 — 꺼져 있으면 그냥 지나간다). 같은 소리는 gap 초 안에 다시 내지 않는다
+  // 효과음 한 번(사람이 건드린 뒤, 소리 장치가 돌 때만 — 꺼져 있으면 그냥 지나간다). 같은 소리는 gap 초 안에 다시 내지 않는다.
+  // 미리 만든 장치를 브라우저가 손짓 없이 돌게 두는 곳(자동 재생을 허락한 데스크탑)에서도 첫 손짓 전의 일은 소리 없이 지나간다
   private play(cue: SoundCue) {
     const ctx = this.ctx;
-    if (!ctx || ctx.state !== "running" || !Object.hasOwn(this.o.manifest.assets, cue.key)) return;
+    const canSound = ctx !== null && this.isUnlocked && ctx.state === "running";
+    if (!ctx || !canSound || !Object.hasOwn(this.o.manifest.assets, cue.key)) return;
     const t = ctx.currentTime,
       was = this.last.get(cue.key);
     if (was !== undefined && t - was < (cue.gap ?? DEFAULT_GAP)) return;
