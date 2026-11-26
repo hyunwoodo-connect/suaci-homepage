@@ -63,6 +63,15 @@ describe("EventCard", () => {
     expect(html).toContain("clear it to get · skateboard");
   });
 
+  it("끝난 이벤트 → 받는 옷을 적지 않는다(더는 받을 수 없다)", () => {
+    const html = renderToStaticMarkup(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <EventCard event={{ ...summary("ended"), eventId: "teum01", slug: "teum" }} />
+      </NextIntlClientProvider>,
+    );
+    expect(html).not.toContain("clear it to get");
+  });
+
   it("받는 옷이 없는 이벤트 → 그 줄이 없다", () => {
     expect(render("live")).not.toContain("clear it to get");
   });

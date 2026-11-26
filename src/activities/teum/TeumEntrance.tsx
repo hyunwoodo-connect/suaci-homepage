@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { fetchManifest } from "@/lib/asset-kit/manifest";
-import { eventRewards, getEventReward } from "@/events/rewards";
-import { lockedRewards, readClear, recordClear } from "@/lib/play-record";
+import { getEventReward, listEventRewards } from "@/events/rewards";
+import { lockedRewards, recordClear } from "@/lib/play-record";
 
 import type { EntranceProps } from "../types";
 import { TEUM_BUNDLE } from "./assets/config";
@@ -60,12 +60,11 @@ function Stage({ title, eventId, activityId }: StageProps) {
         stop = game.start(canvas, {
           assets,
           onProgress: setProgress,
-          locks: () => lockedRewards(eventRewards()),
+          locks: () => lockedRewards(listEventRewards()),
           onClear({ seconds }) {
-            // 처음 깬 것이면 이 이벤트의 옷을 지금 받는다
-            const isFirst = readClear(eventId) === null,
-              at = Date.now();
-            recordClear({ eventId, activityId, at, seconds });
+            // 처음 깬 것이면(그리고 그 기록이 남았으면) 이 이벤트의 옷을 지금 받는다
+            const at = Date.now();
+            const isFirst = recordClear({ eventId, activityId, at, seconds });
             const reward = getEventReward(eventId);
             return isFirst && reward ? reward.item : null;
           },

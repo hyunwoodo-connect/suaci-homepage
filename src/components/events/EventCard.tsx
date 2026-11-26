@@ -15,8 +15,8 @@ export default function EventCard({ event }: EventCardProps) {
   const { card, slug, phase, eventId } = event;
   const t = useTranslations("events");
   const locale = useLocale();
-  // 깨면 받는 옷(있는 이벤트만): 옷장에 보이는 이름 그대로
-  const reward = getEventReward(eventId);
+  // 깨면 받는 옷(있는 이벤트만, 끝난 이벤트는 더 받을 수 없으니 적지 않는다): 옷장에 보이는 이름 그대로
+  const reward = phase === "ended" ? undefined : getEventReward(eventId);
   const rewardName = reward ? (closetLabels(locale).options[reward.item] ?? reward.item) : null;
   // 이벤트 페이지는 [locale] 밖이라 언어 접두사가 붙으면 안 되므로 next/link를 쓴다(AGENTS.md 예외)
   return (

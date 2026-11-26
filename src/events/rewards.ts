@@ -7,7 +7,7 @@ import type { ClearReward } from "@/lib/play-record";
 const REWARDS: readonly ClearReward[] = [{ eventId: "teum01", item: "board", from: "틈" }];
 
 /** 깨면 옷을 받는 이벤트 모두 — 옷장이 아직 받지 못한 칸을 잠그는 데 쓴다(목록에 보이지 않는 이벤트의 것도 잠겨 있어야 한다) */
-export function eventRewards(): readonly ClearReward[] {
+export function listEventRewards(): readonly ClearReward[] {
   return REWARDS;
 }
 

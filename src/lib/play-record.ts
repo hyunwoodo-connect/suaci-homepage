@@ -1,6 +1,7 @@
 // 놀이 결과: 놀이(이벤트)를 깬 일을 이 기기에 남긴다. 놀이는 깼다고 알리기만 하고(놀이 모듈의 입구가 여기에 적는다),
 // 이벤트 페이지가 그 이벤트의 카드에 표시한다. 화면은 깼는지만 보지만 언제·몇 번·얼마나 빨리도 같이 남긴다 —
-// 보상을 붙일 때 쓸 값이고, 기록에는 UTC 와 한국 시각을 함께 둔다. 보상을 실제로 줄 때는 서버가 다시 확인해야 한다(이 기록은 기기의 것이다)
+// 보상을 붙일 때 쓸 값이고, 기록에는 UTC 와 한국 시각을 함께 둔다. 옷 같은 보상은 이 기록만 보고 준다 — 기기의 것이라 지워지거나 고쳐질 수 있으니,
+// 돈이 닿는 보상을 붙일 때는 서버가 다시 확인해야 한다
 
 /** 이벤트 하나를 깬 기록 */
 interface ClearRecord {
@@ -46,8 +47,11 @@ export function readClear(eventId: string): ClearRecord | null {
   return Object.hasOwn(clears, eventId) ? clears[eventId] : null;
 }
 
-/** 이벤트를 깼다고 적는다. 적지 못하는 기기(저장을 막아 둔 브라우저)에서는 조용히 지나간다 — 놀이는 계속된다 */
-export function recordClear(clear: Clear): void {
+/**
+ * 이벤트를 깼다고 적는다. 돌려주는 것: 이번이 이 기기에서 처음 깬 것이고 그 기록이 남았나 — 처음 깬 보상을 줄 때 본다.
+ * 적지 못하는 기기(저장을 막아 둔 브라우저)에서는 조용히 지나가고 false 다(놀이는 계속된다. 받았다고 알리면 옷장은 잠긴 채라 어긋난다)
+ */
+export function recordClear(clear: Clear): boolean {
   const clears = readClears();
   const before = Object.hasOwn(clears, clear.eventId) ? clears[clear.eventId] : null;
   const dtm = kstDtm(clear.at);
@@ -68,8 +72,10 @@ export function recordClear(clear: Clear): void {
     const text = JSON.stringify({ v: 1, clears });
     localStorage.setItem(PLAY_KEY, text);
   } catch {
-    // 저장을 막아 둔 브라우저 — 표시만 남지 않는다
+    // 저장을 막아 둔 브라우저 — 표시도 보상도 남지 않는다
+    return false;
   }
+  return before === null;
 }
 
 /** 아직 받지 못한 것(그것을 주는 이벤트를 이 기기에서 깬 적이 없다): 옷장의 키 → 받는 곳의 이름 */

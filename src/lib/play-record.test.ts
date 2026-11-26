@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { lockedRewards, PLAY_KEY, readClear, recordClear } from "./play-record";
 
@@ -45,6 +45,21 @@ describe("recordClear · readClear", () => {
     recordClear({ eventId: "teum01", activityId: "teum", at: NOON_KST, seconds: Number.NaN });
     const record = readClear("teum01");
     expect([record?.count, record?.bestSeconds]).toEqual([1, undefined]);
+  });
+
+  it("처음 깬 것이면 → 참, 그 뒤로는 → 거짓(처음 깬 보상은 한 번만)", () => {
+    const first = recordClear({ eventId: "teum01", activityId: "teum", at: NOON_KST }),
+      again = recordClear({ eventId: "teum01", activityId: "teum", at: NOON_KST + 1 });
+    expect([first, again]).toEqual([true, false]);
+  });
+
+  it("적지 못하는 기기 → 거짓(받았다고 알리지 않는다 — 옷장은 잠긴 채다)", () => {
+    const blocked = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("막힘");
+    });
+    const first = recordClear({ eventId: "teum01", activityId: "teum", at: NOON_KST });
+    blocked.mockRestore();
+    expect([first, readClear("teum01")]).toEqual([false, null]);
   });
 
   it("이벤트마다 따로 남는다", () => {
