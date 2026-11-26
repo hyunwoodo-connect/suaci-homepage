@@ -48,8 +48,9 @@ export class Sculptures implements Thing, HasHeights {
   /** 고래 길을 정할 때 보는 꼭대기 높이 */
   pushHeights(out: Height[]) {
     for (const o of this.list) {
-      const top = o.g + o.H;
-      out.push({ v: o.v, r: o.r, bottom: 0, top });
+      const bottom = o.floats ? o.g : 0,
+        top = o.g + o.H;
+      out.push({ v: o.v, r: o.r, bottom, top });
     }
   }
 

@@ -14,7 +14,7 @@ import {
   settleStep,
   wantsBack,
 } from "./whaleBoarding";
-import { cruiseTable, sightOf, topsTable } from "./whaleProfile";
+import { cruiseTable, roofTable, sightOf, topsTable } from "./whaleProfile";
 import type { WhaleRoute } from "./whaleRoute";
 import { grandTour, islandLoop } from "./whaleRoute";
 
@@ -30,6 +30,8 @@ const PROFILE_N = 240,
   PROFILE_REACH = 28.5;
 /** 고래 모델의 길이(m) */
 const WHALE_LENGTH = 64;
+/** 평소 높이를 정할 때 지금부터 앞까지의 길을 이만큼 나눠 본다(3초 길을 여섯 토막 — 한 토막이 높이 표의 한 칸 남짓) */
+const WINDOW_STEPS = 6;
 /** 빠르기: 멀리 있을 때 1, 내가 220m 안이면 0.3, 등을 내주거나 내려앉히는 동안 0.12(거의 서서 기다린다), 등에 타면 1.7 */
 const NEAR_SLOW = 220,
   SLOW_RATE = 0.3,
@@ -110,6 +112,8 @@ export class Whale implements Thing, Holder {
   profile: Float32Array[] | null = null;
   /** 길 아래 가장 높은 것의 표(곁의 것까지) — 등을 내주러 내려올 때 이 위로는 배를 띄운다 */
   private tops: Float32Array[] | null = null;
+  /** 떠 있는 것 아래를 지나는 칸에서 넘지 말아야 할 높이의 표(그런 것이 없는 칸은 Infinity) */
+  private roofs: Float32Array[] | null = null;
   /** 도는 길 */
   private readonly route: WhaleRoute;
   /** 고래의 시계(초 — 빠르기만큼 간다) */
@@ -174,6 +178,7 @@ export class Whale implements Thing, Holder {
     );
     this.profile = sights.map((cells) => cruiseTable(cells, half));
     this.tops = sights.map((cells) => topsTable(cells));
+    this.roofs = sights.map((cells) => roofTable(cells, half));
   }
 
   /** 고래 모델: 머리가 +z 라서 나아가는 방향(+x)으로 돌려 놓는다. 오면 도형 고래를 숨기고 등 높이를 모델 키에 맞춘다 */
@@ -285,7 +290,7 @@ export class Whale implements Thing, Holder {
       wantsBack(aside, player.air);
     const isMeeting = this.isOffering || this.phase === "landing";
     const lookAhead = this.clock + 3;
-    const cruise = this.topAt(lookAhead),
+    const cruise = this.cruiseTo(lookAhead),
       isLow = this.WH < cruise - LOW_MARGIN;
     if (!isLow) this.isDipped = false;
     else if (isMeeting) this.isDipped = true;
@@ -327,6 +332,33 @@ export class Whale implements Thing, Holder {
     if (!models.has("whale")) return this.rideH;
     const size = models.box("whale").getSize(sz);
     return (size.y * WHALE_LENGTH) / size.z / 2;
+  }
+
+  // 지금 맞출 평소 높이. 지금부터 앞(to)까지의 길에서 가장 높은 표 값을 따른다 — 높은 것을 앞두고 미리 오르고, 그 위를 지나는 동안은
+  // 몸이 다 빠져나갈 때까지 내려오지 않는다(앞만 보면 가운데가 지나자마자 내려와 꼬리 쪽 배가 잠긴다).
+  // 떠 있는 것 아래를 지나는 길에서는(앞뒤 같은 폭) 그 아래로 낮춘 채다
+  private cruiseTo(to: number): number {
+    const from = this.clock,
+      span = to - from;
+    let over = 0,
+      roof = Infinity;
+    for (let k = 0; k <= WINDOW_STEPS; k++) {
+      const reach = (span * k) / WINDOW_STEPS;
+      const ahead = from + reach,
+        behind = from - reach;
+      const topAhead = this.topAt(ahead),
+        roofAhead = this.roofAt(ahead),
+        roofBehind = this.roofAt(behind);
+      over = Math.max(over, topAhead);
+      roof = Math.min(roof, roofAhead, roofBehind);
+    }
+    return Math.min(over, roof);
+  }
+
+  // 시계 tt 에서 넘지 말아야 할 높이(떠 있는 것 아래 — 없으면 Infinity)
+  private roofAt(tt: number): number {
+    const roofs = this.roofs;
+    return roofs ? this.cellAt(roofs, tt) : Infinity;
   }
 
   // 시계 tt 의 높이 표 값(표가 없으면 70m)

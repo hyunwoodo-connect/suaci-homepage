@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Height } from "../world/tall";
 import type { PathSight } from "./whaleProfile";
-import { cruiseTable, sightOf, topsTable } from "./whaleProfile";
+import { cruiseTable, roofTable, sightOf, topsTable } from "./whaleProfile";
 
 /** 고래 몸 가운데에서 배·등까지(m) */
 const HALF = 22.7;
@@ -32,6 +32,18 @@ describe("sightOf — 한 칸 아래에서 본 것", () => {
 
   it("떠 있는 것 아래에 선 것이 있으면 → 선 것은 넘고 떠 있는 것은 그 아래로", () => {
     expect(sightOf(0, [thing(123, 163), thing(0, 30)], HALF)).toEqual({ top: 30, roof: 123 });
+  });
+
+  it("못 넘는데 낮게 뜬 문(79~108m) → 넘다가 잠기는 것보다 아래로 지나며 등이 스치는 쪽이 얕다 → 아래로", () => {
+    expect(sightOf(0, [thing(79, 108)], HALF)).toEqual({ top: 0, roof: 79 });
+  });
+
+  it("가장 높게 날면 넘을 수 있는 문(55~88m) → 넘는다", () => {
+    expect(sightOf(0, [thing(55, 88)], HALF)).toEqual({ top: 88, roof: Infinity });
+  });
+
+  it("땅에 선 아주 높은 것(145m) → 못 넘어도 아래로 지나갈 수는 없다, 넘는 쪽으로 둔다", () => {
+    expect(sightOf(0, [thing(0, 145)], HALF)).toEqual({ top: 145, roof: Infinity });
   });
 });
 
@@ -67,18 +79,35 @@ describe("cruiseTable — 평소 높이 표", () => {
     expect(Math.max(...cruiseTable(sights, HALF))).toBe(112);
   });
 
-  it("높이 떠 있는 것 아래 → 등이 그 바닥 아래로 내려와 있다(곁의 높은 것 때문에 올라가 있지 않다)", () => {
-    const sights = empty();
-    sights[30].roof = 101;
-    sights[33].top = 80;
-    const back = cruiseTable(sights, HALF)[30] + HALF;
-    expect(back).toBeLessThan(101);
-  });
-
   it("표의 끝과 처음은 이어져 있다(고리) → 끝 칸의 높은 것이 첫 칸도 올린다", () => {
     const sights = empty();
     sights[59].top = 60;
     expect(cruiseTable(sights, HALF)[0]).toBeGreaterThan(60);
+  });
+});
+
+describe("roofTable — 떠 있는 것 아래에서 넘지 말아야 할 높이", () => {
+  it("떠 있는 것이 없는 길 → 어디에도 없다(Infinity)", () => {
+    const roofs = roofTable(empty(), HALF);
+    expect(Math.min(...roofs)).toBe(Infinity);
+  });
+
+  it("높이 떠 있는 것(바닥 123m) 아래와 그 곁(앞뒤 7칸) → 등이 바닥 아래로 내려오는 높이, 그 밖은 없다", () => {
+    const sights = empty();
+    sights[30].roof = 123;
+    const roofs = roofTable(sights, HALF);
+    expect([roofs[30] + HALF < 123, roofs[23], roofs[37], roofs[38]]).toEqual([
+      true,
+      roofs[30],
+      roofs[30],
+      Infinity,
+    ]);
+  });
+
+  it("낮게 뜬 것(바닥 79m) 아래 → 평소 높이(60m)보다 낮추지는 않는다", () => {
+    const sights = empty();
+    sights[30].roof = 79;
+    expect(roofTable(sights, HALF)[30]).toBe(60);
   });
 });
 
