@@ -19,6 +19,7 @@ import type { Locks } from "./outfit";
 import type { PoseInput } from "./rig-pose";
 import type { StudioHost } from "./studio";
 import { Studio } from "./studio";
+import { listenTurn } from "./turn-drag";
 import { Wardrobe } from "./wardrobe";
 
 // 아바타의 방: 놀이 밖(이벤트 페이지)에서 내 아바타를 세워 보여 주고, 그 자리에서 꾸민다.
@@ -147,6 +148,9 @@ export function openAvatarRoom(
     need: (key) => models.need(key),
     onToggle(isOpen) {
       isDressing = isOpen;
+      // 옷장을 여닫는 사이에 돌던 것은 멈춘다(닫은 뒤에 이어 돌지 않게)
+      turn.spin = 0;
+      turn.isHeld = false;
       on.onToggle(isOpen);
     },
     onPicked() {},
@@ -163,8 +167,13 @@ export function openAvatarRoom(
     isVisible = true,
     raf = 0,
     last = 0;
-  // 초상에서 밀어 돌린 각과, 손을 뗀 뒤에도 조금 더 도는 빠르기
-  const turn = { angle: 0, spin: 0, hasTurned: false };
+  // 초상에서 밀어 돌린 각과, 손을 뗀 뒤에도 조금 더 도는 빠르기(손을 대고 있는 동안은 민 만큼만 돈다)
+  const turn = { angle: 0, spin: 0, isHeld: false, hasTurned: false };
+  // 저절로 좌우로 둘러보는 각(사람이 돌려 보기 전까지만)
+  const swayAt = (time: number) => {
+    const phase = time * PORTRAIT_SWAY_RATE;
+    return PORTRAIT_SWAY * Math.sin(phase);
+  };
   // 움직임 줄이기를 켠 사람에게는 둥실 뜨는 몸짓과 둘러보기를 멈춰 둔다
   const isStill = matchMedia("(prefers-reduced-motion: reduce)").matches;
   // 방 안의 아바타는 나아가지 않는다 — 제자리에서 둥실 떠 있는 몸짓만
@@ -175,13 +184,13 @@ export function openAvatarRoom(
     rig?.pose(frame);
     studio.update(frame);
     if (!isDressing) {
-      const hasBoard = wardrobe.look.board !== "",
-        damp = -TURN_DAMP * dt;
-      turn.angle += turn.spin * dt;
-      turn.spin *= Math.exp(damp);
-      // 둘러보기는 사람이 돌려 보기 전까지만 — 돌린 뒤에는 그 자리에 둔다
-      const swayPhase = frame.time * PORTRAIT_SWAY_RATE,
-        sway = turn.hasTurned ? 0 : PORTRAIT_SWAY * Math.sin(swayPhase),
+      const hasBoard = wardrobe.look.board !== "";
+      if (!turn.isHeld) {
+        const damp = -TURN_DAMP * dt;
+        turn.angle += turn.spin * dt;
+        turn.spin *= Math.exp(damp);
+      }
+      const sway = turn.hasTurned ? 0 : swayAt(frame.time),
         turned = turn.angle + sway;
       shadow.position.y = hasBoard ? SHADOW_BOARD_Y : SHADOW_Y;
       framePortrait(camera, turned, hasBoard);
@@ -222,16 +231,24 @@ export function openAvatarRoom(
   watcher.observe(canvas);
   const stopTurning = listenTurn(canvas, {
     canTurn: () => isStarted && !isDressing,
-    onMove(dx, speed) {
-      turn.angle -= dx * TURN_PER_PX;
-      const spin = -speed * TURN_PER_PX;
-      turn.spin = THREE.MathUtils.clamp(spin, -TURN_MAX, TURN_MAX);
-      if (turn.hasTurned) return;
-      turn.hasTurned = true;
-      on.onTurn();
-    },
     onHold() {
+      turn.isHeld = true;
       turn.spin = 0;
+    },
+    onMove(dx) {
+      if (!turn.hasTurned) {
+        // 둘러보던 각에서 이어 돈다(툭 돌아가지 않게)
+        turn.hasTurned = true;
+        turn.angle += swayAt(frame.time);
+        on.onTurn();
+      }
+      turn.angle -= dx * TURN_PER_PX;
+    },
+    onRelease(speed) {
+      turn.isHeld = false;
+      // 움직임 줄이기를 켠 사람에게는 손을 뗀 자리에서 멎는다
+      const spin = isStill ? 0 : -speed * TURN_PER_PX;
+      turn.spin = THREE.MathUtils.clamp(spin, -TURN_MAX, TURN_MAX);
     },
   });
   const deliver = (key: string, asset: LoadedAsset) => {
@@ -301,57 +318,6 @@ function framePortrait(camera: THREE.PerspectiveCamera, turned: number, hasBoard
   camera.position.set(side, center, front);
   camera.up.set(0, 1, 0);
   camera.lookAt(0, center, 0);
-}
-
-/** 밀어 돌리기를 듣는 쪽에 알리는 것 */
-interface TurnHandlers {
-  /** 지금 돌릴 수 있나(그리기 시작했고 옷장이 닫혀 있을 때) */
-  canTurn(): boolean;
-  /** 가로로 dx(px) 밀었다. speed: 그때의 빠르기(px/초 — 손을 떼면 이 빠르기로 조금 더 돈다) */
-  onMove(dx: number, speed: number): void;
-  /** 손을 댔다(돌던 것을 멈춘다) */
-  onHold(): void;
-}
-
-// 캔버스를 가로로 미는 것을 듣는다. 세로로 미는 것은 페이지를 굴리는 손짓이라 브라우저에 맡긴다(touch-action: pan-y) —
-// 그때는 브라우저가 이 손짓을 가져가며 끊어 준다(pointercancel). 돌려주는 함수로 듣기를 그친다
-function listenTurn(canvas: HTMLCanvasElement, on: TurnHandlers): () => void {
-  let lastX: number | null = null,
-    lastAt = 0;
-  const before = canvas.style.touchAction;
-  canvas.style.touchAction = "pan-y";
-  const down = (e: PointerEvent) => {
-    if (!on.canTurn()) return;
-    lastX = e.clientX;
-    lastAt = e.timeStamp;
-    on.onHold();
-    // 마우스는 캔버스 밖으로 나가도 놓을 때까지 따라오게 붙잡는다(터치는 브라우저가 알아서 한다)
-    if (e.pointerType === "mouse") canvas.setPointerCapture(e.pointerId);
-  };
-  const move = (e: PointerEvent) => {
-    if (lastX === null) return;
-    const dx = e.clientX - lastX,
-      elapsed = (e.timeStamp - lastAt) / 1000,
-      seconds = Math.max(0.001, elapsed),
-      speed = dx / seconds;
-    lastX = e.clientX;
-    lastAt = e.timeStamp;
-    if (dx !== 0) on.onMove(dx, speed);
-  };
-  const up = () => {
-    lastX = null;
-  };
-  canvas.addEventListener("pointerdown", down);
-  canvas.addEventListener("pointermove", move);
-  canvas.addEventListener("pointerup", up);
-  canvas.addEventListener("pointercancel", up);
-  return () => {
-    canvas.removeEventListener("pointerdown", down);
-    canvas.removeEventListener("pointermove", move);
-    canvas.removeEventListener("pointerup", up);
-    canvas.removeEventListener("pointercancel", up);
-    canvas.style.touchAction = before;
-  };
 }
 
 // 발밑 그림자: 가운데가 짙고 가장자리로 사라지는 둥근 그림자(바닥에 눕힌 원판)
