@@ -241,11 +241,15 @@ export class Sites implements Thing, Holder, HasHeights {
     }
   }
 
-  /** 고래 길을 정할 때 보는 꼭대기 높이 */
+  /** 고래 길을 정할 때 보는 높이: 땅에 선 것은 땅부터 꼭대기까지, 띄운 것(달·큰 라임·떠 있는 섬)은 띄운 높이부터 */
   pushHeights(out: Height[]) {
+    const terrain = this.s.terrain;
     for (const st of this.list) {
-      const siteTop = st.top || 0;
-      out.push([st.v, siteTop]);
+      const lift = st.lift || 0,
+        base = terrain.groundAt(st.v) + lift,
+        bottom = lift > 0 ? base : 0,
+        top = base + (st.top || 0);
+      out.push({ v: st.v, r: st.core, bottom, top });
     }
   }
 

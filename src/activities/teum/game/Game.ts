@@ -524,6 +524,8 @@ export class Game {
     this.fill();
     this.warmScene();
     renderer.render(scene, camera);
+    // 소리 장치를 만드는 일도 여기서(첫 손짓의 프레임에 끼지 않게). 화면을 다 데운 뒤에 — 못 만들어도 데우기는 끝나 있다
+    this.sound.prepare();
   }
 
   /**

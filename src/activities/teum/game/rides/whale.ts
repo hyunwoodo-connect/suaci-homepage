@@ -14,32 +14,31 @@ import {
   settleStep,
   wantsBack,
 } from "./whaleBoarding";
+import { cruiseTable, roofTable, sightOf, topsTable } from "./whaleProfile";
 import type { WhaleRoute } from "./whaleRoute";
 import { grandTour, islandLoop } from "./whaleRoute";
 
 // 고래 등 — 고래는 한자리를 돌지 않는다. 정해진 길(whaleRoute — 온 행성이 뭍이면 여섯 마을을 지나는 큰 바퀴, 섬이면 섬 일주)을
-// 따라 마을 하늘을 차례로 지난다. 높이는 길 아래 가장 높은 것 + 16m 를 미리 재 둔 표(빈 들판 위에서는 낮게 내려온다).
+// 따라 마을 하늘을 차례로 지난다. 높이는 길 아래 가장 높은 것 위로 배를 띄우게 미리 재 둔 표(whaleProfile.ts — 빈 들판 위에서는 낮게
+// 내려오고, 높이 떠 있는 것은 그 아래로 지나간다).
 // 내가 가까이(220m 안) 있으면 천천히 가서 따라잡을 수 있고, 등에 타면 빨리 간다.
 // 타는 법(whaleBoarding.ts): 끌어 올리지 않는다. 내가 하늘로 올라가 곁에 오면 고래가 등을 내 발밑으로 낮춰 주고,
 // 등 위에 오면 사뿐히 내려앉힌다. 태운 뒤에는 제 높이로 돌아간다
 
-/** 높이 표: 바퀴마다 나눈 칸 수, 길 아래를 보는 폭(코사인), 가장 낮게·꼭대기 위로 띄우는 높이·가장 높게 */
+/** 높이 표: 바퀴마다 나눈 칸 수, 길 아래를 보는 폭(m — 몸 너비의 절반 남짓. 물건의 반지름을 더한 안쪽이면 그 물건 위를 지난다) */
 const PROFILE_N = 240,
-  PROFILE_COS = 0.9985,
-  PROFILE_FLOOR = 44,
-  PROFILE_CLEAR = 16,
-  PROFILE_CAP = 112;
-/** 표를 고르는 폭: 높은 것 곁(±3칸)을 같이 넘고, ±4칸을 고르게 펴서 오르내림이 완만하다 */
-const DILATE = 3,
-  SMOOTH = 4;
+  PROFILE_REACH = 28.5;
+/** 고래 모델의 길이(m) */
+const WHALE_LENGTH = 64;
+/** 평소 높이를 정할 때 지금부터 앞까지의 길을 이만큼 나눠 본다(3초 길을 여섯 토막 — 한 토막이 높이 표의 한 칸 남짓) */
+const WINDOW_STEPS = 6;
 /** 빠르기: 멀리 있을 때 1, 내가 220m 안이면 0.3, 등을 내주거나 내려앉히는 동안 0.12(거의 서서 기다린다), 등에 타면 1.7 */
 const NEAR_SLOW = 220,
   SLOW_RATE = 0.3,
   MEET_RATE = 0.12,
   RIDE_RATE = 1.7;
-/** 등을 내주려 낮출 때 길 아래 가장 높은 것 위로 배를 띄우는 높이(m) · 그 곁(앞뒤 7칸, 약 67m)의 것도 같이 넘는다 */
-const LOW_CLEAR = 5,
-  LOW_DILATE = DILATE + SMOOTH;
+/** 등을 내주려 낮출 때 길 아래 가장 높은 것(곁의 것까지 — whaleProfile 의 topsTable) 위로 배를 띄우는 높이(m) */
+const LOW_CLEAR = 5;
 /** 등을 내주러 내려오고 다시 제 높이로 돌아갈 때 높이를 바꾸는 가장 빠른 빠르기(m/s) — 수십 m 를 오르내려도 천천히 */
 const HEIGHT_SPEED = 9;
 /**
@@ -88,7 +87,8 @@ const HINT_IN = 220,
 /** 나와 고래 사이: away 따로 · landing 등으로 내려앉는 중 · riding 등에 탔다 */
 type Phase = "away" | "landing" | "riding";
 
-const bx = new THREE.Vector3(),
+const sz = new THREE.Vector3(),
+  bx = new THREE.Vector3(),
   m4 = new THREE.Matrix4(),
   ahead = new THREE.Vector3(),
   tv = new THREE.Vector3(),
@@ -112,6 +112,8 @@ export class Whale implements Thing, Holder {
   profile: Float32Array[] | null = null;
   /** 길 아래 가장 높은 것의 표(곁의 것까지) — 등을 내주러 내려올 때 이 위로는 배를 띄운다 */
   private tops: Float32Array[] | null = null;
+  /** 떠 있는 것 아래를 지나는 칸에서 넘지 말아야 할 높이의 표(그런 것이 없는 칸은 Infinity) */
+  private roofs: Float32Array[] | null = null;
   /** 도는 길 */
   private readonly route: WhaleRoute;
   /** 고래의 시계(초 — 빠르기만큼 간다) */
@@ -155,70 +157,35 @@ export class Whale implements Thing, Holder {
   }
 
   /**
-   * 높이 표를 만든다(나무·꽃·조형물·랜드마크를 다 놓은 뒤): 바퀴마다 240 칸, 칸마다 길 아래(코사인 0.9985 안) 가장 높은 것(적어도 44m) + 16m.
-   * 높은 것 곁도 같이 넘게 넓히고(±3칸), 고르게 편다(±4칸). 112m 를 넘지 않는다
+   * 높이 표를 만든다(나무·꽃·조형물·랜드마크를 다 놓은 뒤): 바퀴마다 240 칸, 칸마다 길 아래(몸 너비에 그 물건의 반지름을 더한 안)의 것을 보고
+   * 꼭대기 위로 배를 띄우는 높이를 정한다(whaleProfile). 모델이 오기 전에 정하므로 몸의 크기는 manifest 의 상자로 잰다
    */
   choosePath(sources: readonly HasHeights[]) {
     const all: Height[] = [];
     for (const src of sources) src.pushHeights(all);
-    const route = this.route;
+    // 물건마다 '그 위를 지난다'고 보는 각(코사인): 길에서 몸 너비 + 물건 반지름 안
+    const within = all.map((h) => Math.cos((PROFILE_REACH + h.r) / S.R));
+    const route = this.route,
+      half = this.bodyHalf();
     const tables = Array.from({ length: route.tables }, (_, table) => table);
-    const bare = tables.map(() => new Float32Array(PROFILE_N));
-    this.profile = tables.map((table) => {
-      const raw = new Float32Array(PROFILE_N),
-        wide = new Float32Array(PROFILE_N),
-        out = new Float32Array(PROFILE_N);
-      for (let i = 0; i < PROFILE_N; i++) {
+    const sights = tables.map((table) =>
+      Array.from({ length: PROFILE_N }, (_, i) => {
         route.cell(table, i, PROFILE_N, tv);
-        // 길 아래 가장 높은 것: 땅(둔덕)부터, 그 위의 키 큰 것까지
-        const ground = this.s.terrain.featGround(tv);
-        let highest = Math.max(0, ground);
-        for (const [ov, H] of all) if (ov.dot(tv) > PROFILE_COS && H > highest) highest = H;
-        bare[table][i] = highest;
-        const top = Math.max(PROFILE_FLOOR, highest);
-        raw[i] = top + PROFILE_CLEAR;
-      }
-      for (let i = 0; i < PROFILE_N; i++) {
-        let m = 0;
-        for (let j = -DILATE; j <= DILATE; j++) {
-          const near = i + j;
-          const at = wrap(near);
-          m = Math.max(m, raw[at]);
-        }
-        wide[i] = m;
-      }
-      for (let i = 0; i < PROFILE_N; i++) {
-        let a = 0;
-        for (let j = -SMOOTH; j <= SMOOTH; j++) {
-          const near = i + j;
-          const at = wrap(near);
-          a += wide[at];
-        }
-        const mean = a / (2 * SMOOTH + 1);
-        out[i] = Math.min(PROFILE_CAP, mean);
-      }
-      return out;
-    });
-    this.tops = bare.map((raw) => {
-      const wide = new Float32Array(PROFILE_N);
-      for (let i = 0; i < PROFILE_N; i++) {
-        let m = 0;
-        for (let j = -LOW_DILATE; j <= LOW_DILATE; j++) {
-          const near = i + j;
-          const at = wrap(near);
-          m = Math.max(m, raw[at]);
-        }
-        wide[i] = m;
-      }
-      return wide;
-    });
+        const ground = this.s.terrain.featGround(tv),
+          under = all.filter((h, at) => h.v.dot(tv) > within[at]);
+        return sightOf(ground, under, half);
+      }),
+    );
+    this.profile = sights.map((cells) => cruiseTable(cells, half));
+    this.tops = sights.map((cells) => topsTable(cells));
+    this.roofs = sights.map((cells) => roofTable(cells, half));
   }
 
   /** 고래 모델: 머리가 +z 라서 나아가는 방향(+x)으로 돌려 놓는다. 오면 도형 고래를 숨기고 등 높이를 모델 키에 맞춘다 */
   fitModels() {
     const models = this.s.models;
     if (!models.has("whale")) return;
-    const W = models.fit("whale", 64, "z");
+    const W = models.fit("whale", WHALE_LENGTH, "z");
     W.rotation.y = Math.PI / 2;
     this.g.add(W);
     // 등 높이를 맞추지 않으면 등에 타도 고래 몸속에 있다
@@ -323,7 +290,7 @@ export class Whale implements Thing, Holder {
       wantsBack(aside, player.air);
     const isMeeting = this.isOffering || this.phase === "landing";
     const lookAhead = this.clock + 3;
-    const cruise = this.topAt(lookAhead),
+    const cruise = this.cruiseTo(lookAhead),
       isLow = this.WH < cruise - LOW_MARGIN;
     if (!isLow) this.isDipped = false;
     else if (isMeeting) this.isDipped = true;
@@ -357,6 +324,41 @@ export class Whale implements Thing, Holder {
     bx.crossVectors(this.v, this.f).normalize().negate();
     m4.makeBasis(this.f, this.v, bx);
     this.g.quaternion.setFromRotationMatrix(m4);
+  }
+
+  // 몸 가운데에서 배·등까지(m): 모델이 올 것이면 그 크기로(오기 전에도 manifest 의 원본 상자로 안다), 모델이 없는 에셋 판이면 도형 고래의 것
+  private bodyHalf(): number {
+    const models = this.s.models;
+    if (!models.has("whale")) return this.rideH;
+    const size = models.box("whale").getSize(sz);
+    return (size.y * WHALE_LENGTH) / size.z / 2;
+  }
+
+  // 지금 맞출 평소 높이. 지금부터 앞(to)까지의 길에서 가장 높은 표 값을 따른다 — 높은 것을 앞두고 미리 오르고, 그 위를 지나는 동안은
+  // 몸이 다 빠져나갈 때까지 내려오지 않는다(앞만 보면 가운데가 지나자마자 내려와 꼬리 쪽 배가 잠긴다).
+  // 떠 있는 것 아래를 지나는 길에서는(앞뒤 같은 폭) 그 아래로 낮춘 채다
+  private cruiseTo(to: number): number {
+    const from = this.clock,
+      span = to - from;
+    let over = 0,
+      roof = Infinity;
+    for (let k = 0; k <= WINDOW_STEPS; k++) {
+      const reach = (span * k) / WINDOW_STEPS;
+      const ahead = from + reach,
+        behind = from - reach;
+      const topAhead = this.topAt(ahead),
+        roofAhead = this.roofAt(ahead),
+        roofBehind = this.roofAt(behind);
+      over = Math.max(over, topAhead);
+      roof = Math.min(roof, roofAhead, roofBehind);
+    }
+    return Math.min(over, roof);
+  }
+
+  // 시계 tt 에서 넘지 말아야 할 높이(떠 있는 것 아래 — 없으면 Infinity)
+  private roofAt(tt: number): number {
+    const roofs = this.roofs;
+    return roofs ? this.cellAt(roofs, tt) : Infinity;
   }
 
   // 시계 tt 의 높이 표 값(표가 없으면 70m)
@@ -470,9 +472,4 @@ function perFrame(share: number, dt: number): number {
   const stay = 1 - share;
   const keep = Math.pow(stay, frames);
   return 1 - keep;
-}
-
-// 표의 칸 번호를 한 바퀴 안으로
-function wrap(i: number): number {
-  return (i + PROFILE_N) % PROFILE_N;
 }

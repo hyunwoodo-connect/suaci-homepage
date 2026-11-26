@@ -47,7 +47,11 @@ export class Sculptures implements Thing, HasHeights {
 
   /** 고래 길을 정할 때 보는 꼭대기 높이 */
   pushHeights(out: Height[]) {
-    for (const o of this.list) out.push([o.v, o.H]);
+    for (const o of this.list) {
+      const bottom = o.floats ? o.g : 0,
+        top = o.g + o.H;
+      out.push({ v: o.v, r: o.r, bottom, top });
+    }
   }
 
   /** 눌리면 꿀렁, 꼭대기에 내려앉으면 통 튀고(푸딩은 더 높이), 문은 지나가면 빨라지고, 몸통은 막힌다. 팽이는 곁에 가면 돈다 */

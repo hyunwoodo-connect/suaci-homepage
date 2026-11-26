@@ -162,7 +162,11 @@ export class Trees implements Thing, HasHeights {
 
   /** 고래 길을 정할 때 보는 꼭대기 높이 */
   pushHeights(out: Height[]) {
-    for (const t of this.list) out.push([t.v, t.H]);
+    for (const t of this.list) {
+      const r = t.cr * 0.85,
+        top = t.g + t.H;
+      out.push({ v: t.v, r, bottom: 0, top });
+    }
   }
 
   /** 위에 내려앉으면 통 튀고, 갓·줄기에 막히고, 눌리면 꿀렁 */

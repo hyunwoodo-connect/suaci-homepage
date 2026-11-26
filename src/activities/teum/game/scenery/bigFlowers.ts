@@ -76,7 +76,11 @@ export class BigFlowers implements Thing, HasHeights {
 
   /** 고래 길을 정할 때 보는 꼭대기 높이 */
   pushHeights(out: Height[]) {
-    for (const f of this.list) out.push([f.v, f.H]);
+    for (const f of this.list) {
+      const r = f.H * 0.32,
+        top = f.g + f.H;
+      out.push({ v: f.v, r, bottom: 0, top });
+    }
   }
 
   /** 꽃송이를 밟으면 통 튀고, 줄기에 닿으면 꽃 위로 쏘아 올린다. 눌리면 흔들리며 꿀렁 */
