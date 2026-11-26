@@ -28,6 +28,8 @@ export interface StudioHost {
     readonly p: Readonly<THREE.Vector3>;
     readonly h: Readonly<THREE.Vector3>;
   };
+  /** 닫혀 있을 때 화면 구석에 옷장 단추를 띄울지(놀이의 세상). 제 단추로 여는 곳(이벤트 페이지)은 false */
+  hasWearButton: boolean;
   /** 부품 모델을 미리 받아 둔다(고르는 순간 바로 입게) */
   need(key: string): void;
   /** 열리고 닫힐 때: 놀이가 제 화면 글자와 조작을 멈추고 되살린다 */
@@ -92,25 +94,31 @@ export class Studio {
     avatar.whenRig((rig) => {
       this.hold = rig.hold;
     });
-    this.closet = new Closet(parent, urlOf, {
-      onOpen: () => this.show(true),
-      onDone: () => this.show(false),
-      onPick: (tab, value) => this.pick(tab, value),
-      onUndo: () => {
-        if (!this.wardrobe.undo()) return;
-        this.followLook();
+    const closet = new Closet(
+      parent,
+      urlOf,
+      {
+        onOpen: () => this.show(true),
+        onDone: () => this.show(false),
+        onPick: (tab, value) => this.pick(tab, value),
+        onUndo: () => {
+          if (!this.wardrobe.undo()) return;
+          this.followLook();
+        },
+        onShuffle: () => {
+          this.wardrobe.shuffle();
+          this.spin = SHUFFLE_SPIN;
+          this.followLook();
+          host.onPicked(true);
+        },
+        onTurn: (dx) => {
+          this.angle -= dx * TURN_PER_PX;
+          closet.hideTip();
+        },
       },
-      onShuffle: () => {
-        this.wardrobe.shuffle();
-        this.spin = SHUFFLE_SPIN;
-        this.followLook();
-        host.onPicked(true);
-      },
-      onTurn: (dx) => {
-        this.angle -= dx * TURN_PER_PX;
-        this.closet.hideTip();
-      },
-    });
+      host.hasWearButton,
+    );
+    this.closet = closet;
   }
 
   /**
@@ -174,16 +182,6 @@ export class Studio {
     this.bg.lerp(this.bgTarget, follow);
     (scene.background as THREE.Color).copy(this.bg);
     this.floor.material.color.copy(this.bg).multiplyScalar(0.86);
-    this.placeCamera();
-  }
-
-  /**
-   * 카메라를 처음 열 때의 자리(얼굴 앞에서 조금 옆)에 둔다. 닫은 뒤에도 아바타만 비추는 곳(꾸미기 방)이 쓴다 —
-   * 놀이는 닫으면 제 카메라가 자리를 다시 잡는다
-   */
-  faceFront() {
-    this.angle = OPEN_ANGLE;
-    this.spin = 0;
     this.placeCamera();
   }
 

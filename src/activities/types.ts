@@ -18,6 +18,8 @@ export interface EntranceProps extends RouteContext {
 /** 놀이 모듈. 이벤트 페이지(`/events/{slug}`)와 그 아래 화면을 그린다. */
 export interface ActivityModule {
   id: string;
+  /** 내 아바타(사이트 공용 — lib/avatar)를 데리고 들어가는 놀이. 이런 놀이가 목록에 있으면 이벤트 페이지에 아바타가 선다 */
+  usesAvatar?: boolean;
   Entrance: (props: EntranceProps) => ReactNode;
   /** `/events/{slug}/{...rest}` 화면. 모르는 경로면 null(→ 404) */
   route(rest: string[], event: EventDetail, ctx: RouteContext): ReactNode | null;

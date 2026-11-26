@@ -8,3 +8,8 @@ const ACTIVITIES: Record<string, ActivityModule> = { [TAKE_FOUR.id]: TAKE_FOUR, 
 export function getActivity(activityId: string): ActivityModule | undefined {
   return Object.hasOwn(ACTIVITIES, activityId) ? ACTIVITIES[activityId] : undefined;
 }
+
+/** 그 놀이가 내 아바타를 데리고 들어가나(모르는 놀이는 아니다) */
+export function usesAvatar(activityId: string): boolean {
+  return getActivity(activityId)?.usesAvatar === true;
+}

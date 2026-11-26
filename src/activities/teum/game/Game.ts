@@ -3,6 +3,7 @@ import * as THREE from "three";
 import type { AssetLoader } from "@/lib/asset-kit/load";
 import type { Manifest } from "@/lib/asset-kit/manifest";
 import { assetUrl } from "@/lib/asset-kit/manifest";
+import { legacyAvatar } from "@/lib/avatar/legacy-record";
 import { AvatarProfile } from "@/lib/avatar/profile";
 import { LocalAvatarStore } from "@/lib/avatar/record";
 import type { StudioHost } from "@/lib/avatar/studio";
@@ -32,7 +33,6 @@ import { Mats } from "./look";
 import type { GameMap } from "./maps/map";
 import { cloneLayout } from "./maps/map";
 import { ModelLibrary } from "./models/library";
-import { legacyAvatar } from "./progress/legacyAvatar";
 import { Progress } from "./progress/progress";
 import { LocalSaveStore } from "./progress/store";
 import { CameraRig } from "./player/camera";
@@ -360,6 +360,7 @@ export class Game {
       camera: s.camera.camera,
       avatar: this.avatar,
       stand: s.player,
+      hasWearButton: true,
       need: (key) => s.models.need(key),
       onToggle(isOpen) {
         s.hud.setStudio(isOpen);

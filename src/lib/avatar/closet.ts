@@ -11,6 +11,13 @@ const INK = "#2b2e2d",
   LIME = "#a9ff39",
   CHIP = "#eef1f0";
 
+/**
+ * 옷장 판이 오르내리는 움직임. 닫힐 때는 다 내려간 뒤에 숨긴다 — 화면 밖에 내려가 있어도 판의 그림자가 화면 맨 아래에 비치기 때문이다
+ * (열릴 때는 바로 보여야 올라오는 것이 보인다)
+ */
+const SHEET_OPENING = "transform .25s",
+  SHEET_CLOSING = "transform .25s, visibility 0s linear .25s";
+
 /** 탭 이름 */
 const TAB_LABEL: Readonly<Record<LookTab, string>> = {
   top: "윗옷",
@@ -68,7 +75,8 @@ interface ClosetHandlers {
 
 /** 옷장 화면 */
 export class Closet {
-  private readonly wearButton: HTMLButtonElement;
+  /** 닫혀 있을 때 화면 구석에 떠 있는 옷장 단추(제 단추로 여는 곳에는 없다) */
+  private readonly wearButton: HTMLButtonElement | null;
   private readonly stage: HTMLDivElement;
   private readonly tip: HTMLDivElement;
   private readonly sheet: HTMLDivElement;
@@ -77,20 +85,14 @@ export class Closet {
   private tab: LookTab = "top";
   private look: Readonly<AvatarLook> | null = null;
 
-  /** urlOf: 에셋 키 → 받을 주소(없는 키면 null) */
+  /** urlOf: 에셋 키 → 받을 주소(없는 키면 null). hasWearButton: 닫혀 있을 때 화면 구석에 옷장 단추를 띄운다 */
   constructor(
     parent: HTMLElement,
     private readonly urlOf: (key: string) => string | null,
     private readonly on: ClosetHandlers,
+    hasWearButton: boolean,
   ) {
-    this.wearButton = roundButton("옷장", SHIRT_ICON);
-    Object.assign(this.wearButton.style, {
-      position: "fixed",
-      left: "calc(14px + env(safe-area-inset-left))",
-      bottom: "calc(14px + env(safe-area-inset-bottom))",
-      zIndex: "3",
-    });
-    this.wearButton.addEventListener("click", () => on.onOpen());
+    this.wearButton = hasWearButton ? wearButton(on) : null;
 
     // 무대: 화면을 덮어 게임 입력을 막고, 가로로 밀면 아바타 둘레를 돈다
     this.stage = document.createElement("div");
@@ -144,10 +146,13 @@ export class Closet {
       padding: "10px 14px calc(16px + env(safe-area-inset-bottom))",
       boxShadow: "0 -6px 24px rgba(0,0,0,.1)",
       transform: "translateY(105%)",
-      transition: "transform .25s",
+      transition: SHEET_CLOSING,
+      visibility: "hidden",
       zIndex: "4",
       fontFamily: FONT,
     });
+    // 닫혀 있는 판은 화면 밖에 있을 뿐 문서에는 남는다 — 키보드 초점과 화면 읽기가 닿지 않게 한다
+    this.sheet.inert = true;
     const row = document.createElement("div");
     Object.assign(row.style, {
       display: "flex",
@@ -187,14 +192,18 @@ export class Closet {
       padding: "4px 3px 6px",
     });
     this.sheet.append(row, this.grid);
-    parent.append(this.wearButton, this.stage, this.sheet);
+    if (this.wearButton) parent.append(this.wearButton);
+    parent.append(this.stage, this.sheet);
   }
 
   /** 꾸미기 씬을 열고 닫는다(열면 옷장 단추는 숨는다) */
   show(on: boolean, look: Readonly<AvatarLook>) {
-    this.wearButton.style.display = on ? "none" : "";
+    if (this.wearButton) this.wearButton.style.display = on ? "none" : "";
     this.stage.style.display = on ? "block" : "none";
+    this.sheet.style.transition = on ? SHEET_OPENING : SHEET_CLOSING;
     this.sheet.style.transform = on ? "none" : "translateY(105%)";
+    this.sheet.style.visibility = on ? "visible" : "hidden";
+    this.sheet.inert = !on;
     if (!on) return;
     this.tip.style.opacity = "1";
     this.draw(look);
@@ -212,7 +221,7 @@ export class Closet {
   }
 
   dispose() {
-    this.wearButton.remove();
+    this.wearButton?.remove();
     this.stage.remove();
     this.sheet.remove();
   }
@@ -318,6 +327,19 @@ export class Closet {
 function optionLabel(tab: LookTab, value: string): string {
   if (value) return OPTION_LABEL[value] ?? value;
   return isPartTab(tab) ? "없음" : "원래 옷";
+}
+
+// 닫혀 있을 때 화면 왼쪽 아래 구석에 떠 있는 옷장 단추
+function wearButton(on: ClosetHandlers): HTMLButtonElement {
+  const button = roundButton("옷장", SHIRT_ICON);
+  Object.assign(button.style, {
+    position: "fixed",
+    left: "calc(14px + env(safe-area-inset-left))",
+    bottom: "calc(14px + env(safe-area-inset-bottom))",
+    zIndex: "3",
+  });
+  button.addEventListener("click", () => on.onOpen());
+  return button;
 }
 
 // 흰 동그라미 단추(46px)

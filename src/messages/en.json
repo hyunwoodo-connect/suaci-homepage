@@ -488,6 +488,14 @@
       "upcoming": "Coming soon",
       "live": "Live",
       "ended": "Ended"
+    },
+    "avatar": {
+      "title": "my avatar",
+      "hint": "this is how you show up in events.",
+      "dress": "dress up",
+      "dressing": "dress up your avatar",
+      "loading": "loading your avatar",
+      "failed": "couldn't load your avatar."
     }
   },
   "legal": {
