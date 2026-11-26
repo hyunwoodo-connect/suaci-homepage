@@ -168,12 +168,17 @@ export function openAvatarRoom(
   };
   // 틀의 크기가 바뀌면(창 크기, 옷장을 열어 화면 가득 커질 때) 그 크기로 다시 그린다 — 크기를 바꾸면 그림이 비므로 바로
   const sizer = new ResizeObserver(() => {
+    if (stopped) return;
     stage.resize();
-    if (isStarted && !stopped) step(0);
+    // 몸을 받기 전에는 빈 장면(배경색)만 — 그리지 않은 캔버스는 브라우저에 따라 검게 보인다
+    if (isStarted) step(0);
+    else renderer.render(scene, camera);
   });
   sizer.observe(canvas);
   const watcher = new IntersectionObserver((entries) => {
-    isVisible = entries.some((entry) => entry.isIntersecting);
+    // 한 번에 여러 알림이 오면 마지막 것이 지금이다
+    const latest = entries[entries.length - 1];
+    isVisible = latest.isIntersecting;
     wake();
   });
   watcher.observe(canvas);

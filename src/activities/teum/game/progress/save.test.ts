@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { LEGACY_KEY } from "@/lib/avatar/legacy-record";
+
 import { emptySave, readSave } from "./save";
 import { LocalSaveStore, MemorySaveStore, SAVE_KEY } from "./store";
 
@@ -45,5 +47,11 @@ describe("SaveStore", () => {
     const save = await store.load();
     save.lm[1] = { n: 1, day: 1 };
     await expect(store.load()).resolves.toEqual(emptySave());
+  });
+});
+
+describe("틈 기록의 키", () => {
+  it("아바타 쪽이 옛 차림을 찾는 키와 같다(다르면 옛 차림을 옮겨 오지 못한다)", () => {
+    expect(SAVE_KEY).toBe(LEGACY_KEY);
   });
 });
