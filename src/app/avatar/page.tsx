@@ -1,6 +1,6 @@
-import AvatarRoom from "@/components/avatar/AvatarRoom";
+import { redirect } from "next/navigation";
 
-/** 아바타 꾸미기 — 놀이에 들어가지 않고 아바타만 꾸미는 곳. 여기서 고른 차림이 어느 놀이에서든 그대로 나온다 */
-export default function AvatarPage() {
-  return <AvatarRoom />;
+/** 아바타는 이벤트 페이지 안에 산다(목록 위의 '내 아바타') — 따로 열던 이 주소는 그리로 보낸다 */
+export default function AvatarPage(): never {
+  redirect("/events");
 }

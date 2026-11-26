@@ -181,7 +181,7 @@ describe("middleware: 그 밖의 경로", () => {
     expect(get).not.toHaveBeenCalled();
   });
 
-  it("/avatar(아바타 꾸미기)는 언어를 붙이지 않고 그대로 연다", async () => {
+  it("/avatar(아바타를 따로 열던 주소)는 언어를 붙이지 않고 그대로 넘긴다", async () => {
     const res = await middleware(new NextRequest(url("/avatar")));
     expect(res.status).toBe(200);
     expect(res.headers.get("x-test-intl")).toBeNull();
