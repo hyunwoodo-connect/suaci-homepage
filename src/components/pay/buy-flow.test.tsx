@@ -125,6 +125,32 @@ describe("사기 바", () => {
     expect(screen.getByRole("link", { name: /출시 알림 신청/ })).toBeTruthy();
   });
 
+  it("구매 막기 스위치가 켜져 있으면(시작 날짜 없음) → 버튼이 '출시 예정'으로 막히고 출시 알림 길이 보인다", async () => {
+    getSalesStatus.mockResolvedValueOnce({ open: false });
+    await act(async () => {
+      renderBar();
+    });
+    const locked = await screen.findByRole("button", { name: "출시 예정" });
+    expect((locked as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: /구매하기/ })).toBeNull();
+    expect(screen.getByRole("link", { name: "판매 준비 중이에요. 출시 알림 신청" })).toBeTruthy();
+  });
+
+  it("구매 막기 스위치가 켜진 채 로그인에서 ?buy=1 로 돌아와 시트가 열려도 → 결제 버튼이 '출시 예정'으로 막힌다", async () => {
+    searchState.value = "buy=1&qty=3";
+    getSalesStatus.mockResolvedValueOnce({ open: false });
+    getCheckoutDefaults.mockResolvedValue({ address: ADDRESS, lastPaymentMethod: null });
+    await act(async () => {
+      renderBar();
+    });
+    await screen.findByText("주문 정보를 확인해 주세요");
+    const pay = screen
+      .getAllByRole("button", { name: "출시 예정" })
+      .find((b) => b.closest("[role=dialog]")) as HTMLButtonElement;
+    expect(pay.disabled).toBe(true);
+    expect(createOrder).not.toHaveBeenCalled();
+  });
+
   it("판매 전에 로그인에서 ?buy=1 로 돌아와 시트가 열려도 → 결제 버튼이 '1월 5일 판매 시작'으로 막힌다", async () => {
     searchState.value = "buy=1&qty=3";
     getSalesStatus.mockResolvedValueOnce({

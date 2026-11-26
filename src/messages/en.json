@@ -515,6 +515,7 @@
       "resume": "pick up where you left off?",
       "resumeCta": "continue",
       "soon": "coming soon.",
+      "comingSoon": "coming soon",
       "notify": "get notified",
       "salesStartsOn": "on sale {date}",
       "salesSoon": "on sale from {date}."

@@ -146,12 +146,12 @@ function CheckoutBody() {
         setMethod(initialMethod);
       });
   }, [status, methods]);
-  // 출시 전 구매 차단(#286) — 판매 전이면 결제 버튼을 판매 시작 날짜로 막는다(서버도 막는다)
+  // 출시 전 구매 차단(#286) — 막혀 있으면 결제 버튼을 '출시 예정'(시작 날짜를 알면 그 날짜)으로 막는다(서버도 막는다)
   const salesLock = useSalesLock();
   const ready = adapters.length > 0 && !salesLock.locked;
   const lockedLabel = salesLock.opensOn
     ? tp("bar.salesStartsOn", { date: salesLock.opensOn })
-    : tp("bar.soon");
+    : tp("bar.comingSoon");
   const { tossClientKey } = paymentEnv();
   // 카드 심사 동안 운영도 토스 테스트 키로 연다 — 손님이 실제로 산 줄 알지 않게 알린다
   const isTestPayment = isTestClientKey(tossClientKey);
