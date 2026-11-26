@@ -3,22 +3,27 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import GameIntro from "@/components/game/GameIntro";
+import PrizeBoxes from "@/components/game/PrizeBoxes";
 import { fetchManifest } from "@/lib/asset-kit/manifest";
-import { getEventReward, listEventRewards } from "@/events/rewards";
-import { lockedRewards, recordClear } from "@/lib/play-record";
+import { getBoxPlan, listBoxPlans } from "@/events/boxes";
+import { recordClear } from "@/lib/play-record";
+import type { BoxPrize } from "@/lib/prize-box";
+import { drawBoxes, keepPrizes, lockedPrizes } from "@/lib/prize-box";
 
 import type { EntranceProps } from "../types";
 import { TEUM_BUNDLE } from "./assets/config";
+import { TEUM_GOAL } from "./goal";
 
-/** 나가기를 누르면 가는 곳: 내 아바타와 놀이들이 있는 이벤트 목록 */
+/** 나가기를 누르면 가는 곳: 내 아바타와 게임들이 있는 이벤트 목록 */
 const EVENTS_PATH = "/events";
 
 /**
- * '틈' 입구: 화면 전체가 게임이다. 첫 화면 에셋을 받는 동안 진행 막대를 보이고, 다 받으면 게임이 그리기 시작한다.
- * 게임 코드(three)는 이 화면에서만, 열릴 때 따로 받는다(다른 화면의 묶음에 섞이지 않게).
+ * '틈' 입구: 게임 틀(시작 → 해결 → 랜덤박스 × N)을 따른다. 시작 화면(components/game/GameIntro)이 게임을 받는 동안 진행 막대를 채우고,
+ * 다 받으면 '시작'으로 바뀐다. 게임 코드(three)는 이 화면에서만, 열릴 때 따로 받는다(다른 화면의 묶음에 섞이지 않게).
  * 열리기 전·끝난 뒤에는 레코드의 문구만 보인다.
- * 놀이는 깬 것과 나가겠다는 것만 알린다 — 깬 기록은 여기서 이 기기에 남기고(이벤트 페이지의 카드가 표시한다), 나갈 때는 이벤트 목록으로 간다.
- * 이 이벤트를 처음 깨면 옷을 받는다(events/rewards) — 그 전에는 옷장에서 그 칸이 잠겨 있다.
+ * 게임은 깬 것·다 보여 준 것·나가겠다는 것만 알린다 — 깬 순간 기록을 남기고 박스를 다 뽑아 받은 옷을 이 기기에 남긴다(열기 전에 나가도 받은 것이다).
+ * 터지는 것을 다 보여 주면 랜덤박스 화면(components/game/PrizeBoxes)을 게임 위에 얹는다
  */
 export default function TeumEntrance({ event }: EntranceProps) {
   if (event.phase !== "live") {
@@ -41,11 +46,23 @@ interface StageProps {
   activityId: string;
 }
 
+/** 돌고 있는 게임에 시킬 것 */
+interface GameControl {
+  playAgain(): void;
+  keepPlaying(): void;
+}
+
 function Stage({ title, eventId, activityId }: StageProps) {
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const gameRef = useRef<GameControl | null>(null);
+  /** 이번에 깨서 뽑아 둔 박스(다 보여 준 뒤에 화면에 올린다) */
+  const drawnRef = useRef<BoxPrize[]>([]);
   const [progress, setProgress] = useState(0);
-  const [failed, setFailed] = useState(false);
+  const [isFailed, setIsFailed] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [prizes, setPrizes] = useState<BoxPrize[] | null>(null);
+  const plan = getBoxPlan(eventId);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -57,31 +74,34 @@ function Stage({ title, eventId, activityId }: StageProps) {
     Promise.all([manifestJob, gameJob])
       .then(([assets, game]) => {
         if (cancelled) return;
-        stop = game.start(canvas, {
+        const running = game.start(canvas, {
           assets,
           onProgress: setProgress,
-          locks: () => lockedRewards(listEventRewards()),
+          locks: () => lockedPrizes(listBoxPlans()),
           onClear({ seconds }) {
-            // 처음 깬 것이면(그리고 그 기록이 남았으면) 이 이벤트의 옷을 지금 받는다
-            const at = Date.now();
-            const isFirst = recordClear({ eventId, activityId, at, seconds });
-            const reward = getEventReward(eventId);
-            return isFirst && reward ? reward.item : null;
+            recordClear({ eventId, activityId, at: Date.now(), seconds });
+            // 깬 순간 박스를 다 뽑아 받은 옷을 남긴다 — 옷장이 바로 풀린다
+            const boxPlan = getBoxPlan(eventId);
+            const drawn = boxPlan ? drawBoxes(boxPlan) : [];
+            keepPrizes(drawn);
+            drawnRef.current = drawn;
           },
+          onFinished: () => setPrizes(drawnRef.current),
           onLeave: () => router.push(EVENTS_PATH),
-        }).stop;
+        });
+        gameRef.current = running;
+        stop = running.stop;
       })
       .catch(() => {
-        if (!cancelled) setFailed(true);
+        if (!cancelled) setIsFailed(true);
       });
     return () => {
       cancelled = true;
+      gameRef.current = null;
       stop?.();
     };
   }, [eventId, activityId, router]);
 
-  const loading = progress < 1;
-  const percent = progress * 100;
   return (
     <main className="fixed inset-0 overflow-hidden bg-paper select-none">
       {/* 게임이 이 틀 안에 안내 글자·끌기 동그라미를 붙인다 */}
@@ -93,32 +113,29 @@ function Stage({ title, eventId, activityId }: StageProps) {
           style={{ WebkitTouchCallout: "none" }}
         />
       </div>
-      {loading ? (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-[16px] bg-paper px-[16px] text-center">
-          <h1 className="m-0 text-[24px] text-ink">{title}</h1>
-          {failed ? (
-            <p className="m-0 text-[14px] text-grey">
-              불러오지 못했어요. 잠시 뒤 다시 열어 주세요.
-            </p>
-          ) : (
-            <>
-              <div
-                className="h-[6px] w-[160px] overflow-hidden rounded-full bg-line"
-                role="progressbar"
-                aria-label="불러오는 중"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round(percent)}
-              >
-                <div
-                  className="h-full bg-lime transition-[width]"
-                  style={{ width: `${percent}%` }}
-                />
-              </div>
-              <p className="m-0 text-[13px] text-grey">불러오는 중</p>
-            </>
-          )}
-        </div>
+      {hasStarted ? null : (
+        <GameIntro
+          title={title}
+          goal={TEUM_GOAL}
+          boxes={plan?.count ?? 0}
+          progress={progress}
+          isFailed={isFailed}
+          onStart={() => setHasStarted(true)}
+        />
+      )}
+      {prizes ? (
+        <PrizeBoxes
+          prizes={prizes}
+          onAgain={() => {
+            setPrizes(null);
+            gameRef.current?.playAgain();
+          }}
+          onLeave={() => router.push(EVENTS_PATH)}
+          onClose={() => {
+            setPrizes(null);
+            gameRef.current?.keepPlaying();
+          }}
+        />
       ) : null}
     </main>
   );

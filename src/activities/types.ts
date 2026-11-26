@@ -20,6 +20,8 @@ export interface ActivityModule {
   id: string;
   /** 내 아바타(사이트 공용 — lib/avatar)를 데리고 들어가는 놀이. 이런 놀이가 목록에 있으면 이벤트 페이지에 아바타가 선다 */
   usesAvatar?: boolean;
+  /** 이벤트 목록 카드의 섬네일(정사각, public 경로). 없으면 스튜디오 그레이 칸에 이름만 */
+  thumbnail?: string;
   Entrance: (props: EntranceProps) => ReactNode;
   /** `/events/{slug}/{...rest}` 화면. 모르는 경로면 null(→ 404) */
   route(rest: string[], event: EventDetail, ctx: RouteContext): ReactNode | null;

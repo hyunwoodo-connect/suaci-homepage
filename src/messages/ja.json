@@ -485,8 +485,6 @@
     "title": "イベント",
     "empty": "まだイベントはありません。",
     "cleared": "クリア済み",
-    "rewardLabel": "クリアでもらえる",
-    "rewardWon": "もらった服",
     "phase": {
       "upcoming": "近日公開",
       "live": "開催中",
@@ -500,7 +498,8 @@
       "dressing": "アバターの着せ替え",
       "loading": "アバターを読み込み中",
       "failed": "アバターを読み込めませんでした。"
-    }
+    },
+    "boxes": "ランダムボックス{count}個"
   },
   "legal": {
     "terms": "利用規約",

@@ -498,12 +498,6 @@ export class Game {
     ];
   }
 
-  /** 이번에 깨서 새로 받은 옷(옷장의 키 — 없으면 null)을 성공 판에 알린다 */
-  announceReward(item: string | null) {
-    const name = item ? (closetLabels("ko").options[item] ?? item) : null;
-    this.waterBalloons?.setReward(name);
-  }
-
   /** 한 프레임. 한 프레임은 길어도 0.1 초로 자른다 */
   step(elapsed: number) {
     const dt = Math.min(0.1, elapsed);

@@ -2,13 +2,11 @@ import type { Frame } from "../core/frame";
 import { HUD_FONT } from "../hud";
 import { INK, LIME, PAPER, REDUCED_MOTION } from "./hudStyle";
 import type { EdgeHint, HintBox } from "./rules";
-import type { SuccessPanelHandlers } from "./successPanel";
-import { SuccessPanel } from "./successPanel";
 
 // 물풍선 놀이의 화면(DOM, 폰 세로 기준): 위 가운데 개수 알약, 화면에 보이는 물풍선 위의 물방울 핀, 화면 밖 물풍선을 가리키는
-// 물방울 화살표, 다 먹었을 때의 성공 판. 핀·화살표·알약의 물방울이 모두 같은 모양이라 "이 표시가 붙은 것이 먹을 것"임을 안다.
-// 무엇을 보일지는 물풍선(waterBalloons.ts)이 정한다 — 여기는 그리고, 눌린 단추를 알리기만 한다.
-// 알약·핀·화살표는 손가락을 받지 않아 끌기를 막지 않는다. 성공 판의 단추만 누를 수 있다(44px 이상)
+// 물방울 화살표. 핀·화살표·알약의 물방울이 모두 같은 모양이라 "이 표시가 붙은 것이 먹을 것"임을 안다.
+// 무엇을 보일지는 물풍선(waterBalloons.ts)이 정한다 — 여기는 그리기만 한다.
+// 알약·핀·화살표는 손가락을 받지 않아 끌기를 막지 않는다. 다 먹은 뒤의 화면(랜덤박스)은 놀이를 연 쪽이 얹는다
 
 /** 물풍선 위의 핀 하나: 자리(px — 뾰족한 끝이 가리키는 점)·색(CSS)·진하기(0..1) */
 export interface BalloonPin {
@@ -41,13 +39,12 @@ export class WaterBalloonHud {
   private readonly pinLayer: HTMLDivElement;
   private readonly pins: HTMLDivElement[] = [];
   private time = 0;
-  private readonly success: SuccessPanel;
   private count = 0;
   private bump = 0;
   private readonly box: HintBox = { left: 0, top: 0, right: 0, bottom: 0 };
 
   /** 캔버스 위(같은 부모)에 얹는다 */
-  constructor(parent: HTMLElement, on: SuccessPanelHandlers) {
+  constructor(parent: HTMLElement) {
     this.root = document.createElement("div");
     Object.assign(this.root.style, {
       position: "fixed",
@@ -109,10 +106,8 @@ export class WaterBalloonHud {
     this.pinLayer.setAttribute("aria-hidden", "true");
     Object.assign(this.pinLayer.style, { position: "absolute", inset: "0" });
 
-    this.success = new SuccessPanel(on);
-
-    // 겹치는 차례: 화살표·핀은 알약 아래로, 성공 판이 맨 위
-    this.root.append(this.arrow, this.pinLayer, this.pill, this.success.el);
+    // 겹치는 차례: 화살표·핀은 알약 아래로
+    this.root.append(this.arrow, this.pinLayer, this.pill);
     parent.append(this.root);
   }
 
@@ -176,17 +171,7 @@ export class WaterBalloonHud {
     });
   }
 
-  /** 성공 판을 띄운다: 먹은 수와 걸린 시간, 이번에 새로 받은 옷의 이름(없으면 null) */
-  showSuccess(total: number, seconds: number, reward: string | null) {
-    this.success.show(total, seconds, reward);
-  }
-
-  /** 성공 판을 내린다 */
-  hideSuccess() {
-    this.success.hide();
-  }
-
-  /** 놀이를 끝낸다(계속 놀기): 알약·화살표·성공 판을 모두 치운다 */
+  /** 놀이를 끝낸다(계속 놀기): 알약·화살표를 모두 치운다 */
   close() {
     this.root.remove();
   }

@@ -17,17 +17,20 @@ interface StartOptions {
   onProgress?: (ratio: number) => void;
   /** 아직 받지 못한 옷(지금 — 옷장이 그 칸을 잠근다). 놀이를 깨면 줄어든다 */
   locks: () => Locks;
-  /**
-   * 놀이를 깼다(물풍선을 다 먹었다 — 걸린 시간). 한 번 더 해서 또 깨면 또 알린다.
-   * 돌려주는 것: 이번에 새로 받은 옷(옷장의 키 — 없으면 null). 성공 판에 알린다
-   */
-  onClear: (result: { seconds: number }) => string | null;
+  /** 놀이를 깼다(물풍선을 다 먹은 순간 — 걸린 시간). 한 번 더 해서 또 깨면 또 알린다 */
+  onClear: (result: { seconds: number }) => void;
+  /** 깬 뒤 터지는 것까지 다 보여 줬다 — 여는 쪽이 이때 랜덤박스를 얹는다 */
+  onFinished: () => void;
   /** 나가기를 눌렀다 — 어디로 데리고 나갈지는 여는 쪽이 정한다 */
   onLeave: () => void;
 }
 
 /** 돌고 있는 게임 */
 interface RunningGame {
+  /** 한 번 더: 물풍선이 모두 돌아온다 */
+  playAgain(): void;
+  /** 계속 놀기: 물풍선 놀이를 치우고 떠다니기만 한다 */
+  keepPlaying(): void;
   /** 멈추고 그리던 것·리스너·DOM 을 치운다 */
   stop(): void;
 }
@@ -39,17 +42,15 @@ interface RunningGame {
  */
 export function start(
   canvas: HTMLCanvasElement,
-  { assets, onProgress, locks, onClear, onLeave }: StartOptions,
+  { assets, onProgress, locks, onClear, onFinished, onLeave }: StartOptions,
 ): RunningGame {
   const seed = devSeed() ?? randomSeed();
   const map = devMap() ?? DEFAULT_MAP;
   const festival = devFestival();
   const game = new Game(canvas, assets, seed, map, festival, locks);
   // 놀이는 시작과 끝으로 닫혀 있다: 깬 것과 나가겠다는 것만 밖에 알리고, 기록·이동은 여는 쪽이 한다
-  game.s.events.on("waterBalloonsCleared", ({ seconds }) => {
-    const won = onClear({ seconds });
-    game.announceReward(won);
-  });
+  game.s.events.on("waterBalloonsCleared", ({ seconds }) => onClear({ seconds }));
+  game.s.events.on("waterBalloonsFinished", () => onFinished());
   game.s.events.on("leavePressed", onLeave);
   let stopped = false,
     raf = 0,
@@ -114,6 +115,8 @@ export function start(
     })
     .catch((err) => console.error("teum", err));
   return {
+    playAgain: () => game.waterBalloons?.playAgain(),
+    keepPlaying: () => game.waterBalloons?.keepPlaying(),
     stop() {
       stopped = true;
       cancelAnimationFrame(raf);

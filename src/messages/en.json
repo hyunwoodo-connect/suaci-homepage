@@ -485,8 +485,6 @@
     "title": "events",
     "empty": "no events yet.",
     "cleared": "cleared",
-    "rewardLabel": "clear it to get",
-    "rewardWon": "yours now",
     "phase": {
       "upcoming": "coming soon",
       "live": "live",
@@ -500,7 +498,8 @@
       "dressing": "dress up your avatar",
       "loading": "loading your avatar",
       "failed": "couldn't load your avatar."
-    }
+    },
+    "boxes": "{count} random boxes"
   },
   "legal": {
     "terms": "terms",

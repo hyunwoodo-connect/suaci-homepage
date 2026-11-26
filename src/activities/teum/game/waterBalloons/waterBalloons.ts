@@ -93,8 +93,6 @@ export function createWaterBalloons(
 
 /** 물풍선 놀이 */
 export class WaterBalloons implements Thing {
-  /** 이번에 깨서 새로 받은 옷의 이름(성공 판에 보인다) */
-  private reward: string | null = null;
   readonly list: WaterBalloon[];
   /** 이번 판(먹은 수·걸린 시간·단계) */
   readonly round: BalloonRound;
@@ -146,21 +144,13 @@ export class WaterBalloons implements Thing {
     this.list.forEach((_, i) => this.bodies.setColorAt(i, TINT));
     s.scene.add(this.bodies);
     this.splash = new Splash(s.scene, rng);
-    this.hud = new WaterBalloonHud(parent, {
-      onAgain: () => this.playAgain(),
-      onKeepPlaying: () => this.keepPlaying(),
-      onLeave: () => s.events.emit("leavePressed", {}),
-    });
+    this.hud = new WaterBalloonHud(parent);
     this.hud.setCount(0, total);
     const round = this.round;
+    // 터지는 것을 다 보여 준 뒤에 판이 끝났다고 알린다 — 그다음 화면(랜덤박스)은 놀이를 연 쪽이 얹는다
     this.finale = new BalloonFinale(s, this.splash, rng, () =>
-      this.hud.showSuccess(round.total, round.seconds, this.reward),
+      s.events.emit("waterBalloonsFinished", { total: round.total, seconds: round.seconds }),
     );
-  }
-
-  /** 이번에 깨서 새로 받은 옷의 이름을 알려 둔다(없으면 null) — 성공 판이 뜰 때 같이 보인다. 놀이를 연 쪽이 깬 직후에 부른다 */
-  setReward(name: string | null) {
-    this.reward = name;
   }
 
   /** 한 번 더: 물풍선이 모두 돌아오고 수와 시계가 0 으로, 섬은 제 색으로. 나는 그 자리에 그대로 있다 */
@@ -171,7 +161,6 @@ export class WaterBalloons implements Thing {
       b.age = -i * RETURN_STAGGER;
       b.pop = 0;
     });
-    this.hud.hideSuccess();
     this.hud.setCount(0, this.round.total);
   }
 

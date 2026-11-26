@@ -29,10 +29,9 @@ function render(phase: EventPhase) {
 }
 
 describe("EventCard", () => {
-  it("제목·요약과 /events/take-four 링크를 그린다", () => {
+  it("제목과 /events/take-four 링크를 그린다", () => {
     const html = render("live");
     expect(html).toContain("take four");
-    expect(html).toContain("네 컷 이벤트");
     expect(html).toContain('href="/events/take-four"');
   });
 
@@ -48,32 +47,43 @@ describe("EventCard", () => {
 
   it.each([
     ["upcoming", "coming soon"],
-    ["live", "live"],
     ["ended", "ended"],
-  ] as const)("phase %s → 태그 %s", (phase, label) => {
+  ] as const)("phase %s → 섬네일 위 태그 %s", (phase, label) => {
     expect(render(phase)).toContain(`>${label}<`);
   });
 
-  it("깨면 옷을 받는 이벤트 → 카드에 그 옷의 이름(화면의 언어로)", () => {
+  it("진행 중 → 태그를 달지 않는다(섬네일만)", () => {
+    expect(render("live")).not.toContain(">live<");
+  });
+
+  it("박스를 주는 이벤트 → 박스 수를 읽는 이름으로", () => {
     const html = renderToStaticMarkup(
       <NextIntlClientProvider locale="en" messages={en}>
         <EventCard event={{ ...summary("live"), eventId: "teum01", slug: "teum" }} />
       </NextIntlClientProvider>,
     );
-    expect(html).toContain("clear it to get");
-    expect(html).toContain("skateboard");
+    expect(html).toContain('aria-label="3 random boxes"');
   });
 
-  it("끝난 이벤트 → 받는 옷을 적지 않는다(더는 받을 수 없다)", () => {
+  it("끝난 이벤트 → 박스를 적지 않는다(더는 받을 수 없다)", () => {
     const html = renderToStaticMarkup(
       <NextIntlClientProvider locale="en" messages={en}>
         <EventCard event={{ ...summary("ended"), eventId: "teum01", slug: "teum" }} />
       </NextIntlClientProvider>,
     );
-    expect(html).not.toContain("clear it to get");
+    expect(html).not.toContain("random boxes");
   });
 
-  it("받는 옷이 없는 이벤트 → 그 줄이 없다", () => {
-    expect(render("live")).not.toContain("clear it to get");
+  it("박스가 없는 이벤트 → 박스 줄이 없다", () => {
+    expect(render("live")).not.toContain("random boxes");
+  });
+
+  it("모듈에 섬네일이 있는 게임 → 섬네일 그림", () => {
+    const html = renderToStaticMarkup(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <EventCard event={{ ...summary("live"), activityId: "teum" }} />
+      </NextIntlClientProvider>,
+    );
+    expect(html).toContain("teum%2Fthumb.webp");
   });
 });

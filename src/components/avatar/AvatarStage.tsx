@@ -9,15 +9,15 @@ import { useCloseOnBack } from "@/hooks/useCloseOnBack";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { loadAvatarManifest } from "@/lib/avatar/bundle";
 import type { OpenRoom } from "@/lib/avatar/room";
-import type { ClearReward } from "@/lib/play-record";
-import { lockedRewards } from "@/lib/play-record";
+import type { BoxPlan } from "@/lib/prize-box";
+import { lockedPrizes } from "@/lib/prize-box";
 
 /** 아바타 칸의 상태: 받는 중 · 서 있음 · 받지 못함 */
 type StageStatus = "loading" | "ready" | "failed";
 
 interface AvatarStageProps {
-  /** 놀이를 깨면 받는 옷 모두 — 아직 깨지 않은 놀이의 옷은 옷장에서 잠겨 있다 */
-  rewards: readonly ClearReward[];
+  /** 게임을 깨면 받는 랜덤박스 모두 — 박스에서 아직 받지 못한 옷은 옷장에서 잠겨 있다 */
+  plans: readonly BoxPlan[];
 }
 
 /**
@@ -25,14 +25,14 @@ interface AvatarStageProps {
  * 완성을 누르면(또는 Esc·폰 뒤로가기) 제자리로 돌아온다 — 고른 차림은 이 기기의 아바타 기록에 남아 어느 놀이에서든 그대로 나온다.
  * 3D 코드(three)는 이 칸이 뜬 뒤에 따로 받는다(목록은 먼저 보인다). 옷장 안의 글자는 꾸미기 씬이 이 화면의 언어로 그린다(lib/avatar/closet-labels)
  */
-export default function AvatarStage({ rewards }: AvatarStageProps) {
+export default function AvatarStage({ plans }: AvatarStageProps) {
   const t = useTranslations("events.avatar");
   const locale = useLocale();
   // 서버가 다시 그릴 때마다 새 목록이 온다 — 그때마다 방을 다시 열지 않게 지금 것만 들고 있는다
-  const rewardsRef = useRef(rewards);
+  const plansRef = useRef(plans);
   useEffect(() => {
-    rewardsRef.current = rewards;
-  }, [rewards]);
+    plansRef.current = plans;
+  }, [plans]);
   const headingId = useId();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -50,7 +50,7 @@ export default function AvatarStage({ rewards }: AvatarStageProps) {
     Promise.all([manifestJob, roomJob])
       .then(([manifest, room]) => {
         if (cancelled) return;
-        const options = { locale, locks: () => lockedRewards(rewardsRef.current) };
+        const options = { locale, locks: () => lockedPrizes(plansRef.current) };
         roomRef.current = room.openAvatarRoom(canvas, manifest, options, {
           onReady: () => setStatus("ready"),
           onToggle: setIsDressing,

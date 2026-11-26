@@ -15,6 +15,7 @@ import WallScreen from "./wall/WallScreen";
  */
 export const TAKE_FOUR: ActivityModule = {
   id: "take-four",
+  thumbnail: "/events/take-four/girls-peek.png",
   Entrance: EntranceScreen,
   route(rest, event, ctx) {
     if (rest[0] === "wall") {

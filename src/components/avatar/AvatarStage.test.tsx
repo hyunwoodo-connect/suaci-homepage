@@ -3,7 +3,8 @@ import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ko from "@/messages/ko.json";
-import { recordClear } from "@/lib/play-record";
+import type { BoxPlan } from "@/lib/prize-box";
+import { keepPrizes } from "@/lib/prize-box";
 
 // 방(3D)은 대역: 화면이 넘긴 알림 함수를 잡아 두고, 화면이 부르는 것만 센다
 const { room, openAvatarRoom, fetchManifest } = vi.hoisted(() => {
@@ -15,7 +16,14 @@ vi.mock("@/lib/avatar/bundle", () => ({ loadAvatarManifest: fetchManifest }));
 
 import AvatarStage from "./AvatarStage";
 
-const REWARDS = [{ eventId: "teum01", item: "board", from: "틈" }];
+const PLANS: BoxPlan[] = [
+  {
+    eventId: "teum01",
+    from: "틈",
+    count: 1,
+    pool: [{ prize: { kind: "item", item: "board" }, weight: 1 }],
+  },
+];
 
 /** 방이 화면에 알리는 것(openAvatarRoom 의 마지막 인자) */
 interface Handlers {
@@ -30,7 +38,7 @@ async function renderStage() {
   await act(async () => {
     utils = render(
       <NextIntlClientProvider locale="ko" messages={ko}>
-        <AvatarStage rewards={REWARDS} />
+        <AvatarStage plans={PLANS} />
       </NextIntlClientProvider>,
     );
   });
@@ -115,11 +123,11 @@ describe("AvatarStage", () => {
     expect(openAvatarRoom.mock.calls[0][2].locale).toBe("ko");
   });
 
-  it("아직 깨지 않은 놀이의 옷 → 잠긴 것으로 넘기고, 깨면 풀린다(방을 다시 열지 않아도)", async () => {
+  it("박스에서 아직 받지 못한 옷 → 잠긴 것으로 넘기고, 받으면 풀린다(방을 다시 열지 않아도)", async () => {
     await renderStage();
     const locks = openAvatarRoom.mock.calls[0][2].locks as () => Map<string, string>;
     const before = [...locks()];
-    recordClear({ eventId: "teum01", activityId: "teum", at: 1 });
+    keepPrizes([{ kind: "item", item: "board" }]);
     expect([before, [...locks()]]).toEqual([[["board", "틈"]], []]);
   });
 

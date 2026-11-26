@@ -72,7 +72,9 @@ function world(spots: readonly WaterBalloonSpot[] | undefined) {
     const b = wb.list[i];
     player.teleport(b.v, null, b.alt - S.hover);
   };
-  const panel = () => parent.querySelector<HTMLElement>('[role="dialog"]');
+  /** 판이 끝났다고 알린 것(터지는 것까지 다 보여 준 뒤) */
+  const finished: { total: number; seconds: number }[] = [];
+  s.events.on("waterBalloonsFinished", (e) => finished.push(e));
   const counter = () => parent.querySelector('[role="status"]')?.textContent;
   return {
     s,
@@ -85,7 +87,7 @@ function world(spots: readonly WaterBalloonSpot[] | undefined) {
     cleared,
     frame,
     jumpTo,
-    panel,
+    finished,
     counter,
     sceneBefore,
     domBefore,
@@ -209,7 +211,7 @@ describe("물풍선 시계", () => {
 });
 
 describe("물풍선 성공 뒤", () => {
-  /** 셋을 다 먹고 성공 판이 뜰 때까지 */
+  /** 셋을 다 먹고 판이 끝났다고 알릴 때까지 */
   function cleared() {
     const w = playing();
     for (const i of [0, 1, 2]) {
@@ -219,72 +221,40 @@ describe("물풍선 성공 뒤", () => {
     for (let i = 0; i < 120; i++) w.frame();
     return w;
   }
-  const press = (w: ReturnType<typeof cleared>, name: string) =>
-    [...w.parent.querySelectorAll("button")].find((b) => b.textContent === name)!.click();
 
-  it("마지막을 먹은 바로 그 프레임 → 성공 판은 아직(터지는 것을 보고 나서 뜬다)", () => {
+  it("마지막을 먹은 바로 그 프레임 → 끝났다고는 아직 알리지 않는다(터지는 것을 보고 나서)", () => {
     const w = playing();
     for (const i of [0, 1, 2]) {
       w.jumpTo(w.game, i);
       w.frame();
     }
-    expect(w.panel()?.style.visibility).toBe("hidden");
+    expect(w.finished).toEqual([]);
   });
 
-  it("조금 뒤 → 성공 판에 다 먹었다는 말이 뜬다", () => {
+  it("조금 뒤 → 판이 끝났다고 한 번 알린다(먹은 수·걸린 시간)", () => {
     const w = cleared();
-    expect([w.panel()?.style.visibility, w.panel()?.textContent?.includes("물풍선 3개를")]).toEqual(
-      ["visible", true],
-    );
+    expect(w.finished).toEqual([{ total: 3, seconds: w.game.round.seconds }]);
   });
 
-  it("한 번 더 → 판이 내려가고 수·시계가 0 으로, 몸은 그 자리 그대로", () => {
+  it("한 번 더 → 수·시계가 0 으로, 몸은 그 자리 그대로", () => {
     const w = cleared();
     const stood = w.player.p.clone();
-    press(w, "한 번 더");
+    w.game.playAgain();
     w.frame();
-    expect([w.panel()?.style.visibility, w.counter(), w.game.round.seconds]).toEqual([
-      "hidden",
-      "0 / 3",
-      0,
-    ]);
+    expect([w.counter(), w.game.round.seconds]).toEqual(["0 / 3", 0]);
     expect(w.player.p.distanceTo(stood)).toBe(0);
-  });
-
-  it("나가기 → 나가겠다고 알리기만 한다(판과 놀이는 그대로 — 데리고 나가는 것은 연 쪽이다)", () => {
-    const w = cleared();
-    let left = 0;
-    w.s.events.on("leavePressed", () => left++);
-    press(w, "나가기");
-    w.frame();
-    expect([left, w.panel()?.style.visibility, w.game.round.stage]).toEqual([
-      1,
-      "visible",
-      "cleared",
-    ]);
-  });
-
-  it("깬 직후에 새로 받은 옷을 알려 두면 → 성공 판에 그 이름이 같이 뜬다", () => {
-    const w = playing();
-    w.s.events.on("waterBalloonsCleared", () => w.game.setReward("스케이트보드"));
-    for (const i of [0, 1, 2]) {
-      w.jumpTo(w.game, i);
-      w.frame();
-    }
-    for (let i = 0; i < 600 && w.panel()?.style.visibility !== "visible"; i++) w.frame();
-    expect(w.panel()?.textContent?.includes("새 옷이 생겼어요 · 스케이트보드")).toBe(true);
   });
 
   it("한 번 더 → 내가 서 있는 자리의 물풍선은 나오자마자 먹히지 않는다", () => {
     const w = cleared();
-    press(w, "한 번 더");
+    w.game.playAgain();
     for (let i = 0; i < 120; i++) w.frame();
     expect([w.game.round.count, w.game.round.stage]).toEqual([0, "waiting"]);
   });
 
   it("한 번 더 → 그 자리를 벗어났다 돌아오면 다시 먹힌다", () => {
     const w = cleared();
-    press(w, "한 번 더");
+    w.game.playAgain();
     w.jumpTo(w.game, 0);
     for (let i = 0; i < 120; i++) w.frame();
     w.jumpTo(w.game, 2);
@@ -297,7 +267,7 @@ describe("물풍선 성공 뒤", () => {
 
   it("한 번 더 → 다른 물풍선은 모두 돌아와 다시 먹을 수 있다", () => {
     const w = cleared();
-    press(w, "한 번 더");
+    w.game.playAgain();
     for (let i = 0; i < 120; i++) w.frame();
     for (const i of [0, 1]) {
       w.jumpTo(w.game, i);
@@ -308,7 +278,7 @@ describe("물풍선 성공 뒤", () => {
 
   it("계속 놀기 → 놀이 화면이 사라지고 물풍선은 더 먹히지 않는다", () => {
     const w = cleared();
-    press(w, "계속 놀기");
+    w.game.keepPlaying();
     w.jumpTo(w.game, 0);
     w.frame();
     expect([w.parent.childElementCount, w.game.round.stage, w.popped.length]).toEqual([
@@ -331,8 +301,6 @@ describe("끝 장면의 라임 물결", () => {
     }
     return w;
   }
-  const press = (w: ReturnType<typeof playing>, name: string) =>
-    [...w.parent.querySelectorAll("button")].find((b) => b.textContent === name)!.click();
 
   it("다 먹기 전 → 물결이 없다", () => {
     const w = playing();
@@ -369,7 +337,7 @@ describe("끝 장면의 라임 물결", () => {
   it("한 번 더 → 섬이 제 색으로 돌아온다", () => {
     const w = eatAll();
     for (let i = 0; i < 120; i++) w.frame();
-    press(w, "한 번 더");
+    w.game.playAgain();
     w.frame();
     expect(floodOf(w).w).toBe(FLOOD_OFF);
   });
@@ -377,7 +345,7 @@ describe("끝 장면의 라임 물결", () => {
   it("계속 놀기 → 물든 채로 남고 끝까지 퍼진다", () => {
     const w = eatAll();
     for (let i = 0; i < 120; i++) w.frame();
-    press(w, "계속 놀기");
+    w.game.keepPlaying();
     for (let i = 0; i < 60 * 6; i++) w.frame();
     expect(floodOf(w).w).toBe(FLOOD_ALL);
   });

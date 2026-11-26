@@ -6,6 +6,7 @@ import TeumEntrance from "./TeumEntrance";
 export const TEUM: ActivityModule = {
   id: "teum",
   usesAvatar: true,
+  thumbnail: "/events/teum/thumb.webp",
   Entrance: TeumEntrance,
   route() {
     return null;

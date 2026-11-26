@@ -485,8 +485,6 @@
     "title": "이벤트",
     "empty": "진행 중인 이벤트가 없어요.",
     "cleared": "성공했어요",
-    "rewardLabel": "깨면 받는 옷",
-    "rewardWon": "받은 옷",
     "phase": {
       "upcoming": "오픈 예정",
       "live": "진행 중",
@@ -494,13 +492,14 @@
     },
     "avatar": {
       "title": "내 아바타",
-      "hint": "이 차림으로 놀이에 나가요.",
+      "hint": "이 차림으로 게임에 나가요.",
       "turnTip": "밀어서 돌려 보세요",
       "dress": "꾸미기",
       "dressing": "아바타 꾸미기",
       "loading": "아바타를 불러오는 중",
       "failed": "아바타를 불러오지 못했어요."
-    }
+    },
+    "boxes": "랜덤박스 {count}개"
   },
   "legal": {
     "terms": "이용약관",
