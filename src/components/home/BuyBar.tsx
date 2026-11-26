@@ -44,7 +44,7 @@ export default function BuyBar() {
   });
   const env = paymentEnv();
   const paymentsOpen = canTakePayment(env);
-  // 출시 전 구매 차단(#286) — 판매 전이면 버튼을 '1월 5일 판매 시작'으로 막고 출시 알림 길만 남긴다
+  // 출시 전 구매 차단(#286) — 막혀 있으면 버튼을 '출시 예정'(시작 날짜를 알면 '1월 5일 판매 시작')으로 막고 출시 알림 길만 남긴다
   const salesLock = useSalesLock();
   const salesDate = salesLock.opensOn;
   const soonText = salesDate ? t("salesSoon", { date: salesDate }) : t("soon");
@@ -143,13 +143,13 @@ export default function BuyBar() {
               </button>
             </div>
             {salesLock.locked ? (
-              // 판매 전 — 누를 수 없는 버튼에 판매 시작 날짜(서버도 주문·결제 승인을 막는다)
+              // 판매 전 — 누를 수 없는 버튼에 '출시 예정'이나 판매 시작 날짜(서버도 주문·결제 승인을 막는다)
               <button
                 type="button"
                 disabled
                 className="ml-[4px] flex h-[44px] cursor-not-allowed items-center whitespace-nowrap rounded-full bg-paper/80 px-[14px] text-[14px] font-semibold text-ink/70 min-[390px]:px-[18px]"
               >
-                {salesDate ? t("salesStartsOn", { date: salesDate }) : t("soon")}
+                {salesDate ? t("salesStartsOn", { date: salesDate }) : t("comingSoon")}
               </button>
             ) : (
               <button

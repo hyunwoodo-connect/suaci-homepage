@@ -157,6 +157,20 @@ describe("주문서(첫 구매)", () => {
     expect(createOrder).not.toHaveBeenCalled();
   });
 
+  it("구매 막기 스위치가 켜져 있으면(시작 날짜 없음) → 결제 버튼이 '출시 예정'으로 막히고 주문을 만들지 않는다", async () => {
+    getSalesStatus.mockResolvedValueOnce({ open: false });
+    listAddresses.mockResolvedValue([ADDRESS]);
+    await act(async () => {
+      renderPage();
+    });
+    const cta = (await screen.findByRole("button", { name: "출시 예정" })) as HTMLButtonElement;
+    expect(cta.disabled).toBe(true);
+    await act(async () => {
+      fireEvent.click(cta);
+    });
+    expect(createOrder).not.toHaveBeenCalled();
+  });
+
   it("주소 없음 → '배송지 입력' + 주소 폼", async () => {
     listAddresses.mockResolvedValue([]);
     await act(async () => {

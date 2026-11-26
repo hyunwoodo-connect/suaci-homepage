@@ -515,6 +515,7 @@
       "resume": "결제하지 않은 주문이 있어요.",
       "resumeCta": "이어서 결제하기",
       "soon": "판매 준비 중이에요.",
+      "comingSoon": "출시 예정",
       "notify": "출시 알림 신청",
       "salesStartsOn": "{date} 판매 시작",
       "salesSoon": "{date}부터 판매해요."

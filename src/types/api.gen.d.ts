@@ -930,15 +930,11 @@ export interface ProductSummary {
 
 // ── src/domains/sales/sales.types.ts
 
-/**
- * @module sales.types
- * @description 출시 전 구매 차단(#286) — 판매 시작 시각 전에는 주문·결제 승인을 막고, 허용 목록 계정만 통과시킨다.
- */
-/** SSM 에서 읽은 판매 설정 원문. 없으면(파라미터를 안 만들었으면) 늘 판매 중 — 배포만으로는 아무것도 막지 않는다 */
+/** SSM 에서 읽은 판매 설정 원문. 파라미터를 안 만들었으면 시작 시각이 없고 허용 목록이 비어 있다 — 배포만으로는 아무것도 막지 않는다 */
 export interface SalesConfig {
-  /** 판매 시작 시각 ISO 8601(예 `2027-01-05T00:00:00+09:00`). 없으면 판매 중 */
+  /** 판매 시작 시각 ISO 8601(예 `2027-01-05T00:00:00+09:00`). 없으면 시각으로는 막지 않는다 */
   opensAt?: string
-  /** 판매 전에도 살 수 있는 계정 이메일(소문자로 비교) — 라이브 소액 점검용 */
+  /** 막힌 동안에도 살 수 있는 계정 이메일(소문자로 비교) — 라이브 소액 점검용 */
   allowlist: readonly string[]
 }
 
@@ -948,6 +944,42 @@ export interface SalesStatusView {
   /** 판매 전일 때 시작 시각(Unix ms·KST ISO). 설정 값이 틀려 모르면 없다 */
   opensAt?: number
   opensAtDtm?: string
+}
+
+/** `PUT /admin/sales/lock` 입력 — 스위치를 켤지(true = 구매를 막는다)와 남길 메모 */
+export interface SetSalesLockInput {
+  locked: boolean
+  note?: string
+}
+
+/** 스위치를 바꾼 기록 한 줄(관리 툴) */
+export interface SalesLockLogView {
+  /** 바꾼 뒤 상태 — true 면 막았다, false 면 열었다 */
+  locked: boolean
+  changedBy: string
+  note?: string
+  changedAt: number
+  changedDtm: string
+}
+
+/** 관리 툴의 구매 막기 화면(`GET`·`PUT /admin/sales/lock`) */
+export interface SalesLockAdminView {
+  /** 스위치 — 켜져 있으면(true) 구매를 막는다. 한 번도 누른 적 없으면 false */
+  locked: boolean
+  /** 지금 손님이 살 수 있는가 — 스위치와 판매 시작 시각을 합친 결과(`GET /sales/status` 의 `open` 과 같다) */
+  open: boolean
+  /** 마지막으로 바꾼 사람·메모·시각. 한 번도 누른 적 없으면 없다 */
+  changedBy?: string
+  note?: string
+  changedAt?: number
+  changedDtm?: string
+  /** 판매 시작 시각(SSM)이 걸려 있고 아직 전일 때 — 스위치를 꺼도 이 시각까지는 막힌다. 스위치가 꺼져 있는데 `open` 이 false 고 이 값도 없으면 시각 설정이 틀린 것이다 */
+  opensAt?: number
+  opensAtDtm?: string
+  /** 막힌 동안에도 살 수 있는 계정(SSM 허용 목록 — 라이브 점검용) */
+  allowlist: string[]
+  /** 바꾼 기록, 최신 먼저(최근 20줄) */
+  history: SalesLockLogView[]
 }
 
 // ── src/domains/stock/stock.types.ts
