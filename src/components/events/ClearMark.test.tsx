@@ -34,4 +34,13 @@ describe("ClearMark", () => {
     await renderMark("teum01");
     expect(screen.queryByText("성공했어요")).toBeNull();
   });
+
+  it("놀이에 다녀와 뒤로가기로 되살아난 화면 → 그사이 깬 것을 표시한다", async () => {
+    await renderMark("teum01");
+    recordClear({ eventId: "teum01", activityId: "teum", at: 1 });
+    act(() => {
+      window.dispatchEvent(new Event("pageshow"));
+    });
+    expect(screen.getByText("성공했어요")).toBeTruthy();
+  });
 });

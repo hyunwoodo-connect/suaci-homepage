@@ -32,8 +32,13 @@ export default function ClearMark({ eventId }: ClearMarkProps) {
 
 /* ─── 내부 ─────────────────────────── */
 
-// 다른 탭에서 깨고 돌아왔을 때도 따라가게 저장소가 바뀌는 것을 듣는다
+// 깨고 돌아왔을 때 따라가게 듣는 것: 다른 탭에서 깼으면 저장소가 바뀌고(storage), 같은 탭에서 놀이에 다녀와 뒤로가기로 돌아오면
+// 브라우저가 이 화면을 그대로 되살린다(pageshow — 다시 그리지 않으므로 이때 다시 읽는다)
 function subscribe(onChange: () => void): () => void {
   window.addEventListener("storage", onChange);
-  return () => window.removeEventListener("storage", onChange);
+  window.addEventListener("pageshow", onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener("pageshow", onChange);
+  };
 }

@@ -41,6 +41,12 @@ describe("recordClear · readClear", () => {
     expect(readClear("booth01")).not.toHaveProperty("bestSeconds");
   });
 
+  it("걸린 시간이 셀 수 없는 값 → 시간 없이 적고, 기록은 다음에도 읽힌다", () => {
+    recordClear({ eventId: "teum01", activityId: "teum", at: NOON_KST, seconds: Number.NaN });
+    const record = readClear("teum01");
+    expect([record?.count, record?.bestSeconds]).toEqual([1, undefined]);
+  });
+
   it("이벤트마다 따로 남는다", () => {
     recordClear({ eventId: "teum01", activityId: "teum", at: NOON_KST });
     expect(readClear("teum02")).toBeNull();

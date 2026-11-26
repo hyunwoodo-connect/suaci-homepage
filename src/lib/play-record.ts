@@ -3,7 +3,7 @@
 // 보상을 붙일 때 쓸 값이고, 기록에는 UTC 와 한국 시각을 함께 둔다. 보상을 실제로 줄 때는 서버가 다시 확인해야 한다(이 기록은 기기의 것이다)
 
 /** 이벤트 하나를 깬 기록 */
-export interface ClearRecord {
+interface ClearRecord {
   /** 어떤 놀이였나(놀이 모듈 id) */
   activityId: string;
   /** 깬 횟수 */
@@ -19,7 +19,7 @@ export interface ClearRecord {
 }
 
 /** 깬 일 하나(놀이가 알린 것) */
-export interface Clear {
+interface Clear {
   eventId: string;
   activityId: string;
   /** 깬 때(UTC 밀리초) */
@@ -52,7 +52,9 @@ export function recordClear(clear: Clear): void {
     lastAt: clear.at,
     lastDtm: dtm,
   };
-  const best = fastest(before?.bestSeconds, clear.seconds);
+  // 셀 수 없는 값(NaN·무한)은 JSON 에 null 로 남아 다음에 기록 전체를 못 읽게 한다 — 시간으로 치지 않는다
+  const seconds = Number.isFinite(clear.seconds) ? clear.seconds : undefined;
+  const best = fastest(before?.bestSeconds, seconds);
   if (best !== undefined) record.bestSeconds = best;
   clears[clear.eventId] = record;
   try {

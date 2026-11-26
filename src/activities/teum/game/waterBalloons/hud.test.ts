@@ -159,7 +159,7 @@ describe("WaterBalloonHud 성공 판", () => {
 
   it("단추 → 누르는 칸이 44px 이상", () => {
     const { buttonNamed } = mount();
-    const heights = ["한 번 더", "계속 놀기"].map((name) =>
+    const heights = ["한 번 더", "계속 놀기", "나가기"].map((name) =>
       parseInt(buttonNamed(name).style.minHeight),
     );
     expect(heights.every((h) => h >= 44)).toBe(true);

@@ -482,13 +482,13 @@
     "after": "we'll email you where and how to send it. once we've checked the returned item, we'll send you a new one."
   },
   "events": {
-    "title": "Events",
-    "empty": "No events yet.",
+    "title": "events",
+    "empty": "no events yet.",
     "cleared": "cleared",
     "phase": {
-      "upcoming": "Coming soon",
-      "live": "Live",
-      "ended": "Ended"
+      "upcoming": "coming soon",
+      "live": "live",
+      "ended": "ended"
     },
     "avatar": {
       "title": "my avatar",
