@@ -11,6 +11,8 @@ export interface SuccessPanelHandlers {
   onAgain(): void;
   /** 계속 놀기 */
   onKeepPlaying(): void;
+  /** 나가기 */
+  onLeave(): void;
 }
 
 /** 물풍선 놀이의 성공 판 */
@@ -93,7 +95,9 @@ export class SuccessPanel {
     const keep = panelButton("계속 놀기", "#fff", INK);
     keep.addEventListener("click", () => on.onKeepPlaying());
     buttons.append(this.again, keep);
-    this.el.append(wordmark, title, this.doneLine, time, buttons);
+    const leave = leaveButton();
+    leave.addEventListener("click", () => on.onLeave());
+    this.el.append(wordmark, title, this.doneLine, time, buttons, leave);
   }
 
   /** 띄운다: 먹은 수와 걸린 시간 */
@@ -137,6 +141,31 @@ function panelButton(text: string, background: string, color: string): HTMLButto
     fontFamily: HUD_FONT,
     fontSize: "16px",
     fontWeight: "700",
+    cursor: "pointer",
+    touchAction: "manipulation",
+  });
+  return b;
+}
+
+// 나가기: 두 단추 아래의 글자 단추(판의 주인공은 '한 번 더' — 나가는 길은 조용하게, 누르는 자리는 44px)
+function leaveButton(): HTMLButtonElement {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.textContent = "나가기";
+  Object.assign(b.style, {
+    display: "block",
+    width: "100%",
+    minHeight: "44px",
+    margin: "6px 0 -8px",
+    border: "0",
+    padding: "0",
+    background: "transparent",
+    color: INK,
+    fontFamily: HUD_FONT,
+    fontSize: "15px",
+    fontWeight: "600",
+    textDecoration: "underline",
+    textUnderlineOffset: "4px",
     cursor: "pointer",
     touchAction: "manipulation",
   });

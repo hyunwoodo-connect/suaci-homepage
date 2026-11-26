@@ -251,6 +251,19 @@ describe("물풍선 성공 뒤", () => {
     expect(w.player.p.distanceTo(stood)).toBe(0);
   });
 
+  it("나가기 → 나가겠다고 알리기만 한다(판과 놀이는 그대로 — 데리고 나가는 것은 연 쪽이다)", () => {
+    const w = cleared();
+    let left = 0;
+    w.s.events.on("leavePressed", () => left++);
+    press(w, "나가기");
+    w.frame();
+    expect([left, w.panel()?.style.visibility, w.game.round.stage]).toEqual([
+      1,
+      "visible",
+      "cleared",
+    ]);
+  });
+
   it("한 번 더 → 내가 서 있는 자리의 물풍선은 나오자마자 먹히지 않는다", () => {
     const w = cleared();
     press(w, "한 번 더");

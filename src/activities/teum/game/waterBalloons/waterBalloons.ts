@@ -147,6 +147,7 @@ export class WaterBalloons implements Thing {
     this.hud = new WaterBalloonHud(parent, {
       onAgain: () => this.playAgain(),
       onKeepPlaying: () => this.keepPlaying(),
+      onLeave: () => s.events.emit("leavePressed", {}),
     });
     this.hud.setCount(0, total);
     const round = this.round;
