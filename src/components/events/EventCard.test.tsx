@@ -47,9 +47,9 @@ describe("EventCard", () => {
   });
 
   it.each([
-    ["upcoming", "Coming soon"],
-    ["live", "Live"],
-    ["ended", "Ended"],
+    ["upcoming", "coming soon"],
+    ["live", "live"],
+    ["ended", "ended"],
   ] as const)("phase %s → 태그 %s", (phase, label) => {
     expect(render(phase)).toContain(`>${label}<`);
   });

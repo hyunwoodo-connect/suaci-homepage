@@ -7,6 +7,7 @@ import type { Manifest } from "@/lib/asset-kit/manifest";
 import { assetUrl } from "@/lib/asset-kit/manifest";
 
 import { AVATAR_BUNDLE } from "./bundle";
+import { closetLabels } from "./closet-labels";
 import { legacyAvatar } from "./legacy-record";
 import { AvatarModels } from "./models";
 import { blankOutfit } from "./outfit-shader";
@@ -68,11 +69,12 @@ const PORTRAIT_ANGLE = 0.3,
 
 /**
  * 방을 연다: 기록을 읽어 차림을 정하고, 몸과 그 차림의 부품·무늬를 받은 뒤 그리기 시작한다.
- * 나머지 부품·무늬는 옷장을 열 때 뒤에서 받는다(고르는 순간 바로 입게)
+ * 나머지 부품·무늬는 옷장을 열 때 뒤에서 받는다(고르는 순간 바로 입게). locale: 방을 여는 화면의 언어(옷장 글자)
  */
 export function openAvatarRoom(
   canvas: HTMLCanvasElement,
   manifest: Manifest,
+  locale: string,
   on: RoomHandlers,
 ): OpenRoom {
   const stage = createStage(canvas);
@@ -120,6 +122,7 @@ export function openAvatarRoom(
     },
     // 옷장은 화면의 '꾸미기' 단추로 연다
     hasWearButton: false,
+    labels: closetLabels(locale),
     need: (key) => models.need(key),
     onToggle(isOpen) {
       isDressing = isOpen;

@@ -14,6 +14,10 @@ interface StartOptions {
   assets: Manifest;
   /** 첫 화면 에셋을 받는 동안(받은 바이트 / 전체). 다 받고 첫 프레임을 그리기 직전에 1 */
   onProgress?: (ratio: number) => void;
+  /** 놀이를 깼다(물풍선을 다 먹었다 — 걸린 시간). 한 번 더 해서 또 깨면 또 알린다 */
+  onClear: (result: { seconds: number }) => void;
+  /** 나가기를 눌렀다 — 어디로 데리고 나갈지는 여는 쪽이 정한다 */
+  onLeave: () => void;
 }
 
 /** 돌고 있는 게임 */
@@ -29,12 +33,15 @@ interface RunningGame {
  */
 export function start(
   canvas: HTMLCanvasElement,
-  { assets, onProgress }: StartOptions,
+  { assets, onProgress, onClear, onLeave }: StartOptions,
 ): RunningGame {
   const seed = devSeed() ?? randomSeed();
   const map = devMap() ?? DEFAULT_MAP;
   const festival = devFestival();
   const game = new Game(canvas, assets, seed, map, festival);
+  // 놀이는 시작과 끝으로 닫혀 있다: 깬 것과 나가겠다는 것만 밖에 알리고, 기록·이동은 여는 쪽이 한다
+  game.s.events.on("waterBalloonsCleared", ({ seconds }) => onClear({ seconds }));
+  game.s.events.on("leavePressed", onLeave);
   let stopped = false,
     raf = 0,
     last = 0;

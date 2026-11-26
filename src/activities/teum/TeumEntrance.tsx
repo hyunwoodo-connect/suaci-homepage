@@ -1,16 +1,22 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { fetchManifest } from "@/lib/asset-kit/manifest";
+import { recordClear } from "@/lib/play-record";
 
 import type { EntranceProps } from "../types";
 import { TEUM_BUNDLE } from "./assets/config";
+
+/** 나가기를 누르면 가는 곳: 내 아바타와 놀이들이 있는 이벤트 목록 */
+const EVENTS_PATH = "/events";
 
 /**
  * '틈' 입구: 화면 전체가 게임이다. 첫 화면 에셋을 받는 동안 진행 막대를 보이고, 다 받으면 게임이 그리기 시작한다.
  * 게임 코드(three)는 이 화면에서만, 열릴 때 따로 받는다(다른 화면의 묶음에 섞이지 않게).
  * 열리기 전·끝난 뒤에는 레코드의 문구만 보인다.
+ * 놀이는 깬 것과 나가겠다는 것만 알린다 — 깬 기록은 여기서 이 기기에 남기고(이벤트 페이지의 카드가 표시한다), 나갈 때는 이벤트 목록으로 간다.
  */
 export default function TeumEntrance({ event }: EntranceProps) {
   if (event.phase !== "live") {
@@ -22,16 +28,19 @@ export default function TeumEntrance({ event }: EntranceProps) {
       </main>
     );
   }
-  return <Stage title={event.card.title} />;
+  return <Stage title={event.card.title} eventId={event.eventId} activityId={event.activityId} />;
 }
 
 /* ─── 하위 컴포넌트 ─────────────────────────── */
 
 interface StageProps {
   title: string;
+  eventId: string;
+  activityId: string;
 }
 
-function Stage({ title }: StageProps) {
+function Stage({ title, eventId, activityId }: StageProps) {
+  const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [progress, setProgress] = useState(0);
   const [failed, setFailed] = useState(false);
@@ -46,7 +55,12 @@ function Stage({ title }: StageProps) {
     Promise.all([manifestJob, gameJob])
       .then(([assets, game]) => {
         if (cancelled) return;
-        stop = game.start(canvas, { assets, onProgress: setProgress }).stop;
+        stop = game.start(canvas, {
+          assets,
+          onProgress: setProgress,
+          onClear: ({ seconds }) => recordClear({ eventId, activityId, at: Date.now(), seconds }),
+          onLeave: () => router.push(EVENTS_PATH),
+        }).stop;
       })
       .catch(() => {
         if (!cancelled) setFailed(true);
@@ -55,7 +69,7 @@ function Stage({ title }: StageProps) {
       cancelled = true;
       stop?.();
     };
-  }, []);
+  }, [eventId, activityId, router]);
 
   const loading = progress < 1;
   const percent = progress * 100;

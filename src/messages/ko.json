@@ -484,6 +484,7 @@
   "events": {
     "title": "이벤트",
     "empty": "진행 중인 이벤트가 없어요.",
+    "cleared": "성공했어요",
     "phase": {
       "upcoming": "오픈 예정",
       "live": "진행 중",

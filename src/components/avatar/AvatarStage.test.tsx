@@ -14,7 +14,7 @@ vi.mock("@/lib/asset-kit/manifest", () => ({ fetchManifest }));
 
 import AvatarStage from "./AvatarStage";
 
-/** 방이 화면에 알리는 것(openAvatarRoom 의 세 번째 인자) */
+/** 방이 화면에 알리는 것(openAvatarRoom 의 마지막 인자) */
 interface Handlers {
   onReady(): void;
   onToggle(isOpen: boolean): void;
@@ -34,7 +34,7 @@ async function renderStage() {
 }
 
 function handlers(): Handlers {
-  return openAvatarRoom.mock.calls[0][2] as Handlers;
+  return openAvatarRoom.mock.calls[0][3] as Handlers;
 }
 
 const dressButton = () => screen.getByRole("button", { name: "꾸미기" });
@@ -104,6 +104,11 @@ describe("AvatarStage", () => {
     await renderStage();
     expect(openAvatarRoom).not.toHaveBeenCalled();
     expect(screen.getByRole("alert")).toBeTruthy();
+  });
+
+  it("방을 열 때 → 이 화면의 언어를 넘긴다(옷장 글자가 그 언어로 나온다)", async () => {
+    await renderStage();
+    expect(openAvatarRoom.mock.calls[0][2]).toBe("ko");
   });
 
   it("화면을 떠나면 → 방을 치운다", async () => {

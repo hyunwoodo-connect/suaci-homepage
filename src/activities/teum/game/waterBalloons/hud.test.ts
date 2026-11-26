@@ -9,6 +9,7 @@ function mount() {
   const hud = new WaterBalloonHud(parent, {
     onAgain: () => pressed.push("again"),
     onKeepPlaying: () => pressed.push("keep"),
+    onLeave: () => pressed.push("leave"),
   });
   const root = parent.firstElementChild as HTMLElement;
   const buttonNamed = (name: string) =>
@@ -147,17 +148,18 @@ describe("WaterBalloonHud 성공 판", () => {
     ]);
   });
 
-  it("'한 번 더'·'계속 놀기' → 누른 것을 알린다", () => {
+  it("'한 번 더'·'계속 놀기'·'나가기' → 누른 것을 알린다", () => {
     const { hud, pressed, buttonNamed } = mount();
     hud.showSuccess(10, 20);
     buttonNamed("한 번 더").click();
     buttonNamed("계속 놀기").click();
-    expect(pressed).toEqual(["again", "keep"]);
+    buttonNamed("나가기").click();
+    expect(pressed).toEqual(["again", "keep", "leave"]);
   });
 
   it("단추 → 누르는 칸이 44px 이상", () => {
     const { buttonNamed } = mount();
-    const heights = ["한 번 더", "계속 놀기"].map((name) =>
+    const heights = ["한 번 더", "계속 놀기", "나가기"].map((name) =>
       parseInt(buttonNamed(name).style.minHeight),
     );
     expect(heights.every((h) => h >= 44)).toBe(true);

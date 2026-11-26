@@ -75,6 +75,8 @@ export interface GameEventMap {
   waterBalloonPopped: { count: number; total: number };
   /** 물풍선을 다 먹었다(seconds: 처음 움직인 때부터 걸린 시간) */
   waterBalloonsCleared: { seconds: number };
+  /** 성공 판에서 나가기를 눌렀다 — 놀이를 연 쪽(입구)이 듣고 데리고 나간다(놀이는 어디로 가는지 모른다) */
+  leavePressed: Record<string, never>;
 }
 
 /** 알리는 일의 이름 */
