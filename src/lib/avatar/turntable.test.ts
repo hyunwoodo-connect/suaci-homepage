@@ -70,15 +70,50 @@ describe("Turntable", () => {
     expect(table.angle).toBeGreaterThan(left + 0.8);
   });
 
-  it("멈춰 세우면(옷장을 여닫을 때) → 쉬었다가 다시 돈다", () => {
+  it("쉬고 난 뒤 → 빠르기가 서서히 붙는다(처음 0.5초는 제 빠르기의 절반도 못 간다)", () => {
     const table = new Turntable(false);
-    run(table, 1);
-    table.pause();
-    const paused = table.angle;
+    table.hold();
+    table.release(0);
+    run(table, 1.7);
+    const from = table.angle;
+    run(table, 0.5);
+    const moved = from - table.angle;
+    expect([moved > 0.02, moved < 0.1]).toEqual([true, true]);
+  });
+
+  it("반대쪽으로 세게 밀어 떼도 → 도는 빠르기에 한도가 있다", () => {
+    const table = new Turntable(false);
+    table.hold();
+    table.release(100000);
+    table.step(0.01);
+    expect([table.angle < 0, table.angle > -0.1]).toEqual([true, true]);
+  });
+
+  it("앞으로 돌려 세우면(옷장을 여닫을 때) → 뒤를 보고 있었어도 처음 자리에서 쉰다", () => {
+    const table = new Turntable(false);
+    table.hold();
+    table.move(-250);
+    table.release(-300);
+    table.face();
     run(table, 1.5);
-    const resting = table.angle;
-    run(table, 4);
-    expect([resting === paused, table.angle < paused - 0.8]).toEqual([true, true]);
+    expect(table.angle).toBe(0);
+  });
+
+  it("앞으로 돌려 세운 뒤 → 쉬었다가 얼굴 앞을 지나가는 쪽으로 다시 돈다", () => {
+    const table = new Turntable(false);
+    table.hold();
+    table.move(-250);
+    table.face();
+    run(table, 5.5);
+    expect(table.angle).toBeLessThan(-0.8);
+  });
+
+  it("손을 댄 채 앞으로 돌려 세우면 → 붙들린 채로 남지 않는다(다시 돈다)", () => {
+    const table = new Turntable(false);
+    table.hold();
+    table.face();
+    run(table, 5.5);
+    expect(table.angle).toBeLessThan(-0.8);
   });
 
   it("움직임 줄이기 → 저절로 돌지 않는다", () => {

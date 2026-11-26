@@ -140,7 +140,7 @@ export function openAvatarRoom(
     need: (key) => models.need(key),
     onToggle(isOpen) {
       isDressing = isOpen;
-      table.pause();
+      table.face();
       on.onToggle(isOpen);
     },
     onPicked() {},
@@ -281,7 +281,7 @@ function framePortrait(camera: THREE.PerspectiveCamera, turned: number, hasBoard
     wideFit = PORTRAIT_WIDTH / 2 / (reach * camera.aspect),
     distance = Math.max(tallFit, wideFit);
   const angle = PORTRAIT_ANGLE + turned;
-  // 꾸미기 씬과 같은 쪽(얼굴 앞에서 아바타의 오른쪽)으로 비켜 선다 — 옷장을 열 때 카메라가 반대편으로 건너뛰지 않게
+  // 처음과 옷장을 닫은 직후에는 꾸미기 씬과 같은 쪽(얼굴 앞에서 아바타의 오른쪽)에 비켜 선다 — 옷장을 닫을 때 카메라가 반대편으로 건너뛰지 않게
   const side = -Math.sin(angle) * distance,
     front = Math.cos(angle) * distance;
   camera.position.set(side, center, front);

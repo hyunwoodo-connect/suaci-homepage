@@ -14,6 +14,9 @@ const ORBIT_RATE = 0.4,
   ORBIT_REST = 1.6,
   ORBIT_GAIN = 1.5;
 
+/** 처음 저절로 도는 쪽: 얼굴 앞을 지나가는 쪽(초상은 얼굴 앞에서 조금 옆에 서서 시작한다) */
+const FIRST_SIDE = -1;
+
 /** 초상의 돌림판 */
 export class Turntable {
   /** 카메라가 아바타 둘레를 돈 각(라디안) */
@@ -21,9 +24,9 @@ export class Turntable {
   private readonly isStill: boolean;
   // 손을 뗀 뒤 도는 빠르기(라디안/초)
   private spin = 0;
-  // 저절로 도는 세기(0~1)와 그 방향 — 마지막으로 민 쪽. 처음에는 얼굴 앞을 지나가는 쪽으로 돈다(초상은 얼굴 앞에서 조금 옆에 서서 시작한다)
+  // 저절로 도는 세기(0~1)와 그 방향 — 마지막으로 민 쪽
   private orbit: number;
-  private side = -1;
+  private side = FIRST_SIDE;
   // 멈춘 뒤 흐른 시간(초)
   private rest = ORBIT_REST;
   private isHeld = false;
@@ -54,8 +57,10 @@ export class Turntable {
     this.spin = Math.max(-SPIN_MAX, capped);
   }
 
-  /** 돌던 것을 멈춰 세운다(옷장을 여닫을 때) — 쉬었다가 다시 저절로 돈다 */
-  pause() {
+  /** 처음 자리(얼굴 앞)로 돌려 세운다 — 옷장을 닫으면 갈아입은 차림을 앞에서 먼저 본다. 쉬었다가 다시 저절로 돈다 */
+  face() {
+    this.angle = 0;
+    this.side = FIRST_SIDE;
     this.isHeld = false;
     this.halt();
   }
