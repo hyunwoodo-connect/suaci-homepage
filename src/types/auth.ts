@@ -12,7 +12,7 @@ export type SignupRequest = Api.SignupInput;
 export type ConfirmRequest = Api.ConfirmInput;
 /** 이메일 로그인 요청 */
 export type LoginRequest = Api.LoginInput;
-/** 소셜 로그인 프로바이더(화면 순서) — 늘리는 법은 docs/project-context.md */
+/** 소셜 로그인 프로바이더(화면 순서) — 늘리는 법은 docs/site-notes.md '소셜 프로바이더 추가' */
 export const SOCIAL_PROVIDERS = ["kakao", "naver"] as const;
 /** 소셜 로그인 프로바이더 하나 */
 export type SocialProvider = (typeof SOCIAL_PROVIDERS)[number];
